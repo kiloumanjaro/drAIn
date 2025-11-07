@@ -23,6 +23,7 @@ import { OverlayLegend } from "../../overlay-legend";
 import { ChartPieDonutText } from "../../chart-pie";
 import { ReportsToggle } from "../../reports-toggle";
 import { FloodScenarioCard } from "../../flood-scenario-card";
+import { PopulationToggle } from "../../population-toggle";
 
 interface OverlayContentProps {
   overlays: {
@@ -45,7 +46,7 @@ interface OverlayContentProps {
   isSimulationMode?: boolean;
 }
 
-type ComponentId = "chart" | "layers" | "reports" | "flood";
+type ComponentId = "chart" | "layers" | "reports" | "flood" | "population";
 
 interface ComponentMetadata {
   id: ComponentId;
@@ -118,6 +119,7 @@ export default function OverlaysContent({
     "chart",
     "layers",
     "flood",
+    "population",
     "reports",
   ]);
 
@@ -210,6 +212,30 @@ export default function OverlaysContent({
             onToggle={() => onToggleOverlay("flood_hazard-layer")}
             selectedScenario={selectedFloodScenario}
             onScenarioChange={onChangeFloodScenario}
+          />
+        ),
+      },
+      {
+        id: "population" as ComponentId,
+        keywords: [
+          "population",
+          "barangay",
+          "barangays",
+          "density",
+          "residents",
+          "people",
+          "demographics",
+          "mandaue",
+          "city",
+          "area",
+          "land",
+        ],
+        component: (
+          <PopulationToggle
+            isVisible={
+              overlays.find((o) => o.id === "mandaue_population-layer")?.visible ?? true
+            }
+            onToggle={() => onToggleOverlay("mandaue_population-layer")}
           />
         ),
       },

@@ -24,6 +24,7 @@ import {
   getLineHitAreaPaintConfig,
   getCircleHitAreaPaintConfig,
   getFloodHazardPaintConfig,
+  getMandauePopulationPaintConfig,
   CAMERA_ANIMATION,
 } from "@/lib/map/config";
 import mapboxgl from "mapbox-gl";
@@ -66,6 +67,7 @@ function MapPageContent() {
     "outlets-layer": true,
     "reports-layer": true,
     "flood_hazard-layer": true,
+    "mandaue_population-layer": true,
   });
 
   const [selectedFeature, setSelectedFeature] = useState<{
@@ -307,6 +309,20 @@ function MapPageContent() {
               type: "fill",
               source: "flood_hazard",
               paint: getFloodHazardPaintConfig(),
+            });
+          }
+
+          if (!map.getSource("mandaue_population")) {
+            map.addSource("mandaue_population", {
+              type: "geojson",
+              data: "/overlays/mandaue_population.geojson",
+            });
+
+            map.addLayer({
+              id: "mandaue_population-layer",
+              type: "fill",
+              source: "mandaue_population",
+              paint: getMandauePopulationPaintConfig(),
             });
           }
 

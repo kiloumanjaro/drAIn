@@ -91,6 +91,12 @@ export const LAYER_COLORS = {
     default: "#ffffbf", // Pale for undefined or safe zones
     opacity: 0.8,
   },
+  mandaue_population: {
+    color: "#0288d1", // Blue for population
+    opacity: 0.5,
+    strokeColor: "#0288d1",
+    strokeWidth: 1,
+  },
 } as const;
 
 // OVERLAY_CONFIG synchronized with LAYER_COLORS
@@ -103,6 +109,7 @@ export const OVERLAY_CONFIG = [
   },
   { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
   { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
+  { id: "mandaue_population-layer", name: "Population", color: LAYER_COLORS.mandaue_population.color },
 ];
 
 export const LAYER_IDS: string[] = [
@@ -111,6 +118,7 @@ export const LAYER_IDS: string[] = [
   "inlets-layer",
   "outlets-layer",
   "flood_hazard-layer",
+  "mandaue_population-layer",
 ];
 
 // Hit area layer IDs for click detection and cursor feedback
@@ -231,6 +239,15 @@ export function getFloodHazardPaintConfig() {
       config.default,
     ] as unknown as string,
     "fill-opacity": config.opacity,
+  };
+}
+
+export function getMandauePopulationPaintConfig() {
+  const config = LAYER_COLORS.mandaue_population;
+  return {
+    "fill-color": config.color,
+    "fill-opacity": config.opacity,
+    "fill-outline-color": config.strokeColor,
   };
 }
 
