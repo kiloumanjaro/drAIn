@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Power } from "lucide-react";
+import { Info, Power } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 
@@ -43,10 +43,15 @@ export function PopulationToggle({
   return (
     <div className="bg-[#f7f7f7] rounded-xl border border-[#e2e2e2]">
       <div
-        className="py-2 px-4 flex flex-row items-center justify-between"
-        onClick={onNavigateToDataSource}
+        className="py-2 px-4 flex flex-row items-center justify-between cursor-pointer hover:bg-[#e8e8e8] transition-colors rounded-t-xl"
+        onClick={() => {
+          if (onNavigateToDataSource) {
+            onNavigateToDataSource();
+          }
+        }}
       >
         <span className="text-xs">Population Data</span>
+        <Info className="h-3.5 w-3.5 opacity-70" />
       </div>
 
       <Card className="border-x-0 border-b-0 gap-3 pb-6">

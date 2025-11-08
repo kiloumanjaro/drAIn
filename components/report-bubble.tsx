@@ -21,7 +21,7 @@ interface Report {
   category: string;
   description: string;
   image?: string | null;
-  address: string
+  address: string;
 }
 
 interface Props {
@@ -38,7 +38,10 @@ export interface ReportBubbleRef {
 }
 
 export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
-  function ReportBubble({ reportSize, report, map, coordinates, onOpen, onHistoryClick }, ref) {
+  function ReportBubble(
+    { reportSize, report, map, coordinates, onOpen, onHistoryClick },
+    ref
+  ) {
     const [isOpen, setIsOpen] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [showImageViewer, setShowImageViewer] = useState(false);

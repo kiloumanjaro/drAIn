@@ -39,6 +39,7 @@ interface OverlayContentProps {
     dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
   ) => void;
   onNavigateToReportForm?: () => void;
+  onNavigateToDataSource?: () => void;
   searchTerm?: string;
   isDragEnabled?: boolean;
   onToggleDrag?: (enabled: boolean) => void;
@@ -110,6 +111,7 @@ export default function OverlaysContent({
   selectedFloodScenario,
   onChangeFloodScenario,
   onNavigateToReportForm,
+  onNavigateToDataSource,
   searchTerm = "",
   isDragEnabled = true,
   reports,
@@ -236,6 +238,7 @@ export default function OverlaysContent({
               overlays.find((o) => o.id === "mandaue_population-layer")?.visible ?? true
             }
             onToggle={() => onToggleOverlay("mandaue_population-layer")}
+            onNavigateToDataSource={onNavigateToDataSource}
           />
         ),
       },
@@ -272,6 +275,7 @@ export default function OverlaysContent({
       onToggleOverlay,
       onNavigateToTable,
       onNavigateToReportForm,
+      onNavigateToDataSource,
       reports,
       isSimulationMode,
       selectedFloodScenario,

@@ -140,7 +140,7 @@
 
 /* Adjust popup content padding */
 .mapboxgl-popup-content {
-  padding: 10px 30px 15px 15px !important; /* Adjust this value as needed */
+  padding: 15px 20px 15px 20px !important; /* Adjust this value as needed */
   border-radius: 8px !important;
 }
 

@@ -24,8 +24,6 @@ import {
   getLineHitAreaPaintConfig,
   getCircleHitAreaPaintConfig,
   getFloodHazardPaintConfig,
-  getMandauePopulationPaintConfig,
-  getMandauePopulationLineConfig,
   CAMERA_ANIMATION,
 } from "@/lib/map/config";
 import mapboxgl from "mapbox-gl";
@@ -330,8 +328,8 @@ function MapPageContent() {
                 "fill-opacity": [
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
-                  0.3,
                   0.09,
+                  0,
                 ],
               },
             });
@@ -345,8 +343,8 @@ function MapPageContent() {
                 "line-width": [
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
-                  3,
                   1,
+                  0,
                 ],
               },
             });
@@ -595,22 +593,40 @@ function MapPageContent() {
               populationPopupRef.current.remove();
             }
 
-            // Create popup HTML
+            // Create popup HTML with custom close button
             const popupHTML = `
-              <div style="padding: 8px; min-width: 200px;">
-                <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #0288d1;">${props.name || 'Unknown Area'}</h3>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
+             <div style="padding: 0px;  min-width: 200px; position: relative;">
+                <button 
+                  onclick="this.closest('.mapboxgl-popup').remove()"
+                  style="position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s;"
+                  onmouseover="this.style.backgroundColor='#e5e7eb'"
+                  onmouseout="this.style.backgroundColor='#f3f4f6'"
+                >
+                  <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; padding-right: 0px;">Barangay ${
+                  props.name || "Unknown Area"
+                }</h3>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
                   <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 13px;">Population:</span>
-                    <span style="font-weight: 600; font-size: 13px;">${props["population-count"] || 'N/A'}</span>
+                    <span style="color: #666; font-size: 12px;">Population</span>
+                    <span style=" font-size: 12px;">${
+                      props["population-count"] || "N/A"
+                    }</span>
                   </div>
                   <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 13px;">Density:</span>
-                    <span style="font-weight: 600; font-size: 13px;">${props["population-density"] || 'N/A'} per km²</span>
+                    <span style="color: #666; font-size: 12px;">Density</span>
+                    <span style=" font-size: 12px;">${
+                      props["population-density"] || "N/A"
+                    } per km²</span>
                   </div>
                   <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 13px;">Land Area:</span>
-                    <span style="font-weight: 600; font-size: 13px;">${props["land-area"] || 'N/A'} km²</span>
+                    <span style="color: #666; font-size: 12px;">Land Area</span>
+                    <span style=" font-size: 12px;">${
+                      props["land-area"] || "N/A"
+                    } km²</span>
                   </div>
                 </div>
               </div>
@@ -619,11 +635,12 @@ function MapPageContent() {
             // Get the center of the polygon
             const coordinates = e.lngLat;
 
-            // Create and add popup
+            // Create and add popup without default close button
             populationPopupRef.current = new mapboxgl.Popup({
-              closeButton: true,
-              closeOnClick: true,
+              closeButton: false,
+              closeOnClick: false,
               maxWidth: "300px",
+              className: "population-popup",
             })
               .setLngLat(coordinates)
               .setHTML(popupHTML)
