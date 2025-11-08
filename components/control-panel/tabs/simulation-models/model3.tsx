@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -446,12 +446,18 @@ export default function Model3({
 
           {/* Rain Effect Toggle */}
           {onToggleRain && (
-            <div className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 bg-muted/20 ${!hasTable ? 'opacity-50' : ''}`}>
+            <div
+              className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 bg-muted/20 ${
+                !hasTable ? "opacity-50" : ""
+              }`}
+            >
               <div className="flex items-center gap-2">
                 <CloudRain className="h-4 w-4 text-muted-foreground" />
                 <Label
                   htmlFor="rain-toggle-model3"
-                  className={`text-sm font-normal ${hasTable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                  className={`text-sm font-normal ${
+                    hasTable ? "cursor-pointer" : "cursor-not-allowed"
+                  }`}
                 >
                   Rain Effect
                 </Label>

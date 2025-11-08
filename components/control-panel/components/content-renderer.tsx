@@ -185,7 +185,6 @@ export function ContentRenderer({
   onToggleDrag,
   isSimulationMode = false,
   selectedPointForSimulation = null,
-  reports,
   activeReportTab = "submission",
   activeAdminTab = "reports",
   dateFilter = "all",

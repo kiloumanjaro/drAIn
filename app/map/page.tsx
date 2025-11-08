@@ -83,6 +83,7 @@ function MapPageContent() {
 
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
   const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
+  const clickedPopulationIdRef = useRef<string | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
 
@@ -327,6 +328,8 @@ function MapPageContent() {
                 "fill-color": "#0288d1",
                 "fill-opacity": [
                   "case",
+                  ["boolean", ["feature-state", "clicked"], false],
+                  0.18,
                   ["boolean", ["feature-state", "hover"], false],
                   0.09,
                   0,
@@ -342,6 +345,8 @@ function MapPageContent() {
                 "line-color": "#0288d1",
                 "line-width": [
                   "case",
+                  ["boolean", ["feature-state", "clicked"], false],
+                  2,
                   ["boolean", ["feature-state", "hover"], false],
                   1,
                   0,
@@ -588,49 +593,73 @@ function MapPageContent() {
             const feature = e.features[0];
             const props = feature.properties || {};
 
+            // Clear previous clicked state
+            if (clickedPopulationIdRef.current !== null) {
+              map.setFeatureState(
+                { source: "mandaue_population", id: clickedPopulationIdRef.current },
+                { clicked: false }
+              );
+            }
+
+            // Set new clicked state
+            clickedPopulationIdRef.current = feature.id as string;
+            map.setFeatureState(
+              { source: "mandaue_population", id: clickedPopulationIdRef.current },
+              { clicked: true }
+            );
+
             // Remove existing popup
             if (populationPopupRef.current) {
               populationPopupRef.current.remove();
             }
 
-            // Create popup HTML with custom close button
-            const popupHTML = `
-             <div style="padding: 0px;  min-width: 200px; position: relative;">
-                <button 
-                  onclick="this.closest('.mapboxgl-popup').remove()"
-                  style="position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s;"
-                  onmouseover="this.style.backgroundColor='#e5e7eb'"
-                  onmouseout="this.style.backgroundColor='#f3f4f6'"
-                >
-                  <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                </button>
-                <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; padding-right: 0px;">Barangay ${
-                  props.name || "Unknown Area"
-                }</h3>
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                  <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 12px;">Population</span>
-                    <span style=" font-size: 12px;">${
-                      props["population-count"] || "N/A"
-                    }</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 12px;">Density</span>
-                    <span style=" font-size: 12px;">${
-                      props["population-density"] || "N/A"
-                    } per km²</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 12px;">Land Area</span>
-                    <span style=" font-size: 12px;">${
-                      props["land-area"] || "N/A"
-                    } km²</span>
-                  </div>
+            // Create popup container
+            const popupContainer = document.createElement("div");
+            popupContainer.style.padding = "0px";
+            popupContainer.style.minWidth = "200px";
+            popupContainer.style.position = "relative";
+
+            // Create close button
+            const closeButton = document.createElement("button");
+            closeButton.style.cssText = "position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s; background-color: #f3f4f6;";
+            closeButton.innerHTML = `
+              <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            `;
+            closeButton.onmouseover = () => closeButton.style.backgroundColor = '#e5e7eb';
+            closeButton.onmouseout = () => closeButton.style.backgroundColor = '#f3f4f6';
+            
+            // Create content
+            const content = document.createElement("div");
+            content.innerHTML = `
+              <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; padding-right: 0px;">Barangay ${
+                props.name || "Unknown Area"
+              }</h3>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #666; font-size: 12px;">Population</span>
+                  <span style=" font-size: 12px;">${
+                    props["population-count"] || "N/A"
+                  }</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #666; font-size: 12px;">Density</span>
+                  <span style=" font-size: 12px;">${
+                    props["population-density"] || "N/A"
+                  } per km²</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #666; font-size: 12px;">Land Area</span>
+                  <span style=" font-size: 12px;">${
+                    props["land-area"] || "N/A"
+                  } km²</span>
                 </div>
               </div>
             `;
+
+            popupContainer.appendChild(closeButton);
+            popupContainer.appendChild(content);
 
             // Get the center of the polygon
             const coordinates = e.lngLat;
@@ -643,8 +672,36 @@ function MapPageContent() {
               className: "population-popup",
             })
               .setLngLat(coordinates)
-              .setHTML(popupHTML)
+              .setDOMContent(popupContainer)
               .addTo(map);
+
+            // Add click handler to close button that properly closes the popup
+            closeButton.onclick = () => {
+              if (populationPopupRef.current) {
+                populationPopupRef.current.remove();
+              }
+            };
+          }
+        });
+
+        // Handle clicks outside population areas to clear clicked state
+        map.on("click", (e) => {
+          const features = map.queryRenderedFeatures(e.point, {
+            layers: ["mandaue_population-fill"]
+          });
+
+          // If click is outside population areas, clear clicked state
+          if (features.length === 0 && clickedPopulationIdRef.current !== null) {
+            map.setFeatureState(
+              { source: "mandaue_population", id: clickedPopulationIdRef.current },
+              { clicked: false }
+            );
+            clickedPopulationIdRef.current = null;
+            
+            // Also remove popup if it exists
+            if (populationPopupRef.current) {
+              populationPopupRef.current.remove();
+            }
           }
         });
       } catch (error) {
