@@ -93,7 +93,7 @@ export const LAYER_COLORS = {
   },
   mandaue_population: {
     color: "#0288d1", // Blue for population
-    opacity: 0.5,
+    opacity: 0.09,
     strokeColor: "#0288d1",
     strokeWidth: 1,
   },
@@ -109,7 +109,11 @@ export const OVERLAY_CONFIG = [
   },
   { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
   { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
-  { id: "mandaue_population-layer", name: "Population", color: LAYER_COLORS.mandaue_population.color },
+  {
+    id: "mandaue_population-layer",
+    name: "Population",
+    color: LAYER_COLORS.mandaue_population.color,
+  },
 ];
 
 export const LAYER_IDS: string[] = [
@@ -247,7 +251,14 @@ export function getMandauePopulationPaintConfig() {
   return {
     "fill-color": config.color,
     "fill-opacity": config.opacity,
-    "fill-outline-color": config.strokeColor,
+  };
+}
+
+export function getMandauePopulationLineConfig() {
+  const config = LAYER_COLORS.mandaue_population;
+  return {
+    "line-color": config.strokeColor,
+    "line-width": config.strokeWidth,
   };
 }
 

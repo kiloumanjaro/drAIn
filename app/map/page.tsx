@@ -25,6 +25,7 @@ import {
   getCircleHitAreaPaintConfig,
   getFloodHazardPaintConfig,
   getMandauePopulationPaintConfig,
+  getMandauePopulationLineConfig,
   CAMERA_ANIMATION,
 } from "@/lib/map/config";
 import mapboxgl from "mapbox-gl";
@@ -83,6 +84,7 @@ function MapPageContent() {
   } | null>(null);
 
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
+  const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
 
@@ -316,13 +318,37 @@ function MapPageContent() {
             map.addSource("mandaue_population", {
               type: "geojson",
               data: "/overlays/mandaue_population.geojson",
+              promoteId: "name",
+            });
+
+            map.addLayer({
+              id: "mandaue_population-fill",
+              type: "fill",
+              source: "mandaue_population",
+              paint: {
+                "fill-color": "#0288d1",
+                "fill-opacity": [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  0.3,
+                  0.09,
+                ],
+              },
             });
 
             map.addLayer({
               id: "mandaue_population-layer",
-              type: "fill",
+              type: "line",
               source: "mandaue_population",
-              paint: getMandauePopulationPaintConfig(),
+              paint: {
+                "line-color": "#0288d1",
+                "line-width": [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  3,
+                  1,
+                ],
+              },
             });
           }
 
@@ -525,6 +551,85 @@ function MapPageContent() {
             map.getCanvas().style.cursor = "";
           });
         });
+
+        // Population layer hover and click interactions
+        let hoveredPopulationId: string | null = null;
+
+        map.on("mousemove", "mandaue_population-fill", (e) => {
+          if (e.features && e.features.length > 0) {
+            map.getCanvas().style.cursor = "pointer";
+
+            const feature = e.features[0];
+            if (hoveredPopulationId !== null) {
+              map.setFeatureState(
+                { source: "mandaue_population", id: hoveredPopulationId },
+                { hover: false }
+              );
+            }
+            hoveredPopulationId = feature.id as string;
+            map.setFeatureState(
+              { source: "mandaue_population", id: hoveredPopulationId },
+              { hover: true }
+            );
+          }
+        });
+
+        map.on("mouseleave", "mandaue_population-fill", () => {
+          map.getCanvas().style.cursor = "";
+          if (hoveredPopulationId !== null) {
+            map.setFeatureState(
+              { source: "mandaue_population", id: hoveredPopulationId },
+              { hover: false }
+            );
+          }
+          hoveredPopulationId = null;
+        });
+
+        map.on("click", "mandaue_population-fill", (e) => {
+          if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+            const props = feature.properties || {};
+
+            // Remove existing popup
+            if (populationPopupRef.current) {
+              populationPopupRef.current.remove();
+            }
+
+            // Create popup HTML
+            const popupHTML = `
+              <div style="padding: 8px; min-width: 200px;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #0288d1;">${props.name || 'Unknown Area'}</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666; font-size: 13px;">Population:</span>
+                    <span style="font-weight: 600; font-size: 13px;">${props["population-count"] || 'N/A'}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666; font-size: 13px;">Density:</span>
+                    <span style="font-weight: 600; font-size: 13px;">${props["population-density"] || 'N/A'} per km²</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666; font-size: 13px;">Land Area:</span>
+                    <span style="font-weight: 600; font-size: 13px;">${props["land-area"] || 'N/A'} km²</span>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            // Get the center of the polygon
+            const coordinates = e.lngLat;
+
+            // Create and add popup
+            populationPopupRef.current = new mapboxgl.Popup({
+              closeButton: true,
+              closeOnClick: true,
+              maxWidth: "300px",
+            })
+              .setLngLat(coordinates)
+              .setHTML(popupHTML)
+              .addTo(map);
+          }
+        });
       } catch (error) {
         console.error("Failed to initialize map:", error);
         setMapError(
@@ -717,6 +822,7 @@ function MapPageContent() {
       "outlets-layer": !someVisible,
       "reports-layer": !someVisible,
       "flood_hazard-layer": !someVisible,
+      "mandaue_population-layer": !someVisible,
     };
 
     setOverlayVisibility(updated);
