@@ -23,6 +23,7 @@ import { OverlayLegend } from "../../overlay-legend";
 import { ChartPieDonutText } from "../../chart-pie";
 import { ReportsToggle } from "../../reports-toggle";
 import { FloodScenarioCard } from "../../flood-scenario-card";
+import { PopulationToggle } from "../../population-toggle";
 
 interface OverlayContentProps {
   overlays: {
@@ -38,6 +39,7 @@ interface OverlayContentProps {
     dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
   ) => void;
   onNavigateToReportForm?: () => void;
+  onNavigateToDataSource?: () => void;
   searchTerm?: string;
   isDragEnabled?: boolean;
   onToggleDrag?: (enabled: boolean) => void;
@@ -45,7 +47,7 @@ interface OverlayContentProps {
   isSimulationMode?: boolean;
 }
 
-type ComponentId = "chart" | "layers" | "reports" | "flood";
+type ComponentId = "chart" | "layers" | "reports" | "flood" | "population";
 
 interface ComponentMetadata {
   id: ComponentId;
@@ -109,6 +111,7 @@ export default function OverlaysContent({
   selectedFloodScenario,
   onChangeFloodScenario,
   onNavigateToReportForm,
+  onNavigateToDataSource,
   searchTerm = "",
   isDragEnabled = true,
   reports,
@@ -118,6 +121,7 @@ export default function OverlaysContent({
     "chart",
     "layers",
     "flood",
+    "population",
     "reports",
   ]);
 
@@ -214,6 +218,31 @@ export default function OverlaysContent({
         ),
       },
       {
+        id: "population" as ComponentId,
+        keywords: [
+          "population",
+          "barangay",
+          "barangays",
+          "density",
+          "residents",
+          "people",
+          "demographics",
+          "mandaue",
+          "city",
+          "area",
+          "land",
+        ],
+        component: (
+          <PopulationToggle
+            isVisible={
+              overlays.find((o) => o.id === "mandaue_population-layer")?.visible ?? true
+            }
+            onToggle={() => onToggleOverlay("mandaue_population-layer")}
+            onNavigateToDataSource={onNavigateToDataSource}
+          />
+        ),
+      },
+      {
         id: "reports" as ComponentId,
         keywords: [
           "reports",
@@ -246,6 +275,7 @@ export default function OverlaysContent({
       onToggleOverlay,
       onNavigateToTable,
       onNavigateToReportForm,
+      onNavigateToDataSource,
       reports,
       isSimulationMode,
       selectedFloodScenario,

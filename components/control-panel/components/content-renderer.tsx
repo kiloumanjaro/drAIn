@@ -81,6 +81,7 @@ interface ContentRendererProps {
     dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
   ) => void;
   onNavigateToReportForm?: () => void;
+  onNavigateToDataSource?: () => void;
 
   // Drag control props
   isDragEnabled?: boolean;
@@ -179,11 +180,11 @@ export function ContentRenderer({
   onChangeFloodScenario,
   onNavigateToTable,
   onNavigateToReportForm,
+  onNavigateToDataSource,
   isDragEnabled,
   onToggleDrag,
   isSimulationMode = false,
   selectedPointForSimulation = null,
-  reports,
   activeReportTab = "submission",
   activeAdminTab = "reports",
   dateFilter = "all",
@@ -246,6 +247,7 @@ export function ContentRenderer({
           onToggleOverlay={onToggleOverlay}
           onNavigateToTable={onNavigateToTable}
           onNavigateToReportForm={onNavigateToReportForm}
+          onNavigateToDataSource={onNavigateToDataSource}
           searchTerm={searchTerm}
           isDragEnabled={isDragEnabled}
           onToggleDrag={onToggleDrag}

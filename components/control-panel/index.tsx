@@ -232,6 +232,10 @@ export function ControlPanel({
     onTabChange("report");
   };
 
+  const handleNavigateToDataSource = () => {
+    window.open("https://psa.gov.ph/statistics/population-and-housing/node/166426", "_blank");
+  };
+
   return (
     <div className={`absolute m-5 flex flex-row h-[600px] w-sm rounded-2xl overflow-hidden ${
       activeTab === "chatbot"
@@ -304,6 +308,7 @@ export function ControlPanel({
             onChangeFloodScenario={onChangeFloodScenario}
             onNavigateToTable={handleNavigateToTable}
             onNavigateToReportForm={handleNavigateToReportForm}
+            onNavigateToDataSource={handleNavigateToDataSource}
             isDragEnabled={isDragEnabled}
             onToggleDrag={handleToggleDrag}
             isSimulationMode={isSimulationMode}

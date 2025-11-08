@@ -59,15 +59,14 @@
 
 The project moves beyond simple hazard mapping by integrating **SWMM-based (Storm Water Management Model) hydraulic simulations** with **AI-driven analytics** and **community participation**. It transforms complex flood data into actionable insights to support proactive maintenance, infrastructure upgrades, and data-driven resilience planning.
 
-
 ### 💡 Why drAIn?
 
 Urban flooding is a critical problem, often caused by heavy rainfall and poor drainage maintenance. While many existing tools focus on flood hazard mapping or risk assessment, they often remain theoretical. They typically lack real-time data integration, community participation, and operational decision support.
 
-* 🧠 **Machine learning - Driven Vulnerability Ranking:** Assesses each drainage component using metrics like flooding volume and overflow duration. It then applies machine learning (K-Means clustering) to classify and rank structural vulnerabilities.
-* 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to simulate the impact of rainfall or structural changes in real time.
-* 👥 **Community Participation:** Incorporates citizen reporting, allowing communities to contribute real-world drainage data for model validation and maintenance tracking.
-* 📊 **Actionable Intelligence:** Converts complex simulation data into clear, actionable intelligence for engineers and planners to make informed decisions.
+- 🧠 **Machine learning - Driven Vulnerability Ranking:** Assesses each drainage component using metrics like flooding volume and overflow duration. It then applies machine learning (K-Means clustering) to classify and rank structural vulnerabilities.
+- 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to simulate the impact of rainfall or structural changes in real time.
+- 👥 **Community Participation:** Incorporates citizen reporting, allowing communities to contribute real-world drainage data for model validation and maintenance tracking.
+- 📊 **Actionable Intelligence:** Converts complex simulation data into clear, actionable intelligence for engineers and planners to make informed decisions.
 
 ### 📚 Tech Stack
 
@@ -87,16 +86,12 @@ Urban flooding is a critical problem, often caused by heavy rainfall and poor dr
   <a href="https://railway.app/"><img alt="Railway" src="https://img.shields.io/badge/Railway-0B0D0E?logo=railway&logoColor=white&style=flat" /></a>
 </p>
 
-
-
-
-
-
 ## 💻 Getting Started
 
 Follow these steps to set up and run **drAIn** locally.
 
 ### 🔧 Prerequisites
+
 - [Node.js](https://nodejs.org/) (version 16.0 or higher)
 - [pnpm](https://pnpm.io/)
 
@@ -148,6 +143,36 @@ Don't forget to give the project a star! Thanks again!
   <img src="https://contrib.rocks/image?repo=eliseoalcaraz/drAIn" alt="contrib.rocks image" />
 </a>
 
+### 🔎 Codebase evaluation (brief)
+
+Positives
+
+- Clear Next.js app-router layout (app/), with UI components under components/, utilities/hooks under lib/ and hooks/, and public assets in public/. This follows common modern Next.js monorepo patterns.
+- TypeScript + pnpm are used consistently which helps reproducible installs and type safety.
+- UI primitives appear centralized (components/ui), and domain code is split into domain folders (control-panel, map, simulation) — good separation of concerns.
+- Use of hooks for data (useInlets, usePipes, etc.) and context providers indicates a predictable data flow.
+
+Areas to improve (actionable)
+
+- Type coverage and runtime safety: several files contain apparent issues (missing returns or references to undefined identifiers). Run `pnpm typecheck` and fix:
+  - Example patterns: functions returning nothing where Promise<T[]> is expected; local variables referenced without declaration (fix promise/error/data handling).
+- Single source of truth for API client & supabase usage: centralize client initialisation and types to avoid duplication.
+- Tests & CI: add unit and integration tests (Playwright is present — add CI job to run them). Add `pnpm test`/`pnpm ci` steps to CI.
+- Lint and formatting: ensure `pnpm lint` and a pre-commit hook run to keep style consistent.
+- Documentation: expand README with:
+  - development checklist (typecheck, lint, test)
+  - architecture overview (what lives in app/, components/, lib/, hooks/)
+  - how to run the simulation API locally (if applicable)
+- Large static assets: very large geojson files under public/ can bloat the repo. Consider moving large datasets to an external storage or separate data-only repo if they grow.
+- Naming consistency: enforce a naming convention for fields (camelCase vs snake_case) and document it to ease mapping between front-end and Supabase column names.
+
+Recommended quick next steps
+
+1. Run: `pnpm install && pnpm typecheck && pnpm lint` locally and fix reported issues.
+2. Add a basic GitHub Actions workflow that runs typecheck, lint and tests on PRs.
+3. Create a short CONTRIBUTING.md with the development workflow (typecheck → lint → tests → format).
+4. Triage and fix the obvious runtime issues shown by typecheck (files with missing returns / undefined identifiers).
+
 <!-- LICENSE -->
 
 ## ⚖️ License
@@ -166,4 +191,3 @@ You may redistribute and/or modify it under the terms of the GNU GPL, as publish
 [stars-url]: https://github.com/eliseoalcaraz/drAIn/stargazers
 [issues-shield]: https://img.shields.io/github/issues/eliseoalcaraz/drAIn.svg?style=for-the-badge
 [issues-url]: https://github.com/eliseoalcaraz/drAIn/issues
-
