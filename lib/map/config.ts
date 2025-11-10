@@ -246,22 +246,6 @@ export function getFloodHazardPaintConfig() {
   };
 }
 
-export function getMandauePopulationPaintConfig() {
-  const config = LAYER_COLORS.mandaue_population;
-  return {
-    "fill-color": config.color,
-    "fill-opacity": config.opacity,
-  };
-}
-
-export function getMandauePopulationLineConfig() {
-  const config = LAYER_COLORS.mandaue_population;
-  return {
-    "line-color": config.strokeColor,
-    "line-width": config.strokeWidth,
-  };
-}
-
 /**
  * Get paint configuration for invisible hit area line layers
  * These are larger, transparent layers for better click detection
