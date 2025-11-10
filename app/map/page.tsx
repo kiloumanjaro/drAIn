@@ -67,7 +67,19 @@ function MapPageContent() {
     "outlets-layer": true,
     "reports-layer": true,
     "flood_hazard-layer": true,
-    "mandaue_population-layer": true,
+    "mandaue_population-layer": false,
+  });
+
+  const [floodProneVisibility, setFloodProneVisibility] = useState({
+    downstream_south_area: false,
+    mc_briones_highway: false,
+    lh_prime_area: false,
+    rolling_hills_area: false,
+    downstream_east_area: false,
+    maguikay_cabancalan_tabok_tingub_butuaonon: false,
+    paknaan_butuanon: false,
+    basak_pagsabungan: false,
+    maguikay_barangay_road: false,
   });
 
   const [selectedFeature, setSelectedFeature] = useState<{
@@ -318,7 +330,7 @@ function MapPageContent() {
           if (!map.getSource("mandaue_population")) {
             map.addSource("mandaue_population", {
               type: "geojson",
-              data: "/overlays/mandaue_population.geojson",
+              data: "/additional-overlays/mandaue_population.geojson",
               promoteId: "name",
             });
 
@@ -326,6 +338,9 @@ function MapPageContent() {
               id: "mandaue_population-fill",
               type: "fill",
               source: "mandaue_population",
+              layout: {
+                visibility: "none",
+              },
               paint: {
                 "fill-color": "#0288d1",
                 "fill-opacity": [
@@ -343,6 +358,9 @@ function MapPageContent() {
               id: "mandaue_population-layer",
               type: "line",
               source: "mandaue_population",
+              layout: {
+                visibility: "none",
+              },
               paint: {
                 "line-color": "#0288d1",
                 "line-width": [
@@ -444,6 +462,80 @@ function MapPageContent() {
               paint: getCirclePaintConfig("outlets"),
             });
           }
+
+          // Add flood prone areas
+          const floodProneAreas = [
+            {
+              id: "downstream_south_area",
+              file: "downsteam_south_area.geojson",
+              color: "#FF6B6B",
+            },
+            {
+              id: "mc_briones_highway",
+              file: "mc_briones_highway.geojson",
+              color: "#4ECDC4",
+            },
+            {
+              id: "lh_prime_area",
+              file: "lh_prime_area.geojson",
+              color: "#45B7D1",
+            },
+            {
+              id: "rolling_hills_area",
+              file: "rolling_hills_area.geojson",
+              color: "#FFA07A",
+            },
+            {
+              id: "downstream_east_area",
+              file: "downstream_east_area.geojson",
+              color: "#98D8C8",
+            },
+            {
+              id: "maguikay_cabancalan_tabok_tingub_butuaonon",
+              file: "maguikay_cabancalan_tabok_tingub_butuaonon.geojson",
+              color: "#F7B731",
+            },
+            {
+              id: "paknaan_butuanon",
+              file: "paknaan_butuanon.geojson",
+              color: "#5F27CD",
+            },
+            {
+              id: "basak_pagsabungan",
+              file: "basak_pagsabungan.geojson",
+              color: "#00D2D3",
+            },
+            {
+              id: "maguikay_barangay_road",
+              file: "maguikay_barangay_road.geojson",
+              color: "#FF9FF3",
+            },
+          ];
+
+          floodProneAreas.forEach((area) => {
+            if (!map.getSource(area.id)) {
+              map.addSource(area.id, {
+                type: "geojson",
+                data: `/additional-overlays/flood-prone-area/${area.file}`,
+              });
+
+              map.addLayer({
+                id: `${area.id}-layer`,
+                type: "circle",
+                source: area.id,
+                layout: {
+                  visibility: "none",
+                },
+                paint: {
+                  "circle-radius": 8,
+                  "circle-color": area.color,
+                  "circle-opacity": 0.8,
+                  "circle-stroke-width": 2,
+                  "circle-stroke-color": "#ffffff",
+                },
+              });
+            }
+          });
         };
 
         map.on("load", addCustomLayers);
@@ -562,7 +654,7 @@ function MapPageContent() {
 
         map.on("mousemove", "mandaue_population-fill", (e) => {
           if (!overlayVisibilityRef.current["mandaue_population-layer"]) return;
-          
+
           if (e.features && e.features.length > 0) {
             map.getCanvas().style.cursor = "pointer";
 
@@ -583,7 +675,7 @@ function MapPageContent() {
 
         map.on("mouseleave", "mandaue_population-fill", () => {
           if (!overlayVisibilityRef.current["mandaue_population-layer"]) return;
-          
+
           map.getCanvas().style.cursor = "";
           if (hoveredPopulationId !== null) {
             map.setFeatureState(
@@ -596,7 +688,7 @@ function MapPageContent() {
 
         map.on("click", "mandaue_population-fill", (e) => {
           if (!overlayVisibilityRef.current["mandaue_population-layer"]) return;
-          
+
           if (e.features && e.features.length > 0) {
             const feature = e.features[0];
             const props = feature.properties || {};
@@ -604,7 +696,10 @@ function MapPageContent() {
             // Clear previous clicked state
             if (clickedPopulationIdRef.current !== null) {
               map.setFeatureState(
-                { source: "mandaue_population", id: clickedPopulationIdRef.current },
+                {
+                  source: "mandaue_population",
+                  id: clickedPopulationIdRef.current,
+                },
                 { clicked: false }
               );
             }
@@ -612,7 +707,10 @@ function MapPageContent() {
             // Set new clicked state
             clickedPopulationIdRef.current = feature.id as string;
             map.setFeatureState(
-              { source: "mandaue_population", id: clickedPopulationIdRef.current },
+              {
+                source: "mandaue_population",
+                id: clickedPopulationIdRef.current,
+              },
               { clicked: true }
             );
 
@@ -629,15 +727,18 @@ function MapPageContent() {
 
             // Create close button
             const closeButton = document.createElement("button");
-            closeButton.style.cssText = "position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s; background-color: #f3f4f6;";
+            closeButton.style.cssText =
+              "position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s; background-color: #f3f4f6;";
             closeButton.innerHTML = `
               <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
               </svg>
             `;
-            closeButton.onmouseover = () => closeButton.style.backgroundColor = '#e5e7eb';
-            closeButton.onmouseout = () => closeButton.style.backgroundColor = '#f3f4f6';
-            
+            closeButton.onmouseover = () =>
+              (closeButton.style.backgroundColor = "#e5e7eb");
+            closeButton.onmouseout = () =>
+              (closeButton.style.backgroundColor = "#f3f4f6");
+
             // Create content
             const content = document.createElement("div");
             content.innerHTML = `
@@ -695,17 +796,23 @@ function MapPageContent() {
         // Handle clicks outside population areas to clear clicked state
         map.on("click", (e) => {
           const features = map.queryRenderedFeatures(e.point, {
-            layers: ["mandaue_population-fill"]
+            layers: ["mandaue_population-fill"],
           });
 
           // If click is outside population areas, clear clicked state
-          if (features.length === 0 && clickedPopulationIdRef.current !== null) {
+          if (
+            features.length === 0 &&
+            clickedPopulationIdRef.current !== null
+          ) {
             map.setFeatureState(
-              { source: "mandaue_population", id: clickedPopulationIdRef.current },
+              {
+                source: "mandaue_population",
+                id: clickedPopulationIdRef.current,
+              },
               { clicked: false }
             );
             clickedPopulationIdRef.current = null;
-            
+
             // Also remove popup if it exists
             if (populationPopupRef.current) {
               populationPopupRef.current.remove();
@@ -860,11 +967,24 @@ function MapPageContent() {
         }
       });
 
+      // Control population fill layer visibility
+      const populationVisible = overlayVisibility["mandaue_population-layer"];
+      if (mapRef.current?.getLayer("mandaue_population-fill")) {
+        mapRef.current.setLayoutProperty(
+          "mandaue_population-fill",
+          "visibility",
+          populationVisible ? "visible" : "none"
+        );
+      }
+
       // Clear population layer selection when toggled off
-      if (!overlayVisibility["mandaue_population-layer"]) {
+      if (!populationVisible) {
         if (clickedPopulationIdRef.current !== null && mapRef.current) {
           mapRef.current.setFeatureState(
-            { source: "mandaue_population", id: clickedPopulationIdRef.current },
+            {
+              source: "mandaue_population",
+              id: clickedPopulationIdRef.current,
+            },
             { clicked: false }
           );
           clickedPopulationIdRef.current = null;
@@ -876,6 +996,21 @@ function MapPageContent() {
       }
     }
   }, [overlayVisibility, layerIds]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+      Object.entries(floodProneVisibility).forEach(([areaId, isVisible]) => {
+        const layerId = `${areaId}-layer`;
+        if (mapRef.current?.getLayer(layerId)) {
+          mapRef.current.setLayoutProperty(
+            layerId,
+            "visibility",
+            isVisible ? "visible" : "none"
+          );
+        }
+      });
+    }
+  }, [floodProneVisibility]);
 
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
@@ -920,6 +1055,72 @@ function MapPageContent() {
     ...config,
     visible: overlayVisibility[config.id as keyof typeof overlayVisibility],
   }));
+
+  const floodProneAreasData = [
+    {
+      id: "downstream_south_area",
+      name: "DOWNSTREAM SOUTH AREA",
+      color: "#FF6B6B",
+      visible: floodProneVisibility["downstream_south_area"] || false,
+    },
+    {
+      id: "mc_briones_highway",
+      name: "MC BRIONES HI-WAY",
+      color: "#4ECDC4",
+      visible: floodProneVisibility["mc_briones_highway"] || false,
+    },
+    {
+      id: "lh_prime_area",
+      name: "LH PRIME AREA",
+      color: "#45B7D1",
+      visible: floodProneVisibility["lh_prime_area"] || false,
+    },
+    {
+      id: "rolling_hills_area",
+      name: "ROLLING HILLS AREA",
+      color: "#FFA07A",
+      visible: floodProneVisibility["rolling_hills_area"] || false,
+    },
+    {
+      id: "downstream_east_area",
+      name: "DOWNSTREAM EAST AREA",
+      color: "#98D8C8",
+      visible: floodProneVisibility["downstream_east_area"] || false,
+    },
+    {
+      id: "maguikay_cabancalan_tabok_tingub_butuaonon",
+      name: "MAGUIKAY, CABANCALAN, TABOK, TINGUB-BUTUANON",
+      color: "#F7B731",
+      visible:
+        floodProneVisibility["maguikay_cabancalan_tabok_tingub_butuaonon"] ||
+        false,
+    },
+    {
+      id: "paknaan_butuanon",
+      name: "PAKNAAN-BUTUANON",
+      color: "#5F27CD",
+      visible: floodProneVisibility["paknaan_butuanon"] || false,
+    },
+    {
+      id: "basak_pagsabungan",
+      name: "BASAK-PAGSABUNGAN",
+      color: "#00D2D3",
+      visible: floodProneVisibility["basak_pagsabungan"] || false,
+    },
+    {
+      id: "maguikay_barangay_road",
+      name: "MAGUIKAY BRGY. RD",
+      color: "#FF9FF3",
+      visible: floodProneVisibility["maguikay_barangay_road"] || false,
+    },
+  ];
+
+  const handleToggleFloodProneArea = (areaId: string) => {
+    setFloodProneVisibility((prev) => ({
+      ...prev,
+      [areaId]: !prev[areaId as keyof typeof floodProneVisibility],
+    }));
+  };
 
   const handleToggleAllOverlays = () => {
     const someVisible = Object.values(overlayVisibility).some(Boolean);
@@ -1144,6 +1345,8 @@ function MapPageContent() {
           onToggle={handleToggleAllOverlays}
           overlays={overlayData}
           onToggleOverlay={handleOverlayToggle}
+          floodProneAreas={floodProneAreasData}
+          onToggleFloodProneArea={handleToggleFloodProneArea}
           selectedFloodScenario={selectedFloodScenario}
           onChangeFloodScenario={handleFloodScenarioChange}
           reports={reports}

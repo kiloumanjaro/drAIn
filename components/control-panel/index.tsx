@@ -46,6 +46,8 @@ export function ControlPanel({
   onChangeFloodScenario,
   overlays,
   onToggleOverlay,
+  floodProneAreas,
+  onToggleFloodProneArea,
   isSimulationMode = false,
   selectedPointForSimulation = null,
   onRefreshReports,
@@ -307,6 +309,8 @@ export function ControlPanel({
             onToggleOverlay={onToggleOverlay}
             selectedFloodScenario={selectedFloodScenario}
             onChangeFloodScenario={onChangeFloodScenario}
+            floodProneAreas={floodProneAreas}
+            onToggleFloodProneArea={onToggleFloodProneArea}
             onNavigateToTable={handleNavigateToTable}
             onNavigateToReportForm={handleNavigateToReportForm}
             onNavigateToDataSource={handleNavigateToDataSource}

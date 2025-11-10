@@ -24,6 +24,7 @@ import { ChartPieDonutText } from "../../chart-pie";
 import { ReportsToggle } from "../../reports-toggle";
 import { FloodScenarioCard } from "../../flood-scenario-card";
 import { PopulationToggle } from "../../population-toggle";
+import { FloodProneToggle } from "../../flood-prone-toggle";
 
 interface OverlayContentProps {
   overlays: {
@@ -45,10 +46,20 @@ interface OverlayContentProps {
   onToggleDrag?: (enabled: boolean) => void;
   reports: Report[];
   isSimulationMode?: boolean;
+<<<<<<< HEAD
   isFloodScenarioLoading?: boolean;
+=======
+  floodProneAreas?: {
+    id: string;
+    name: string;
+    color: string;
+    visible: boolean;
+  }[];
+  onToggleFloodProneArea?: (id: string) => void;
+>>>>>>> e7ad874 (feat: added flood prone toggle)
 }
 
-type ComponentId = "chart" | "layers" | "reports" | "flood" | "population";
+type ComponentId = "chart" | "layers" | "reports" | "flood" | "population" | "floodprone";
 
 interface ComponentMetadata {
   id: ComponentId;
@@ -117,12 +128,18 @@ export default function OverlaysContent({
   isDragEnabled = true,
   reports,
   isSimulationMode = false,
+<<<<<<< HEAD
   isFloodScenarioLoading = false,
+=======
+  floodProneAreas = [],
+  onToggleFloodProneArea,
+>>>>>>> e7ad874 (feat: added flood prone toggle)
 }: OverlayContentProps) {
   const [componentOrder, setComponentOrder] = useState<ComponentId[]>([
     "chart",
     "layers",
     "flood",
+    "floodprone",
     "population",
     "reports",
   ]);
@@ -246,6 +263,40 @@ export default function OverlaysContent({
         ),
       },
       {
+        id: "floodprone" as ComponentId,
+        keywords: [
+          "flood",
+          "prone",
+          "area",
+          "downstream",
+          "south",
+          "mc",
+          "briones",
+          "highway",
+          "lh",
+          "prime",
+          "rolling",
+          "hills",
+          "east",
+          "maguikay",
+          "cabancalan",
+          "tabok",
+          "tingub",
+          "butuanon",
+          "paknaan",
+          "basak",
+          "pagsabungan",
+          "barangay",
+          "road",
+        ],
+        component: onToggleFloodProneArea ? (
+          <FloodProneToggle
+            floodProneAreas={floodProneAreas}
+            onToggleFloodProneArea={onToggleFloodProneArea}
+          />
+        ) : null,
+      },
+      {
         id: "reports" as ComponentId,
         keywords: [
           "reports",
@@ -283,7 +334,12 @@ export default function OverlaysContent({
       isSimulationMode,
       selectedFloodScenario,
       onChangeFloodScenario,
+<<<<<<< HEAD
       isFloodScenarioLoading,
+=======
+      floodProneAreas,
+      onToggleFloodProneArea,
+>>>>>>> e7ad874 (feat: added flood prone toggle)
     ]
   );
 
