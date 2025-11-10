@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "rolling_hills_area",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "Name": "OREL", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.921664, 10.338515, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "BANILAD BRGY HALL AREA", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.922883, 10.340131, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "BANILAD ELEM. SCHOOL", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.923112, 10.340438, 0.0 ] } }
+]
+}

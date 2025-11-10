@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "mc_briones_highway",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "Name": "N CABAHUG, SUDLON, MAGUIKAY", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.944945, 10.338927, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "ML QUEZON BAKILID", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.939664, 10.335217, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "COR. AS FORTUNA ST", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.935445, 10.332254, 0.0 ] } }
+]
+}
