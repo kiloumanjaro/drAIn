@@ -84,6 +84,7 @@ function MapPageContent() {
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
   const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
   const clickedPopulationIdRef = useRef<string | null>(null);
+  const overlayVisibilityRef = useRef(overlayVisibility);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
 
@@ -211,6 +212,10 @@ function MapPageContent() {
   useEffect(() => {
     selectedFeatureRef.current = selectedFeature;
   }, [selectedFeature]);
+
+  useEffect(() => {
+    overlayVisibilityRef.current = overlayVisibility;
+  }, [overlayVisibility]);
 
   // Toggle report popups visibility
   useEffect(() => {
@@ -559,6 +564,8 @@ function MapPageContent() {
         let hoveredPopulationId: string | null = null;
 
         map.on("mousemove", "mandaue_population-fill", (e) => {
+          if (!overlayVisibilityRef.current["mandaue_population-layer"]) return;
+          
           if (e.features && e.features.length > 0) {
             map.getCanvas().style.cursor = "pointer";
 
@@ -578,6 +585,8 @@ function MapPageContent() {
         });
 
         map.on("mouseleave", "mandaue_population-fill", () => {
+          if (!overlayVisibilityRef.current["mandaue_population-layer"]) return;
+          
           map.getCanvas().style.cursor = "";
           if (hoveredPopulationId !== null) {
             map.setFeatureState(
@@ -589,6 +598,8 @@ function MapPageContent() {
         });
 
         map.on("click", "mandaue_population-fill", (e) => {
+          if (!overlayVisibilityRef.current["mandaue_population-layer"]) return;
+          
           if (e.features && e.features.length > 0) {
             const feature = e.features[0];
             const props = feature.properties || {};
@@ -851,6 +862,21 @@ function MapPageContent() {
           }
         }
       });
+
+      // Clear population layer selection when toggled off
+      if (!overlayVisibility["mandaue_population-layer"]) {
+        if (clickedPopulationIdRef.current !== null && mapRef.current) {
+          mapRef.current.setFeatureState(
+            { source: "mandaue_population", id: clickedPopulationIdRef.current },
+            { clicked: false }
+          );
+          clickedPopulationIdRef.current = null;
+        }
+        if (populationPopupRef.current) {
+          populationPopupRef.current.remove();
+          populationPopupRef.current = null;
+        }
+      }
     }
   }, [overlayVisibility, layerIds]);
 

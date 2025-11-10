@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "maguikay_cabancalan_tabok_tingub_butuaonon",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null, "Name": "PC SUICO - TABOK", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.940287, 10.348256, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "IPI-TABOK", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.941068, 10.349881, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "IPI TINGUB", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.936168, 10.351369, 0.0 ] } },
+{ "type": "Feature", "properties": { "id": null, "Name": "INTERIOR RD. TINGUB", "description": null, "timestamp": null, "begin": null, "end": null, "altitudeMode": null, "tessellate": -1, "extrude": 0, "visibility": -1, "drawOrder": null, "icon": null }, "geometry": { "type": "Point", "coordinates": [ 123.934189, 10.352171, 0.0 ] } }
+]
+}
