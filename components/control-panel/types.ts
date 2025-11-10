@@ -99,6 +99,14 @@ export interface ControlPanelProps {
   onToggleOverlay: (id: string) => void;
   selectedFloodScenario: string,
   onChangeFloodScenario: (id: string) => void;
+  // Flood prone areas
+  floodProneAreas?: {
+    id: string;
+    name: string;
+    color: string;
+    visible: boolean;
+  }[];
+  onToggleFloodProneArea?: (id: string) => void;
   // Simulation mode
   isSimulationMode?: boolean;
   selectedPointForSimulation?: string | null;
