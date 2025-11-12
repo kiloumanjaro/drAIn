@@ -182,6 +182,7 @@ export default function SimulationPage() {
 
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false);
+  const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<"node" | "link" | null>(null);
@@ -515,10 +516,22 @@ export default function SimulationPage() {
   };
 
   const handleOverlayToggle = (layerId: string) => {
+    const isVisible = !overlayVisibility[layerId as keyof typeof overlayVisibility];
     setOverlayVisibility((prev) => ({
       ...prev,
       [layerId]: !prev[layerId as keyof typeof prev],
     }));
+
+    if (layerId === "flood_hazard-layer") {
+      if (isVisible) {
+        // If flood hazard layer is being turned ON
+        setIsFloodScenarioLoading(true);
+        // Simulate a loading delay
+        setTimeout(() => {
+          setIsFloodScenarioLoading(false);
+        }, 1500); // 1.5 seconds delay
+      }
+    }
   };
 
   const overlayData = [
@@ -1374,6 +1387,7 @@ export default function SimulationPage() {
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
+          isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls
           onZoomIn={handleZoomIn}
@@ -1394,7 +1408,7 @@ export default function SimulationPage() {
               top: `${tablePosition.y}px`,
             }}
           >
-            <VulnerabilityDataTable
+            {isLoadingTable ? <Spinner /> : <VulnerabilityDataTable
               data={tableData}
               isMinimized={false}
               onToggleMinimize={handleToggleTableMinimize}
@@ -1402,7 +1416,7 @@ export default function SimulationPage() {
               onPositionChange={setTablePosition}
               onHighlightNodes={handleHighlightNodes}
               onOpenNodeSimulation={handleOpenNodeSimulation}
-            />
+            />}
           </div>
         )}
 
@@ -1415,7 +1429,7 @@ export default function SimulationPage() {
               top: `${table3Position.y}px`,
             }}
           >
-            <VulnerabilityDataTable
+            {isLoadingTable3 ? <Spinner /> : <VulnerabilityDataTable
               data={tableData3}
               isMinimized={false}
               onToggleMinimize={handleToggleTable3Minimize}
@@ -1423,7 +1437,7 @@ export default function SimulationPage() {
               onPositionChange={setTable3Position}
               onHighlightNodes={handleHighlightNodes}
               onOpenNodeSimulation={handleOpenNodeSimulation}
-            />
+            />}
           </div>
         )}
 

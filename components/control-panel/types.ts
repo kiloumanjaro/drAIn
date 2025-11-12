@@ -146,4 +146,5 @@ export interface ControlPanelProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  isFloodScenarioLoading?: boolean;
 }
