@@ -149,6 +149,7 @@ interface ContentRendererProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  isFloodScenarioLoading?: boolean;
 }
 
 export function ContentRenderer({
@@ -228,6 +229,7 @@ export function ContentRenderer({
   allReportsData, // Destructure allReportsData
   isRainActive = false,
   onToggleRain,
+  isFloodScenarioLoading = false,
 }: ContentRendererProps) {
   // Check for loading states first
   if (loadingInlets)
@@ -255,6 +257,7 @@ export function ContentRenderer({
           isSimulationMode={isSimulationMode}
           selectedFloodScenario={selectedFloodScenario}
           onChangeFloodScenario={onChangeFloodScenario}
+          isFloodScenarioLoading={isFloodScenarioLoading}
         />
       );
 

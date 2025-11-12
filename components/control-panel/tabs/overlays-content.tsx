@@ -45,6 +45,7 @@ interface OverlayContentProps {
   onToggleDrag?: (enabled: boolean) => void;
   reports: Report[];
   isSimulationMode?: boolean;
+  isFloodScenarioLoading?: boolean;
 }
 
 type ComponentId = "chart" | "layers" | "reports" | "flood" | "population";
@@ -116,6 +117,7 @@ export default function OverlaysContent({
   isDragEnabled = true,
   reports,
   isSimulationMode = false,
+  isFloodScenarioLoading = false,
 }: OverlayContentProps) {
   const [componentOrder, setComponentOrder] = useState<ComponentId[]>([
     "chart",
@@ -214,6 +216,7 @@ export default function OverlaysContent({
             onToggle={() => onToggleOverlay("flood_hazard-layer")}
             selectedScenario={selectedFloodScenario}
             onScenarioChange={onChangeFloodScenario}
+            isLoading={isFloodScenarioLoading}
           />
         ),
       },
@@ -280,6 +283,7 @@ export default function OverlaysContent({
       isSimulationMode,
       selectedFloodScenario,
       onChangeFloodScenario,
+      isFloodScenarioLoading,
     ]
   );
 
