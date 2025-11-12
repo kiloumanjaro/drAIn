@@ -51,6 +51,7 @@ import { NodeSimulationSlideshow } from "@/components/node-simulation-slideshow"
 import { NodeParametersPanel } from "@/components/node-parameters-panel";
 import { LinkParametersPanel } from "@/components/link-parameters-panel";
 import { Minimize } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
