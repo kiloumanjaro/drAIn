@@ -1,9 +1,9 @@
 'use client';
 
-import { useEventWidgetStore, NewEventData } from '../stores/eventWidgetStore';
+import { useEventWidget } from './context/EventWidgetProvider';
 
 // Placeholder data for a new event
-const newEventPlaceholder: NewEventData = {
+const newEventPlaceholder = {
   eventName: "NEW EVENT: Flash Flood of Nov 14, 2025",
   summary: "A sudden, intense downpour from a localized thunderstorm caused unexpected flooding in Barangay Tipolo.",
   data: {
@@ -15,14 +15,14 @@ const newEventPlaceholder: NewEventData = {
 };
 
 export default function WidgetTrigger() {
-  const openWidget = useEventWidgetStore((state) => state.openWidget);
+  const { openWidget, closeWidget, isOpen } = useEventWidget();
 
   return (
     <button
-      onClick={() => openWidget(newEventPlaceholder)}
+      onClick={() => isOpen ? closeWidget() : openWidget(newEventPlaceholder)}
       className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
     >
-      Show Live Event
+      {isOpen ? "Hide Live Event" : "Show Live Event"}
     </button>
   );
 }

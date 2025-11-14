@@ -1,24 +1,34 @@
-import fs from 'fs/promises';
-import path from 'path';
+"use client";
+
+import { useEffect, useState } from 'react';
 import FloodReportDisplay from './FloodReportDisplay';
-import { NewEventData } from '@/stores/eventWidgetStore';
+import { useSearchParams } from 'next/navigation';
 
-async function getReportData() {
-  const filePath = path.join(process.cwd(), 'data', 'mandaue_flood_reports.json');
-  const jsonData = await fs.readFile(filePath, 'utf-8');
-  return JSON.parse(jsonData);
-}
+export default function FloodReportsPage() {
+  const [reportData, setReportData] = useState({ reportTitle: '', reportSubtitle: '', introduction: '', events: [] });
+  const [comparisonEvent, setComparisonEvent] = useState(null);
+  const searchParams = useSearchParams();
 
-export default async function FloodReportsPage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
-  const reportData = await getReportData();
-  let comparisonEvent: NewEventData | null = null;
-  if (searchParams?.compareEvent) {
-    try {
-      comparisonEvent = JSON.parse(decodeURIComponent(searchParams.compareEvent));
-    } catch (e) {
-      console.error("Failed to parse comparison event data:", e);
+  useEffect(() => {
+    async function getReportData() {
+      const res = await fetch('/api/reports');
+      const data = await res.json();
+      setReportData(data);
     }
-  }
 
-  return <FloodReportDisplay historicalData={reportData} comparisonData={comparisonEvent} />;
+    getReportData();
+
+    const compareEventParam = searchParams.get('compareEvent');
+    if (compareEventParam) {
+      try {
+        setComparisonEvent(JSON.parse(decodeURIComponent(compareEventParam)));
+      } catch (e) {
+        console.error("Failed to parse comparison event data:", e);
+      }
+    }
+  }, [searchParams]);
+
+  return (
+      <FloodReportDisplay historicalData={reportData} comparisonData={comparisonEvent} />
+  );
 }

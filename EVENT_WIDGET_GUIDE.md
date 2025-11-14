@@ -11,16 +11,16 @@ The event widget is a draggable pop-up card that can display data for a new, inc
 
 ## How to Use
 
-To open the event widget, you can use the `useEventWidgetStore` hook. This hook provides an `openWidget` function that you can call with the new event's data.
+To open the event widget, you can use the `useEventWidget` hook. This hook provides an `openWidget` function that you can call with the new event's data. Make sure your component is a descendant of the `EventWidgetProvider`.
 
 ```tsx
-import { useEventWidgetStore, NewEventData } from '@/stores/eventWidgetStore';
+import { useEventWidget } from '@/components/context/EventWidgetProvider';
 
 const MyComponent = () => {
-  const openWidget = useEventWidgetStore((state) => state.openWidget);
+  const { openWidget, closeWidget, isOpen } = useEventWidget();
 
   const handleOpenWidget = () => {
-    const newEvent: NewEventData = {
+    const newEvent = {
       eventName: "NEW EVENT: Flash Flood of Nov 14, 2025",
       summary: "A sudden, intense downpour from a localized thunderstorm caused unexpected flooding in Barangay Tipolo.",
       data: {
@@ -62,4 +62,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## Integration
 
-The event widget is designed to be easily integrated with other parts of the application. You can trigger it from any component by using the `useEventWidgetStore` hook as described above. This allows you to open the widget in response to any event, such as a new notification or a user action.
+The event widget is designed to be easily integrated with other parts of the application. You can trigger it from any component by using the `useEventWidget` hook as described above. This allows you to open the widget in response to any event, such as a new notification or a user action. The `EventWidgetProvider` is already included in the root layout, so you don't need to worry about adding it to your component tree.
