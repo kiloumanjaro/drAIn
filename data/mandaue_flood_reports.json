@@ -1,0 +1,43 @@
+{
+  "reportTitle": "A Comprehensive Report on Flood Loss Events in Mandaue City: 2016-2025",
+  "reportSubtitle": "An Official Compilation of Historical Flood Data, Impacts, and Responses",
+  "introduction": "This document serves as a grand and comprehensive chronicle of flood events that have impacted Mandaue City between 2016 and 2025. The data herein is compiled from various historical records, official reports, and post-event analyses. The objective of this report is to provide a clear and factual basis for future urban planning, disaster mitigation strategies, and academic research. Each event is detailed with a summary of its circumstances and a table of specific data points collected at the time.",
+  "events": [
+    {
+      "eventName": "Event 1: Flash Flood of July 1, 2016",
+      "summary": "This significant flooding event was characterized by a rapid rise in water levels following an intense, localized thunderstorm. The city's drainage systems were quickly overwhelmed, leading to widespread inundation of major thoroughfares and residential areas. Emergency response teams were deployed to assist stranded residents and manage traffic disruptions. The event highlighted critical vulnerabilities in the city's infrastructure, prompting a review of storm drainage capacity and urban development policies. Post-event analysis focused on the correlation between rainfall intensity and the observed flood patterns.",
+      "data": {
+        "Date of Event": "July 1, 2016",
+        "Rainfall Intensity (mm/hr)": "150",
+        "Duration of Peak Rainfall (hours)": "2",
+        "Areas Most Affected": "Subangdaku, Tipolo, Mandaue Centro",
+        "Estimated Property Damage (PHP)": "25,000,000",
+        "Number of Displaced Families": "120"
+      }
+    },
+    {
+      "eventName": "Event 1: Flash Flood of July 1, 2016",
+      "summary": "This significant flooding event was characterized by a rapid rise in water levels following an intense, localized thunderstorm. The city's drainage systems were quickly overwhelmed, leading to widespread inundation of major thoroughfares and residential areas. Emergency response teams were deployed to assist stranded residents and manage traffic disruptions. The event highlighted critical vulnerabilities in the city's infrastructure, prompting a review of storm drainage capacity and urban development policies. Post-event analysis focused on the correlation between rainfall intensity and the observed flood patterns.",
+      "data": {
+        "Date of Event": "July 1, 2016",
+        "Rainfall Intensity (mm/hr)": "150",
+        "Duration of Peak Rainfall (hours)": "2",
+        "Areas Most Affected": "Subangdaku, Tipolo, Mandaue Centro",
+        "Estimated Property Damage (PHP)": "25,000,000",
+        "Number of Displaced Families": "120"
+      }
+    },
+    {
+      "eventName": "Event 1: Flash Flood of July 1, 2016",
+      "summary": "This significant flooding event was characterized by a rapid rise in water levels following an intense, localized thunderstorm. The city's drainage systems were quickly overwhelmed, leading to widespread inundation of major thoroughfares and residential areas. Emergency response teams were deployed to assist stranded residents and manage traffic disruptions. The event highlighted critical vulnerabilities in the city's infrastructure, prompting a review of storm drainage capacity and urban development policies. Post-event analysis focused on the correlation between rainfall intensity and the observed flood patterns.",
+      "data": {
+        "Date of Event": "July 1, 2016",
+        "Rainfall Intensity (mm/hr)": "150",
+        "Duration of Peak Rainfall (hours)": "2",
+        "Areas Most Affected": "Subangdaku, Tipolo, Mandaue Centro",
+        "Estimated Property Damage (PHP)": "25,000,000",
+        "Number of Displaced Families": "120"
+      }
+    }
+  ]
+}
