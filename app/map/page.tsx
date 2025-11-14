@@ -59,6 +59,7 @@ function MapPageContent() {
   const [mapError, setMapError] = useState<string | null>(null);
   const [selectedFloodScenario, setSelectedFloodScenario] =
     useState<string>("5YR");
+  const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [overlayVisibility, setOverlayVisibility] = useState({
     "man_pipes-layer": true,
     "storm_drains-layer": true,
@@ -167,6 +168,7 @@ function MapPageContent() {
       return;
     }
 
+    setIsFloodScenarioLoading(true);
     setSelectedFloodScenario(scenarioId);
 
     const source = mapRef.current.getSource(
@@ -179,17 +181,12 @@ function MapPageContent() {
 
       source.setData(dataUrl);
 
-      // Verify the switch worked
-      mapRef.current.once("sourcedata", (e) => {
-        if (e.sourceId === "flood_hazard" && e.isSourceLoaded) {
-          const features = mapRef.current?.querySourceFeatures("flood_hazard");
-          console.log(
-            `Loaded ${scenarioId}: ${features?.length || 0} features`
-          );
-        }
+      mapRef.current.once("idle", () => {
+        setIsFloodScenarioLoading(false);
       });
     } else {
       console.error("flood_hazard source not found");
+      setIsFloodScenarioLoading(false);
       console.log(
         "Available sources:",
         Object.keys(mapRef.current.getStyle().sources)
@@ -1036,10 +1033,22 @@ function MapPageContent() {
   };
 
   const handleOverlayToggle = (layerId: string) => {
+    const isVisible = !overlayVisibility[layerId as keyof typeof overlayVisibility];
     setOverlayVisibility((prev) => ({
       ...prev,
       [layerId]: !prev[layerId as keyof typeof prev],
     }));
+
+    if (layerId === "flood_hazard-layer") {
+      if (isVisible) {
+        // If flood hazard layer is being turned ON
+        setIsFloodScenarioLoading(true);
+        // Simulate a loading delay
+        setTimeout(() => {
+          setIsFloodScenarioLoading(false);
+        }, 1500); // 1.5 seconds delay
+      }
+    }
   };
 
   const overlayData = OVERLAY_CONFIG.map((config) => ({
@@ -1344,6 +1353,7 @@ function MapPageContent() {
           onRefreshReports={onRefreshReports}
           isRefreshingReports={isRefreshingReports}
           allReportsData={allReportsData} // Pass all reports data to ControlPanel
+          isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls
           onZoomIn={handleZoomIn}
