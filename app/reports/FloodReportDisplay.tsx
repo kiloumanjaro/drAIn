@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NewEventData } from "@/stores/eventWidgetStore";
 
 interface EventData {
   [key: string]: string;
@@ -20,7 +19,16 @@ interface FloodReportData {
   events: FloodEvent[];
 }
 
+interface NewEventData {
+  eventName: string;
+  summary: string;
+  data: EventData;
+}
+
 export default function FloodReportDisplay({ historicalData, comparisonData }: { historicalData: FloodReportData, comparisonData: NewEventData | null }) {
+  if (!historicalData.events) {
+    return <div>Loading...</div>
+  }
   const allEvents = comparisonData ? [comparisonData, ...historicalData.events] : historicalData.events;
   return (
     <div className="container mx-auto p-4">

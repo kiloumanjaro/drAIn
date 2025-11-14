@@ -2,11 +2,11 @@
 
 import { useState, useRef } from 'react';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
-import { useEventWidgetStore } from '../stores/eventWidgetStore';
+import { useEventWidget } from './context/EventWidgetProvider';
 import Link from 'next/link';
 
 export default function EventWidget() {
-  const { isOpen, eventData, closeWidget } = useEventWidgetStore();
+  const { isOpen, eventData, closeWidget } = useEventWidget();
   const [position, setPosition] = useState({
     x: typeof window !== 'undefined' ? (window.innerWidth - 384) / 2 : 0, // 384px is w-96
     y: typeof window !== 'undefined' ? Math.max(50, (window.innerHeight - 300) / 2 - (window.innerHeight / 2) * (3/4)) : 0, // Assuming a height of 300px for initial positioning, adjusted by a 3/4 ratio of half the page's height, with a minimum 50px buffer from the top
@@ -50,7 +50,7 @@ export default function EventWidget() {
             {Object.entries(eventData.data).map(([key, value]) => (
               <div key={key} className="text-sm">
                 <strong className="block text-gray-800">{key}:</strong>
-                <span className="text-gray-600">{value}</span>
+                <span className="text-gray-600">{value as any}</span>
               </div>
             ))}
           </div>

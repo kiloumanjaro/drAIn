@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/context/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { SidebarLayout } from "@/components/sidebar-layout";
 import { NavigationLoadingOverlay } from "@/components/NavigationLoadingOverlay";
+import { EventWidgetProvider } from "@/components/context/EventWidgetProvider";
 import EventWidget from "@/components/EventWidget";
 import WidgetTrigger from "@/components/WidgetTrigger";
 
@@ -53,13 +54,15 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Providers>
-            <SidebarLayout>
-              <WidgetTrigger />
-              {children}
-            </SidebarLayout>
-            <NavigationLoadingOverlay />
-            <Toaster position="top-center" />
-            <EventWidget />
+            <EventWidgetProvider>
+              <SidebarLayout>
+                <WidgetTrigger />
+                {children}
+              </SidebarLayout>
+              <NavigationLoadingOverlay />
+              <Toaster position="top-center" />
+              <EventWidget />
+            </EventWidgetProvider>
           </Providers>
         </AuthProvider>
       </body>
