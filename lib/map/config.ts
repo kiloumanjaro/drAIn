@@ -128,6 +128,7 @@ export const LAYER_IDS: string[] = [
   "outlets-layer",
   "flood_hazard-layer",
   "mandaue_population-layer",
+  "reports-layer",
 ];
 
 // Hit area layer IDs for click detection and cursor feedback
