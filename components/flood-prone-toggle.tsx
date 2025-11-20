@@ -31,10 +31,15 @@ export function FloodProneToggle({
 
   // Toggle all flood prone areas
   const handleToggleAll = (pressed: boolean) => {
+    let firstToggled = false;
     floodProneAreas.forEach((area) => {
       const shouldBeVisible = pressed;
       if (area.visible !== shouldBeVisible) {
         onToggleFloodProneArea(area.id);
+        // Only show toast for the first toggle to avoid spam
+        if (!firstToggled && pressed) {
+          firstToggled = true;
+        }
       }
     });
   };
@@ -100,9 +105,7 @@ export function FloodProneToggle({
                   className={`
                     text-sm cursor-pointer transition-all duration-200 font-normal
                     ${
-                      area.visible
-                        ? "text-foreground"
-                        : "text-muted-foreground"
+                      area.visible ? "text-foreground" : "text-muted-foreground"
                     }
                     group-hover:text-foreground
                   `}
