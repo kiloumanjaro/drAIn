@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Info, Power } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Info } from "lucide-react";
+import { useMemo } from "react";
 import { Label } from "@/components/ui/label";
 
 interface PopulationToggleProps {
@@ -23,7 +23,6 @@ export function PopulationToggle({
   onToggle,
   onNavigateToDataSource,
 }: PopulationToggleProps) {
-  const [visible, setVisible] = useState(isVisible);
 
   // Parse the GeoJSON data to get barangay count and city stats
   const populationData = useMemo(() => {
@@ -68,21 +67,18 @@ export function PopulationToggle({
           <Toggle
             id="population-toggle"
             pressed={isVisible}
-            onPressedChange={() => {
-              onToggle();
-              setVisible(!visible);
-            }}
+            onPressedChange={onToggle}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
             variant="outline"
             size="sm"
             aria-label="Toggle population visibility"
             className={`ml-auto border transition-colors cursor-pointer duration-300 ${
-              visible ? "border-[#0288d1]" : "border-gray-300"
+              isVisible ? "border-[#0288d1]" : "border-gray-300"
             }`}
           >
-            <Power
+            <Info
               className={`h-4 w-4 ${
-                visible ? "text-[#0288d1]" : "text-gray-400"
+                isVisible ? "text-[#0288d1]" : "text-gray-400"
               }`}
             />
           </Toggle>
