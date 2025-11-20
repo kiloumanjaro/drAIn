@@ -50,15 +50,15 @@ export default function FloodReportDisplay({ historicalData, comparisonData }: {
                 <CardTitle>{event.eventName}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="mb-4 prose max-w-none">{event.summary}</p>
+                <p className="mb-4 prose max-w-none break-words">{event.summary}</p>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full table-fixed divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
                           Data Point
                         </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
                           Value
                         </th>
                       </tr>
@@ -66,8 +66,8 @@ export default function FloodReportDisplay({ historicalData, comparisonData }: {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {Object.entries(event.data).map(([key, value]) => (
                         <tr key={key}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{key}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{value}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900 break-words">{key}</td>
+                          <td className= "px-6 py-4 text-sm text-gray-500 break-words">{value}</td>
                         </tr>
                       ))}
                     </tbody>
