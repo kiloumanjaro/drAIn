@@ -119,6 +119,11 @@ export const OVERLAY_CONFIG = [
     name: "Population",
     color: LAYER_COLORS.mandaue_population.color,
   },
+  {
+    id: "reports-layer",
+    name: "Reports",
+    color: "#3F83DB",
+  },
 ];
 
 export const LAYER_IDS: string[] = [

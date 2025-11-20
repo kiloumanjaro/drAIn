@@ -75,7 +75,7 @@ interface ContentRendererProps {
   onToggleOverlay: (id: string) => void;
   selectedFloodScenario?: string;
   onChangeFloodScenario?: (id: string) => void;
-  
+
   // Flood prone areas
   floodProneAreas?: {
     id: string;
@@ -268,12 +268,9 @@ export function ContentRenderer({
           isSimulationMode={isSimulationMode}
           selectedFloodScenario={selectedFloodScenario}
           onChangeFloodScenario={onChangeFloodScenario}
-<<<<<<< HEAD
-          isFloodScenarioLoading={isFloodScenarioLoading}
-=======
           floodProneAreas={floodProneAreas}
           onToggleFloodProneArea={onToggleFloodProneArea}
->>>>>>> e7ad874 (feat: added flood prone toggle)
+          isFloodScenarioLoading={isFloodScenarioLoading}
         />
       );
 

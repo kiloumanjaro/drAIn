@@ -87,9 +87,7 @@ export function ReportsToggle({
               size="sm"
               aria-label="Toggle reports visibility"
               className={`ml-auto border transition-colors cursor-pointer duration-300 ${
-                isVisible
-                  ? "border-[#3F83DB] data-[state=on]:bg-transparent data-[state=on]:border-[#3F83DB]"
-                  : "border-gray-300 data-[state=off]:bg-transparent"
+                isVisible ? "border-[#3F83DB]" : "border-gray-300"
               }`}
             >
               <Power
