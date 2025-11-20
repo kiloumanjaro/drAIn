@@ -27,6 +27,16 @@ export function FloodScenarioCard({
   onScenarioChange,
   isLoading,
 }: FloodScenarioCardProps) {
+  // Auto-toggle flood hazard layer on when a scenario is selected
+  const handleScenarioChange = (scenario: string) => {
+    // If flood hazard layer is off, turn it on when selecting a scenario
+    if (!isVisible) {
+      onToggle();
+    }
+    // Call the scenario change handler
+    onScenarioChange?.(scenario);
+  };
+
   return (
     <div className="bg-[#f7f7f7] rounded-xl border border-t-0 border-[#e2e2e2]">
       <Card className="border-x-0 flex gap-2 flex-col">
@@ -64,7 +74,7 @@ export function FloodScenarioCard({
         <CardContent className="flex-1 pb-0 pt-3">
           <FloodScenarioSelector
             selectedScenario={selectedScenario}
-            onScenarioChange={onScenarioChange}
+            onScenarioChange={handleScenarioChange}
           />
         </CardContent>
       </Card>
