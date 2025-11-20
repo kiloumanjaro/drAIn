@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TriangleAlert } from "lucide-react";
-import { useState } from "react";
 import { Spinner } from "./ui/spinner";
 
 interface FloodScenarioCardProps {
@@ -28,7 +27,16 @@ export function FloodScenarioCard({
   onScenarioChange,
   isLoading,
 }: FloodScenarioCardProps) {
-  const [visible, setVisible] = useState(isVisible);
+  // Auto-toggle flood hazard layer on when a scenario is selected
+  const handleScenarioChange = (scenario: string) => {
+    // If flood hazard layer is off, turn it on when selecting a scenario
+    if (!isVisible) {
+      onToggle();
+    }
+    // Call the scenario change handler
+    onScenarioChange?.(scenario);
+  };
+
   return (
     <div className="bg-[#f7f7f7] rounded-xl border border-t-0 border-[#e2e2e2]">
       <Card className="border-x-0 flex gap-2 flex-col">
@@ -43,29 +51,30 @@ export function FloodScenarioCard({
           <Toggle
             id="toggle-flood"
             pressed={isVisible}
-            onPressedChange={() => {
-                onToggle();
-                setVisible(!visible);
-              }}
+            onPressedChange={onToggle}
             variant="outline"
             size="sm"
             aria-label="Toggle flood hazard layer"
             className={`ml-auto border cursor-pointer transition-colors duration-300 ${
-              visible ? "border-[#3F83DB]" : "border-gray-300"
+              isVisible ? "border-[#3F83DB]" : "border-gray-300"
             }`}
             disabled={isLoading}
           >
-            {isLoading ? <Spinner className="h-4 w-4" /> : <TriangleAlert
-              className={`h-4 w-4 ${
-                visible ? "text-[#3F83DB]" : "text-gray-400"
-              }`}
-            />}
+            {isLoading ? (
+              <Spinner className="h-4 w-4 text-[#3F83DB]" />
+            ) : (
+              <TriangleAlert
+                className={`h-4 w-4 ${
+                  isVisible ? "text-[#3F83DB]" : "text-gray-400"
+                }`}
+              />
+            )}
           </Toggle>
         </CardHeader>
         <CardContent className="flex-1 pb-0 pt-3">
           <FloodScenarioSelector
             selectedScenario={selectedScenario}
-            onScenarioChange={onScenarioChange}
+            onScenarioChange={handleScenarioChange}
           />
         </CardContent>
       </Card>

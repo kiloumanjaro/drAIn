@@ -110,14 +110,14 @@ export const OVERLAY_CONFIG = [
   { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
   { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
   {
+    id: "flood_hazard-layer",
+    name: "Flood Hazard",
+    color: LAYER_COLORS.flood_hazard.high,
+  },
+  {
     id: "mandaue_population-layer",
     name: "Population",
     color: LAYER_COLORS.mandaue_population.color,
-  },
-  {
-    id: "reports-layer",
-    name: "Reports",
-    color: "#3F83DB",
   },
 ];
 
@@ -128,7 +128,6 @@ export const LAYER_IDS: string[] = [
   "outlets-layer",
   "flood_hazard-layer",
   "mandaue_population-layer",
-  "reports-layer",
 ];
 
 // Hit area layer IDs for click detection and cursor feedback

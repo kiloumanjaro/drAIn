@@ -557,8 +557,8 @@ function MapPageContent() {
 
                 // Get feature coordinates (center of the circle)
                 const coordinates = (
-                  feature.geometry as GeoJSON.Point
-                ).coordinates as [number, number];
+                  feature.geometry as any
+                ).coordinates.slice();
 
                 // Ensure coordinates don't get wrapped around the globe
                 while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
@@ -1098,29 +1098,27 @@ function MapPageContent() {
   };
 
   const handleOverlayToggle = (layerId: string) => {
-<<<<<<< HEAD
-    const isVisible = !overlayVisibility[layerId as keyof typeof overlayVisibility];
-=======
     const isCurrentlyVisible =
       overlayVisibility[layerId as keyof typeof overlayVisibility];
     const newVisibility = !isCurrentlyVisible;
 
->>>>>>> d4be49b (feat: toast on toggle)
     setOverlayVisibility((prev) => ({
       ...prev,
       [layerId]: newVisibility,
     }));
 
-<<<<<<< HEAD
+    // Add delay feature for flood hazard layer
     if (layerId === "flood_hazard-layer") {
-      if (isVisible) {
+      if (newVisibility) {
         // If flood hazard layer is being turned ON
         setIsFloodScenarioLoading(true);
         // Simulate a loading delay
         setTimeout(() => {
           setIsFloodScenarioLoading(false);
         }, 1500); // 1.5 seconds delay
-=======
+      }
+    }
+
     // If turning on an overlay, hide all flood prone areas
     if (newVisibility) {
       const anyFloodProneVisible = Object.values(floodProneVisibility).some(
@@ -1149,7 +1147,6 @@ function MapPageContent() {
           );
           toastTimeoutRef.current = null;
         }, 100);
->>>>>>> d4be49b (feat: toast on toggle)
       }
     }
   };
@@ -1273,9 +1270,43 @@ function MapPageContent() {
     };
 
     setOverlayVisibility(updated);
+
+    // If turning on overlays, hide all flood prone areas for clarity
+    if (!someVisible) {
+      const anyFloodProneVisible = Object.values(floodProneVisibility).some(
+        (v) => v
+      );
+      if (anyFloodProneVisible) {
+        setFloodProneVisibility({
+          downstream_south_area: false,
+          mc_briones_highway: false,
+          lh_prime_area: false,
+          rolling_hills_area: false,
+          downstream_east_area: false,
+          maguikay_cabancalan_tabok_tingub_butuaonon: false,
+          paknaan_butuanon: false,
+          basak_pagsabungan: false,
+          maguikay_barangay_road: false,
+        });
+
+        // Debounce toast to show only once per toggle session
+        if (toastTimeoutRef.current) {
+          clearTimeout(toastTimeoutRef.current);
+        }
+        toastTimeoutRef.current = setTimeout(() => {
+          toast.info(
+            "Flood prone areas hidden to improve clarity with map layers"
+          );
+          toastTimeoutRef.current = null;
+        }, 100);
+      }
+    }
   };
 
-  const someVisible = Object.values(overlayVisibility).some(Boolean);
+  // Check if any overlay OR any flood prone area is visible
+  const someVisible =
+    Object.values(overlayVisibility).some(Boolean) ||
+    Object.values(floodProneVisibility).some(Boolean);
 
   // Handler for the back button in control panel
   const handleControlPanelBack = () => {
