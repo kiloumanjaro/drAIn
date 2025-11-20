@@ -76,6 +76,15 @@ interface ContentRendererProps {
   selectedFloodScenario?: string;
   onChangeFloodScenario?: (id: string) => void;
 
+  // Flood prone areas
+  floodProneAreas?: {
+    id: string;
+    name: string;
+    color: string;
+    visible: boolean;
+  }[];
+  onToggleFloodProneArea?: (id: string) => void;
+
   // Navigation props
   onNavigateToTable?: (
     dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
@@ -179,6 +188,8 @@ export function ContentRenderer({
   onToggleOverlay,
   selectedFloodScenario,
   onChangeFloodScenario,
+  floodProneAreas,
+  onToggleFloodProneArea,
   onNavigateToTable,
   onNavigateToReportForm,
   onNavigateToDataSource,
@@ -257,6 +268,8 @@ export function ContentRenderer({
           isSimulationMode={isSimulationMode}
           selectedFloodScenario={selectedFloodScenario}
           onChangeFloodScenario={onChangeFloodScenario}
+          floodProneAreas={floodProneAreas}
+          onToggleFloodProneArea={onToggleFloodProneArea}
           isFloodScenarioLoading={isFloodScenarioLoading}
         />
       );

@@ -110,9 +110,19 @@ export const OVERLAY_CONFIG = [
   { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
   { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
   {
+    id: "flood_hazard-layer",
+    name: "Flood Hazard",
+    color: LAYER_COLORS.flood_hazard.high,
+  },
+  {
     id: "mandaue_population-layer",
     name: "Population",
     color: LAYER_COLORS.mandaue_population.color,
+  },
+  {
+    id: "reports-layer",
+    name: "Reports",
+    color: "#3F83DB",
   },
 ];
 
@@ -243,22 +253,6 @@ export function getFloodHazardPaintConfig() {
       config.default,
     ] as unknown as string,
     "fill-opacity": config.opacity,
-  };
-}
-
-export function getMandauePopulationPaintConfig() {
-  const config = LAYER_COLORS.mandaue_population;
-  return {
-    "fill-color": config.color,
-    "fill-opacity": config.opacity,
-  };
-}
-
-export function getMandauePopulationLineConfig() {
-  const config = LAYER_COLORS.mandaue_population;
-  return {
-    "line-color": config.strokeColor,
-    "line-width": config.strokeWidth,
   };
 }
 
