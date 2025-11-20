@@ -110,6 +110,11 @@ export const OVERLAY_CONFIG = [
   { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
   { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
   {
+    id: "flood_hazard-layer",
+    name: "Flood Hazard",
+    color: LAYER_COLORS.flood_hazard.high,
+  },
+  {
     id: "mandaue_population-layer",
     name: "Population",
     color: LAYER_COLORS.mandaue_population.color,

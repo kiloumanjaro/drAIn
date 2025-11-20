@@ -1107,6 +1107,18 @@ function MapPageContent() {
       [layerId]: newVisibility,
     }));
 
+    // Add delay feature for flood hazard layer
+    if (layerId === "flood_hazard-layer") {
+      if (newVisibility) {
+        // If flood hazard layer is being turned ON
+        setIsFloodScenarioLoading(true);
+        // Simulate a loading delay
+        setTimeout(() => {
+          setIsFloodScenarioLoading(false);
+        }, 1500); // 1.5 seconds delay
+      }
+    }
+
     // If turning on an overlay, hide all flood prone areas
     if (newVisibility) {
       const anyFloodProneVisible = Object.values(floodProneVisibility).some(

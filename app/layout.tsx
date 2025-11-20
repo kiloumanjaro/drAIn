@@ -56,7 +56,7 @@ export default function RootLayout({
           <Providers>
             <EventWidgetProvider>
               <SidebarLayout>
-                <WidgetTrigger />
+                {/* <WidgetTrigger /> */}
                 {children}
               </SidebarLayout>
               <NavigationLoadingOverlay />
