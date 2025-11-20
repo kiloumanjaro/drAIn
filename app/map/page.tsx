@@ -45,6 +45,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getreportCategoryCount } from "@/lib/supabase/report";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useReports } from "@/components/context/ReportProvider";
+import { toast } from "sonner";
 
 function MapPageContent() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
@@ -97,6 +98,7 @@ function MapPageContent() {
   const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
   const clickedPopulationIdRef = useRef<string | null>(null);
   const overlayVisibilityRef = useRef(overlayVisibility);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
 
@@ -471,47 +473,47 @@ function MapPageContent() {
             {
               id: "downstream_south_area",
               file: "downsteam_south_area.geojson",
-              color: "#FF6B6B",
+              color: "#DC2626",
             },
             {
               id: "mc_briones_highway",
               file: "mc_briones_highway.geojson",
-              color: "#4ECDC4",
+              color: "#059669",
             },
             {
               id: "lh_prime_area",
               file: "lh_prime_area.geojson",
-              color: "#45B7D1",
+              color: "#0284C7",
             },
             {
               id: "rolling_hills_area",
               file: "rolling_hills_area.geojson",
-              color: "#FFA07A",
+              color: "#EA580C",
             },
             {
               id: "downstream_east_area",
               file: "downstream_east_area.geojson",
-              color: "#98D8C8",
+              color: "#0D9488",
             },
             {
               id: "maguikay_cabancalan_tabok_tingub_butuaonon",
               file: "maguikay_cabancalan_tabok_tingub_butuaonon.geojson",
-              color: "#F7B731",
+              color: "#D97706",
             },
             {
               id: "paknaan_butuanon",
               file: "paknaan_butuanon.geojson",
-              color: "#5F27CD",
+              color: "#7C3AED",
             },
             {
               id: "basak_pagsabungan",
               file: "basak_pagsabungan.geojson",
-              color: "#00D2D3",
+              color: "#0891B2",
             },
             {
               id: "maguikay_barangay_road",
               file: "maguikay_barangay_road.geojson",
-              color: "#FF9FF3",
+              color: "#DB2777",
             },
           ];
 
@@ -532,12 +534,75 @@ function MapPageContent() {
                 paint: {
                   "circle-radius": 8,
                   "circle-color": area.color,
-                  "circle-opacity": 0.8,
+                  "circle-opacity": 1,
                   "circle-stroke-width": 2,
                   "circle-stroke-color": "#ffffff",
                 },
               });
             }
+          });
+
+          // Add hover handlers for flood prone areas
+          const floodPronePopupRef = { current: null as mapboxgl.Popup | null };
+
+          floodProneAreas.forEach((area) => {
+            map.on("mouseenter", `${area.id}-layer`, (e) => {
+              map.getCanvas().style.cursor = "pointer";
+
+              if (e.features && e.features.length > 0) {
+                const feature = e.features[0];
+                const props = feature.properties || {};
+
+                // Remove existing popup if any
+                if (floodPronePopupRef.current) {
+                  floodPronePopupRef.current.remove();
+                }
+
+                // Get feature coordinates (center of the circle)
+                const coordinates = (
+                  feature.geometry as any
+                ).coordinates.slice();
+
+                // Ensure coordinates don't get wrapped around the globe
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                  coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+
+                // Create popup container
+                const popupContainer = document.createElement("div");
+                popupContainer.style.padding = "8px 10px";
+                popupContainer.style.whiteSpace = "nowrap";
+
+                // Create content
+                const content = document.createElement("div");
+                content.innerHTML = `
+                  <h3 style="margin: 0; font-size: 12px; font-weight: 600;">
+                    ${props.Name || "Flood Prone Area"}
+                  </h3>
+                `;
+
+                popupContainer.appendChild(content);
+
+                // Create popup positioned above the circle
+                floodPronePopupRef.current = new mapboxgl.Popup({
+                  closeButton: false,
+                  closeOnClick: false,
+                  anchor: "bottom",
+                  offset: 25,
+                })
+                  .setLngLat(coordinates)
+                  .setDOMContent(popupContainer)
+                  .addTo(map);
+              }
+            });
+
+            map.on("mouseleave", `${area.id}-layer`, () => {
+              map.getCanvas().style.cursor = "";
+              if (floodPronePopupRef.current) {
+                floodPronePopupRef.current.remove();
+                floodPronePopupRef.current = null;
+              }
+            });
           });
         };
 
@@ -1036,10 +1101,45 @@ function MapPageContent() {
   };
 
   const handleOverlayToggle = (layerId: string) => {
+    const isCurrentlyVisible =
+      overlayVisibility[layerId as keyof typeof overlayVisibility];
+    const newVisibility = !isCurrentlyVisible;
+
     setOverlayVisibility((prev) => ({
       ...prev,
-      [layerId]: !prev[layerId as keyof typeof prev],
+      [layerId]: newVisibility,
     }));
+
+    // If turning on an overlay, hide all flood prone areas
+    if (newVisibility) {
+      const anyFloodProneVisible = Object.values(floodProneVisibility).some(
+        (v) => v
+      );
+      if (anyFloodProneVisible) {
+        setFloodProneVisibility({
+          downstream_south_area: false,
+          mc_briones_highway: false,
+          lh_prime_area: false,
+          rolling_hills_area: false,
+          downstream_east_area: false,
+          maguikay_cabancalan_tabok_tingub_butuaonon: false,
+          paknaan_butuanon: false,
+          basak_pagsabungan: false,
+          maguikay_barangay_road: false,
+        });
+
+        // Debounce toast to show only once per toggle session
+        if (toastTimeoutRef.current) {
+          clearTimeout(toastTimeoutRef.current);
+        }
+        toastTimeoutRef.current = setTimeout(() => {
+          toast.info(
+            "Flood prone areas hidden to improve clarity with map layers"
+          );
+          toastTimeoutRef.current = null;
+        }, 100);
+      }
+    }
   };
 
   const overlayData = OVERLAY_CONFIG.map((config) => ({
@@ -1050,67 +1150,101 @@ function MapPageContent() {
   const floodProneAreasData = [
     {
       id: "downstream_south_area",
-      name: "DOWNSTREAM SOUTH AREA",
-      color: "#FF6B6B",
+      name: "Downstream South",
+      color: "#DC2626",
       visible: floodProneVisibility["downstream_south_area"] || false,
     },
     {
       id: "mc_briones_highway",
-      name: "MC BRIONES HI-WAY",
-      color: "#4ECDC4",
+      name: "Briones Highway",
+      color: "#059669",
       visible: floodProneVisibility["mc_briones_highway"] || false,
     },
     {
       id: "lh_prime_area",
-      name: "LH PRIME AREA",
-      color: "#45B7D1",
+      name: "LH Prime",
+      color: "#0284C7",
       visible: floodProneVisibility["lh_prime_area"] || false,
     },
     {
       id: "rolling_hills_area",
-      name: "ROLLING HILLS AREA",
-      color: "#FFA07A",
+      name: "Rolling Hills",
+      color: "#EA580C",
       visible: floodProneVisibility["rolling_hills_area"] || false,
     },
     {
       id: "downstream_east_area",
-      name: "DOWNSTREAM EAST AREA",
-      color: "#98D8C8",
+      name: "Downstream East",
+      color: "#0D9488",
       visible: floodProneVisibility["downstream_east_area"] || false,
     },
     {
       id: "maguikay_cabancalan_tabok_tingub_butuaonon",
-      name: "MAGUIKAY, CABANCALAN, TABOK, TINGUB-BUTUANON",
-      color: "#F7B731",
+      name: "Butuanon River",
+      color: "#D97706",
       visible:
         floodProneVisibility["maguikay_cabancalan_tabok_tingub_butuaonon"] ||
         false,
     },
     {
       id: "paknaan_butuanon",
-      name: "PAKNAAN-BUTUANON",
-      color: "#5F27CD",
+      name: "Paknaan Basin",
+      color: "#7C3AED",
       visible: floodProneVisibility["paknaan_butuanon"] || false,
     },
     {
       id: "basak_pagsabungan",
-      name: "BASAK-PAGSABUNGAN",
-      color: "#00D2D3",
+      name: "Bask & Pagsabungan",
+      color: "#0891B2",
       visible: floodProneVisibility["basak_pagsabungan"] || false,
     },
     {
       id: "maguikay_barangay_road",
-      name: "MAGUIKAY BRGY. RD",
-      color: "#FF9FF3",
+      name: "Maguikay Road",
+      color: "#DB2777",
       visible: floodProneVisibility["maguikay_barangay_road"] || false,
     },
   ];
 
   const handleToggleFloodProneArea = (areaId: string) => {
+    const isCurrentlyVisible =
+      floodProneVisibility[areaId as keyof typeof floodProneVisibility];
+    const newVisibility = !isCurrentlyVisible;
+
     setFloodProneVisibility((prev) => ({
       ...prev,
-      [areaId]: !prev[areaId as keyof typeof floodProneVisibility],
+      [areaId]: newVisibility,
     }));
+
+    // If turning on a flood prone area, hide all overlays except reports
+    if (newVisibility) {
+      const anyOverlayVisible = Object.entries(overlayVisibility).some(
+        ([key, value]) => key !== "reports-layer" && value
+      );
+
+      if (anyOverlayVisible) {
+        setOverlayVisibility((prev) => ({
+          ...prev,
+          "man_pipes-layer": false,
+          "storm_drains-layer": false,
+          "inlets-layer": false,
+          "outlets-layer": false,
+          "flood_hazard-layer": false,
+          "mandaue_population-layer": false,
+        }));
+
+        // Debounce toast to show only once per toggle session
+        if (toastTimeoutRef.current) {
+          clearTimeout(toastTimeoutRef.current);
+        }
+        toastTimeoutRef.current = setTimeout(() => {
+          toast.info(
+            "Map layers hidden to improve clarity with flood prone areas"
+          );
+          toastTimeoutRef.current = null;
+        }, 100);
+      }
+    }
   };
 
   const handleToggleAllOverlays = () => {

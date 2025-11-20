@@ -34,12 +34,17 @@ export function OverlayLegend({
 
   // Toggle all drainage layers
   const handleToggleAll = (pressed: boolean) => {
+    let firstToggled = false;
     drainageOverlays.forEach((overlay) => {
       // If toggle is pressed (on), show all layers
       // If toggle is not pressed (off), hide all layers
       const shouldBeVisible = pressed;
       if (overlay.visible !== shouldBeVisible) {
         onToggleOverlay(overlay.id);
+        // Only show toast for the first toggle to avoid spam
+        if (!firstToggled && pressed) {
+          firstToggled = true;
+        }
       }
     });
   };
