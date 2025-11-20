@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/card";
 import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
+import { Spinner } from "./ui/spinner";
 
 interface FloodScenarioCardProps {
   isVisible: boolean;
   onToggle: () => void;
   selectedScenario?: string;
   onScenarioChange?: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export function FloodScenarioCard({
@@ -24,6 +26,7 @@ export function FloodScenarioCard({
   onToggle,
   selectedScenario,
   onScenarioChange,
+  isLoading,
 }: FloodScenarioCardProps) {
   const [visible, setVisible] = useState(isVisible);
   return (
@@ -50,12 +53,13 @@ export function FloodScenarioCard({
             className={`ml-auto border cursor-pointer transition-colors duration-300 ${
               visible ? "border-[#3F83DB]" : "border-gray-300"
             }`}
+            disabled={isLoading}
           >
-            <TriangleAlert
+            {isLoading ? <Spinner className="h-4 w-4" /> : <TriangleAlert
               className={`h-4 w-4 ${
                 visible ? "text-[#3F83DB]" : "text-gray-400"
               }`}
-            />
+            />}
           </Toggle>
         </CardHeader>
         <CardContent className="flex-1 pb-0 pt-3">

@@ -46,13 +46,14 @@ interface OverlayContentProps {
   onToggleDrag?: (enabled: boolean) => void;
   reports: Report[];
   isSimulationMode?: boolean;
-  floodProneAreas?: {
+  isFloodScenarioLoading?: boolean;
+  floodProneAreas: {
     id: string;
     name: string;
     color: string;
     visible: boolean;
   }[];
-  onToggleFloodProneArea?: (id: string) => void;
+  onToggleFloodProneArea: (id: string) => void;
 }
 
 type ComponentId = "chart" | "layers" | "reports" | "flood" | "population" | "floodprone";
@@ -124,7 +125,8 @@ export default function OverlaysContent({
   isDragEnabled = true,
   reports,
   isSimulationMode = false,
-  floodProneAreas = [],
+  isFloodScenarioLoading = false,
+  floodProneAreas,
   onToggleFloodProneArea,
 }: OverlayContentProps) {
   const [componentOrder, setComponentOrder] = useState<ComponentId[]>([
@@ -225,6 +227,7 @@ export default function OverlaysContent({
             onToggle={() => onToggleOverlay("flood_hazard-layer")}
             selectedScenario={selectedFloodScenario}
             onScenarioChange={onChangeFloodScenario}
+            isLoading={isFloodScenarioLoading}
           />
         ),
       },
@@ -280,12 +283,12 @@ export default function OverlaysContent({
           "barangay",
           "road",
         ],
-        component: onToggleFloodProneArea ? (
+        component: (
           <FloodProneToggle
             floodProneAreas={floodProneAreas}
             onToggleFloodProneArea={onToggleFloodProneArea}
           />
-        ) : null,
+        ),
       },
       {
         id: "reports" as ComponentId,
@@ -325,6 +328,7 @@ export default function OverlaysContent({
       isSimulationMode,
       selectedFloodScenario,
       onChangeFloodScenario,
+      isFloodScenarioLoading,
       floodProneAreas,
       onToggleFloodProneArea,
     ]

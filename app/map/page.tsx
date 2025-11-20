@@ -60,6 +60,7 @@ function MapPageContent() {
   const [mapError, setMapError] = useState<string | null>(null);
   const [selectedFloodScenario, setSelectedFloodScenario] =
     useState<string>("5YR");
+  const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [overlayVisibility, setOverlayVisibility] = useState({
     "man_pipes-layer": true,
     "storm_drains-layer": true,
@@ -169,6 +170,7 @@ function MapPageContent() {
       return;
     }
 
+    setIsFloodScenarioLoading(true);
     setSelectedFloodScenario(scenarioId);
 
     const source = mapRef.current.getSource(
@@ -181,17 +183,12 @@ function MapPageContent() {
 
       source.setData(dataUrl);
 
-      // Verify the switch worked
-      mapRef.current.once("sourcedata", (e) => {
-        if (e.sourceId === "flood_hazard" && e.isSourceLoaded) {
-          const features = mapRef.current?.querySourceFeatures("flood_hazard");
-          console.log(
-            `Loaded ${scenarioId}: ${features?.length || 0} features`
-          );
-        }
+      mapRef.current.once("idle", () => {
+        setIsFloodScenarioLoading(false);
       });
     } else {
       console.error("flood_hazard source not found");
+      setIsFloodScenarioLoading(false);
       console.log(
         "Available sources:",
         Object.keys(mapRef.current.getStyle().sources)
@@ -1478,6 +1475,7 @@ function MapPageContent() {
           onRefreshReports={onRefreshReports}
           isRefreshingReports={isRefreshingReports}
           allReportsData={allReportsData} // Pass all reports data to ControlPanel
+          isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls
           onZoomIn={handleZoomIn}
