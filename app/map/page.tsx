@@ -557,8 +557,8 @@ function MapPageContent() {
 
                 // Get feature coordinates (center of the circle)
                 const coordinates = (
-                  feature.geometry as any
-                ).coordinates.slice();
+                  feature.geometry as GeoJSON.Point
+                ).coordinates as [number, number];
 
                 // Ensure coordinates don't get wrapped around the globe
                 while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
