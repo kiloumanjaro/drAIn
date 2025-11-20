@@ -5,38 +5,172 @@
   "events": [
     {
       "eventName": "Event 1: Flash Flood of July 1, 2016",
-      "summary": "This significant flooding event was characterized by a rapid rise in water levels following an intense, localized thunderstorm. The city's drainage systems were quickly overwhelmed, leading to widespread inundation of major thoroughfares and residential areas. Emergency response teams were deployed to assist stranded residents and manage traffic disruptions. The event highlighted critical vulnerabilities in the city's infrastructure, prompting a review of storm drainage capacity and urban development policies. Post-event analysis focused on the correlation between rainfall intensity and the observed flood patterns.",
+      "summary": "This significant flooding event was characterized by widespread gridlock caused by waist-deep waters on major thoroughfares, primarily due to the overflow of the Subangdaku River. The event highlighted critical failures in urban drainage infrastructure, which was unable to cope with the volume of water from the overflowing river.",
       "data": {
-        "Date of Event": "July 1, 2016",
-        "Rainfall Intensity (mm/hr)": "150",
-        "Duration of Peak Rainfall (hours)": "2",
-        "Areas Most Affected": "Subangdaku, Tipolo, Mandaue Centro",
-        "Estimated Property Damage (PHP)": "25,000,000",
-        "Number of Displaced Families": "120"
+        "Affected Population": "Stranded passengers and motorists.",
+        "Key Affected Areas": "A.S. Fortuna Avenue (specifically between Rolling Hills and Volvo dealership), Lopez Jaena Highway.",
+        "Flood Level (Reported)": "Waist-deep (on A.S. Fortuna Ave.).",
+        "Primary Cause": "Heavy rainfall causing river overflow.",
+        "Contributing Factors": "Subangdaku River overflow: Drains installed on A.S. Fortuna reportedly backflowed with river water. The drainage project was deemed a \"complete failure\" as it could not drain into the overflowing river.",
+        "Impact on Infrastructure": "Vehicular gridlock on major roads. The multi-million peso drainage and road rehabilitation on A.S. Fortuna was ineffective.",
+        "Displacement/Evacuation": "No evacuation specified, but many passengers and motorists were stranded for hours.",
+        "Aid Provided": "No aid specified in available reports.",
+        "Fatalities/Injuries": "0 reported."
       }
     },
     {
-      "eventName": "Event 1: Flash Flood of July 1, 2016",
-      "summary": "This significant flooding event was characterized by a rapid rise in water levels following an intense, localized thunderstorm. The city's drainage systems were quickly overwhelmed, leading to widespread inundation of major thoroughfares and residential areas. Emergency response teams were deployed to assist stranded residents and manage traffic disruptions. The event highlighted critical vulnerabilities in the city's infrastructure, prompting a review of storm drainage capacity and urban development policies. Post-event analysis focused on the correlation between rainfall intensity and the observed flood patterns.",
+      "eventName": "Event 2: Flash Flood of August 4, 2016",
+      "summary": "This event was caused by an intense but short-duration downpour from an Intertropical Convergence Zone (ITCZ). Lasting only about an hour, the rainfall was severe enough to cause waist-deep flooding on the critical artery of A.S. Fortuna Street, leading to significant economic disruption and traffic paralysis.",
       "data": {
-        "Date of Event": "July 1, 2016",
-        "Rainfall Intensity (mm/hr)": "150",
-        "Duration of Peak Rainfall (hours)": "2",
-        "Areas Most Affected": "Subangdaku, Tipolo, Mandaue Centro",
-        "Estimated Property Damage (PHP)": "25,000,000",
-        "Number of Displaced Families": "120"
+        "Event Type": "Flash Flood",
+        "Date & Time": "Thursday, August 4, 2016. Heavy rainfall recorded between 2:08 PM and 3:05 PM.",
+        "Primary Cause": "Intense, short-duration rainfall (approx. 1 hour) caused by an Intertropical Convergence Zone (ITCZ).",
+        "Key Affected Areas": "Primary: A.S. Fortuna Street (impassable, especially near LH Prime and Rolling Hills), Barangays Banilad, Cabangcalan, and Subangdaku. Secondary (Extrapolated): Connecting roads and adjacent low-lying commercial and residential zones.",
+        "Flood Level": "Reported: Waist-deep.",
+        "Affected Population (Extrapolated)": "Directly: Thousands of motorists and commuters stranded. Hundreds of commercial establishments and residential homes in low-lying areas of the affected barangays. Indirectly: Tens of thousands affected by gridlock across Mandaue and interconnected cities.",
+        "Displacement / Evacuation (Extrapolated)": "Formal Evacuation: Unlikely, as this was a sudden flash flood. Informal Displacement: Widespread. Thousands were effectively stranded for hours. Residents on the ground floor of homes in the worst-hit areas would have been forced to move to upper levels.",
+        "Infrastructure Impact (Extrapolated)": "Traffic: Complete paralysis on major arteries (A.S. Fortuna) and extensive, multi-hour gridlock on diversion routes. Drainage: Overwhelmed. The area is known for having drainage that backflows from the Subangdaku River. Vehicles: Dozens, if not hundreds, of vehicles likely stalled and sustained water damage.",
+        "Economic Impact (Extrapolated)": "Business Disruption: Significant. Commercial operations along A.S. Fortuna would have ceased. Productivity Loss: Widespread loss of work hours due to stranded employees. Property Damage: Moderate. Damage to merchandise in flooded establishments, furniture in residences, and significant damage to stalled vehicles.",
+        "Government Response": "On-site: Mandaue City Disaster Risk Reduction and Management Office (CDRRMO) personnel were deployed. The Traffic Enforcement Agency of Mandaue (TEAM) managed traffic diversions.",
+        "Duration (Extrapolated)": "Flooding: Water likely remained at critical levels for 2-4 hours. Traffic Disruption: Severe congestion likely persisted for 5-7 hours, lasting well into the late evening.",
+        "Fatalities / Injuries": "0 reported."
       }
     },
     {
-      "eventName": "Event 1: Flash Flood of July 1, 2016",
-      "summary": "This significant flooding event was characterized by a rapid rise in water levels following an intense, localized thunderstorm. The city's drainage systems were quickly overwhelmed, leading to widespread inundation of major thoroughfares and residential areas. Emergency response teams were deployed to assist stranded residents and manage traffic disruptions. The event highlighted critical vulnerabilities in the city's infrastructure, prompting a review of storm drainage capacity and urban development policies. Post-event analysis focused on the correlation between rainfall intensity and the observed flood patterns.",
+      "eventName": "Event 3: Typhoon Odette (Rai) of December 16, 2021",
+      "summary": "Typhoon Odette was primarily a catastrophic wind event for Mandaue City. Despite a high storm signal and predictions of a major storm surge, the city was spared from the deep, widespread riverine flooding seen in other events. The \"flooding\" that occurred was minor and localized, caused mainly by drainage blockages from wind-blown debris. The primary loss was structural, with a near-total collapse of power and communication infrastructure.",
       "data": {
-        "Date of Event": "July 1, 2016",
-        "Rainfall Intensity (mm/hr)": "150",
-        "Duration of Peak Rainfall (hours)": "2",
-        "Areas Most Affected": "Subangdaku, Tipolo, Mandaue Centro",
-        "Estimated Property Damage (PHP)": "25,000,000",
-        "Number of Displaced Families": "120"
+        "Event": "Typhoon Odette (Rai) - Signal No. 3 / 4 (Wind event primarily)",
+        "Date & Time": "December 16, 2021 (Thursday evening, approx. 8:00 PM - 11:00 PM impact window).",
+        "Flood Level": "Minimal / Localized (Ankle to Knee-Deep). No major \"waist-deep\" river floods reported.",
+        "Storm Surge": "Dissipated / Minor. The predicted 3-meter surge did not catastrophically breach Mandaue's coast due to the Mactan Island buffer.",
+        "Primary Hazard": "Destructive Winds (Catastrophic). Sustained winds of 175 km/h, gusts up to 240 km/h.",
+        "Affected Population": "100% of Population (Indirectly): Loss of power, water, and signal. Evacuees: Pre-emptive evacuation of riverine barangays (Paknaan, Ibabao-Estancia, Umapad).",
+        "Casualties": "6 to 9 Fatalities. (Note: These were caused by structural collapse/debris, not drowning).",
+        "Infrastructure Impact": "Critical Failure. • Power: 90-100% poles down. • Water: Pumps failed due to power loss. • Roads: Impassable due to debris (trees/poles), not floodwater.",
+        "Key Affected Barangays": "For Wind: All Barangays. For Flood Risk (Evacuated): Paknaan, Umapad, Ibabao-Estancia, Looc, Centro.",
+        "Economic Impact": "Severe (Structural). Billions in damages due to destroyed warehouses, factories, and commercial buildings (unroofed), rather than water-damaged inventory.",
+        "Government Response": "Pre-emptive: Forced evacuation of riverbanks. Post-Impact: Focus shifted immediately to clearing roads of debris and restoring power, rather than water rescue."
+      }
+    },
+    {
+      "eventName": "Event 4: Flash Flood of September 9, 2022",
+      "summary": "This flood was caused by an intense two-hour thunderstorm that caused the Butuanon River to overflow. The event was characterized by extremely severe, localized flooding, reaching head-level in several residential areas. The primary impact was the displacement of over 460 families and significant property damage, including shanties being completely washed away by the river's current.",
+      "data": {
+        "Event Type": "Flash Flood due to river overflow and intense rainfall.",
+        "Date & Time": "September 9, 2022 (Friday). Heavy downpour from past 1:00 PM to past 3:00 PM.",
+        "Primary Cause": "Intense, localized thunderstorm dropping 60mm of rain, causing the Butuanon River to overflow.",
+        "Contributing Factors": "Mounds of trash were reported to be barring river flow, worsening the overflow.",
+        "Affected Population": "464-467 families (comprising 1,565-1,800+ individuals) were displaced.",
+        "Key Affected Barangays": "Worst-Hit: Paknaan (Sitios Tambis, Talong), Casuntingan (Sitio Lub-ang), Maguikay (Sitio Salvacion), Alang-Alang (Sitio Pulang Bukid), Umapad. Also Affected: Tabok, Tingub, Mantuyong.",
+        "Flood Level": "Severe and varied by location: • Head-level: Sitio Lub-ang (Casuntingan), Sitios Tambis and Talong (Paknaan). • Neck-deep: Sitio Salvacion (Maguikay), Sitio Pulang Bukid (Alang-Alang). • Waist-level: Parts of UN Avenue (Umapad).",
+        "Displacement/Evacuation": "Pre-emptive and forced evacuations began around 2:00 PM. 467 families were housed overnight in various gymnasiums and schools.",
+        "Property Damage": "Structural Loss: At least some shanties were completely carried away by the Butuanon River. Property Damage: Widespread water damage to houses and belongings.",
+        "Fatalities (Flood)": "0. No casualties were recorded as a direct result of the flooding.",
+        "Injuries (Secondary)": "3 individuals. Two men and one 16-year-old boy were injured by four exploding transformers believed to be caused by strong winds.",
+        "Government Response": "Rescue: The Bureau of Fire Protection (BFP) rescued residents trapped in neck-deep floods. Management: The MCDRRMO conducted pre-emptive evacuations. Executive Action: The Mayor visited the injured and scheduled a meeting to assess the damage."
+      }
+    },
+    {
+      "eventName": "Event 5: Flash Flood & Landslide of September 11, 2023",
+      "summary": "A localized thunderstorm led to severe, \"beyond head-level\" flooding in specific pockets of the city, most notably in Barangay Ibabao-Estancia. This event was marked by a tragic fatality, where a five-year-old child was swept into an open culvert. It also caused landslides that destroyed several homes along the Butuanon River easement.",
+      "data": {
+        "Event Type": "Flash Flood and Landslide due to Localized Thunderstorm.",
+        "Date & Time": "September 11, 2023 (Monday). Heavy rainfall began around 3:00 PM.",
+        "Primary Cause": "Intense, short-duration rainfall causing flash floods.",
+        "Contributing Factors": "- Clogged culvert pipes in Brgy. Ibabao-Estancia. - Strong river current in Butuanon River eroding easement in Brgy. Maguikay. - Unsecured open culvert pipe in Brgy. Jagobiao.",
+        "Affected Population": "Total Displaced: At least 130 families (or 375 individuals).",
+        "Key Affected Barangays": "Worst-Hit (with evacuations/damage): Ibabao-Estancia, Maguikay, Jagobiao. Also Flooded (Reported): Tipolo, Cabancalan, Pagsabungan, Banilad, Subangdaku.",
+        "Flood Level": "Severe and Highly Localized: - Beyond head-level: Sitio Mangga, Brgy. Ibabao-Estancia. - Waist-level: Other flooded areas.",
+        "Displacement/Evacuation": "130 families evacuated to various centers, primarily the Ibabao-Estancia Gym and Maguikay National High School.",
+        "Damaged Houses": "Total: 6 houses reported as \"totally damaged.\" - 3 houses in Maguikay were wiped out by a landslide. - 4 houses were affected by a separate landslide.",
+        "Fatalities": "1 Fatality. A five-year-old girl died in Barangay Jagobiao after being swept into a 300-meter culvert pipe.",
+        "Injuries": "None reported from flooding or landslides.",
+        "Economic Impact": "- Severe traffic congestion on major roads like A.S. Fortuna Avenue. - Damage to personal property and homes for displaced families.",
+        "Government Response": "- Rescue and evacuation operations by the CDRRMO. - Provision of hot meals, disaster kits, modular tents, and medical assistance by the LGU. - Rescue of stranded students and teachers on A.S. Fortuna Avenue."
+      }
+    },
+    {
+      "eventName": "Event 6: Flash Flood of June 23, 2024",
+      "summary": "This flood was attributed to heavy rains combined with trash-clogged drainage systems. While the reported details were limited, the event was significant enough to displace 71 families and cause flooding on A.S. Fortuna Street, necessitating a coordinated response from the city's disaster and traffic management agencies.",
+      "data": {
+        "Event Type": "Flash Flood due to heavy rainfall.",
+        "Date & Time": "Sunday, June 23, 2024.",
+        "Primary Cause": "Heavy Rains.",
+        "Contributing Factors": "Accumulation of trash in drainages, despite prior cleaning efforts.",
+        "Affected Population": "71 families displaced.",
+        "Key Affected Barangays": "9 barangays in total. Named Barangay (with evacuees): Ibabao-Estancia. Named Street (Flooded): A.S. Fortuna Street.",
+        "Flood Level (Extrapolated)": "Not specified. However, flooding on A.S. Fortuna Street is typically significant, likely ranging from knee-deep to waist-deep in impassable sections.",
+        "Displacement/Evacuation": "71 families were evacuated to the Ibabao-Estancia evacuation center.",
+        "Property Damage (Extrapolated)": "Not specified. Highly probable there was significant water damage to homes and belongings for the 71 evacuated families.",
+        "Fatalities/Injuries": "Not specified. Assumed to be 0.",
+        "Government Response": "• The CDRRMO managed the evacuation center.• The CDRRMO coordinated with TEAM to manage traffic and identify passable routes."
+      }
+    },
+    {
+      "eventName": "Event 7: Flash Flood of July 15, 2024",
+      "summary": "A notable and recurring phenomenon, this flood occurred in Mandaue City despite a complete lack of local rainfall. The Butuanon River overflowed due to heavy rains in the mountains of Cebu City, trapping hundreds of families in chest-deep water and requiring extensive rescue operations. The event highlighted the city's extreme vulnerability to upstream weather conditions.",
+      "data": {
+        "Event Type": "Flash Flood due to river overflow.",
+        "Date & Time": "Monday, July 15, 2024. Flooding began around 3:00 PM.",
+        "Primary Cause": "Upstream Rainfall: The Butuanon River overflowed due to heavy rains in the mountains of Cebu City. Mandaue City itself experienced no rainfall.",
+        "Affected Population": "352 families (comprising 1,405 individuals) were evacuated.",
+        "Key Affected Barangays": "3 Barangays: Umapad (worst-hit, specifically Purok Tambis), Ibabao-Estancia, and Paknaan.",
+        "Flood Level (Extrapolated)": "Severe: Chest-deep to Head-level in the worst-hit areas. This is strongly implied by the need for rescue boats and reports of a baby being floated out in a basin.",
+        "Displacement/Evacuation": "352 families were evacuated and housed at the Umapad Elementary School.",
+        "Property Damage (Extrapolated)": "Significant. Chest-deep flooding across multiple residential areas would have caused extensive damage to ground-floor homes, furniture, and appliances.",
+        "Fatalities/Injuries": "0. All sources explicitly state no injuries or casualties were reported.",
+        "Infrastructure & Economic Impact": "• Roads Impassable: UN Avenue and S.B. Cabahug Street were rendered impassable. • Widespread Gridlock: The traffic jam spread to Barangays Centro and Basak.",
+        "Government Response": "• Rescue: Extensive rescue operations by CDRRMO using boats and lifesavers. • Aid: CSWS provided disaster kits, food, and water. • Logistics: The CDRRMO provided modular tents and floodlights at the evacuation center.",
+        "Duration": "The floodwaters reportedly subsided after five hours."
+      }
+    },
+    {
+      "eventName": "Event 8: Flash Flood of October 5, 2024",
+      "summary": "Similar to the July 2024 event, this flash flood was caused entirely by upstream rains that swelled the Butuanon River. It led to severe, \"shoulder-level\" flooding in Barangay Umapad, displacing over 345 families and reinforcing the pattern of Mandaue's downstream vulnerability.",
+      "data": {
+        "Event Type": "Flash Flood due to river overflow.",
+        "Date & Time": "October 5, 2024 (Saturday), starting at 12:00 PM.",
+        "Primary Cause": "Overflow of the Butuanon River caused by intense, localized thunderstorms in upstream mountain areas of Cebu City.",
+        "Affected Population": "345 families (or 1,345 individuals) evacuated.",
+        "Key Affected Barangays": "Worst-Hit (with evacuations): Barangay Umapad (specifically Sitios Laray and Pentax). Also Monitored: Barangays Alang-alang, Tingub, and Paknaan.",
+        "Flood Level": "Shoulder-level in the worst-hit areas of Barangay Umapad.",
+        "Displacement/Evacuation": "345 families were evacuated to the Umapad Elementary School.",
+        "Property Damage (Extrapolated)": "Significant. \"Shoulder-level\" flooding would cause extensive damage to homes and belongings. Houses were reported to be \"caked all over with mud.\"",
+        "Fatalities/Injuries": "0. All sources confirm no casualties or injuries were reported.",
+        "Economic Impact (Extrapolated)": "Localized disruption within the affected riverside communities. Major city-wide traffic paralysis was not reported, suggesting the impact was contained to areas immediately surrounding the river.",
+        "Government Response": "- Rescue & Evacuation: Conducted by CDRRMO. \n- Aid & Welfare: Provision of meals, disaster kits, and health services by CSWSO and CHO. \n- Monitoring: Water level monitoring in other flood-prone barangays."
+      }
+    },
+    {
+      "eventName": "Event 9: Flash Flood of August 15, 2025",
+      "summary": "Triggered by an intense downpour from the Southwest Monsoon, this event caused the Butuanon River to overflow, affecting 11 barangays. The flood was severe enough to sweep away vehicles and cause the collapse of a newly built riprap. The event resulted in one fatality and the total destruction of eight houses.",
+      "data": {
+        "Event Type": "Flash Flood due to river overflow.",
+        "Date & Time": "August 15, 2025 (Friday). Intense rainfall from 10:30 PM to 11:30 PM.",
+        "Primary Cause": "Overflowing of the Butuanon River caused by an intense, short-duration downpour (23mm in 48 mins) from the Southwest Monsoon.",
+        "Affected Population": "1,115 families (or 2,904 individuals) affected across 11 barangays.",
+        "Displacement/Evacuation": "1,246 to 1,370 individuals from various barangays were evacuated.",
+        "Key Affected Barangays": "11 Barangays: Paknaan, Umapad, Maguikay, Casuntingan, Canduman, Alang-alang, Cabancalan, Jagobiao, Tabok, Tingub, and Tipolo.",
+        "Flood Level": "Waist-deep to Neck-deep. Severe enough to sweep away vehicles in Brgy. Paknaan.",
+        "Fatalities": "1 Fatality. A 24-year-old man died in Barangay Paknaan after being swept away by floodwaters while trying to save a vehicle.",
+        "Damaged Houses": "Total: 9 houses damaged. • 8 Totally Damaged • 1 Partially Damaged *(Note: 5 of the totally destroyed houses were in Sitio Lub-ang, Casuntingan, washed away after a riprap collapsed)*.",
+        "Infrastructure & Economic Impact": "• Bridge Closure: The Marcelo Fernan Bridge was temporarily closed. • Infrastructure Failure: A 15-meter section of a newly constructed riprap along the Butuanon River collapsed. • Widespread Traffic Paralysis across Metro Cebu.",
+        "Government Response": "• Rescue & Evacuation: Led by CDRRMO using 7 rescue boats. • Aid & Welfare: CSWSO and City Health provided meals, kits, and medical aid. • Traffic Management: TEAM managed diversions during bridge closure."
+      }
+    },
+    {
+      "eventName": "Event 10: Typhoon Tino (Kalmaegi) of November 4, 2025",
+      "summary": "This was a catastrophic, watershed event for the entire Metro Cebu area. Caused by unprecedented rainfall that overwhelmed the Butuanon River system, the typhoon exposed the deadly consequences of unregulated upland development in Cebu City, which resulted in a massive, fast-moving surge of water downstream into Mandaue. The floodwaters reached the second floors of houses, and while Mandaue's official death toll was low, the city became the recovery site for numerous victims washed down from upstream.",
+      "data": {
+        "Official Fatalities": "1 resident confirmed dead/missing. A later report clarified that of 14 bodies recovered in Mandaue, 12 were identified as Cebu City residents washed downstream.",
+        "Missing Persons": "1 resident confirmed missing.",
+        "Affected Population / Displacement": "Thousands displaced. All 27 barangays were affected. Evacuations occurred in many, from a few families to hundreds per area.",
+        "Flood Level & Severity": "Catastrophic. • Chest-deep to Above Head-level in multiple areas. • Reached the second floor and rooftops of houses. • Even subdivisions not usually considered flood-prone were inundated.",
+        "Primary Cause & Contributing Factors": "Butuanon River Overflow (Downstream). As the receiving basin for the river, Mandaue experienced a massive surge of water from Cebu City's highlands. High tide exacerbated the flooding. The event was primarily attributed to runoff from development in Cebu City's mountains.",
+        "Key Affected Barangays": "Widespread. Worst-Hit (along Butuanon River): Umapad, Paknaan, Ibabao-Estancia, Casuntingan, Cabancalan, Alang-Alang, Maguikay. Also Flooded: Tabok, Canduman, Opao, Looc, Tingub.",
+        "Infrastructure & Economic Impact": "• Impassable Major Roads: Plaridel Street and U.N. Avenue were rendered impassable by deep mud and floodwaters. • Widespread Power Outages. • Severe Water Shortages: Residents were seen lining up for clean water days after the storm.",
+        "Government & Community Response": "Reactive Rescue. Despite pre-emptive evacuation orders, teams were overwhelmed by calls for rescue as waters rose unexpectedly fast. Residents in Purok Tambis, Umapad, and Paknaan later appealed for food and water, citing slow relief distribution due to blocked roads."
       }
     }
   ]
