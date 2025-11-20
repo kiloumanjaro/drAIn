@@ -1270,9 +1270,43 @@ function MapPageContent() {
     };
 
     setOverlayVisibility(updated);
+
+    // If turning on overlays, hide all flood prone areas for clarity
+    if (!someVisible) {
+      const anyFloodProneVisible = Object.values(floodProneVisibility).some(
+        (v) => v
+      );
+      if (anyFloodProneVisible) {
+        setFloodProneVisibility({
+          downstream_south_area: false,
+          mc_briones_highway: false,
+          lh_prime_area: false,
+          rolling_hills_area: false,
+          downstream_east_area: false,
+          maguikay_cabancalan_tabok_tingub_butuaonon: false,
+          paknaan_butuanon: false,
+          basak_pagsabungan: false,
+          maguikay_barangay_road: false,
+        });
+
+        // Debounce toast to show only once per toggle session
+        if (toastTimeoutRef.current) {
+          clearTimeout(toastTimeoutRef.current);
+        }
+        toastTimeoutRef.current = setTimeout(() => {
+          toast.info(
+            "Flood prone areas hidden to improve clarity with map layers"
+          );
+          toastTimeoutRef.current = null;
+        }, 100);
+      }
+    }
   };
 
-  const someVisible = Object.values(overlayVisibility).some(Boolean);
+  // Check if any overlay OR any flood prone area is visible
+  const someVisible =
+    Object.values(overlayVisibility).some(Boolean) ||
+    Object.values(floodProneVisibility).some(Boolean);
 
   // Handler for the back button in control panel
   const handleControlPanelBack = () => {
