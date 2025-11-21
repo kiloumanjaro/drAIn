@@ -28,6 +28,7 @@ export async function recordInletMaintenance(
   inletId: string,
   status?: "in-progress" | "resolved",
   description?: string,
+  imagePath?: string,
 ) {
   return recordMaintenance(
     "inlets_maintenance",
@@ -35,6 +36,7 @@ export async function recordInletMaintenance(
     inletId,
     status,
     description,
+    imagePath,
   );
 }
 
@@ -47,6 +49,7 @@ export async function recordManPipeMaintenance(
   manPipeId: string,
   status?: "in-progress" | "resolved",
   description?: string,
+  imagePath?: string,
 ) {
   return recordMaintenance(
     "man_pipes_maintenance",
@@ -54,6 +57,7 @@ export async function recordManPipeMaintenance(
     manPipeId,
     status,
     description,
+    imagePath,
   );
 }
 
@@ -66,6 +70,7 @@ export async function recordOutletMaintenance(
   outletId: string,
   status?: "in-progress" | "resolved",
   description?: string,
+  imagePath?: string,
 ) {
   return recordMaintenance(
     "outlets_maintenance",
@@ -73,6 +78,7 @@ export async function recordOutletMaintenance(
     outletId,
     status,
     description,
+    imagePath,
   );
 }
 
@@ -85,13 +91,15 @@ export async function recordStormDrainMaintenance(
   stormDrainId: string,
   status?: "in-progress" | "resolved",
   description?: string,
+  imagePath?: string,
 ) {
   return recordMaintenance(
     "storm_drains_maintenance",
     "in_name",
     stormDrainId,
     status,
-description,
+    description,
+    imagePath,
   );
 }
 
@@ -109,6 +117,7 @@ async function recordMaintenance(
   assetId: string,
   status?: "in-progress" | "resolved",
   description?: string,
+  imagePath?: string,
 ) {
   const {
     data: { user },
@@ -130,17 +139,21 @@ async function recordMaintenance(
     };
   }
 
+  const payload: any = {
+    [idColumn]: assetId,
+    agency_id: profile.agency_id,
+    represented_by: user.id,
+    status: status,
+    description: description,
+  };
+
+  if (imagePath) {
+    payload.evidence_image = imagePath;
+  }
+
   const { data, error } = await client
     .from(tableName)
-    .insert([
-      {
-        [idColumn]: assetId,
-        agency_id: profile.agency_id,
-        represented_by: user.id,
-        status: status,
-        description: description,
-      },
-    ])
+    .insert([payload])
     .select();
 
   if (error) {
@@ -153,6 +166,9 @@ async function recordMaintenance(
       assetId,
       status,
       new Date().toISOString(),
+      data[0].id,
+      tableName,
+      imagePath,
     );
   }
 
@@ -173,7 +189,8 @@ async function getMaintenanceHistory(
       profiles ( full_name ),
       status,
       addressed_report_id,
-      description
+      description,
+      evidence_image
     `,
     )
     .eq(idColumn, assetId)

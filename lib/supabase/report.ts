@@ -15,6 +15,9 @@ export interface Report {
   coordinates: [number, number];
   geocoded_status: string;
   address: string;
+  resolvedByMaintenanceId?: string | null;
+  resolvedByMaintenanceType?: string | null;
+  resolvedImage?: string | null;
 }
 
 export const uploadReport = async (
@@ -144,15 +147,31 @@ const _updateReportStatusById = async (
 export const updateReportsStatusForComponent = async (
   componentId: string,
   status: "in-progress" | "resolved",
-  maintenanceDate: string
+  maintenanceDate: string,
+  maintenanceId?: string,
+  maintenanceType?: string,
+  maintenanceImage?: string
 ) => {
   try {
+    const updates: any = { status };
+    if (maintenanceId) updates.resolved_by_maintenance_id = maintenanceId;
+    if (maintenanceType) updates.resolved_by_maintenance_type = maintenanceType;
+    if (maintenanceImage) updates.resolved_image = maintenanceImage;
+
+    // Hierarchy Logic: Only update reports with a LOWER status.
+    // Resolved > In-Progress > Pending
+    // - Resolved can update: Pending, In-Progress
+    // - In-Progress can update: Pending
+    
+    const targetStatuses = status === "resolved" 
+        ? ["pending", "in-progress"] 
+        : ["pending"];
+
     const { error } = await client
       .from("reports")
-      .update({ status })
+      .update(updates)
       .eq("component_id", componentId)
-      .neq("status", "resolved")
-      .in("status", ["in-progress", "pending"])
+      .in("status", targetStatuses)
       .lte("created_at", maintenanceDate);
 
     if (error) {
@@ -195,6 +214,14 @@ export const formatReport = (
     .from("ReportImage")
     .getPublicUrl((report as any).image || "");
 
+  let resolvedImageUrl = "";
+  if ((report as any).resolved_image) {
+    const { data: rImg } = client.storage
+      .from("ReportImage")
+      .getPublicUrl((report as any).resolved_image);
+    resolvedImageUrl = rImg?.publicUrl || "";
+  }
+
   const rawDate = (report as any).created_at || (report as any).date || null;
   const parsedDate = new Date(rawDate);
   const safeDate =
@@ -221,6 +248,9 @@ export const formatReport = (
     coordinates: safeCoords,
     geocoded_status: (report as any).geocoded_status ?? "pending",
     address: (report as any).address ?? "Unknown address",
+    resolvedByMaintenanceId: (report as any).resolved_by_maintenance_id ?? null,
+    resolvedByMaintenanceType: (report as any).resolved_by_maintenance_type ?? null,
+    resolvedImage: resolvedImageUrl || null,
   };
 };
 
