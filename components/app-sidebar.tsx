@@ -30,11 +30,6 @@ import NotificationBell from "@/components/report-notif";
 const data = {
   navMain: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: ChartPieIcon,
-    },
-    {
       title: "Home",
       url: "/",
       icon: HomeIcon,
@@ -48,6 +43,11 @@ const data = {
       title: "Simulation",
       url: "/simulation?active=true",
       icon: BeakerIcon,
+    },
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: ChartPieIcon,
     },
     {
       title: "Documentation",
