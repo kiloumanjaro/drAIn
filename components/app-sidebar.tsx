@@ -9,6 +9,7 @@ import {
   MapIcon,
   BookOpenIcon,
   BeakerIcon,
+  ChartPieIcon,
 } from "@heroicons/react/24/solid";
 
 import { NavMain } from "@/components/nav-main";
@@ -28,6 +29,11 @@ import NotificationBell from "@/components/report-notif";
 // This is the data structure for the sidebar
 const data = {
   navMain: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: ChartPieIcon,
+    },
     {
       title: "Home",
       url: "/",
