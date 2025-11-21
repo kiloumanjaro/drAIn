@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Map, FileText } from "lucide-react";
+import { BarChart3, Map, FileText, Clock, RefreshCw } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 // Import tab components (will create these)
 import OverviewTab from "@/components/dashboard/overview/OverviewTab";
@@ -11,6 +12,29 @@ import ReportsTab from "@/components/dashboard/reports/ReportsTab";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshTimerRef = React.useRef<number | null>(null);
+
+  const handleRefresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    // update timestamp (replace with real fetch if available)
+    setLastUpdated(new Date());
+    // simulate a short refresh animation / async op
+    refreshTimerRef.current = window.setTimeout(() => {
+      setIsRefreshing(false);
+      refreshTimerRef.current = null;
+    }, 800);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, []);
 
   // Manage scrollbar visibility
   React.useEffect(() => {
@@ -24,14 +48,48 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#e8e8e8]/50">
       <div className="w-[1280px] mx-auto px-4 md:px-6 py-8">
         {/* Header */}
-        <div className="bg-white rounded-xl border border-[#ced1cd] py-8 px-6 mb-6">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            drAIn Public Dashboard
-          </h1>
-          <p className="text-base text-foreground/70 leading-relaxed">
-            Real-time transparency and analytics for the drainage system. All data is
-            publicly available to build community trust.
-          </p>
+        <div className="bg-white rounded-xl border border-[#ced1cd] py-6 px-6 mb-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 p-2 shadow-inner">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+
+              <div>
+                <h1 className="text-2xl md:text-3xl font-semibold text-foreground leading-tight">
+                  drAIn Public Dashboard
+                </h1>
+                <p className="text-sm text-foreground/70 mt-1 max-w-lg">
+                  Real-time transparency and analytics for the drainage system — publicly available to build community trust.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2 bg-gray-50 text-gray-600 rounded-full px-3 py-1 text-sm">
+                <Clock className="w-4 h-4 text-gray-500" />
+                <span>Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}</span>
+              </div>
+
+              <button
+                onClick={handleRefresh}
+                title={isRefreshing ? "Refreshing..." : "Refresh data"}
+                aria-busy={isRefreshing}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-3 py-1.5 rounded-md text-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-wait"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                <span>{isRefreshing ? "Refreshing" : "Refresh"}</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("reports")}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700"
+              >
+                Explore
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
