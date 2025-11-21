@@ -49,7 +49,7 @@ import client from "@/app/api/client";
 import Image from "next/image";
 import { format } from "date-fns";
 
-const DEBUG_MODE = true; // Set to true to bypass EXIF/Location checks
+const DEBUG_MODE = false; // Set to true to bypass EXIF/Location checks
 
 type HistoryItem = {
   last_cleaned_at: string;
