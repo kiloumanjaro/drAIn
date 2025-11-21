@@ -66,16 +66,17 @@ export default function AnalyticsTab() {
       {/* Zone Map */}
       <ZoneMap data={zoneData} loading={loading} />
 
-      {/* Repair Time Cards */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">
-          Average Repair Time by Component
-        </h3>
-        <RepairTimeCards data={repairTimeData} loading={loading} />
-      </div>
+      {/* Component Type Chart (left - 2/3) and Repair Time Cards (right - 1/3) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="md:col-span-2">
+          <ComponentTypeChart data={componentData} loading={loading} />
+        </section>
 
-      {/* Component Type Chart */}
-      <ComponentTypeChart data={componentData} loading={loading} />
+        <aside className="md:col-span-1">
+          <h3 className="text-lg font-semibold mb-4">Average Repair Time by Component</h3>
+          <RepairTimeCards data={repairTimeData} loading={loading} />
+        </aside>
+      </div>
     </div>
   );
 }

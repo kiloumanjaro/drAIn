@@ -153,13 +153,24 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
     };
   }, [geoJsonData, data, selectedZone]);
 
+  // Loading state
   if (loading) {
     return (
       <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
         <h3 className="text-lg font-semibold mb-4">
           Issues Per Zone (Barangay Breakdown)
         </h3>
-        <Skeleton className="h-96 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          <div className="md:col-span-2">
+            <Skeleton className="h-[28rem] md:h-[36rem] w-full rounded-lg" />
+          </div>
+          <div className="space-y-3 h-[28rem] md:h-[36rem]">
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -170,7 +181,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
         <h3 className="text-lg font-semibold mb-4">
           Issues Per Zone (Barangay Breakdown)
         </h3>
-        <div className="flex items-center justify-center h-96 text-gray-500">
+        <div className="flex items-center justify-center h-48 text-gray-500">
           <p>No zone data available</p>
         </div>
       </div>
@@ -179,7 +190,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
 
   // Sort by count descending
   const sortedData = [...data].sort((a, b) => b.count - a.count);
-  const totalIssues = sortedData.reduce((sum, z) => sum + z.count, 0);
+  const totalIssues = sortedData.reduce((sum, z) => sum + z.count, 0) || 0;
 
   return (
     <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
@@ -187,54 +198,65 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
         Issues Per Zone (Barangay Breakdown)
       </h3>
 
-      {/* Map Container */}
-      {mapError ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg h-96 mb-6 flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-2" />
-            <p className="text-red-800 font-medium">{mapError}</p>
-            <p className="text-sm text-red-600 mt-1">
-              Please configure Mapbox token to enable map visualization
-            </p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        {/* Map: left 2/3 */}
+        <div className="md:col-span-2">
+          {mapError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg h-[28rem] md:h-[36rem] flex items-center justify-center">
+              <div className="text-center">
+                <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-2" />
+                <p className="text-red-800 font-medium">{mapError}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  Please configure Mapbox token to enable map visualization
+                </p>
+              </div>
+            </div>
+          ) : (
+              <div
+                ref={mapContainer}
+                className="rounded-lg h-[28rem] md:h-[36rem] border border-gray-300 overflow-hidden"
+              />
+          )}
         </div>
-      ) : (
-        <div
-          ref={mapContainer}
-          className="rounded-lg h-96 mb-6 border border-gray-300 overflow-hidden"
-        />
-      )}
 
-      {/* Zone breakdown cards */}
-      <div className="mb-6">
-        <h4 className="font-semibold text-gray-900 mb-3">
-          Top Zones by Issue Count
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {sortedData.slice(0, 12).map((zone) => {
-            const { bgColor, color } = getZoneColorByCount(zone.count);
-            const isSelected = zone.zone === selectedZone;
-            return (
-              <button
-                key={zone.zone}
-                onClick={() =>
-                  setSelectedZone(zone.zone === selectedZone ? null : zone.zone)
-                }
-                className={`rounded-lg p-3 text-center border transition-all hover:border-blue-400 cursor-pointer bg-gray-100 ${
-                  isSelected ? "ring-2 ring-offset-2 ring-blue-500" : ""
-                }`}
-              >
-                <p className="text-xs font-semibold text-gray-700 mb-1 truncate">
-                  {zone.zone}
-                </p>
-                <p className={`text-lg font-bold ${color}`}>{zone.count}</p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {((zone.count / totalIssues) * 100).toFixed(0)}%
-                </p>
-              </button>
-            );
-          })}
-        </div>
+        {/* Top zones: right 1/3 */}
+        <aside className="space-y-4 h-[28rem] md:h-[36rem] flex flex-col">
+          <div className="p-3 rounded-md bg-gray-50 border">
+            <p className="text-sm text-gray-600">Total Issues</p>
+            <p className="text-2xl font-bold">{totalIssues}</p>
+          </div>
+
+          <div className="p-3 rounded-md bg-gray-50 border overflow-auto h-full">
+            <h4 className="font-semibold text-gray-900 mb-3">Top Zones</h4>
+            <ul className="space-y-2">
+              {sortedData.slice(0, 12).map((zone) => {
+                const { bgColor, color } = getZoneColorByCount(zone.count);
+                const isSelected = zone.zone === selectedZone;
+                return (
+                  <li key={zone.zone}>
+                    <button
+                      onClick={() =>
+                        setSelectedZone(zone.zone === selectedZone ? null : zone.zone)
+                      }
+                      className={`w-full flex items-center justify-between gap-3 p-2 rounded-md hover:bg-gray-100 transition-colors text-left ${
+                        isSelected ? "ring-2 ring-offset-2 ring-blue-500" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-block w-3 h-3 rounded-full ${bgColor}`} />
+                        <span className="text-sm font-medium truncate">{zone.zone}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-lg font-semibold ${color}`}>{zone.count}</div>
+                        <div className="text-xs text-gray-500">{totalIssues ? `${((zone.count / totalIssues) * 100).toFixed(0)}%` : "0%"}</div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </aside>
       </div>
     </div>
   );
