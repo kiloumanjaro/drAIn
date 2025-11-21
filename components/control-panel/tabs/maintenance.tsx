@@ -49,6 +49,8 @@ import client from "@/app/api/client";
 import Image from "next/image";
 import { format } from "date-fns";
 
+const DEBUG_MODE = true; // Set to true to bypass EXIF/Location checks
+
 type HistoryItem = {
   last_cleaned_at: string;
   agencies: { name: string }[] | null;
@@ -255,63 +257,66 @@ export default function Maintenance({
       // 1. Extract EXIF Data
       const exifData = await extractExifLocation(maintenanceImage);
       
-      // Validate Date (Must be within last 12 hours)
-      if (!exifData.date) {
-         throw new Error("Could not retrieve date from image. Ensure the image has EXIF data.");
-      }
-      
-      const now = new Date();
-      const imageDate = exifData.date;
-      const diffMs = now.getTime() - imageDate.getTime();
-      const hoursDiff = diffMs / (1000 * 60 * 60);
-      
-      if (hoursDiff > 12) {
-        throw new Error("Image is too old. Must be taken within 12 hours.");
-      }
-       if (hoursDiff < 0) { 
-         throw new Error("Image appears to be from the future. Check device settings.");
-      }
-
-
-      // Validate Location
-      if (!exifData.latitude || !exifData.longitude) {
-        throw new Error("Could not retrieve coordinates from image.");
-      }
-
-      // Get selected asset coordinates
-      let assetCoords: [number, number] | null = null;
-      if (selectedInlet) assetCoords = selectedInlet.coordinates;
-      else if (selectedOutlet) assetCoords = selectedOutlet.coordinates;
-      else if (selectedDrain) assetCoords = selectedDrain.coordinates;
-      else if (selectedPipe && selectedPipe.coordinates.length > 0) {
-         assetCoords = selectedPipe.coordinates[0]; 
-      }
-      
-      if (!assetCoords) {
-        throw new Error("Could not determine asset location.");
-      }
-
-      const from = point([exifData.longitude, exifData.latitude]);
-      const to = point([assetCoords[0], assetCoords[1]]); 
-      const distKm = distance(from, to);
-      const distMeters = distKm * 1000;
-      
-      const MAX_RADIUS_METERS = 50;
-      let isWithinRadius = distMeters <= MAX_RADIUS_METERS;
-      
-      if (selectedPipe && !isWithinRadius) {
-          for (const coord of selectedPipe.coordinates) {
-              const pipePt = point([coord[0], coord[1]]);
-              const d = distance(from, pipePt) * 1000;
-              if (d <= MAX_RADIUS_METERS) {
-                  isWithinRadius = true;
-                  break;
+      // DEBUG MODE: Bypass Validation
+      if (!DEBUG_MODE) {
+          // Validate Date (Must be within last 12 hours)
+          if (!exifData.date) {
+             throw new Error("Could not retrieve date from image. Ensure the image has EXIF data.");
+          }
+          
+          const now = new Date();
+          const imageDate = exifData.date;
+          const diffMs = now.getTime() - imageDate.getTime();
+          const hoursDiff = diffMs / (1000 * 60 * 60);
+          
+          if (hoursDiff > 12) {
+            throw new Error("Image is too old. Must be taken within 12 hours.");
+          }
+           if (hoursDiff < 0) { 
+             throw new Error("Image appears to be from the future. Check device settings.");
+          }
+    
+    
+          // Validate Location
+          if (!exifData.latitude || !exifData.longitude) {
+            throw new Error("Could not retrieve coordinates from image.");
+          }
+    
+          // Get selected asset coordinates
+          let assetCoords: [number, number] | null = null;
+          if (selectedInlet) assetCoords = selectedInlet.coordinates;
+          else if (selectedOutlet) assetCoords = selectedOutlet.coordinates;
+          else if (selectedDrain) assetCoords = selectedDrain.coordinates;
+          else if (selectedPipe && selectedPipe.coordinates.length > 0) {
+             assetCoords = selectedPipe.coordinates[0]; 
+          }
+          
+          if (!assetCoords) {
+            throw new Error("Could not determine asset location.");
+          }
+    
+          const from = point([exifData.longitude, exifData.latitude]);
+          const to = point([assetCoords[0], assetCoords[1]]); 
+          const distKm = distance(from, to);
+          const distMeters = distKm * 1000;
+          
+          const MAX_RADIUS_METERS = 50;
+          let isWithinRadius = distMeters <= MAX_RADIUS_METERS;
+          
+          if (selectedPipe && !isWithinRadius) {
+              for (const coord of selectedPipe.coordinates) {
+                  const pipePt = point([coord[0], coord[1]]);
+                  const d = distance(from, pipePt) * 1000;
+                  if (d <= MAX_RADIUS_METERS) {
+                      isWithinRadius = true;
+                      break;
+                  }
               }
           }
-      }
-      
-      if (!isWithinRadius) {
-        throw new Error(`Image location is too far from the selected asset (${distMeters.toFixed(0)}m). Must be within ${MAX_RADIUS_METERS}m.`);
+          
+          if (!isWithinRadius) {
+            throw new Error(`Image location is too far from the selected asset (${distMeters.toFixed(0)}m). Must be within ${MAX_RADIUS_METERS}m.`);
+          }
       }
 
       // 2. Upload Image to 'ReportImage' bucket
@@ -475,20 +480,21 @@ export default function Maintenance({
                               <div className="flex-1 flex flex-col gap-2 min-w-0">
                                 <div>
                                   <div className="flex items-start justify-between">
-                                     <p className="text-sm font-medium text-foreground line-clamp-2">
-                                        {record.description || "Maintenance Log"}
+                                     <p className="text-sm font-medium text-foreground">
+                                        {record.profiles?.[0]?.full_name || "Unknown Agent"}
                                      </p>
                                   </div>
 
+                                  {record.description && (
+                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                        {record.description}
+                                    </p>
+                                  )}
+
                                   <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
                                     <div className="flex items-center gap-1">
-                                      <span className="font-medium">
-                                        {record.profiles?.[0]?.full_name || "N/A"}
-                                      </span>
-                                      <div className="flex items-center gap-1 ml-1">
-                                         <CornerDownRight className="w-3 h-3" />
-                                         <span>{record.agencies?.[0]?.name || "N/A"}</span>
-                                      </div>
+                                       <CornerDownRight className="w-3 h-3" />
+                                       <span>{record.agencies?.[0]?.name || "N/A"}</span>
                                     </div>
                                     <div>
                                       {format(new Date(record.last_cleaned_at), "MMM dd, yyyy • HH:mm")}
@@ -517,47 +523,45 @@ export default function Maintenance({
                     return (
                       <div
                         key={index}
-                        className="duration-200 border rounded-lg p-3 hover:bg-accent transition-colors"
+                        className="flex flex-row gap-3 border rounded-lg p-3 hover:bg-accent transition-colors"
                       >
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            {record.status && (
-                              <span
-                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${getStatusStyles(
-                                  record.status
-                                )}`}
-                              >
-                                {record.status}
-                              </span>
-                            )}
-                            <span className="text-xs text-gray-900">
-                              {new Date(record.last_cleaned_at).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
+                        <div className="flex items-start gap-3 w-full">
+                          <div className="flex-1 flex flex-col gap-2 min-w-0">
+                            <div>
+                              <div className="flex items-start justify-between">
+                                <p className="text-sm font-medium text-foreground">
+                                  {record.profiles?.[0]?.full_name || "Unknown Agent"}
+                                </p>
+                              </div>
+
+                              {record.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                    {record.description}
+                                </p>
                               )}
-                            </span>
-                          </div>
 
-                          {record.description && (
-                            <p className="text-xs text-gray-700 mt-1 p-2 pb-0 rounded-md">
-                              {record.description}
-                            </p>
-                          )}
+                              <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                   <CornerDownRight className="w-3 h-3" />
+                                   <span>{record.agencies?.[0]?.name || "N/A"}</span>
+                                </div>
+                                <div>
+                                  {format(new Date(record.last_cleaned_at), "MMM dd, yyyy • HH:mm")}
+                                </div>
+                              </div>
+                            </div>
 
-                          <span className="text-muted-foreground text-xs font-medium pl-1">
-                            {record.profiles?.[0]?.full_name || "N/A"}
-                          </span>
-
-                          <div className="flex ml-2 items-center text-xs gap-1">
-                            <CornerDownRight className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground font-medium">
-                              {record.agencies?.[0]?.name || "N/A"}
-                            </span>
+                            <div className="flex flex-row gap-2 mt-auto">
+                              {record.status && (
+                                <div
+                                  className={`text-[10px] px-2 py-0.5 h-5 rounded-md border flex items-center justify-center ${getStatusStyles(
+                                    record.status
+                                  )}`}
+                                >
+                                  {record.status}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -8,7 +8,7 @@ import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SpinnerEmpty } from "@/components/spinner-empty";
 import { format, subWeeks, subMonths, startOfDay } from "date-fns";
 import type { DateFilterValue } from "./date-sort";
-import { RefreshCw, MapPin, History } from "lucide-react";
+import { RefreshCw, MapPin, History, ArrowLeftRight, ArrowRight } from "lucide-react";
 import type {
   Inlet,
   Outlet,
@@ -59,10 +59,26 @@ export default function ReportHistoryList({
 }: ReportHistoryListProps) {
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [swappedReports, setSwappedReports] = useState<Set<string>>(new Set());
 
   const handleReportClick = (report: Report) => {
     setSelectedReport(report);
     setShowImageViewer(true);
+  };
+
+  const handleToggleImage = (e: React.MouseEvent, report: Report) => {
+    if (!report.resolvedImage) return;
+    e.stopPropagation();
+
+    setSwappedReports((prev) => {
+      const next = new Set(prev);
+      if (next.has(report.id)) {
+        next.delete(report.id);
+      } else {
+        next.add(report.id);
+      }
+      return next;
+    });
   };
 
   const getStatusStyle = (status: string) => {
@@ -215,7 +231,12 @@ export default function ReportHistoryList({
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredReports.map((report) => (
+            {filteredReports.map((report) => {
+              const isSwapped = swappedReports.has(report.id);
+              const hasResolvedImage = !!report.resolvedImage;
+              const displayImage = isSwapped && report.resolvedImage ? report.resolvedImage : report.image;
+
+              return (
               <div
                 key={report.id}
                 className="flex flex-row gap-3 border rounded-lg p-3 hover:bg-accent transition-colors cursor-pointer"
@@ -223,20 +244,43 @@ export default function ReportHistoryList({
               >
                 <div className="flex items-start gap-3">
                   {/* Image Thumbnail with Badges */}
-                  {report.image ? (
-                    <Image
-                      src={report.image}
-                      alt={report.category}
-                      width={80}
-                      height={80}
-                      className="w-21 h-25 object-cover rounded"
-                      unoptimized
-                    />
+                  <div className="relative shrink-0">
+                  {displayImage ? (
+                     <div 
+                        className="relative group"
+                        onClick={(e) => hasResolvedImage && handleToggleImage(e, report)}
+                     >
+                        <Image
+                          src={displayImage}
+                          alt={report.category}
+                          width={80}
+                          height={80}
+                          className={`w-21 h-25 object-cover rounded transition-all duration-300 ${isSwapped ? "ring-2 ring-green-500" : ""}`}
+                          unoptimized
+                        />
+                        
+                        {hasResolvedImage && (
+                          <div className={`absolute -bottom-2 -right-2 p-1 rounded-full shadow-sm border transition-colors ${isSwapped ? "bg-green-100 border-green-200 text-green-700" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                             {isSwapped ? (
+                                <History className="w-3 h-3" />
+                             ) : (
+                                <ArrowRight className="w-3 h-3" />
+                             )}
+                          </div>
+                        )}
+                         
+                        {hasResolvedImage && !isSwapped && (
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded flex items-center justify-center opacity-0 group-hover:opacity-100 font-medium text-[10px] text-white">
+                                See Status
+                            </div>
+                        )}
+                    </div>
                   ) : (
                     <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
                       No image
                     </div>
                   )}
+                  </div>
 
                   {/* Report Details */}
                   <div className="flex-1 flex flex-col gap-3 min-w-0">
@@ -283,7 +327,8 @@ export default function ReportHistoryList({
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

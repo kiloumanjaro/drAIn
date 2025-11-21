@@ -166,6 +166,9 @@ async function recordMaintenance(
       assetId,
       status,
       new Date().toISOString(),
+      data[0].id,
+      tableName,
+      imagePath,
     );
   }
 
