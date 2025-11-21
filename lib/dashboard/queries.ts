@@ -279,7 +279,7 @@ export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
   try {
     const { data: reports } = await client
       .from("reports")
-      .select("component_id");
+      .select("category");
 
     if (!reports) {
       return [];
@@ -288,8 +288,10 @@ export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
     const componentMap = new Map<string, number>();
 
     reports.forEach((report: any) => {
-      const type = determineComponentType(report.component_id);
-      componentMap.set(type, (componentMap.get(type) ?? 0) + 1);
+      const type = report.category;
+      if (type) {
+        componentMap.set(type, (componentMap.get(type) ?? 0) + 1);
+      }
     });
 
     return Array.from(componentMap.entries()).map(([type, count]) => ({
@@ -311,7 +313,7 @@ export async function getRepairTimeByComponent(): Promise<
   try {
     const { data: reports } = await client
       .from("reports")
-      .select("component_id, created_at, status");
+      .select("category, component_id, created_at, status");
 
     if (!reports) {
       return [];
@@ -354,7 +356,7 @@ export async function getRepairTimeByComponent(): Promise<
     >();
 
     reports.forEach((report: any) => {
-      const type = determineComponentType(report.component_id);
+      const type = report.category || "inlets"; // Use category column directly
       const maintenanceDate = maintenanceMap.get(report.component_id);
 
       if (maintenanceDate) {
@@ -473,18 +475,4 @@ export async function getAllReports(): Promise<ReportWithMetadata[]> {
     console.error("Error fetching all reports:", error);
     return [];
   }
-}
-
-/**
- * Helper function to determine component type from component_id
- */
-function determineComponentType(
-  componentId: string
-): "inlets" | "outlets" | "storm_drains" | "man_pipes" {
-  const lower = componentId.toLowerCase();
-  if (lower.includes("inlet")) return "inlets";
-  if (lower.includes("outlet")) return "outlets";
-  if (lower.includes("drain")) return "storm_drains";
-  if (lower.includes("pipe")) return "man_pipes";
-  return "inlets"; // default
 }

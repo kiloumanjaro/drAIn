@@ -1,6 +1,14 @@
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RepairTrendData } from "@/lib/dashboard/queries";
 
@@ -16,7 +24,6 @@ export default function RepairTrendChart({
   if (loading) {
     return (
       <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <h3 className="text-lg font-semibold mb-4">Repair Time Trend (Last 30 Days)</h3>
         <Skeleton className="h-64 w-full" />
       </div>
     );
@@ -25,7 +32,6 @@ export default function RepairTrendChart({
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <h3 className="text-lg font-semibold mb-4">Repair Time Trend (Last 30 Days)</h3>
         <div className="flex items-center justify-center h-64 text-gray-500">
           <p>No repair data available for the last 30 days</p>
         </div>
@@ -44,15 +50,10 @@ export default function RepairTrendChart({
 
   return (
     <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-      <h3 className="text-lg font-semibold mb-4">Repair Time Trend (Last 30 Days)</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 12 }}
-            stroke="#666"
-          />
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#666" />
           <YAxis
             label={{ value: "Days", angle: -90, position: "insideLeft" }}
             tick={{ fontSize: 12 }}
@@ -77,7 +78,10 @@ export default function RepairTrendChart({
         </LineChart>
       </ResponsiveContainer>
       <div className="mt-4 text-sm text-gray-600">
-        <p>Average time from report submission to completion over the last 30 days.</p>
+        <p>
+          Average time from report submission to completion over the last 30
+          days.
+        </p>
       </div>
     </div>
   );

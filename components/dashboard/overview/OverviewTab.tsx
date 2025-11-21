@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import StatsCards from "./StatsCards";
 import RepairTrendChart from "./RepairTrendChart";
-import { getOverviewMetrics, getRepairTrendData } from "@/lib/dashboard/queries";
+import {
+  getOverviewMetrics,
+  getRepairTrendData,
+} from "@/lib/dashboard/queries";
 import type { OverviewMetrics, RepairTrendData } from "@/lib/dashboard/queries";
 
 export default function OverviewTab() {
@@ -52,19 +55,15 @@ export default function OverviewTab() {
       />
 
       {/* Trend Chart */}
-      <RepairTrendChart
-        data={trendData}
-        loading={loading}
-      />
+      <RepairTrendChart data={trendData} loading={loading} />
 
       {/* Description */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">About This Data</h4>
         <p className="text-sm text-blue-800">
-          These metrics show the real-time status of the drainage system. Issues are
-          tracked from when they are reported by citizens until they are resolved by
-          maintenance teams. Average repair time is calculated from the date a report is
-          submitted to when maintenance work is completed.
+          These metrics show the real-time status of the drainage system. Issues
+          are tracked from when they are reported by citizens until they are
+          resolved by maintenance teams. Average repair time is calculated from
+          the date a report is submitted to when maintenance work is completed.
         </p>
       </div>
     </div>

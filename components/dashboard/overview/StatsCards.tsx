@@ -1,9 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { formatDays } from "@/lib/dashboard/calculations";
 
 interface StatsCardsProps {
@@ -23,7 +19,10 @@ export default function StatsCards({
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg border border-[#ced1cd] p-6">
+          <div
+            key={i}
+            className="bg-white rounded-lg border border-[#ced1cd] p-6"
+          >
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-8 w-16 mb-2" />
             <Skeleton className="h-3 w-32" />
@@ -59,16 +58,14 @@ export default function StatsCards({
       {stats.map((stat, index) => (
         <div
           key={index}
-          className="bg-white rounded-lg border border-[#ced1cd] p-6 hover:shadow-md transition-shadow"
+          className="bg-white rounded-lg border border-[#ced1cd] p-6 hover:border-blue-400 transition-shadow"
         >
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-medium text-gray-600 mb-1">
                 {stat.label}
               </p>
-              <p className={`text-3xl font-bold ${stat.color}`}>
-                {stat.value}
-              </p>
+              <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
             </div>
             {stat.icon}
           </div>
