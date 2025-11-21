@@ -9,6 +9,7 @@ import {
   MapIcon,
   BookOpenIcon,
   BeakerIcon,
+  ChartPieIcon,
 } from "@heroicons/react/24/solid";
 
 import { NavMain } from "@/components/nav-main";
@@ -42,6 +43,11 @@ const data = {
       title: "Simulation",
       url: "/simulation?active=true",
       icon: BeakerIcon,
+    },
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: ChartPieIcon,
     },
     {
       title: "Documentation",
