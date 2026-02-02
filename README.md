@@ -86,6 +86,23 @@ Urban flooding is a critical problem, often caused by heavy rainfall and poor dr
   <a href="https://railway.app/"><img alt="Railway" src="https://img.shields.io/badge/Railway-0B0D0E?logo=railway&logoColor=white&style=flat" /></a>
 </p>
 
+## 📖 Documentation
+
+Comprehensive documentation is available in the [docs/](docs/) folder:
+
+- **[Architecture](docs/architecture/)** - System design, tech stack, and data flow
+- **[API Documentation](docs/api/)** - Supabase and SWMM API reference
+- **[Component Guides](docs/components/)** - Component usage and examples
+- **[Feature Guides](docs/guides/)** - Step-by-step feature tutorials
+- **[Features](docs/features/)** - Detailed feature documentation
+- **[Development](docs/development/)** - Developer resources
+
+Quick links:
+- [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)
+- [Tech Stack](docs/architecture/TECH_STACK.md)
+- [Dashboard Quick Start](docs/guides/DASHBOARD_QUICK_START.md)
+- [Flood Reports Guide](docs/guides/FLOOD_REPORTS_GUIDE.md)
+
 ## 💻 Getting Started
 
 Follow these steps to set up and run **drAIn** locally.
@@ -143,35 +160,40 @@ Don't forget to give the project a star! Thanks again!
   <img src="https://contrib.rocks/image?repo=eliseoalcaraz/drAIn" alt="contrib.rocks image" />
 </a>
 
-### 🔎 Codebase evaluation (brief)
+### 🔎 Project Structure
 
-Positives
+```
+drAIn/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Authentication routes
+│   ├── map/               # Interactive map interface
+│   ├── dashboard/         # Analytics dashboard
+│   ├── simulation/        # SWMM simulation
+│   └── reports/           # Flood reporting
+├── components/            # React components
+│   ├── ui/               # Base UI components (shadcn/ui)
+│   ├── control-panel/    # Control panel feature
+│   ├── dashboard/        # Dashboard components
+│   └── context/          # Context providers
+├── lib/                   # Utilities and libraries
+│   ├── map/              # Map configuration
+│   ├── supabase/         # Database operations
+│   ├── simulation-api/   # SWMM API client
+│   └── dashboard/        # Dashboard queries
+├── hooks/                 # Custom React hooks
+├── public/                # Static assets
+│   ├── drainage/         # GeoJSON data
+│   └── images/           # Images and icons
+├── docs/                  # Documentation
+│   ├── architecture/     # System design docs
+│   ├── api/              # API reference
+│   ├── components/       # Component guides
+│   ├── guides/           # Feature tutorials
+│   └── features/         # Feature documentation
+└── scripts/              # Build and utility scripts
+```
 
-- Clear Next.js app-router layout (app/), with UI components under components/, utilities/hooks under lib/ and hooks/, and public assets in public/. This follows common modern Next.js monorepo patterns.
-- TypeScript + pnpm are used consistently which helps reproducible installs and type safety.
-- UI primitives appear centralized (components/ui), and domain code is split into domain folders (control-panel, map, simulation) — good separation of concerns.
-- Use of hooks for data (useInlets, usePipes, etc.) and context providers indicates a predictable data flow.
-
-Areas to improve (actionable)
-
-- Type coverage and runtime safety: several files contain apparent issues (missing returns or references to undefined identifiers). Run `pnpm typecheck` and fix:
-  - Example patterns: functions returning nothing where Promise<T[]> is expected; local variables referenced without declaration (fix promise/error/data handling).
-- Single source of truth for API client & supabase usage: centralize client initialisation and types to avoid duplication.
-- Tests & CI: add unit and integration tests (Playwright is present — add CI job to run them). Add `pnpm test`/`pnpm ci` steps to CI.
-- Lint and formatting: ensure `pnpm lint` and a pre-commit hook run to keep style consistent.
-- Documentation: expand README with:
-  - development checklist (typecheck, lint, test)
-  - architecture overview (what lives in app/, components/, lib/, hooks/)
-  - how to run the simulation API locally (if applicable)
-- Large static assets: very large geojson files under public/ can bloat the repo. Consider moving large datasets to an external storage or separate data-only repo if they grow.
-- Naming consistency: enforce a naming convention for fields (camelCase vs snake_case) and document it to ease mapping between front-end and Supabase column names.
-
-Recommended quick next steps
-
-1. Run: `pnpm install && pnpm typecheck && pnpm lint` locally and fix reported issues.
-2. Add a basic GitHub Actions workflow that runs typecheck, lint and tests on PRs.
-3. Create a short CONTRIBUTING.md with the development workflow (typecheck → lint → tests → format).
-4. Triage and fix the obvious runtime issues shown by typecheck (files with missing returns / undefined identifiers).
+For a detailed architecture overview, see [System Architecture Documentation](docs/architecture/SYSTEM_ARCHITECTURE.md).
 
 <!-- LICENSE -->
 
