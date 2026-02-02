@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
+import * as React from 'react';
+import * as TabsPrimitive from '@radix-ui/react-tabs';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 const Tabs = TabsPrimitive.Root;
 
@@ -14,7 +14,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-start gap-0 text-muted-foreground border-b border-gray-200 w-full bg-gray-50/50",
+      'text-muted-foreground inline-flex h-10 w-full items-center justify-start gap-0 border-b border-gray-200 bg-gray-50/50',
       className
     )}
     {...props}
@@ -29,12 +29,12 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center gap-2 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 relative outline-none flex-1",
-      "bg-[#f7f7f7] text-gray-500",
-      "data-[state=active]:bg-white data-[state=active]:text-gray-900",
-      "border-t border-t-[#ced1cd] border-r border-r-[#ced1cd] border-b border-b-[#ced1cd] border-l border-l-[#ced1cd]",
-      "first:border-l-0 last:border-r-0 [&:not(:first-child):not(:last-child)]:border-r-0 [&:not(:first-child):not(:last-child)]:border-l-0",
-      "data-[state=active]:border-t-[#3F83DB] data-[state=active]:border-t-[3px] data-[state=active]:border-b-0",
+      'relative inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all outline-none disabled:pointer-events-none disabled:opacity-50',
+      'bg-[#f7f7f7] text-gray-500',
+      'data-[state=active]:bg-white data-[state=active]:text-gray-900',
+      'border-t border-r border-b border-l border-t-[#ced1cd] border-r-[#ced1cd] border-b-[#ced1cd] border-l-[#ced1cd]',
+      'first:border-l-0 last:border-r-0 [&:not(:first-child):not(:last-child)]:border-r-0 [&:not(:first-child):not(:last-child)]:border-l-0',
+      'data-[state=active]:border-t-[3px] data-[state=active]:border-b-0 data-[state=active]:border-t-[#3F83DB]',
       className
     )}
     {...props}
@@ -49,7 +49,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      'ring-offset-background focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
       className
     )}
     {...props}

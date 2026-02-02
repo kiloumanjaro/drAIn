@@ -1,7 +1,7 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatDays, formatComponentType } from "@/lib/dashboard/calculations";
-import type { RepairTimeByComponentData } from "@/lib/dashboard/queries";
-import { Clock } from "lucide-react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDays, formatComponentType } from '@/lib/dashboard/calculations';
+import type { RepairTimeByComponentData } from '@/lib/dashboard/queries';
+import { Clock } from 'lucide-react';
 
 interface RepairTimeCardsProps {
   data: RepairTimeByComponentData[];
@@ -18,9 +18,9 @@ export default function RepairTimeCards({
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="bg-white rounded-lg border border-[#ced1cd] p-4"
+            className="rounded-lg border border-[#ced1cd] bg-white p-4"
           >
-            <Skeleton className="h-4 w-20 mb-2" />
+            <Skeleton className="mb-2 h-4 w-20" />
             <Skeleton className="h-8 w-16" />
           </div>
         ))}
@@ -30,7 +30,7 @@ export default function RepairTimeCards({
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="py-8 text-center text-gray-500">
         <p>No repair time data available</p>
       </div>
     );
@@ -41,9 +41,9 @@ export default function RepairTimeCards({
       {data.map((item) => (
         <div
           key={item.type}
-          className="bg-white rounded-lg border border-[#ced1cd] p-4 hover:border-blue-400 transition-shadow"
+          className="rounded-lg border border-[#ced1cd] bg-white p-4 transition-shadow hover:border-blue-400"
         >
-          <div className="flex items-start justify-between mb-2">
+          <div className="mb-2 flex items-start justify-between">
             <p className="text-sm font-medium text-gray-600">
               {formatComponentType(item.type)}
             </p>

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import StatsCards from "./StatsCards";
-import RepairTrendChart from "./RepairTrendChart";
+import { useEffect, useState } from 'react';
+import StatsCards from './StatsCards';
+import RepairTrendChart from './RepairTrendChart';
 import {
   getOverviewMetrics,
   getRepairTrendData,
-} from "@/lib/dashboard/queries";
-import type { OverviewMetrics, RepairTrendData } from "@/lib/dashboard/queries";
+} from '@/lib/dashboard/queries';
+import type { OverviewMetrics, RepairTrendData } from '@/lib/dashboard/queries';
 
 export default function OverviewTab() {
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
@@ -26,8 +26,8 @@ export default function OverviewTab() {
         setMetrics(metricsData);
         setTrendData(trendDataResult);
       } catch (err) {
-        console.error("Error fetching overview data:", err);
-        setError("Failed to load overview data. Please refresh the page.");
+        console.error('Error fetching overview data:', err);
+        setError('Failed to load overview data. Please refresh the page.');
       } finally {
         setLoading(false);
       }
@@ -38,7 +38,7 @@ export default function OverviewTab() {
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-600">
+      <div className="py-8 text-center text-red-600">
         <p>{error}</p>
       </div>
     );
@@ -58,7 +58,7 @@ export default function OverviewTab() {
       <RepairTrendChart data={trendData} loading={loading} />
 
       {/* Description */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <p className="text-sm text-blue-800">
           These metrics show the real-time status of the drainage system. Issues
           are tracked from when they are reported by citizens until they are

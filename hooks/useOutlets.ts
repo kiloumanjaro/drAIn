@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import type { FeatureCollection, Feature, GeoJsonProperties } from "geojson";
+import { useEffect, useState } from 'react';
+import type { FeatureCollection, Feature, GeoJsonProperties } from 'geojson';
 
-import type { Outlet } from "@/components/control-panel/types";
+import type { Outlet } from '@/components/control-panel/types';
 
 export function transformOutletGeoJSON(geojson: FeatureCollection): Outlet[] {
   return geojson.features.map((f: Feature) => {
@@ -13,7 +13,7 @@ export function transformOutletGeoJSON(geojson: FeatureCollection): Outlet[] {
     };
 
     const coords =
-      f.geometry?.type === "Point" ? f.geometry.coordinates : [0, 0];
+      f.geometry?.type === 'Point' ? f.geometry.coordinates : [0, 0];
 
     return {
       id: props.Out_Name,
@@ -32,12 +32,12 @@ export function useOutlets() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/drainage/outlets.geojson");
+        const res = await fetch('/drainage/outlets.geojson');
         const geojson = await res.json();
         const data = transformOutletGeoJSON(geojson);
         setOutlets(data);
       } catch (err) {
-        console.error("Failed to load outlets.geojson", err);
+        console.error('Failed to load outlets.geojson', err);
       } finally {
         setLoading(false);
       }

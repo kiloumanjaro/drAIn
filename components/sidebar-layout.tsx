@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { usePathname } from "next/navigation";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { usePathname } from 'next/navigation';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
 
-const AUTH_ROUTES = ["/login", "/signup"];
+const AUTH_ROUTES = ['/login', '/signup'];
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

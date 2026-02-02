@@ -1,7 +1,6 @@
+'use client';
 
-"use client";
-
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface EventWidgetContextType {
   isOpen: boolean;
@@ -40,7 +39,9 @@ export function EventWidgetProvider({ children }: { children: ReactNode }) {
 export function useEventWidget() {
   const context = useContext(EventWidgetContext);
   if (context === undefined) {
-    throw new Error("useEventWidget must be used within an EventWidgetProvider");
+    throw new Error(
+      'useEventWidget must be used within an EventWidgetProvider'
+    );
   }
   return context;
 }

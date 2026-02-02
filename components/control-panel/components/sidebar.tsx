@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { SideNavigation } from "@/components/side-navigation";
+import { SideNavigation } from '@/components/side-navigation';
 
 interface SidebarProps {
   activeTab: string;
@@ -10,7 +10,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, onTabChange, profile }: SidebarProps) {
   return (
-    <div className="flex flex-col w-11 h-full bg-[#FFF8F5] border-r border-[#E5DFDC] py-3 justify-between rounded-l-2xl items-center">
+    <div className="flex h-full w-11 flex-col items-center justify-between rounded-l-2xl border-r border-[#E5DFDC] bg-[#FFF8F5] py-3">
       {/* Logo */}
 
       <SideNavigation

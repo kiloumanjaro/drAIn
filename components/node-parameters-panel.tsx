@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import type { Inlet, Drain } from "@/components/control-panel/types";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+import type { Inlet, Drain } from '@/components/control-panel/types';
 
 interface NodeParams {
   inv_elev: number;
@@ -40,7 +40,7 @@ export function NodeParametersPanel({
   drains: _drains,
 }: NodeParametersPanelProps) {
   const [activeTab, setActiveTab] = useState<string>(
-    selectedComponentIds[0] || ""
+    selectedComponentIds[0] || ''
   );
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{
@@ -85,17 +85,20 @@ export function NodeParametersPanel({
     e.preventDefault();
   };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || !dragRef.current) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging || !dragRef.current) return;
 
-    const deltaX = e.clientX - dragRef.current.startX;
-    const deltaY = e.clientY - dragRef.current.startY;
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
 
-    onPositionChange({
-      x: dragRef.current.startPosX + deltaX,
-      y: dragRef.current.startPosY + deltaY,
-    });
-  }, [isDragging, onPositionChange]);
+      onPositionChange({
+        x: dragRef.current.startPosX + deltaX,
+        y: dragRef.current.startPosY + deltaY,
+      });
+    },
+    [isDragging, onPositionChange]
+  );
 
   const handleMouseUp = () => {
     setIsDragging(false);
@@ -125,18 +128,21 @@ export function NodeParametersPanel({
     };
   };
 
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDragging || !dragRef.current) return;
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!isDragging || !dragRef.current) return;
 
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - dragRef.current.startX;
-    const deltaY = touch.clientY - dragRef.current.startY;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragRef.current.startX;
+      const deltaY = touch.clientY - dragRef.current.startY;
 
-    onPositionChange({
-      x: dragRef.current.startPosX + deltaX,
-      y: dragRef.current.startPosY + deltaY,
-    });
-  }, [isDragging, onPositionChange]);
+      onPositionChange({
+        x: dragRef.current.startPosX + deltaX,
+        y: dragRef.current.startPosY + deltaY,
+      });
+    },
+    [isDragging, onPositionChange]
+  );
 
   const handleTouchEnd = () => {
     setIsDragging(false);
@@ -146,16 +152,16 @@ export function NodeParametersPanel({
   // Add event listeners
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleTouchMove);
-      document.addEventListener("touchend", handleTouchEnd);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
 
       return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.removeEventListener("touchmove", handleTouchMove);
-        document.removeEventListener("touchend", handleTouchEnd);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [isDragging, handleMouseMove, handleTouchMove]);
@@ -167,9 +173,9 @@ export function NodeParametersPanel({
     const prevHtmlTouch = document.documentElement.style.touchAction;
 
     if (isDragging) {
-      document.documentElement.style.overflow = "hidden";
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.touchAction = "none";
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.touchAction = 'none';
     }
 
     return () => {
@@ -189,24 +195,24 @@ export function NodeParametersPanel({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col border bg-background rounded-lg shadow-lg pb-2"
+      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg"
       style={{
-        minWidth: "450px",
-        maxWidth: "600px",
-        maxHeight: "calc(100vh - 120px)",
+        minWidth: '450px',
+        maxWidth: '600px',
+        maxHeight: 'calc(100vh - 120px)',
       }}
     >
       {/* Header */}
       <div
         className={cn(
-          "flex items-center justify-between gap-2 px-3 py-2 border-b rounded-t-lg bg-muted/50",
-          "cursor-grab active:cursor-grabbing",
-          isDragging && "cursor-grabbing select-none"
+          'bg-muted/50 flex items-center justify-between gap-2 rounded-t-lg border-b px-3 py-2',
+          'cursor-grab active:cursor-grabbing',
+          isDragging && 'cursor-grabbing select-none'
         )}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
-        <h3 className="font-semibold ml-2 text-sm text-muted-foreground">
+        <h3 className="text-muted-foreground ml-2 text-sm font-semibold">
           Node Parameters
         </h3>
         <Button
@@ -226,14 +232,14 @@ export function NodeParametersPanel({
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         {selectedComponentIds.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+          <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
             No components selected
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* Tab List with Horizontal Scrollbar */}
-            <div className="mb-4 tabs-scroll-container" ref={tabsListRef}>
-              <TabsList className="w-fit min-w-full justify-start inline-flex">
+            <div className="tabs-scroll-container mb-4" ref={tabsListRef}>
+              <TabsList className="inline-flex w-fit min-w-full justify-start">
                 {selectedComponentIds.map((id) => (
                   <TabsTrigger
                     key={id}
@@ -253,29 +259,29 @@ export function NodeParametersPanel({
                 <TabsContent
                   key={id}
                   value={id}
-                  className="space-y-4 mt-0 px-2"
+                  className="mt-0 space-y-4 px-2"
                 >
                   {/* Inversion Elevation */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Inversion Elevation
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.inv_elev.toFixed(1)} m
                       </span>
                     </div>
                     <Slider
                       value={[params.inv_elev]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "inv_elev", value[0])
+                        onUpdateParam(id, 'inv_elev', value[0])
                       }
                       min={0}
                       max={50}
                       step={0.5}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m</span>
                       <span>50 m</span>
                     </div>
@@ -283,25 +289,25 @@ export function NodeParametersPanel({
 
                   {/* Initial Depth */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Initial Depth
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.init_depth.toFixed(1)} m
                       </span>
                     </div>
                     <Slider
                       value={[params.init_depth]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "init_depth", value[0])
+                        onUpdateParam(id, 'init_depth', value[0])
                       }
                       min={0}
                       max={10}
                       step={0.1}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m</span>
                       <span>10 m</span>
                     </div>
@@ -309,25 +315,25 @@ export function NodeParametersPanel({
 
                   {/* Ponding Area */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Ponding Area
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.ponding_area.toFixed(0)} m²
                       </span>
                     </div>
                     <Slider
                       value={[params.ponding_area]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "ponding_area", value[0])
+                        onUpdateParam(id, 'ponding_area', value[0])
                       }
                       min={0}
                       max={100}
                       step={1}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m²</span>
                       <span>100 m²</span>
                     </div>
@@ -335,25 +341,25 @@ export function NodeParametersPanel({
 
                   {/* Surcharge Depth */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Surcharge Depth
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.surcharge_depth.toFixed(1)} m
                       </span>
                     </div>
                     <Slider
                       value={[params.surcharge_depth]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "surcharge_depth", value[0])
+                        onUpdateParam(id, 'surcharge_depth', value[0])
                       }
                       min={0}
                       max={5}
                       step={0.1}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m</span>
                       <span>5 m</span>
                     </div>

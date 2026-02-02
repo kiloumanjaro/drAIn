@@ -1,22 +1,22 @@
-import { getPriorityColor } from "@/lib/dashboard/calculations";
+import { getPriorityColor } from '@/lib/dashboard/calculations';
 
 interface PriorityBadgeProps {
-  priority: "low" | "medium" | "high" | "critical";
-  size?: "sm" | "md" | "lg";
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const getPriorityIcon = (priority: string): string => {
   switch (priority) {
-    case "critical":
-      return "🔴";
-    case "high":
-      return "🟠";
-    case "medium":
-      return "🟡";
-    case "low":
-      return "⚪";
+    case 'critical':
+      return '🔴';
+    case 'high':
+      return '🟠';
+    case 'medium':
+      return '🟡';
+    case 'low':
+      return '⚪';
     default:
-      return "⚪";
+      return '⚪';
   }
 };
 
@@ -26,12 +26,12 @@ const getPriorityLabel = (priority: string): string => {
 
 export default function PriorityBadge({
   priority,
-  size = "md",
+  size = 'md',
 }: PriorityBadgeProps) {
   const sizeClasses = {
-    sm: "px-2 py-1 text-xs",
-    md: "px-3 py-1 text-sm",
-    lg: "px-4 py-2 text-base",
+    sm: 'px-2 py-1 text-xs',
+    md: 'px-3 py-1 text-sm',
+    lg: 'px-4 py-2 text-base',
   };
 
   const colorClass = getPriorityColor(priority);

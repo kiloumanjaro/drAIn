@@ -73,12 +73,14 @@ app/
 ### State Management
 
 **Context Providers:**
+
 - `AuthProvider` - User authentication and session management
 - `ReportProvider` - Real-time report data with caching
 - `NavigationLoadingProvider` - Page transition states
 - `EventWidgetProvider` - Event notification system
 
 **Local State:**
+
 - Zustand for component-level state
 - React Hook Form for form state
 - Custom hooks for data fetching (useInlets, usePipes, etc.)
@@ -124,12 +126,14 @@ pipes_maintenance (...)
 ```
 
 **Storage Buckets:**
+
 - `ReportImage/` - User-uploaded report photos
 - `Avatars/` - User profile avatars
 
 ### GeoJSON Data
 
 Static drainage infrastructure data stored in `public/drainage/`:
+
 - `inlets.geojson` - Storm drain inlets
 - `outlets.geojson` - Drainage outlets
 - `storm_drains.geojson` - Storm drain structures
@@ -187,11 +191,13 @@ Component Re-render
 ### 1. Map Visualization Module
 
 **Files:**
+
 - `app/map/page.tsx` - Main map page
 - `lib/map/config.ts` - Mapbox configuration
 - `components/report-bubble.tsx` - Report markers
 
 **Flow:**
+
 1. Load GeoJSON data via hooks
 2. Initialize Mapbox with config
 3. Add layers for inlets, pipes, outlets, drains
@@ -202,11 +208,13 @@ Component Re-render
 ### 2. Simulation Module
 
 **Files:**
+
 - `app/simulation/page.tsx` - Simulation UI
 - `lib/simulation-api/simulation.ts` - API client
 - `components/ModelViewer.tsx` - 3D visualization
 
 **Flow:**
+
 1. User configures node/link parameters
 2. Set rainfall scenario
 3. Call Railway SWMM API
@@ -217,11 +225,13 @@ Component Re-render
 ### 3. Reporting Module
 
 **Files:**
+
 - `app/reports/page.tsx` - Report listing
 - `components/FloodReportClient.tsx` - Report form
 - `lib/supabase/report.ts` - Report API
 
 **Flow:**
+
 1. User fills report form with photo
 2. Extract EXIF metadata from image
 3. Upload image to Supabase storage
@@ -232,11 +242,13 @@ Component Re-render
 ### 4. Dashboard Module
 
 **Files:**
+
 - `app/dashboard/page.tsx` - Dashboard page
 - `lib/dashboard/queries.ts` - Data queries
 - `components/dashboard/` - Tab components
 
 **Flow:**
+
 1. Load overview metrics from database
 2. Aggregate maintenance records
 3. Calculate trends and statistics
@@ -323,11 +335,13 @@ Component Re-render
 ```
 
 **Hosting:**
+
 - Frontend: Vercel (Edge Network, Serverless Functions)
 - Database: Supabase Cloud (PostgreSQL + PostGIS)
 - Simulation API: Railway (Docker containers)
 
 **CI/CD:**
+
 - GitHub Actions for automated testing
 - Automatic deployments on push to main
 - Preview deployments for pull requests
@@ -335,11 +349,13 @@ Component Re-render
 ## Scalability Considerations
 
 ### Current Scale
+
 - Support for hundreds of concurrent users
 - Thousands of reports and maintenance records
 - Real-time updates across clients
 
 ### Future Scaling
+
 - Database read replicas for high-traffic queries
 - Redis caching layer for frequently accessed data
 - Message queue for async processing
@@ -354,15 +370,15 @@ Component Re-render
 
 ## Technology Choices & Rationale
 
-| Technology | Why Chosen |
-|------------|------------|
-| Next.js 15 | Server components, App Router, excellent DX |
-| TypeScript | Type safety, better tooling, fewer runtime errors |
-| Supabase | Real-time capabilities, PostgreSQL, auth built-in |
-| Mapbox GL | Superior performance, vector tiles, extensive API |
-| Three.js | 3D visualization for drainage models |
-| Tailwind CSS | Rapid UI development, consistent design system |
-| Radix UI | Accessible primitives, headless components |
+| Technology   | Why Chosen                                        |
+| ------------ | ------------------------------------------------- |
+| Next.js 15   | Server components, App Router, excellent DX       |
+| TypeScript   | Type safety, better tooling, fewer runtime errors |
+| Supabase     | Real-time capabilities, PostgreSQL, auth built-in |
+| Mapbox GL    | Superior performance, vector tiles, extensive API |
+| Three.js     | 3D visualization for drainage models              |
+| Tailwind CSS | Rapid UI development, consistent design system    |
+| Radix UI     | Accessible primitives, headless components        |
 
 ## Future Architecture Plans
 

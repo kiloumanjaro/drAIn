@@ -1,5 +1,5 @@
 // components/DataFlowPipeline.tsx
-"use client";
+'use client';
 
 /**
  * DataFlowPipeline - Animated pipe flow visualization with optional interactive map background
@@ -50,8 +50,8 @@
  * <DataFlowPipeline background showMap mapOpacity={0.5} debug />
  */
 
-import { motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 
 type Props = {
   /** render as absolutely-positioned background filling its parent */
@@ -88,15 +88,15 @@ export default function DataFlowPipeline({
   showMap = false,
   mapOpacity = 0.15,
   enableHover = false,
-  hoverColor = "#3b82f6",
+  hoverColor = '#3b82f6',
   fillOnHover = true,
   fillOpacity = 0.2,
   hoverTrailDelay = 300,
   onPathHover,
   onPathClick,
-  className = "",
+  className = '',
 }: Props) {
-  const preserve = cover ? "xMidYMid slice" : "xMidYMid meet";
+  const preserve = cover ? 'xMidYMid slice' : 'xMidYMid meet';
 
   // Animation delay state
   const [startAnim, setStartAnim] = useState(false);
@@ -124,10 +124,10 @@ export default function DataFlowPipeline({
     if (!enableHover) return;
 
     const target = event.target as SVGPathElement;
-    if (target.tagName === "path") {
-      const pathId = target.getAttribute("data-path-id");
+    if (target.tagName === 'path') {
+      const pathId = target.getAttribute('data-path-id');
       if (pathId) {
-        console.log("Click detected on:", pathId);
+        console.log('Click detected on:', pathId);
         onPathClick?.(pathId);
       }
     }
@@ -137,10 +137,10 @@ export default function DataFlowPipeline({
     if (!enableHover) return;
 
     const target = event.target as SVGPathElement;
-    if (target.tagName === "path") {
-      const pathId = target.getAttribute("data-path-id");
+    if (target.tagName === 'path') {
+      const pathId = target.getAttribute('data-path-id');
       if (pathId && pathId !== hoveredPath) {
-        console.log("Hover detected on:", pathId);
+        console.log('Hover detected on:', pathId);
 
         // Set current hovered path immediately
         setHoveredPath(pathId);
@@ -197,23 +197,23 @@ export default function DataFlowPipeline({
 
     return {
       // Data attribute to identify path for event delegation
-      "data-path-id": pathId,
+      'data-path-id': pathId,
 
       // Stroke styling - highlight if current or in trail
-      stroke: isHighlighted ? hoverColor : "currentColor",
+      stroke: isHighlighted ? hoverColor : 'currentColor',
       strokeWidth: isCurrentHover ? 1.7 : isInTrail ? 0.5 : 1.4,
 
       // Fill makes entire shape area hoverable
       // KEY: Always use a fill when fillOnHover is true, with very low opacity
-      fill: fillOnHover ? hoverColor : "none",
+      fill: fillOnHover ? hoverColor : 'none',
       fillOpacity: fillOnHover ? (isHighlighted ? trailOpacity : 0) : 0,
 
       // Smooth transitions for trail effect
-      className: "transition-all duration-200 cursor-pointer",
+      className: 'transition-all duration-200 cursor-pointer',
 
       // CRITICAL: Use fill for pointer-events
       style: {
-        pointerEvents: fillOnHover ? ("fill" as const) : ("stroke" as const),
+        pointerEvents: fillOnHover ? ('fill' as const) : ('stroke' as const),
       },
     };
   };
@@ -224,19 +224,19 @@ export default function DataFlowPipeline({
     : `relative w-full ${className}`;
 
   // debugBg helps you see the element while debugging — set debug={true} to show.
-  const debugBg = debug ? "bg-red-200" : "";
+  const debugBg = debug ? 'bg-red-200' : '';
 
   // Conditionally enable pointer events when hover is enabled
   const pointerEvents =
-    enableHover && showMap ? "pointer-events-auto" : "pointer-events-none";
+    enableHover && showMap ? 'pointer-events-auto' : 'pointer-events-none';
 
   return (
     <div
       className={`${outerClasses} ${debugBg} overflow-hidden ${pointerEvents}`}
     >
-      <div className="w-full h-full">
+      <div className="h-full w-full">
         <svg
-          className="w-full h-full block"
+          className="block h-full w-full"
           viewBox="0 0 1920 1080"
           preserveAspectRatio={preserve}
           xmlns="http://www.w3.org/2000/svg"
@@ -315,7 +315,7 @@ export default function DataFlowPipeline({
             <g
               opacity={mapOpacity}
               transform="translate(23, 3) scale(1.0)"
-              className=" text-[#d6d6d6] dark:text-blue-600"
+              className="text-[#d6d6d6] dark:text-blue-600"
               stroke="currentColor"
               strokeWidth="0.3"
               strokeLinecap="round"
@@ -1532,7 +1532,7 @@ export default function DataFlowPipeline({
                 ? { pathLength: 1, opacity: 1 }
                 : { pathLength: 0, opacity: 0 }
             }
-            transition={{ duration: 1.6, ease: "easeInOut" }}
+            transition={{ duration: 1.6, ease: 'easeInOut' }}
           />
 
           {/* blue flowing stroke with gradient and glow */}
@@ -1544,7 +1544,7 @@ export default function DataFlowPipeline({
             strokeLinecap="round"
             initial={{ pathLength: 0 }}
             animate={startAnim ? { pathLength: 1 } : { pathLength: 0 }}
-            transition={{ duration: 8, ease: "linear" }}
+            transition={{ duration: 8, ease: 'linear' }}
           />
         </svg>
       </div>

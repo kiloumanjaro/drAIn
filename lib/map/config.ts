@@ -1,7 +1,7 @@
 export const DEFAULT_CENTER: [number, number] = [123.926, 10.337];
 export const DEFAULT_ZOOM = 12;
 export const DEFAULT_STYLE =
-  "mapbox://styles/kiloukilou/cmgtuzno5001301st19kt3ab2";
+  'mapbox://styles/kiloukilou/cmgtuzno5001301st19kt3ab2';
 
 export const MAP_BOUNDS: [[number, number], [number, number]] = [
   [123.86601, 10.30209],
@@ -9,7 +9,7 @@ export const MAP_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 export const MAPBOX_ACCESS_TOKEN =
-  "pk.eyJ1Ijoia2lsb3VraWxvdSIsImEiOiJjbWZsMmc5dWMwMGlxMmtwdXgxaHE0ZjVnIn0.TFZP0T-4zrLdI0Be-u0t3Q";
+  'pk.eyJ1Ijoia2lsb3VraWxvdSIsImEiOiJjbWZsMmc5dWMwMGlxMmtwdXgxaHE0ZjVnIn0.TFZP0T-4zrLdI0Be-u0t3Q';
 
 // ============================================
 // LAYER COLOR CONFIGURATION
@@ -44,17 +44,17 @@ export const CAMERA_ANIMATION = {
 
 export const LAYER_COLORS = {
   man_pipes: {
-    color: "#8558c9", // Dark magenta/purple for pipes
-    selectedColor: "#dc2eef", // Cyan when selected
+    color: '#8558c9', // Dark magenta/purple for pipes
+    selectedColor: '#dc2eef', // Cyan when selected
     width: 2.5, // Normal line width
     selectedWidth: 6, // Selected line width
     hitAreaWidth: 50, // Invisible hit area width for easier clicking (2x from 25px)
   },
   storm_drains: {
-    color: "#5687ca", // Blue for storm drains
-    selectedColor: "#49a8ff", // Cyan when selected
-    strokeColor: "#00346c", // Black border
-    selectedStrokeColor: "#355491", // Cyan border when selected
+    color: '#5687ca', // Blue for storm drains
+    selectedColor: '#49a8ff', // Cyan when selected
+    strokeColor: '#00346c', // Black border
+    selectedStrokeColor: '#355491', // Cyan border when selected
     radius: 4, // Normal circle radius
     selectedRadius: 10, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
@@ -62,10 +62,10 @@ export const LAYER_COLORS = {
     hitAreaRadius: 50, // Invisible hit area radius for easier clicking (2x from 25px)
   },
   inlets: {
-    color: "#00ca67", // Green for inlets
-    selectedColor: "#66ed7b", // Cyan when selected
-    strokeColor: "#005400", // Black border
-    selectedStrokeColor: "#307524", // Cyan border when selected
+    color: '#00ca67', // Green for inlets
+    selectedColor: '#66ed7b', // Cyan when selected
+    strokeColor: '#005400', // Black border
+    selectedStrokeColor: '#307524', // Cyan border when selected
     radius: 6, // Normal circle radius
     selectedRadius: 12, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
@@ -73,10 +73,10 @@ export const LAYER_COLORS = {
     hitAreaRadius: 50, // Invisible hit area radius for easier clicking (2x from 25px)
   },
   outlets: {
-    color: "#dd4337", // Red for outlets
-    selectedColor: "#ff4b50", // Cyan when selected
-    strokeColor: "#6a0000", // Black border
-    selectedStrokeColor: "#7e1c14", // Cyan border when selected
+    color: '#dd4337', // Red for outlets
+    selectedColor: '#ff4b50', // Cyan when selected
+    strokeColor: '#6a0000', // Black border
+    selectedStrokeColor: '#7e1c14', // Cyan border when selected
     radius: 6, // Normal circle radius
     selectedRadius: 12, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
@@ -84,68 +84,68 @@ export const LAYER_COLORS = {
     hitAreaRadius: 50, // Invisible hit area radius for easier clicking (2x from 25px)
   },
   flood_hazard: {
-    icon: "#8d8a89ff",
-    high: "#d73027", // Deep red for high hazard
-    medium: "#fc8d59", // Orange for medium hazard
-    low: "#fee090", // Yellow for low hazard
-    default: "#ffffbf", // Pale for undefined or safe zones
+    icon: '#8d8a89ff',
+    high: '#d73027', // Deep red for high hazard
+    medium: '#fc8d59', // Orange for medium hazard
+    low: '#fee090', // Yellow for low hazard
+    default: '#ffffbf', // Pale for undefined or safe zones
     opacity: 0.8,
   },
   mandaue_population: {
-    color: "#0288d1", // Blue for population
+    color: '#0288d1', // Blue for population
     opacity: 0.09,
-    strokeColor: "#0288d1",
+    strokeColor: '#0288d1',
     strokeWidth: 1,
   },
 } as const;
 
 // OVERLAY_CONFIG synchronized with LAYER_COLORS
 export const OVERLAY_CONFIG = [
-  { id: "man_pipes-layer", name: "Pipes", color: LAYER_COLORS.man_pipes.color },
+  { id: 'man_pipes-layer', name: 'Pipes', color: LAYER_COLORS.man_pipes.color },
   {
-    id: "storm_drains-layer",
-    name: "Storm Drains",
+    id: 'storm_drains-layer',
+    name: 'Storm Drains',
     color: LAYER_COLORS.storm_drains.color,
   },
-  { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
-  { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
+  { id: 'inlets-layer', name: 'Inlets', color: LAYER_COLORS.inlets.color },
+  { id: 'outlets-layer', name: 'Outlets', color: LAYER_COLORS.outlets.color },
   {
-    id: "flood_hazard-layer",
-    name: "Flood Hazard",
+    id: 'flood_hazard-layer',
+    name: 'Flood Hazard',
     color: LAYER_COLORS.flood_hazard.high,
   },
   {
-    id: "mandaue_population-layer",
-    name: "Population",
+    id: 'mandaue_population-layer',
+    name: 'Population',
     color: LAYER_COLORS.mandaue_population.color,
   },
   {
-    id: "reports-layer",
-    name: "Reports",
-    color: "#3F83DB",
+    id: 'reports-layer',
+    name: 'Reports',
+    color: '#3F83DB',
   },
 ];
 
 export const LAYER_IDS: string[] = [
-  "man_pipes-layer",
-  "storm_drains-layer",
-  "inlets-layer",
-  "outlets-layer",
-  "flood_hazard-layer",
-  "mandaue_population-layer",
+  'man_pipes-layer',
+  'storm_drains-layer',
+  'inlets-layer',
+  'outlets-layer',
+  'flood_hazard-layer',
+  'mandaue_population-layer',
 ];
 
 // Hit area layer IDs for click detection and cursor feedback
 export const HIT_AREA_LAYER_IDS: string[] = [
-  "man_pipes-hit-layer",
-  "storm_drains-hit-layer",
-  "inlets-hit-layer",
-  "outlets-hit-layer",
+  'man_pipes-hit-layer',
+  'storm_drains-hit-layer',
+  'inlets-hit-layer',
+  'outlets-hit-layer',
 ];
 
 export const MAP_STYLES = {
-  STREETS: "mapbox://styles/mapbox/streets-v11",
-  SATELLITE: "mapbox://styles/mapbox/satellite-streets-v11",
+  STREETS: 'mapbox://styles/mapbox/streets-v11',
+  SATELLITE: 'mapbox://styles/mapbox/satellite-streets-v11',
 } as const;
 
 // ============================================
@@ -157,28 +157,28 @@ export const MAP_STYLES = {
  */
 export function getLinePaintConfig(layerType: keyof typeof LAYER_COLORS) {
   const config = LAYER_COLORS[layerType];
-  if (!("width" in config)) {
+  if (!('width' in config)) {
     throw new Error(`Layer type ${layerType} is not a line layer`);
   }
 
   return {
-    "line-color": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'line-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedColor,
       config.color,
     ] as unknown as string,
-    "line-width": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'line-width': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedWidth,
       config.width,
     ] as unknown as number,
-    "line-color-transition": {
+    'line-color-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "line-width-transition": {
+    'line-width-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
@@ -190,48 +190,48 @@ export function getLinePaintConfig(layerType: keyof typeof LAYER_COLORS) {
  */
 export function getCirclePaintConfig(layerType: keyof typeof LAYER_COLORS) {
   const config = LAYER_COLORS[layerType];
-  if (!("radius" in config)) {
+  if (!('radius' in config)) {
     throw new Error(`Layer type ${layerType} is not a circle layer`);
   }
 
   return {
-    "circle-radius": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-radius': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedRadius,
       config.radius,
     ] as unknown as number,
-    "circle-color": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedColor,
       config.color,
     ] as unknown as string,
-    "circle-stroke-color": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-stroke-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedStrokeColor,
       config.strokeColor,
     ] as unknown as string,
-    "circle-stroke-width": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-stroke-width': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedStrokeWidth,
       config.strokeWidth,
     ] as unknown as number,
-    "circle-radius-transition": {
+    'circle-radius-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "circle-color-transition": {
+    'circle-color-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "circle-stroke-color-transition": {
+    'circle-stroke-color-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "circle-stroke-width-transition": {
+    'circle-stroke-width-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
@@ -241,9 +241,9 @@ export function getCirclePaintConfig(layerType: keyof typeof LAYER_COLORS) {
 export function getFloodHazardPaintConfig() {
   const config = LAYER_COLORS.flood_hazard;
   return {
-    "fill-color": [
-      "match",
-      ["get", "Var"],
+    'fill-color': [
+      'match',
+      ['get', 'Var'],
       3,
       config.high,
       2,
@@ -252,7 +252,7 @@ export function getFloodHazardPaintConfig() {
       config.low,
       config.default,
     ] as unknown as string,
-    "fill-opacity": config.opacity,
+    'fill-opacity': config.opacity,
   };
 }
 
@@ -264,16 +264,16 @@ export function getLineHitAreaPaintConfig(
   layerType: keyof typeof LAYER_COLORS
 ) {
   const config = LAYER_COLORS[layerType];
-  if (!("hitAreaWidth" in config)) {
+  if (!('hitAreaWidth' in config)) {
     throw new Error(
       `Layer type ${layerType} does not have hit area configuration`
     );
   }
 
   return {
-    "line-color": "rgba(0, 0, 0, 0)", // Fully transparent
-    "line-width": config.hitAreaWidth,
-    "line-opacity": 0, // Invisible but still interactive
+    'line-color': 'rgba(0, 0, 0, 0)', // Fully transparent
+    'line-width': config.hitAreaWidth,
+    'line-opacity': 0, // Invisible but still interactive
   };
 }
 
@@ -285,15 +285,15 @@ export function getCircleHitAreaPaintConfig(
   layerType: keyof typeof LAYER_COLORS
 ) {
   const config = LAYER_COLORS[layerType];
-  if (!("hitAreaRadius" in config)) {
+  if (!('hitAreaRadius' in config)) {
     throw new Error(
       `Layer type ${layerType} does not have hit area configuration`
     );
   }
 
   return {
-    "circle-radius": config.hitAreaRadius,
-    "circle-color": "rgba(0, 0, 0, 0)", // Fully transparent
-    "circle-opacity": 0, // Invisible but still interactive
+    'circle-radius': config.hitAreaRadius,
+    'circle-color': 'rgba(0, 0, 0, 0)', // Fully transparent
+    'circle-opacity': 0, // Invisible but still interactive
   };
 }

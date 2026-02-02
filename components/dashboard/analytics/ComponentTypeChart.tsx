@@ -1,22 +1,16 @@
-"use client";
+'use client';
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatComponentType } from "@/lib/dashboard/calculations";
-import type { ComponentTypeData } from "@/lib/dashboard/queries";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatComponentType } from '@/lib/dashboard/calculations';
+import type { ComponentTypeData } from '@/lib/dashboard/queries';
 
 interface ComponentTypeChartProps {
   data: ComponentTypeData[];
   loading?: boolean;
 }
 
-const COLORS = ["#3b82f6", "#ef6537", "#f59e0b", "#10b981"];
+const COLORS = ['#3b82f6', '#ef6537', '#f59e0b', '#10b981'];
 
 export default function ComponentTypeChart({
   data,
@@ -24,8 +18,8 @@ export default function ComponentTypeChart({
 }: ComponentTypeChartProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <h3 className="text-lg font-semibold mb-4">
+      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold">
           Most Common Component Problems
         </h3>
         <Skeleton className="h-64 w-full" />
@@ -35,11 +29,11 @@ export default function ComponentTypeChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <h3 className="text-lg font-semibold mb-4">
+      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold">
           Most Common Component Problems
         </h3>
-        <div className="flex items-center justify-center h-64 text-gray-500">
+        <div className="flex h-64 items-center justify-center text-gray-500">
           <p>No component data available</p>
         </div>
       </div>
@@ -57,14 +51,14 @@ export default function ComponentTypeChart({
   const innerRadius = Math.floor(outerRadius * 0.55);
 
   return (
-    <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-      <h3 className="text-lg font-semibold mb-4">
+    <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
+      <h3 className="mb-4 text-lg font-semibold">
         Most Common Component Problems
       </h3>
-      <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
+      <div className="flex flex-col items-center justify-center gap-6 md:flex-row">
         {/* Pie: left ~1.3/3 (43.333%) */}
-        <div className="w-full md:w-[43.333%] flex items-center justify-center relative">
-          <div className="w-full h-[360px] max-w-[420px]">
+        <div className="relative flex w-full items-center justify-center md:w-[43.333%]">
+          <div className="h-[360px] w-full max-w-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -91,7 +85,7 @@ export default function ComponentTypeChart({
             </ResponsiveContainer>
 
             {/* Center total */}
-            <div className="absolute left-0 right-0 top-0 bottom-0 flex flex-col items-center justify-center pointer-events-none">
+            <div className="pointer-events-none absolute top-0 right-0 bottom-0 left-0 flex flex-col items-center justify-center">
               <p className="text-xs text-gray-500">Total</p>
               <p className="text-2xl font-extrabold text-gray-900">{total}</p>
             </div>
@@ -99,22 +93,31 @@ export default function ComponentTypeChart({
         </div>
 
         {/* Legend: right ~1.7/3 (56.667%) */}
-        <div className="w-full md:w-[56.667%] flex flex-col md:justify-center">
-          <div className="pt-2 md:pt-0 md:pl-6 w-full md:h-[360px] md:flex md:items-center">
-            <div className="flex flex-col gap-3 w-full md:overflow-auto">
+        <div className="flex w-full flex-col md:w-[56.667%] md:justify-center">
+          <div className="w-full pt-2 md:flex md:h-[360px] md:items-center md:pt-0 md:pl-6">
+            <div className="flex w-full flex-col gap-3 md:overflow-auto">
               {chartData.map((item, index) => (
-                <div key={item.name} className="flex items-center justify-between w-full py-2">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div
+                  key={item.name}
+                  className="flex w-full items-center justify-between py-2"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="w-3 h-3 rounded-full shadow-sm shrink-0"
+                      className="h-3 w-3 shrink-0 rounded-full shadow-sm"
                       style={{ backgroundColor: COLORS[index % COLORS.length] }}
                     />
-                    <span className="text-sm font-medium text-gray-700 truncate">{item.name}</span>
+                    <span className="truncate text-sm font-medium text-gray-700">
+                      {item.name}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-4 shrink-0">
-                    <span className="text-sm text-gray-600">{item.value} issue{item.value !== 1 ? 's' : ''}</span>
-                    <span className="text-sm font-semibold text-gray-900 w-24 text-right">{((item.value / total) * 100).toFixed(1)}%</span>
+                  <div className="flex shrink-0 items-center gap-4">
+                    <span className="text-sm text-gray-600">
+                      {item.value} issue{item.value !== 1 ? 's' : ''}
+                    </span>
+                    <span className="w-24 text-right text-sm font-semibold text-gray-900">
+                      {((item.value / total) * 100).toFixed(1)}%
+                    </span>
                   </div>
                 </div>
               ))}

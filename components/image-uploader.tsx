@@ -1,8 +1,8 @@
-"use client";
-import React, { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
-import Image from "next/image";
-import { AddIcon } from "./add-icon";
+'use client';
+import React, { useState, useRef, useEffect } from 'react';
+import { X } from 'lucide-react';
+import Image from 'next/image';
+import { AddIcon } from './add-icon';
 
 interface ImageUploaderProps {
   onImageChange?: (file: File | null) => void;
@@ -14,7 +14,7 @@ interface ImageUploaderProps {
 export default function ImageUploader({
   onImageChange,
   image,
-  placeholder = "Drag Your Files Here",
+  placeholder = 'Drag Your Files Here',
   disabled = false,
 }: ImageUploaderProps) {
   const [fileName, setFileName] = useState<string | null>(null);
@@ -43,13 +43,13 @@ export default function ImageUploader({
   const handleFile = (file: File | undefined) => {
     if (!file || disabled) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Only image files are allowed.");
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed.');
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError("File size exceeds 10 MB limit.");
+      setError('File size exceeds 10 MB limit.');
       return;
     }
 
@@ -84,13 +84,13 @@ export default function ImageUploader({
     }
     setFileUrl(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
     onImageChange?.(null);
   };
 
   return (
-    <div className="flex flex-col items-center rounded-lg w-full max-w-xs font-sans">
+    <div className="flex w-full max-w-xs flex-col items-center rounded-lg font-sans">
       <div
         onDrop={handleDrop}
         onDragOver={(e) => {
@@ -98,28 +98,26 @@ export default function ImageUploader({
           if (!disabled) setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
-        className={`w-full h-40 flex flex-col items-center justify-center border-2 rounded-lg transition-all duration-300 ease-in-out
-          ${
-            disabled
-              ? "border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed"
-              : isDragging
-              ? "border-blue-500 bg-blue-50"
+        className={`flex h-40 w-full flex-col items-center justify-center rounded-lg border-2 transition-all duration-300 ease-in-out ${
+          disabled
+            ? 'cursor-not-allowed border-gray-200 bg-gray-100 opacity-60'
+            : isDragging
+              ? 'border-blue-500 bg-blue-50'
               : fileName
-              ? "border-gray-200 "
-              : "border-gray-300 border-dashed bg-[#f1f3ff] hover:border-blue-400 cursor-pointer"
-          }
-        `}
+                ? 'border-gray-200'
+                : 'cursor-pointer border-dashed border-gray-300 bg-[#f1f3ff] hover:border-blue-400'
+        } `}
       >
         {!fileName ? (
-          <div className="flex flex-col gap-3 items-center text-center p-6">
+          <div className="flex flex-col items-center gap-3 p-6 text-center">
             <label
-              className={`w-12 h-12 flex items-center justify-center bg-[#4b72f3] border border-[#2b3ea7] text-white rounded-full transition-colors ${
+              className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#2b3ea7] bg-[#4b72f3] text-white transition-colors ${
                 disabled
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-blue-600 cursor-pointer"
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer hover:bg-blue-600'
               }`}
             >
-              <AddIcon className="w-5 h-5" />
+              <AddIcon className="h-5 w-5" />
               <input
                 type="file"
                 accept="image/*"
@@ -131,38 +129,38 @@ export default function ImageUploader({
             </label>
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium">{placeholder}</span>
-              <span className="text-xs text-muted-foreground ">
+              <span className="text-muted-foreground text-xs">
                 Upload files with maximum 10 MB
               </span>
             </div>
             {error && (
-              <span className="text-xs text-red-500 mt-2">{error}</span>
+              <span className="mt-2 text-xs text-red-500">{error}</span>
             )}
           </div>
         ) : (
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative flex h-full w-full items-center justify-center">
             {fileUrl && (
               <Image
                 src={fileUrl}
                 alt="Uploaded preview"
                 fill
-                className="object-cover w-full h-full rounded-md"
+                className="h-full w-full rounded-md object-cover"
               />
             )}
             <div className="absolute inset-0 flex items-end justify-between p-2">
-              <span className="bg-white bg-opacity-70 text-muted-foreground text-[11px] px-3 py-1.5 rounded-md max-w-[80%] truncate">
+              <span className="bg-opacity-70 text-muted-foreground max-w-[80%] truncate rounded-md bg-white px-3 py-1.5 text-[11px]">
                 {fileName}
               </span>
               <button
                 onClick={handleReset}
                 disabled={disabled}
-                className={`p-1.5 text-white bg-[#f34445] border border-[#cd152b] rounded-full shadow-lg transition-colors duration-200 ${
+                className={`rounded-full border border-[#cd152b] bg-[#f34445] p-1.5 text-white shadow-lg transition-colors duration-200 ${
                   disabled
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-[#dc2b35]"
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'hover:bg-[#dc2b35]'
                 }`}
               >
-                <X className="w-3.5 h-3.5 text-white cursor-pointer" />
+                <X className="h-3.5 w-3.5 cursor-pointer text-white" />
               </button>
             </div>
           </div>

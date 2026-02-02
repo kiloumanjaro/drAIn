@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -234,7 +234,8 @@
   }
   50% {
     filter: brightness(1.5);
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.8),
       0 0 30px rgba(255, 255, 255, 0.5);
   }
 }

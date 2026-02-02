@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   LineChart,
@@ -8,9 +8,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { RepairTrendData } from "@/lib/dashboard/queries";
+} from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { RepairTrendData } from '@/lib/dashboard/queries';
 
 interface RepairTrendChartProps {
   data: RepairTrendData[];
@@ -23,7 +23,7 @@ export default function RepairTrendChart({
 }: RepairTrendChartProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
+      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
         <Skeleton className="h-64 w-full" />
       </div>
     );
@@ -31,8 +31,8 @@ export default function RepairTrendChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <div className="flex items-center justify-center h-64 text-gray-500">
+      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
+        <div className="flex h-64 items-center justify-center text-gray-500">
           <p>No repair data available for the last 30 days</p>
         </div>
       </div>
@@ -41,29 +41,29 @@ export default function RepairTrendChart({
 
   // Format data for chart
   const chartData = data.map((item) => ({
-    date: new Date(item.date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
+    date: new Date(item.date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
     }),
     days: item.averageDays,
   }));
 
   return (
-    <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
+    <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
           <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#666" />
           <YAxis
-            label={{ value: "Days", angle: -90, position: "insideLeft" }}
+            label={{ value: 'Days', angle: -90, position: 'insideLeft' }}
             tick={{ fontSize: 12 }}
             stroke="#666"
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
+              backgroundColor: '#fff',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
             }}
             formatter={(value) => `${value} days`}
           />
@@ -72,7 +72,7 @@ export default function RepairTrendChart({
             dataKey="days"
             stroke="#3b82f6"
             strokeWidth={2}
-            dot={{ fill: "#3b82f6", r: 4 }}
+            dot={{ fill: '#3b82f6', r: 4 }}
             activeDot={{ r: 6 }}
           />
         </LineChart>

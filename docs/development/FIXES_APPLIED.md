@@ -9,17 +9,19 @@
 **File:** `lib/dashboard/queries.ts`
 
 **Issue:** Import statement was incorrect
+
 ```typescript
 // ❌ BEFORE
-import { createClient } from "@/app/api/client";
+import { createClient } from '@/app/api/client';
 
 // ✅ AFTER
-import client from "@/app/api/client";
+import client from '@/app/api/client';
 ```
 
 **Root Cause:** The `@/app/api/client.ts` exports the client as a default export, not a named export.
 
 **Fix Applied:**
+
 - Changed import to use default export
 - Removed all 6 redundant `const client = createClient()` calls inside functions:
   - `getOverviewMetrics()`
@@ -39,16 +41,17 @@ import client from "@/app/api/client";
 **File:** `components/dashboard/reports/ReportCard.tsx`
 
 **Issue:** componentId could be undefined, causing `.toLowerCase()` to fail
+
 ```typescript
 // ❌ BEFORE
 const componentType = (() => {
-  const lower = report.componentId.toLowerCase();  // Could crash if undefined
+  const lower = report.componentId.toLowerCase(); // Could crash if undefined
   // ...
 })();
 
 // ✅ AFTER
 const componentType = (() => {
-  if (!report.componentId) return "inlets";
+  if (!report.componentId) return 'inlets';
   const lower = report.componentId.toLowerCase();
   // ...
 })();
@@ -63,15 +66,16 @@ const componentType = (() => {
 **File:** `components/dashboard/reports/ReportsTab.tsx`
 
 **Issue:** Same problem in the filter function
+
 ```typescript
 // ❌ BEFORE
-if (componentType !== "all") {
-  const lower = report.componentId.toLowerCase();  // Could crash
+if (componentType !== 'all') {
+  const lower = report.componentId.toLowerCase(); // Could crash
   // ...
 }
 
 // ✅ AFTER
-if (componentType !== "all" && report.componentId) {
+if (componentType !== 'all' && report.componentId) {
   const lower = report.componentId.toLowerCase();
   // ...
 }
@@ -109,11 +113,13 @@ All components should now build without errors. The dashboard is ready to:
 ## Next Steps
 
 1. Apply the database migration:
+
    ```bash
    npx supabase db push
    ```
 
 2. Start the dev server:
+
    ```bash
    npm run dev
    ```

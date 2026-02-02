@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Session } from "@supabase/supabase-js";
-import ImageUploader from "@/components/image-uploader";
-import { Label } from "@/components/ui/label";
-import { IconInfoCircleFilled } from "@tabler/icons-react";
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Session } from '@supabase/supabase-js';
+import ImageUploader from '@/components/image-uploader';
+import { Label } from '@/components/ui/label';
+import { IconInfoCircleFilled } from '@tabler/icons-react';
 
 interface EditProfileProps {
   profile: Record<string, unknown> | null;
@@ -22,7 +22,7 @@ export default function EditProfile({
   onSave,
   onCancel,
 }: EditProfileProps) {
-  const [fullName, setFullName] = useState(String(profile?.full_name || ""));
+  const [fullName, setFullName] = useState(String(profile?.full_name || ''));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,8 +40,8 @@ export default function EditProfile({
       setErrorMessage(null);
     } catch (error) {
       const err = error as Error;
-      setErrorMessage(err.message || "Failed to update profile.");
-      console.error("Failed to update profile:", error);
+      setErrorMessage(err.message || 'Failed to update profile.');
+      console.error('Failed to update profile:', error);
     } finally {
       setIsSaving(false);
     }
@@ -49,24 +49,24 @@ export default function EditProfile({
 
   const handleCancel = () => {
     setAvatarFile(null);
-    setFullName(String(profile?.full_name || ""));
+    setFullName(String(profile?.full_name || ''));
     setErrorMessage(null);
     onCancel();
   };
 
   // Check if there are any changes
   const hasChanges =
-    fullName !== String(profile?.full_name || "") || avatarFile !== null;
+    fullName !== String(profile?.full_name || '') || avatarFile !== null;
 
   return (
-    <Card className="rounded-none border-none h-full">
+    <Card className="h-full rounded-none border-none">
       <CardContent className="space-y-3">
-        <div className="flex flex-col gap-3 mb-4">
-          <div className="px-1 flex flex-row justify-between items-center">
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex flex-row items-center justify-between px-1">
             <Label htmlFor="fullName" className="block font-normal">
               Display Name
             </Label>
-            <span className="text-xs text-muted-foreground">Visible</span>
+            <span className="text-muted-foreground text-xs">Visible</span>
           </div>
           <Input
             id="fullName"
@@ -85,21 +85,21 @@ export default function EditProfile({
             disabled={isGuest}
           />
           <div className="flex flex-row items-center gap-1">
-            <span className="text-xs items-center ml-1 text-center text-muted-foreground">
+            <span className="text-muted-foreground ml-1 items-center text-center text-xs">
               Most recent uploads are saved
             </span>
-            <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+            <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
           </div>
         </div>
 
-        {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
+        {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
         <div className="flex gap-3 pt-2">
           <Button
             className="flex-1"
             onClick={handleSave}
             disabled={isSaving || !hasChanges}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
           <Button
             className="flex-1"

@@ -5,6 +5,7 @@ This document explains how data flows through the drAIn system, from user intera
 ## Overview
 
 drAIn uses a multi-layered data flow architecture with real-time capabilities:
+
 - **Client Layer**: React components and hooks
 - **State Layer**: Context providers and Zustand stores
 - **API Layer**: Supabase client and REST APIs
@@ -35,6 +36,7 @@ Public GeoJSON Files
 ```
 
 **Key Files:**
+
 - [hooks/useDrain.ts](../../hooks/useDrain.ts)
 - [hooks/useInlets.ts](../../hooks/useInlets.ts)
 - [hooks/useOutlets.ts](../../hooks/useOutlets.ts)
@@ -43,6 +45,7 @@ Public GeoJSON Files
 - [app/map/page.tsx](../../app/map/page.tsx)
 
 **Data Transformations:**
+
 ```typescript
 // Raw GeoJSON
 {
@@ -94,6 +97,7 @@ User Fills Report Form
 ```
 
 **Key Files:**
+
 - [app/reports/FloodReportClient.tsx](../../app/reports/FloodReportClient.tsx)
 - [lib/report/extractEXIF.ts](../../lib/report/extractEXIF.ts)
 - [lib/supabase/report.ts](../../lib/supabase/report.ts)
@@ -101,33 +105,36 @@ User Fills Report Form
 - [components/report-bubble.tsx](../../components/report-bubble.tsx)
 
 **API Call:**
+
 ```typescript
 // Upload report
 await uploadReport({
-  category: "blockage",
-  description: "Severe flooding on Main St",
+  category: 'blockage',
+  description: 'Severe flooding on Main St',
   image: File,
-  reporter_name: "John Doe",
-  status: "pending",
+  reporter_name: 'John Doe',
+  status: 'pending',
   long: 120.12345,
   lat: 14.12345,
-  address: "Main St, City",
-  user_id: "uuid"
-})
+  address: 'Main St, City',
+  user_id: 'uuid',
+});
 ```
 
 **Real-time Subscription:**
+
 ```typescript
 const channel = supabase
   .channel('reports-changes')
-  .on('postgres_changes',
+  .on(
+    'postgres_changes',
     { event: 'INSERT', schema: 'public', table: 'reports' },
     (payload) => {
       // Broadcast to all subscribed clients
-      setReports(prev => [...prev, payload.new])
+      setReports((prev) => [...prev, payload.new]);
     }
   )
-  .subscribe()
+  .subscribe();
 ```
 
 ### 3. SWMM Simulation Flow
@@ -159,54 +166,57 @@ User Configures Parameters
 ```
 
 **Key Files:**
+
 - [app/simulation/page.tsx](../../app/simulation/page.tsx)
 - [lib/simulation-api/simulation.ts](../../lib/simulation-api/simulation.ts)
 - [components/vulnerability-data-table.tsx](../../components/vulnerability-data-table.tsx)
 - [components/ModelViewer.tsx](../../components/ModelViewer.tsx)
 
 **Request Format:**
+
 ```typescript
 interface SimulationRequest {
   nodes: Array<{
-    id: string
-    inlet_type: string
-    max_depth: number
+    id: string;
+    inlet_type: string;
+    max_depth: number;
     // ... other node parameters
-  }>
+  }>;
   links: Array<{
-    id: string
-    from_node: string
-    to_node: string
-    length: number
+    id: string;
+    from_node: string;
+    to_node: string;
+    length: number;
     // ... other link parameters
-  }>
+  }>;
   rainfall: {
-    total_precipitation: number
-    duration_hours: number
-    time_step_minutes: number
-  }
+    total_precipitation: number;
+    duration_hours: number;
+    time_step_minutes: number;
+  };
 }
 ```
 
 **Response Format:**
+
 ```typescript
 interface SimulationResponse {
   node_results: {
     [nodeId: string]: {
-      max_flooding: number
-      total_flooding: number
-      peak_inflow: number
-      flooding_volume: number
-      overflow_duration: number
-    }
-  }
+      max_flooding: number;
+      total_flooding: number;
+      peak_inflow: number;
+      flooding_volume: number;
+      overflow_duration: number;
+    };
+  };
   link_results: {
     [linkId: string]: {
-      peak_flow: number
-      max_velocity: number
-      max_depth: number
-    }
-  }
+      peak_flow: number;
+      max_velocity: number;
+      max_depth: number;
+    };
+  };
 }
 ```
 
@@ -238,39 +248,41 @@ Dashboard Page Load
 ```
 
 **Key Files:**
+
 - [app/dashboard/page.tsx](../../app/dashboard/page.tsx)
 - [lib/dashboard/queries.ts](../../lib/dashboard/queries.ts)
 - [lib/dashboard/calculations.ts](../../lib/dashboard/calculations.ts)
 - [components/dashboard/overview/OverviewTab.tsx](../../components/dashboard/overview/OverviewTab.tsx)
 
 **Query Examples:**
+
 ```typescript
 // Get overview metrics
 export async function getOverviewMetrics() {
   const { data, error } = await supabase
     .from('reports')
-    .select('status, created_at')
+    .select('status, created_at');
 
-  const fixed = data?.filter(r => r.status === 'fixed').length
-  const pending = data?.filter(r => r.status === 'pending').length
-  const avgRepairTime = calculateAverageRepairTime(data)
+  const fixed = data?.filter((r) => r.status === 'fixed').length;
+  const pending = data?.filter((r) => r.status === 'pending').length;
+  const avgRepairTime = calculateAverageRepairTime(data);
 
-  return { fixed, pending, avgRepairTime }
+  return { fixed, pending, avgRepairTime };
 }
 
 // Get repair trend data
 export async function getRepairTrendData(days: number) {
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - days)
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
 
   const { data } = await supabase
     .from('reports')
     .select('created_at, status')
     .gte('created_at', startDate.toISOString())
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: true });
 
   // Group by date
-  return groupByDate(data)
+  return groupByDate(data);
 }
 ```
 
@@ -304,24 +316,28 @@ User Opens Login Page
 ```
 
 **Key Files:**
-- [app/(auth)/login/page.tsx](../../app/(auth)/login/page.tsx)
+
+- [app/(auth)/login/page.tsx](<../../app/(auth)/login/page.tsx>)
 - [components/auth/login-form.tsx](../../components/auth/login-form.tsx)
 - [lib/supabase/profile.ts](../../lib/supabase/profile.ts)
 - [components/context/AuthProvider.tsx](../../components/context/AuthProvider.tsx)
 
 **Authentication API:**
+
 ```typescript
 // Sign in
 const { data, error } = await supabase.auth.signInWithPassword({
   email: 'user@example.com',
-  password: 'password123'
-})
+  password: 'password123',
+});
 
 // Get session
-const { data: { session } } = await supabase.auth.getSession()
+const {
+  data: { session },
+} = await supabase.auth.getSession();
 
 // Sign out
-await supabase.auth.signOut()
+await supabase.auth.signOut();
 ```
 
 ## Real-time Data Synchronization
@@ -339,33 +355,34 @@ useEffect(() => {
       {
         event: '*', // INSERT, UPDATE, DELETE
         schema: 'public',
-        table: 'reports'
+        table: 'reports',
       },
       (payload) => {
         switch (payload.eventType) {
           case 'INSERT':
-            setReports(prev => [...prev, payload.new])
-            break
+            setReports((prev) => [...prev, payload.new]);
+            break;
           case 'UPDATE':
-            setReports(prev =>
-              prev.map(r => r.id === payload.new.id ? payload.new : r)
-            )
-            break
+            setReports((prev) =>
+              prev.map((r) => (r.id === payload.new.id ? payload.new : r))
+            );
+            break;
           case 'DELETE':
-            setReports(prev => prev.filter(r => r.id !== payload.old.id))
-            break
+            setReports((prev) => prev.filter((r) => r.id !== payload.old.id));
+            break;
         }
       }
     )
-    .subscribe()
+    .subscribe();
 
   return () => {
-    supabase.removeChannel(channel)
-  }
-}, [])
+    supabase.removeChannel(channel);
+  };
+}, []);
 ```
 
 **Benefits:**
+
 - Instant updates across all connected clients
 - No polling required
 - Automatic reconnection on network issues
@@ -428,19 +445,18 @@ API Call Fails
 ```
 
 **Example:**
+
 ```typescript
 async function fetchReports() {
   try {
-    const { data, error } = await supabase
-      .from('reports')
-      .select('*')
+    const { data, error } = await supabase.from('reports').select('*');
 
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   } catch (error) {
-    console.error('Failed to fetch reports:', error)
-    toast.error('Failed to load reports. Please try again.')
-    return cachedReports // Fallback
+    console.error('Failed to fetch reports:', error);
+    toast.error('Failed to load reports. Please try again.');
+    return cachedReports; // Fallback
   }
 }
 ```
@@ -472,34 +488,39 @@ User Input
 ```
 
 **Zod Schema Example:**
+
 ```typescript
 const reportSchema = z.object({
   category: z.enum(['blockage', 'overflow', 'damage']),
   description: z.string().min(10).max(500),
   image: z.instanceof(File).optional(),
   long: z.number().min(-180).max(180),
-  lat: z.number().min(-90).max(90)
-})
+  lat: z.number().min(-90).max(90),
+});
 ```
 
 ## Performance Optimizations
 
 ### 1. Lazy Loading
+
 - Dynamic imports for heavy components
 - Load Mapbox/Three.js only when needed
 - Route-based code splitting
 
 ### 2. Debouncing/Throttling
+
 - Search input debounced (300ms)
 - Map move events throttled
 - Reduce API calls
 
 ### 3. Pagination
+
 - Load reports in batches (50 per page)
 - Infinite scroll for long lists
 - Reduces initial load time
 
 ### 4. Optimistic Updates
+
 - Update UI immediately
 - Sync with server in background
 - Rollback on error

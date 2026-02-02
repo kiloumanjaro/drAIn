@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import React from "react";
-import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import React from 'react';
+import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { IconInfoCircleFilled } from "@tabler/icons-react";
-import { Loader2, Minimize2, Maximize2, CloudRain } from "lucide-react";
-import { LoadingScreen } from "@/components/loading-screen";
-import type { Inlet, Outlet, Pipe, Drain } from "../../types";
+} from '@/components/ui/tooltip';
+import { IconInfoCircleFilled } from '@tabler/icons-react';
+import { Loader2, Minimize2, Maximize2, CloudRain } from 'lucide-react';
+import { LoadingScreen } from '@/components/loading-screen';
+import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 
 interface Model2Props {
   selectedPointId?: string | null;
@@ -69,18 +69,18 @@ export default function Model2({
       <LoadingScreen
         title="Analyzing Hydraulic Capacity"
         messages={[
-          "Fetching vulnerability data...",
-          "Analyzing drainage system...",
-          "Calculating flow rates...",
-          "Preparing results table...",
+          'Fetching vulnerability data...',
+          'Analyzing drainage system...',
+          'Calculating flow rates...',
+          'Preparing results table...',
         ]}
         isLoading={isLoading}
         position="bottom-right"
       />
 
       {/* expand to full available height and allow inner flex children to size correctly */}
-      <div className="flex flex-col flex-1 h-full min-h-0 pt-3 pb-5 pl-5 pr-4">
-        <CardHeader className="py-0 px-1 mb-6">
+      <div className="flex h-full min-h-0 flex-1 flex-col pt-3 pr-4 pb-5 pl-5">
+        <CardHeader className="mb-6 px-1 py-0">
           <CardTitle>Hydraulic Capacity Model</CardTitle>
           <CardDescription className="text-xs">
             Analyze drainage system capacity and flow rates under various storm
@@ -89,18 +89,18 @@ export default function Model2({
         </CardHeader>
 
         {/* main content grows */}
-        <div className="space-y-4 flex-1">
+        <div className="flex-1 space-y-4">
           {/* Year Selector (row with tooltip) */}
-          <div className="flex flex-row justify-between items-center">
+          <div className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-sm">Return Period</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Choose a storm return period to generate vulnerability
                       results for that event frequency.
                     </p>
@@ -110,7 +110,7 @@ export default function Model2({
             </div>
 
             <Select
-              value={selectedYear?.toString() || ""}
+              value={selectedYear?.toString() || ''}
               onValueChange={(value) =>
                 onYearChange(Number(value) as YearOption)
               }
@@ -131,14 +131,14 @@ export default function Model2({
           {/* Vulnerability Indicator Legend */}
           <div className="space-y-3 px-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm ">Vulnerability Indicator</span>
+              <span className="text-sm">Vulnerability Indicator</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Color-coded risk levels based on vulnerability analysis
                     </p>
                   </TooltipContent>
@@ -146,43 +146,43 @@ export default function Model2({
               </TooltipProvider>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Badge
                 variant="outline"
-                className="justify-start gap-1.5 py-1 px-2 border-[#D32F2F]/20 bg-[#D32F2F]/5 hover:bg-[#D32F2F]/10"
+                className="justify-start gap-1.5 border-[#D32F2F]/20 bg-[#D32F2F]/5 px-2 py-1 hover:bg-[#D32F2F]/10"
               >
-                <div className="w-2 h-2 rounded-full bg-[#D32F2F] shadow-sm" />
-                <span className="text-[10px]  font-normal  text-foreground">
+                <div className="h-2 w-2 rounded-full bg-[#D32F2F] shadow-sm" />
+                <span className="text-foreground text-[10px] font-normal">
                   High
                 </span>
               </Badge>
 
               <Badge
                 variant="outline"
-                className="justify-start gap-1.5 py-1 px-2 border-[#FFA000]/20 bg-[#FFA000]/5 hover:bg-[#FFA000]/10"
+                className="justify-start gap-1.5 border-[#FFA000]/20 bg-[#FFA000]/5 px-2 py-1 hover:bg-[#FFA000]/10"
               >
-                <div className="w-2 h-2 rounded-full bg-[#FFA000] shadow-sm" />
-                <span className="text-[10px]  font-normal text-foreground">
+                <div className="h-2 w-2 rounded-full bg-[#FFA000] shadow-sm" />
+                <span className="text-foreground text-[10px] font-normal">
                   Medium
                 </span>
               </Badge>
 
               <Badge
                 variant="outline"
-                className="justify-start gap-1.5 py-1 px-2 border-[#FDD835]/20 bg-[#FDD835]/5 hover:bg-[#FDD835]/10"
+                className="justify-start gap-1.5 border-[#FDD835]/20 bg-[#FDD835]/5 px-2 py-1 hover:bg-[#FDD835]/10"
               >
-                <div className="w-2 h-2 rounded-full bg-[#FDD835] shadow-sm" />
-                <span className="text-[10px]  font-normal text-foreground">
+                <div className="h-2 w-2 rounded-full bg-[#FDD835] shadow-sm" />
+                <span className="text-foreground text-[10px] font-normal">
                   Low
                 </span>
               </Badge>
 
               <Badge
                 variant="outline"
-                className="justify-start gap-1.5 py-1 px-2 border-[#388E3C]/20 bg-[#388E3C]/5 hover:bg-[#388E3C]/10"
+                className="justify-start gap-1.5 border-[#388E3C]/20 bg-[#388E3C]/5 px-2 py-1 hover:bg-[#388E3C]/10"
               >
-                <div className="w-2 h-2 rounded-full bg-[#388E3C] shadow-sm" />
-                <span className="text-[10px] font-normal text-foreground">
+                <div className="h-2 w-2 rounded-full bg-[#388E3C] shadow-sm" />
+                <span className="text-foreground text-[10px] font-normal">
                   No Risk
                 </span>
               </Badge>
@@ -191,9 +191,11 @@ export default function Model2({
 
           {/* Rain Effect Toggle */}
           {onToggleRain && (
-            <div className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 bg-muted/20 ${!hasTable ? 'opacity-50' : ''}`}>
+            <div
+              className={`border-border/40 bg-muted/20 flex items-center justify-between rounded-lg border px-3 py-2 ${!hasTable ? 'opacity-50' : ''}`}
+            >
               <div className="flex items-center gap-2">
-                <CloudRain className="h-4 w-4 text-muted-foreground" />
+                <CloudRain className="text-muted-foreground h-4 w-4" />
                 <Label
                   htmlFor="rain-toggle"
                   className={`text-sm font-normal ${hasTable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
@@ -203,13 +205,13 @@ export default function Model2({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs max-w-xs">
+                      <p className="max-w-xs text-xs">
                         {hasTable
-                          ? "Toggle rainfall visualization effect on the map"
-                          : "Generate table first to enable rain effect"}
+                          ? 'Toggle rainfall visualization effect on the map'
+                          : 'Generate table first to enable rain effect'}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -240,7 +242,7 @@ export default function Model2({
                   Loading Data...
                 </>
               ) : (
-                "Generate Table on Map"
+                'Generate Table on Map'
               )}
             </Button>
 
@@ -249,7 +251,7 @@ export default function Model2({
               onClick={() => onToggleMinimize && onToggleMinimize()}
               disabled={isLoading || !hasTable}
               className="flex-none"
-              aria-label={isTableMinimized ? "Show table" : "Hide table"}
+              aria-label={isTableMinimized ? 'Show table' : 'Hide table'}
             >
               {isTableMinimized ? (
                 <Maximize2 className="h-4 w-4" />
@@ -259,7 +261,7 @@ export default function Model2({
             </Button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground mt-3">
+          <p className="text-muted-foreground mt-3 text-[10px]">
             The vulnerability data table will appear on the map and can be
             sorted and dragged to reposition.
           </p>

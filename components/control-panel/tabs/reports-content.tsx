@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import SubmitTab from "../../submit-tab";
-import AllReportsList from "../../all-reports-list";
-import type { DateFilterValue } from "../../date-sort";
-import type { Inlet, Outlet, Pipe, Drain } from "../types";
-import type { Report } from "@/lib/supabase/report";
+import SubmitTab from '../../submit-tab';
+import AllReportsList from '../../all-reports-list';
+import type { DateFilterValue } from '../../date-sort';
+import type { Inlet, Outlet, Pipe, Drain } from '../types';
+import type { Report } from '@/lib/supabase/report';
 
 interface ReportsTabProps {
-  activeReportTab?: "submission" | "reports";
+  activeReportTab?: 'submission' | 'reports';
   dateFilter?: DateFilterValue;
   reports?: Report[];
   onRefreshReports?: () => Promise<void>;
@@ -20,8 +20,8 @@ interface ReportsTabProps {
 }
 
 export function ReportsTab({
-  activeReportTab = "submission",
-  dateFilter = "all",
+  activeReportTab = 'submission',
+  dateFilter = 'all',
   reports = [],
   onRefreshReports,
   isRefreshingReports = false,
@@ -32,8 +32,8 @@ export function ReportsTab({
   selectedDrain = null,
 }: ReportsTabProps) {
   return (
-    <div className="w-full h-full flex flex-col">
-      {activeReportTab === "submission" ? (
+    <div className="flex h-full w-full flex-col">
+      {activeReportTab === 'submission' ? (
         <SubmitTab />
       ) : (
         <AllReportsList

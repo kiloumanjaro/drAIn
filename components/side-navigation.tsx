@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import Person from "@/public/icons/person.svg";
-import Play from "@/public/icons/play.svg";
+import Person from '@/public/icons/person.svg';
+import Play from '@/public/icons/play.svg';
 import {
   IconSquaresFilled,
   IconFolderFilled,
   IconShieldHalfFilled,
   IconAnalyzeFilled,
   IconUserShield,
-} from "@tabler/icons-react";
+} from '@tabler/icons-react';
 
 interface SideNavigationProps {
   activeTab: string;
@@ -22,13 +22,13 @@ export function SideNavigation({
   profile: _profile,
 }: SideNavigationProps) {
   const baseTabs = [
-    { id: "chatbot", label: "Chatbot", icon: IconAnalyzeFilled },
-    { id: "overlays", label: "Overlay", icon: IconSquaresFilled },
-    { id: "stats", label: "Stats", icon: IconFolderFilled },
-    { id: "simulations", label: "Simulations", icon: Play },
-    { id: "report", label: "Report", icon: IconShieldHalfFilled },
-    { id: "admin", label: "Admin", icon: IconUserShield },
-    { id: "profile", label: "Profile", icon: Person },
+    { id: 'chatbot', label: 'Chatbot', icon: IconAnalyzeFilled },
+    { id: 'overlays', label: 'Overlay', icon: IconSquaresFilled },
+    { id: 'stats', label: 'Stats', icon: IconFolderFilled },
+    { id: 'simulations', label: 'Simulations', icon: Play },
+    { id: 'report', label: 'Report', icon: IconShieldHalfFilled },
+    { id: 'admin', label: 'Admin', icon: IconUserShield },
+    { id: 'profile', label: 'Profile', icon: Person },
   ];
 
   // if (profile?.agency_id) {
@@ -40,8 +40,8 @@ export function SideNavigation({
   //   });
   // }
 
-  const chatbotTab = baseTabs.find((tab) => tab.id === "chatbot");
-  const otherTabs = baseTabs.filter((tab) => tab.id !== "chatbot");
+  const chatbotTab = baseTabs.find((tab) => tab.id === 'chatbot');
+  const otherTabs = baseTabs.filter((tab) => tab.id !== 'chatbot');
 
   const renderTab = (tab: (typeof baseTabs)[0]) => {
     const Icon = tab.icon;
@@ -50,19 +50,19 @@ export function SideNavigation({
       <button
         key={tab.id}
         onClick={() => onTabChange(tab.id)}
-        className="relative flex items-center justify-center cursor-pointer"
+        className="relative flex cursor-pointer items-center justify-center"
       >
-        <Icon className="w-5 h-5 text-[#B2ADAB] hover:text-black" />
+        <Icon className="h-5 w-5 text-[#B2ADAB] hover:text-black" />
 
         {isActive && (
-          <div className="absolute w-0.5 h-9 rounded-l-lg right-0 bg-[#B2ADAB]" />
+          <div className="absolute right-0 h-9 w-0.5 rounded-l-lg bg-[#B2ADAB]" />
         )}
       </button>
     );
   };
 
   return (
-    <div className="flex w-full h-full flex-col items-center pt-1.5">
+    <div className="flex h-full w-full flex-col items-center pt-1.5">
       {/* Chatbot tab at the top */}
       <div className="flex w-full flex-col">
         {chatbotTab && renderTab(chatbotTab)}

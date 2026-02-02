@@ -5,6 +5,7 @@ Documentation for the Storm Water Management Model (SWMM) simulation API hosted 
 ## Overview
 
 The SWMM API is a FastAPI backend that integrates PySWMM (Python wrapper for EPA SWMM) to run hydraulic simulations of urban drainage systems. It provides endpoints for:
+
 - Running drainage network simulations
 - Predicting flood scenarios for different rainfall return periods
 - Calculating vulnerability metrics for drainage components
@@ -32,33 +33,33 @@ Run a complete SWMM simulation with custom parameters.
 ```typescript
 interface SimulationRequest {
   nodes: Array<{
-    id: string
-    inlet_type: string
-    max_depth: number
-    clog_factor: number
-    inv_elev: number
-    length: number
-    width: number
-    weir_coeff: number
-  }>
+    id: string;
+    inlet_type: string;
+    max_depth: number;
+    clog_factor: number;
+    inv_elev: number;
+    length: number;
+    width: number;
+    weir_coeff: number;
+  }>;
   links: Array<{
-    id: string
-    from_node: string
-    to_node: string
-    length: number
-    roughness: number
-    inlet_offset: number
-    outlet_offset: number
-    shape: string
-    geom1: number
-    geom2: number
-    barrels: number
-  }>
+    id: string;
+    from_node: string;
+    to_node: string;
+    length: number;
+    roughness: number;
+    inlet_offset: number;
+    outlet_offset: number;
+    shape: string;
+    geom1: number;
+    geom2: number;
+    barrels: number;
+  }>;
   rainfall: {
-    total_precipitation: number
-    duration_hours: number
-    time_step_minutes: number
-  }
+    total_precipitation: number;
+    duration_hours: number;
+    time_step_minutes: number;
+  };
 }
 ```
 
@@ -76,13 +77,13 @@ export async function runSimulation(params: SimulationRequest) {
       },
       body: JSON.stringify(params),
     }
-  )
+  );
 
   if (!response.ok) {
-    throw new Error(`Simulation failed: ${response.statusText}`)
+    throw new Error(`Simulation failed: ${response.statusText}`);
   }
 
-  return await response.json()
+  return await response.json();
 }
 ```
 
@@ -92,35 +93,35 @@ export async function runSimulation(params: SimulationRequest) {
 interface SimulationResponse {
   node_results: {
     [nodeId: string]: {
-      max_flooding: number        // Maximum flooding rate (CMS)
-      total_flooding: number      // Total flood volume (cubic meters)
-      peak_inflow: number         // Peak inflow rate (CMS)
-      flooding_volume: number     // Flooding volume (cubic meters)
-      overflow_duration: number   // Duration of overflow (minutes)
-      max_depth: number          // Maximum depth (meters)
-    }
-  }
+      max_flooding: number; // Maximum flooding rate (CMS)
+      total_flooding: number; // Total flood volume (cubic meters)
+      peak_inflow: number; // Peak inflow rate (CMS)
+      flooding_volume: number; // Flooding volume (cubic meters)
+      overflow_duration: number; // Duration of overflow (minutes)
+      max_depth: number; // Maximum depth (meters)
+    };
+  };
   link_results: {
     [linkId: string]: {
-      peak_flow: number          // Peak flow rate (CMS)
-      max_velocity: number       // Maximum velocity (m/s)
-      max_depth: number          // Maximum depth (meters)
-      capacity_ratio: number     // Flow / Full capacity
-    }
-  }
+      peak_flow: number; // Peak flow rate (CMS)
+      max_velocity: number; // Maximum velocity (m/s)
+      max_depth: number; // Maximum depth (meters)
+      capacity_ratio: number; // Flow / Full capacity
+    };
+  };
   summary: {
-    total_simulation_time: number  // Total simulation time (hours)
-    total_rainfall: number         // Total rainfall (mm)
-    total_flooding: number         // System-wide flooding (cubic meters)
-    critical_nodes: string[]       // IDs of nodes with critical flooding
-  }
+    total_simulation_time: number; // Total simulation time (hours)
+    total_rainfall: number; // Total rainfall (mm)
+    total_flooding: number; // System-wide flooding (cubic meters)
+    critical_nodes: string[]; // IDs of nodes with critical flooding
+  };
 }
 ```
 
 **Usage Example:**
 
 ```typescript
-import { runSimulation } from '@/lib/simulation-api/simulation'
+import { runSimulation } from '@/lib/simulation-api/simulation';
 
 // Prepare simulation parameters
 const simulationParams = {
@@ -133,8 +134,8 @@ const simulationParams = {
       inv_elev: 100.0,
       length: 0.5,
       width: 0.5,
-      weir_coeff: 1.8
-    }
+      weir_coeff: 1.8,
+    },
   ],
   links: [
     {
@@ -148,22 +149,22 @@ const simulationParams = {
       shape: 'CIRCULAR',
       geom1: 0.6,
       geom2: 0,
-      barrels: 1
-    }
+      barrels: 1,
+    },
   ],
   rainfall: {
     total_precipitation: 100, // mm
     duration_hours: 2,
-    time_step_minutes: 5
-  }
-}
+    time_step_minutes: 5,
+  },
+};
 
 // Run simulation
-const results = await runSimulation(simulationParams)
+const results = await runSimulation(simulationParams);
 
 // Access results
-console.log('Total flooding:', results.summary.total_flooding)
-console.log('Node N1 max flooding:', results.node_results.N1.max_flooding)
+console.log('Total flooding:', results.summary.total_flooding);
+console.log('Node N1 max flooding:', results.node_results.N1.max_flooding);
 ```
 
 ### 2. Predict 25-Year Flood Scenario
@@ -176,8 +177,8 @@ Predict flooding for a 25-year return period rainfall event.
 
 ```typescript
 interface PredictionRequest {
-  location_id: string
-  drainage_data: DrainageNetworkData
+  location_id: string;
+  drainage_data: DrainageNetworkData;
 }
 ```
 
@@ -185,14 +186,14 @@ interface PredictionRequest {
 
 ```typescript
 interface PredictionResponse {
-  scenario: '25yr'
-  flood_probability: number
+  scenario: '25yr';
+  flood_probability: number;
   vulnerable_nodes: Array<{
-    node_id: string
-    flood_depth: number
-    risk_level: 'low' | 'medium' | 'high' | 'critical'
-  }>
-  recommendations: string[]
+    node_id: string;
+    flood_depth: number;
+    risk_level: 'low' | 'medium' | 'high' | 'critical';
+  }>;
+  recommendations: string[];
 }
 ```
 
@@ -226,25 +227,25 @@ export function transformToNodeDetails(
       overflow_duration: metrics.overflow_duration,
       peak_inflow: metrics.peak_inflow,
       vulnerability_rank: calculateVulnerability(metrics),
-      risk_level: getRiskLevel(metrics.flooding_volume)
+      risk_level: getRiskLevel(metrics.flooding_volume),
     })
-  )
+  );
 }
 
 function calculateVulnerability(metrics: NodeMetrics): number {
   // Weighted scoring system
-  const floodingScore = metrics.flooding_volume * 0.4
-  const overflowScore = metrics.overflow_duration * 0.3
-  const inflowScore = metrics.peak_inflow * 0.3
+  const floodingScore = metrics.flooding_volume * 0.4;
+  const overflowScore = metrics.overflow_duration * 0.3;
+  const inflowScore = metrics.peak_inflow * 0.3;
 
-  return Math.min(100, floodingScore + overflowScore + inflowScore)
+  return Math.min(100, floodingScore + overflowScore + inflowScore);
 }
 
 function getRiskLevel(floodingVolume: number): string {
-  if (floodingVolume > 100) return 'critical'
-  if (floodingVolume > 50) return 'high'
-  if (floodingVolume > 10) return 'medium'
-  return 'low'
+  if (floodingVolume > 100) return 'critical';
+  if (floodingVolume > 50) return 'high';
+  if (floodingVolume > 10) return 'medium';
+  return 'low';
 }
 ```
 
@@ -254,23 +255,25 @@ function getRiskLevel(floodingVolume: number): string {
 
 ```typescript
 try {
-  const results = await runSimulation(params)
+  const results = await runSimulation(params);
 } catch (error) {
   if (error.message.includes('500')) {
     // Server error - likely SWMM computation failure
-    console.error('Simulation failed:', error)
-    toast.error('Simulation failed. Check your input parameters.')
+    console.error('Simulation failed:', error);
+    toast.error('Simulation failed. Check your input parameters.');
   } else if (error.message.includes('timeout')) {
     // Request timeout
-    console.error('Simulation timeout')
-    toast.error('Simulation taking too long. Try reducing the simulation time.')
+    console.error('Simulation timeout');
+    toast.error(
+      'Simulation taking too long. Try reducing the simulation time.'
+    );
   } else if (error.message.includes('400')) {
     // Bad request - invalid parameters
-    console.error('Invalid parameters:', error)
-    toast.error('Invalid simulation parameters.')
+    console.error('Invalid parameters:', error);
+    toast.error('Invalid simulation parameters.');
   } else {
-    console.error('Unknown error:', error)
-    toast.error('An error occurred. Please try again.')
+    console.error('Unknown error:', error);
+    toast.error('An error occurred. Please try again.');
   }
 }
 ```
@@ -281,37 +284,37 @@ Validate parameters before sending to API:
 
 ```typescript
 function validateSimulationParams(params: SimulationRequest): string[] {
-  const errors: string[] = []
+  const errors: string[] = [];
 
   // Validate nodes
-  params.nodes.forEach(node => {
+  params.nodes.forEach((node) => {
     if (node.max_depth <= 0) {
-      errors.push(`Node ${node.id}: max_depth must be positive`)
+      errors.push(`Node ${node.id}: max_depth must be positive`);
     }
     if (node.clog_factor < 0 || node.clog_factor > 1) {
-      errors.push(`Node ${node.id}: clog_factor must be between 0 and 1`)
+      errors.push(`Node ${node.id}: clog_factor must be between 0 and 1`);
     }
-  })
+  });
 
   // Validate links
-  params.links.forEach(link => {
+  params.links.forEach((link) => {
     if (link.length <= 0) {
-      errors.push(`Link ${link.id}: length must be positive`)
+      errors.push(`Link ${link.id}: length must be positive`);
     }
     if (link.roughness <= 0) {
-      errors.push(`Link ${link.id}: roughness must be positive`)
+      errors.push(`Link ${link.id}: roughness must be positive`);
     }
-  })
+  });
 
   // Validate rainfall
   if (params.rainfall.total_precipitation <= 0) {
-    errors.push('Total precipitation must be positive')
+    errors.push('Total precipitation must be positive');
   }
   if (params.rainfall.duration_hours <= 0) {
-    errors.push('Duration must be positive')
+    errors.push('Duration must be positive');
   }
 
-  return errors
+  return errors;
 }
 ```
 
@@ -319,32 +322,32 @@ function validateSimulationParams(params: SimulationRequest): string[] {
 
 ### Node Parameters
 
-| Parameter | Description | Typical Range | Unit |
-|-----------|-------------|---------------|------|
-| `max_depth` | Maximum depth of node | 0.5 - 5.0 | meters |
-| `clog_factor` | Percentage of inlet clogging | 0.0 - 0.5 | ratio |
-| `inv_elev` | Invert elevation | 0 - 1000 | meters |
-| `length` | Inlet opening length | 0.3 - 2.0 | meters |
-| `width` | Inlet opening width | 0.3 - 2.0 | meters |
-| `weir_coeff` | Weir coefficient | 1.5 - 2.0 | - |
+| Parameter     | Description                  | Typical Range | Unit   |
+| ------------- | ---------------------------- | ------------- | ------ |
+| `max_depth`   | Maximum depth of node        | 0.5 - 5.0     | meters |
+| `clog_factor` | Percentage of inlet clogging | 0.0 - 0.5     | ratio  |
+| `inv_elev`    | Invert elevation             | 0 - 1000      | meters |
+| `length`      | Inlet opening length         | 0.3 - 2.0     | meters |
+| `width`       | Inlet opening width          | 0.3 - 2.0     | meters |
+| `weir_coeff`  | Weir coefficient             | 1.5 - 2.0     | -      |
 
 ### Link Parameters
 
-| Parameter | Description | Typical Range | Unit |
-|-----------|-------------|---------------|------|
-| `length` | Pipe length | 10 - 500 | meters |
-| `roughness` | Manning's n | 0.011 - 0.015 | - |
-| `geom1` | Diameter (circular) or height | 0.3 - 3.0 | meters |
-| `geom2` | Width (rectangular) | 0.3 - 3.0 | meters |
-| `barrels` | Number of barrels | 1 - 4 | count |
+| Parameter   | Description                   | Typical Range | Unit   |
+| ----------- | ----------------------------- | ------------- | ------ |
+| `length`    | Pipe length                   | 10 - 500      | meters |
+| `roughness` | Manning's n                   | 0.011 - 0.015 | -      |
+| `geom1`     | Diameter (circular) or height | 0.3 - 3.0     | meters |
+| `geom2`     | Width (rectangular)           | 0.3 - 3.0     | meters |
+| `barrels`   | Number of barrels             | 1 - 4         | count  |
 
 ### Rainfall Parameters
 
-| Parameter | Description | Typical Range | Unit |
-|-----------|-------------|---------------|------|
-| `total_precipitation` | Total rainfall | 10 - 200 | mm |
-| `duration_hours` | Storm duration | 0.5 - 24 | hours |
-| `time_step_minutes` | Calculation timestep | 1 - 15 | minutes |
+| Parameter             | Description          | Typical Range | Unit    |
+| --------------------- | -------------------- | ------------- | ------- |
+| `total_precipitation` | Total rainfall       | 10 - 200      | mm      |
+| `duration_hours`      | Storm duration       | 0.5 - 24      | hours   |
+| `time_step_minutes`   | Calculation timestep | 1 - 15        | minutes |
 
 ## Performance Considerations
 

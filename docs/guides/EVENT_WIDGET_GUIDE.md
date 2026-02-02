@@ -21,14 +21,15 @@ const MyComponent = () => {
 
   const handleOpenWidget = () => {
     const newEvent = {
-      eventName: "NEW EVENT: Flash Flood of Nov 14, 2025",
-      summary: "A sudden, intense downpour from a localized thunderstorm caused unexpected flooding in Barangay Tipolo.",
+      eventName: 'NEW EVENT: Flash Flood of Nov 14, 2025',
+      summary:
+        'A sudden, intense downpour from a localized thunderstorm caused unexpected flooding in Barangay Tipolo.',
       data: {
-        "Time": "4:30 PM",
-        "Estimated Rainfall": "30mm in 1 hour",
-        "Affected Areas": "Brgy. Tipolo, near the San Miguel complex.",
-        "Initial Impact": "Moderate traffic disruption, stranded commuters."
-      }
+        Time: '4:30 PM',
+        'Estimated Rainfall': '30mm in 1 hour',
+        'Affected Areas': 'Brgy. Tipolo, near the San Miguel complex.',
+        'Initial Impact': 'Moderate traffic disruption, stranded commuters.',
+      },
     };
     openWidget(newEvent);
   };
@@ -45,16 +46,20 @@ To disable or remove the button, simply comment out or delete the `<WidgetTrigge
 
 ```tsx
 // ...
-import WidgetTrigger from "@/components/WidgetTrigger";
+import WidgetTrigger from '@/components/WidgetTrigger';
 // ...
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     // ...
-            <SidebarLayout>
-              {/* <WidgetTrigger /> */}
-              {children}
-            </SidebarLayout>
+    <SidebarLayout>
+      {/* <WidgetTrigger /> */}
+      {children}
+    </SidebarLayout>
     // ...
   );
 }

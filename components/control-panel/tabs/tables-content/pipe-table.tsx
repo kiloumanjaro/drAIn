@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,9 +15,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
-import type { Pipe } from "@/components/control-panel/types";
+} from '@/components/ui/table';
+import { ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
+import type { Pipe } from '@/components/control-panel/types';
 
 interface PipeTableProps {
   data: Pipe[];
@@ -29,12 +29,12 @@ interface PipeTableProps {
 }
 
 export type PipeSortField =
-  | "id"
-  | "TYPE"
-  | "Pipe_Shape"
-  | "Pipe_Lngth"
-  | "ClogPer";
-type SortDirection = "asc" | "desc";
+  | 'id'
+  | 'TYPE'
+  | 'Pipe_Shape'
+  | 'Pipe_Lngth'
+  | 'ClogPer';
+type SortDirection = 'asc' | 'desc';
 
 export function PipeTable({
   data,
@@ -62,14 +62,14 @@ export function PipeTable({
       const aValue: string | number = a[sortField];
       const bValue: string | number = b[sortField];
 
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortDirection === "asc"
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
 
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
       }
 
       return 0;
@@ -83,7 +83,7 @@ export function PipeTable({
     if (sortField !== field) {
       return <ArrowUpDown className="ml-2 h-4 w-4" />;
     }
-    return sortDirection === "asc" ? (
+    return sortDirection === 'asc' ? (
       <ArrowUp className="ml-2 h-4 w-4" />
     ) : (
       <ArrowDown className="ml-2 h-4 w-4" />
@@ -91,8 +91,8 @@ export function PipeTable({
   };
 
   return (
-    <div className="flex flex-col flex-1 pl-5 pr-3 pt-3 pb-5 gap-6">
-      <CardHeader className="py-0 px-1">
+    <div className="flex flex-1 flex-col gap-6 pt-3 pr-3 pb-5 pl-5">
+      <CardHeader className="px-1 py-0">
         <CardTitle>Pipe Inventory</CardTitle>
         <CardDescription className="text-xs">
           Showing {sortedData.length} of {data.length} pipes
@@ -106,21 +106,21 @@ export function PipeTable({
                 <TableHead className="text-center">
                   <Button
                     variant="ghost"
-                    onClick={() => onSort("id")}
+                    onClick={() => onSort('id')}
                     className="hover:bg-accent"
                   >
                     Pipe ID
-                    {renderSortIcon("id")}
+                    {renderSortIcon('id')}
                   </Button>
                 </TableHead>
                 <TableHead className="text-center">
                   <Button
                     variant="ghost"
-                    onClick={() => onSort("Pipe_Lngth")}
+                    onClick={() => onSort('Pipe_Lngth')}
                     className="hover:bg-accent"
                   >
                     Length (m)
-                    {renderSortIcon("Pipe_Lngth")}
+                    {renderSortIcon('Pipe_Lngth')}
                   </Button>
                 </TableHead>
               </TableRow>
@@ -137,7 +137,7 @@ export function PipeTable({
                   <TableRow
                     key={pipe.id}
                     onClick={() => onSelectPipe(pipe)}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="hover:bg-muted/50 cursor-pointer transition-colors"
                   >
                     <TableCell className="text-center font-mono text-sm">
                       {pipe.id}

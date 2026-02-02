@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect } from "react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Loader2, AlertCircle } from "lucide-react";
-import { buildPrompt } from "@/lib/chatbot/prompts";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import Image from "next/image";
+import { useState, useRef, useEffect } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Send, Loader2, AlertCircle } from 'lucide-react';
+import { buildPrompt } from '@/lib/chatbot/prompts';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import Image from 'next/image';
 
 interface Message {
-  role: "user" | "bot";
+  role: 'user' | 'bot';
   content: string;
   timestamp: Date;
 }
@@ -20,13 +20,13 @@ interface Message {
 export function ChatbotView() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      role: "bot",
+      role: 'bot',
       content:
         "Hello! I'm your drainage infrastructure assistant. I can help you with questions about pipes, inlets, outlets, storm drains, and reports. How can I assist you today?",
       timestamp: new Date(),
     },
   ]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -37,26 +37,26 @@ export function ChatbotView() {
     : null;
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
     if (!genAI) {
       setError(
-        "Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your environment variables."
+        'Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your environment variables.'
       );
       return;
     }
 
     const userMessage: Message = {
-      role: "user",
+      role: 'user',
       content: input,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    setInput('');
     setLoading(true);
     setError(null);
 
@@ -66,37 +66,37 @@ export function ChatbotView() {
         .slice(-6) // Keep last 3 exchanges for context
         .map(
           (msg) =>
-            `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
         );
 
       // Build the prompt with context
       const prompt = buildPrompt(input, conversationHistory);
 
       // Call Gemini API
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
       const botMessage: Message = {
-        role: "bot",
+        role: 'bot',
         content: text,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
-      console.error("Gemini API error:", err);
+      console.error('Gemini API error:', err);
       const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
+        err instanceof Error ? err.message : 'Unknown error occurred';
       setError(`Failed to get response: ${errorMessage}`);
 
       setMessages((prev) => [
         ...prev,
         {
-          role: "bot",
+          role: 'bot',
           content:
-            "I apologize, but I encountered an error processing your request. Please try again.",
+            'I apologize, but I encountered an error processing your request. Please try again.',
           timestamp: new Date(),
         },
       ]);
@@ -106,7 +106,7 @@ export function ChatbotView() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -114,16 +114,16 @@ export function ChatbotView() {
 
   if (!genAI) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
+      <div className="flex h-full items-center justify-center p-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Gemini API key not configured. Please add{" "}
-            <code className="bg-muted px-1 py-0.5 rounded">
+            Gemini API key not configured. Please add{' '}
+            <code className="bg-muted rounded px-1 py-0.5">
               NEXT_PUBLIC_GEMINI_API_KEY
-            </code>{" "}
-            to your{" "}
-            <code className="bg-muted px-1 py-0.5 rounded">.env.local</code>{" "}
+            </code>{' '}
+            to your{' '}
+            <code className="bg-muted rounded px-1 py-0.5">.env.local</code>{' '}
             file.
           </AlertDescription>
         </Alert>
@@ -132,11 +132,11 @@ export function ChatbotView() {
   }
 
   return (
-    <div className="flex flex-col h-full relative ">
+    <div className="relative flex h-full flex-col">
       {/* Overlapping Source Icons - Absolutely Positioned */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center">
-        <Avatar className="w-12 h-12 border-2 border-white shadow-lg hover:scale-110 transition-transform cursor-pointer">
-          <AvatarFallback className="p-0 overflow-hidden">
+      <div className="absolute top-2 left-1/2 z-10 flex -translate-x-1/2 items-center">
+        <Avatar className="h-12 w-12 cursor-pointer border-2 border-white shadow-lg transition-transform hover:scale-110">
+          <AvatarFallback className="overflow-hidden p-0">
             <Image
               src="/images/drain.png"
               alt="Drain"
@@ -146,8 +146,8 @@ export function ChatbotView() {
             />
           </AvatarFallback>
         </Avatar>
-        <Avatar className="w-12 h-12 -ml-3 border-2 border-white shadow-lg hover:scale-110 transition-transform cursor-pointer z-10">
-          <AvatarFallback className="p-0 overflow-hidden">
+        <Avatar className="z-10 -ml-3 h-12 w-12 cursor-pointer border-2 border-white shadow-lg transition-transform hover:scale-110">
+          <AvatarFallback className="overflow-hidden p-0">
             <Image
               src="/images/google.png"
               alt="Google"
@@ -157,8 +157,8 @@ export function ChatbotView() {
             />
           </AvatarFallback>
         </Avatar>
-        <Avatar className="w-12 h-12 -ml-3 border-2 border-white shadow-lg hover:scale-110 transition-transform cursor-pointer z-20">
-          <AvatarFallback className="p-0 overflow-hidden">
+        <Avatar className="z-20 -ml-3 h-12 w-12 cursor-pointer border-2 border-white shadow-lg transition-transform hover:scale-110">
+          <AvatarFallback className="overflow-hidden p-0">
             <Image
               src="/images/gemini.png"
               alt="Gemini"
@@ -171,31 +171,31 @@ export function ChatbotView() {
       </div>
 
       {/* Messages Area with Transparent Gradient Background */}
-      <ScrollArea className="flex-1 p-4 pt-20 bg-transparent">
+      <ScrollArea className="flex-1 bg-transparent p-4 pt-20">
         <div className="space-y-6 pb-4">
           {messages.map((msg, idx) => (
             <div
               key={idx}
               className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
+                msg.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
               <div
-                className={`px-5 py-3 break-words max-w-[80%] ${
-                  msg.role === "user"
-                    ? "bg-blue-500 text-white rounded-2xl"
-                    : "bg-white border border-gray-300 rounded-2xl text-gray-800"
+                className={`max-w-[80%] px-5 py-3 break-words ${
+                  msg.role === 'user'
+                    ? 'rounded-2xl bg-blue-500 text-white'
+                    : 'rounded-2xl border border-gray-300 bg-white text-gray-800'
                 }`}
               >
-                <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                 <div
-                  className={`text-[10px] mt-1 ${
-                    msg.role === "user" ? "text-blue-100" : "text-gray-500"
+                  className={`mt-1 text-[10px] ${
+                    msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}
                 >
                   {msg.timestamp.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    hour: '2-digit',
+                    minute: '2-digit',
                   })}
                 </div>
               </div>
@@ -204,9 +204,9 @@ export function ChatbotView() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-white border border-gray-300 shadow-md rounded-2xl px-3 py-2 flex items-center gap-2 max-w-[80%]">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                <span className="text-gray-800 text-sm">Thinking...</span>
+              <div className="flex max-w-[80%] items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-2 shadow-md">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <span className="text-sm text-gray-800">Thinking...</span>
               </div>
             </div>
           )}
@@ -234,7 +234,7 @@ export function ChatbotView() {
             onKeyPress={handleKeyPress}
             placeholder="Ask, Search or Chat..."
             disabled={loading}
-            className="flex-1 text-sm pr-16 h-12 bg-white border-[#d1d5dc] rounded-lg"
+            className="h-12 flex-1 rounded-lg border-[#d1d5dc] bg-white pr-16 text-sm"
           />
           <Button
             onClick={sendMessage}
@@ -243,9 +243,9 @@ export function ChatbotView() {
             className="absolute right-2 h-9 w-9"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Send className="w-5 h-5" />
+              <Send className="h-5 w-5" />
             )}
           </Button>
         </div>

@@ -7,9 +7,11 @@ Documentation for all React components in the drAIn application.
 Components are organized by domain and purpose:
 
 ### UI Components ([components/ui/](../../components/ui/))
+
 Base components from shadcn/ui and Radix UI. These are the building blocks for the application.
 
 **Common UI Components:**
+
 - `button.tsx` - Button component with variants
 - `card.tsx` - Card container
 - `dialog.tsx` - Modal dialogs
@@ -21,6 +23,7 @@ Base components from shadcn/ui and Radix UI. These are the building blocks for t
 - `toast.tsx` - Toast notifications
 
 ### Feature Components ([components/](../../components/))
+
 Domain-specific components that implement business logic.
 
 ## Key Components
@@ -32,14 +35,16 @@ Domain-specific components that implement business logic.
 The Control Panel is a complex feature that manages drainage component data.
 
 **Main Files:**
+
 - `index.tsx` - Main control panel component
 - `components/` - Sidebar, top bar, content renderer
 - `tabs/` - Different tab views (model selector, reports, chatbot, maintenance)
 - `hooks/use-control-panel-state.ts` - State management hook
 
 **Usage:**
+
 ```tsx
-import ControlPanel from '@/components/control-panel'
+import ControlPanel from '@/components/control-panel';
 
 <ControlPanel
   inlets={inlets}
@@ -47,10 +52,11 @@ import ControlPanel from '@/components/control-panel'
   drains={drains}
   pipes={pipes}
   onFeatureSelect={(feature) => console.log(feature)}
-/>
+/>;
 ```
 
 **Features:**
+
 - Switch between 4 datasets (inlets, outlets, drains, pipes)
 - View detailed parameters for each component
 - Submit maintenance reports
@@ -68,16 +74,15 @@ import ControlPanel from '@/components/control-panel'
 Displays flood reports as interactive markers on the map.
 
 **Usage:**
-```tsx
-import ReportBubble from '@/components/report-bubble'
 
-<ReportBubble
-  report={report}
-  onClick={() => handleReportClick(report)}
-/>
+```tsx
+import ReportBubble from '@/components/report-bubble';
+
+<ReportBubble report={report} onClick={() => handleReportClick(report)} />;
 ```
 
 **Props:**
+
 - `report` - Report object with location and details
 - `onClick` - Handler for when bubble is clicked
 
@@ -88,13 +93,11 @@ import ReportBubble from '@/components/report-bubble'
 Toggle to show/hide flood-prone areas on the map.
 
 **Usage:**
-```tsx
-import FloodProneToggle from '@/components/flood-prone-toggle'
 
-<FloodProneToggle
-  enabled={showFloodZones}
-  onToggle={setShowFloodZones}
-/>
+```tsx
+import FloodProneToggle from '@/components/flood-prone-toggle';
+
+<FloodProneToggle enabled={showFloodZones} onToggle={setShowFloodZones} />;
 ```
 
 #### Population Toggle
@@ -114,13 +117,15 @@ Toggle to show/hide population density overlay.
 Displays key metrics and statistics.
 
 **Usage:**
-```tsx
-import OverviewTab from '@/components/dashboard/overview/OverviewTab'
 
-<OverviewTab />
+```tsx
+import OverviewTab from '@/components/dashboard/overview/OverviewTab';
+
+<OverviewTab />;
 ```
 
 **Features:**
+
 - Stats cards (fixed, pending, average repair time)
 - Repair trend chart
 - Quick filters by date range
@@ -130,6 +135,7 @@ import OverviewTab from '@/components/dashboard/overview/OverviewTab'
 Advanced analytics and visualizations.
 
 **Features:**
+
 - Component type breakdown
 - Team performance metrics
 - Geographic distribution
@@ -139,6 +145,7 @@ Advanced analytics and visualizations.
 List and manage all reports.
 
 **Features:**
+
 - Filterable report list
 - Status updates
 - Export to CSV
@@ -156,8 +163,9 @@ List and manage all reports.
 Animated SVG pipeline visualization with optional map overlay.
 
 **Usage:**
+
 ```tsx
-import DataFlowPipeline from '@/components/data-flow'
+import DataFlowPipeline from '@/components/data-flow';
 
 <DataFlowPipeline
   background
@@ -165,7 +173,7 @@ import DataFlowPipeline from '@/components/data-flow'
   mapOpacity={0.15}
   enableHover
   onPathClick={(pathId) => console.log(pathId)}
-/>
+/>;
 ```
 
 #### Model Viewer
@@ -175,14 +183,11 @@ import DataFlowPipeline from '@/components/data-flow'
 3D visualization using Three.js.
 
 **Usage:**
-```tsx
-import ModelViewer from '@/components/ModelViewer'
 
-<ModelViewer
-  nodes={nodes}
-  links={links}
-  results={simulationResults}
-/>
+```tsx
+import ModelViewer from '@/components/ModelViewer';
+
+<ModelViewer nodes={nodes} links={links} results={simulationResults} />;
 ```
 
 #### Vulnerability Data Table
@@ -192,13 +197,14 @@ import ModelViewer from '@/components/ModelViewer'
 Displays SWMM simulation results in a sortable table.
 
 **Usage:**
+
 ```tsx
-import VulnerabilityDataTable from '@/components/vulnerability-data-table'
+import VulnerabilityDataTable from '@/components/vulnerability-data-table';
 
 <VulnerabilityDataTable
   data={vulnerabilityData}
   onRowClick={(row) => console.log(row)}
-/>
+/>;
 ```
 
 ---
@@ -212,15 +218,15 @@ import VulnerabilityDataTable from '@/components/vulnerability-data-table'
 Form for submitting flood reports.
 
 **Usage:**
-```tsx
-import FloodReportClient from '@/app/reports/FloodReportClient'
 
-<FloodReportClient
-  onSuccess={() => router.push('/reports')}
-/>
+```tsx
+import FloodReportClient from '@/app/reports/FloodReportClient';
+
+<FloodReportClient onSuccess={() => router.push('/reports')} />;
 ```
 
 **Features:**
+
 - Category selection
 - Description textarea
 - Image upload with EXIF extraction
@@ -234,13 +240,14 @@ import FloodReportClient from '@/app/reports/FloodReportClient'
 Drag-and-drop image upload component.
 
 **Usage:**
+
 ```tsx
-import ImageUploader from '@/components/image-uploader'
+import ImageUploader from '@/components/image-uploader';
 
 <ImageUploader
   onImageSelect={(file) => setImage(file)}
   maxSize={5 * 1024 * 1024} // 5MB
-/>
+/>;
 ```
 
 ---
@@ -254,12 +261,11 @@ import ImageUploader from '@/components/image-uploader'
 User login form with email/password.
 
 **Usage:**
-```tsx
-import LoginForm from '@/components/auth/login-form'
 
-<LoginForm
-  onSuccess={() => router.push('/dashboard')}
-/>
+```tsx
+import LoginForm from '@/components/auth/login-form';
+
+<LoginForm onSuccess={() => router.push('/dashboard')} />;
 ```
 
 #### Sign Up Form
@@ -279,12 +285,13 @@ User registration form.
 Main application layout with collapsible sidebar.
 
 **Usage:**
+
 ```tsx
-import SidebarLayout from '@/components/sidebar-layout'
+import SidebarLayout from '@/components/sidebar-layout';
 
 <SidebarLayout>
   <YourPageContent />
-</SidebarLayout>
+</SidebarLayout>;
 ```
 
 #### Nav Main
@@ -310,15 +317,16 @@ User profile dropdown with settings and logout.
 Manages authentication state.
 
 **Usage:**
+
 ```tsx
-import { useAuth } from '@/components/context/AuthProvider'
+import { useAuth } from '@/components/context/AuthProvider';
 
 function MyComponent() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth();
 
-  if (!user) return <LoginPage />
+  if (!user) return <LoginPage />;
 
-  return <div>Welcome, {profile?.full_name}</div>
+  return <div>Welcome, {profile?.full_name}</div>;
 }
 ```
 
@@ -329,19 +337,20 @@ function MyComponent() {
 Manages flood reports with real-time updates.
 
 **Usage:**
+
 ```tsx
-import { useReports } from '@/components/context/ReportProvider'
+import { useReports } from '@/components/context/ReportProvider';
 
 function ReportsMap() {
-  const { reports, latestReports, loading, refreshReports } = useReports()
+  const { reports, latestReports, loading, refreshReports } = useReports();
 
   return (
     <Map>
-      {reports.map(report => (
+      {reports.map((report) => (
         <ReportBubble key={report.id} report={report} />
       ))}
     </Map>
-  )
+  );
 }
 ```
 
@@ -354,27 +363,30 @@ function ReportsMap() {
 drAIn uses Next.js 15's App Router with React Server Components.
 
 **Server Components** (default):
+
 - Fetch data directly
 - No client-side JavaScript
 - Better performance
 
 **Client Components** (use 'use client'):
+
 - Interactive features
 - Hooks (useState, useEffect)
 - Event handlers
 
 Example:
+
 ```tsx
 // Server Component
 export default async function ReportsPage() {
-  const reports = await fetchReports()
-  return <ReportsList reports={reports} />
+  const reports = await fetchReports();
+  return <ReportsList reports={reports} />;
 }
 
 // Client Component
-'use client'
+('use client');
 export function ReportsList({ reports }) {
-  const [filter, setFilter] = useState('')
+  const [filter, setFilter] = useState('');
   // ... interactive logic
 }
 ```
@@ -402,20 +414,20 @@ Components often use custom hooks for data fetching:
 ```typescript
 // hooks/useDrain.ts
 export function useDrain() {
-  const [drains, setDrains] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [drains, setDrains] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/drainage/storm_drains.geojson')
-      .then(res => res.json())
-      .then(data => {
-        const transformed = transformGeoJSON(data)
-        setDrains(transformed)
+      .then((res) => res.json())
+      .then((data) => {
+        const transformed = transformGeoJSON(data);
+        setDrains(transformed);
       })
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
-  return { drains, loading }
+  return { drains, loading };
 }
 ```
 
@@ -426,7 +438,7 @@ export function useDrain() {
 Components use Tailwind utility classes:
 
 ```tsx
-<div className="flex items-center gap-4 p-6 bg-card rounded-lg shadow-sm">
+<div className="bg-card flex items-center gap-4 rounded-lg p-6 shadow-sm">
   <h2 className="text-2xl font-bold">Title</h2>
 </div>
 ```
@@ -436,17 +448,17 @@ Components use Tailwind utility classes:
 Merge classes conditionally:
 
 ```tsx
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
 
 <button
   className={cn(
-    "px-4 py-2 rounded",
-    isActive && "bg-blue-500",
-    disabled && "opacity-50"
+    'rounded px-4 py-2',
+    isActive && 'bg-blue-500',
+    disabled && 'opacity-50'
   )}
 >
   Click me
-</button>
+</button>;
 ```
 
 ### CSS Variables
@@ -471,12 +483,9 @@ All components follow accessibility best practices:
 - Screen reader support
 
 Example:
+
 ```tsx
-<button
-  aria-label="Close dialog"
-  aria-pressed={isOpen}
-  onClick={handleClick}
->
+<button aria-label="Close dialog" aria-pressed={isOpen} onClick={handleClick}>
   <X className="h-4 w-4" />
 </button>
 ```
@@ -514,12 +523,12 @@ describe('ReportBubble', () => {
 Use React.memo for expensive components:
 
 ```tsx
-import { memo } from 'react'
+import { memo } from 'react';
 
 const ExpensiveComponent = memo(function ExpensiveComponent({ data }) {
   // Heavy rendering logic
-  return <div>{data}</div>
-})
+  return <div>{data}</div>;
+});
 ```
 
 ### Lazy Loading
@@ -527,12 +536,12 @@ const ExpensiveComponent = memo(function ExpensiveComponent({ data }) {
 Dynamically import heavy components:
 
 ```tsx
-import dynamic from 'next/dynamic'
+import dynamic from 'next/dynamic';
 
-const ModelViewer = dynamic(
-  () => import('@/components/ModelViewer'),
-  { ssr: false, loading: () => <Skeleton /> }
-)
+const ModelViewer = dynamic(() => import('@/components/ModelViewer'), {
+  ssr: false,
+  loading: () => <Skeleton />,
+});
 ```
 
 ### Virtual Lists
@@ -540,24 +549,22 @@ const ModelViewer = dynamic(
 For long lists, use virtualization:
 
 ```tsx
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 function VirtualList({ items }) {
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 50,
-  })
+  });
 
   return (
     <div ref={parentRef}>
-      {virtualizer.getVirtualItems().map(virtualRow => (
-        <div key={virtualRow.index}>
-          {items[virtualRow.index]}
-        </div>
+      {virtualizer.getVirtualItems().map((virtualRow) => (
+        <div key={virtualRow.index}>{items[virtualRow.index]}</div>
       ))}
     </div>
-  )
+  );
 }
 ```
 

@@ -3,7 +3,10 @@
 'use client'; // If using App Router
 
 import { useState } from 'react';
-import { runSimulation, type SimulationResponse } from '@/lib/simulation-api/simulation';
+import {
+  runSimulation,
+  type SimulationResponse,
+} from '@/lib/simulation-api/simulation';
 
 export default function TestSimulation() {
   const [loading, setLoading] = useState(false);
@@ -17,13 +20,15 @@ export default function TestSimulation() {
 
     // Sample data
     const nodes = {
-      
-      'I-4': { inv_elev: 16.10, init_depth: 0, ponding_area: 0, surcharge_depth: 0},
+      'I-4': {
+        inv_elev: 16.1,
+        init_depth: 0,
+        ponding_area: 0,
+        surcharge_depth: 0,
+      },
     };
 
-    const links = {
-      
-    };
+    const links = {};
 
     const rainfall = {
       total_precip: 104.9,
@@ -35,7 +40,8 @@ export default function TestSimulation() {
       setResult(data);
       // console.log('✅ Simulation successful:', data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
       console.error('❌ Simulation failed:', err);
     } finally {
@@ -44,15 +50,15 @@ export default function TestSimulation() {
   };
 
   return (
-    <div className="min-h-screen p-8 bg-gray-50">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">SWMM API Test</h1>
-        
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="mb-6 text-3xl font-bold">SWMM API Test</h1>
+
+        <div className="mb-6 rounded-lg bg-white p-6 shadow">
           <button
             onClick={handleTest}
             disabled={loading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-blue-600 px-6 py-3 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             {loading ? 'Running Simulation...' : 'Run Test Simulation'}
           </button>
@@ -60,9 +66,9 @@ export default function TestSimulation() {
 
         {/* Loading State */}
         {loading && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
             <div className="flex items-center gap-3">
-              <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
               <span className="text-blue-700">Running simulation...</span>
             </div>
           </div>
@@ -70,17 +76,21 @@ export default function TestSimulation() {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-red-700 mb-2">❌ Error</h2>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+            <h2 className="mb-2 text-xl font-semibold text-red-700">
+              ❌ Error
+            </h2>
             <p className="text-red-600">{error}</p>
           </div>
         )}
 
         {/* Success State */}
         {result && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-green-700 mb-4">✅ Simulation Complete</h2>
-            <div className="bg-white rounded p-4 overflow-auto max-h-96">
+          <div className="rounded-lg border border-green-200 bg-green-50 p-6">
+            <h2 className="mb-4 text-xl font-semibold text-green-700">
+              ✅ Simulation Complete
+            </h2>
+            <div className="max-h-96 overflow-auto rounded bg-white p-4">
               <pre className="text-sm text-gray-800">
                 {JSON.stringify(result, null, 2)}
               </pre>
@@ -89,17 +99,20 @@ export default function TestSimulation() {
         )}
 
         {/* Instructions */}
-        <div className="mt-8 bg-gray-100 rounded-lg p-6">
-          <h3 className="font-semibold mb-2">📝 What this test does:</h3>
-          <ul className="list-disc list-inside space-y-1 text-gray-700">
-            <li>Sends sample nodes, links, and rainfall data to your Railway API</li>
+        <div className="mt-8 rounded-lg bg-gray-100 p-6">
+          <h3 className="mb-2 font-semibold">📝 What this test does:</h3>
+          <ul className="list-inside list-disc space-y-1 text-gray-700">
+            <li>
+              Sends sample nodes, links, and rainfall data to your Railway API
+            </li>
             <li>Displays the flooding summary results</li>
             <li>Shows any errors that occur</li>
           </ul>
-          
-          <div className="mt-4 pt-4 border-t border-gray-300">
+
+          <div className="mt-4 border-t border-gray-300 pt-4">
             <p className="text-sm text-gray-600">
-              <strong>API Endpoint:</strong> https://web-production-2976d.up.railway.app/run-simulation
+              <strong>API Endpoint:</strong>{' '}
+              https://web-production-2976d.up.railway.app/run-simulation
             </p>
           </div>
         </div>

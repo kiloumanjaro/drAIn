@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useContext } from "react";
-import { useRouter } from "next/navigation";
-import { AuthContext } from "@/components/context/AuthProvider";
-import type { ControlPanelProps } from "./types";
-import { DETAIL_TITLES } from "./constants";
-import { useControlPanelState } from "./hooks/use-control-panel-state";
-import { Sidebar } from "./components/sidebar";
-import { TopBar } from "./components/top-bar";
-import { ContentRenderer } from "./components/content-renderer";
-import { usePipes, useInlets, useOutlets, useDrain } from "@/hooks";
-import client from "@/app/api/client";
-import type { DateFilterValue } from "../date-sort";
-import type { Report } from "@/lib/supabase/report";
+import { useState, useEffect, useContext } from 'react';
+import { useRouter } from 'next/navigation';
+import { AuthContext } from '@/components/context/AuthProvider';
+import type { ControlPanelProps } from './types';
+import { DETAIL_TITLES } from './constants';
+import { useControlPanelState } from './hooks/use-control-panel-state';
+import { Sidebar } from './components/sidebar';
+import { TopBar } from './components/top-bar';
+import { ContentRenderer } from './components/content-renderer';
+import { usePipes, useInlets, useOutlets, useDrain } from '@/hooks';
+import client from '@/app/api/client';
+import type { DateFilterValue } from '../date-sort';
+import type { Report } from '@/lib/supabase/report';
 
 interface RainfallParams {
   total_precip: number;
@@ -99,45 +99,45 @@ export function ControlPanel({
     if (session?.user?.id) {
       const userId = session.user.id;
       const cacheKey = `profile-${userId}`;
-      const COMMON_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+      const COMMON_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 
       const fetchProfile = async () => {
         console.log(
-          "PROFILE LOAD: Initiating forced database fetch and URL regeneration."
+          'PROFILE LOAD: Initiating forced database fetch and URL regeneration.'
         );
         const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
           .single();
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error fetching profile:", error);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching profile:', error);
         } else if (data) {
           const avatarPath = data.avatar_url as string | null;
           let publicUrl = null;
 
           if (avatarPath) {
-            const pathParts = avatarPath.split(".");
+            const pathParts = avatarPath.split('.');
             const currentExtension =
-              pathParts.length > 1 ? `.${pathParts.pop()}` : "";
-            const basePath = pathParts.join(".");
+              pathParts.length > 1 ? `.${pathParts.pop()}` : '';
+            const basePath = pathParts.join('.');
 
             const extensionsToTry = [
               currentExtension,
               ...COMMON_EXTENSIONS.filter((ext) => ext !== currentExtension),
-            ].filter((ext) => ext !== "");
+            ].filter((ext) => ext !== '');
 
             for (const ext of extensionsToTry) {
               const testPath = basePath + ext;
               const { data: urlData } = supabase.storage
-                .from("Avatars")
+                .from('Avatars')
                 .getPublicUrl(testPath);
 
               const candidateUrl = urlData.publicUrl;
 
               try {
-                const response = await fetch(candidateUrl, { method: "HEAD" });
+                const response = await fetch(candidateUrl, { method: 'HEAD' });
 
                 if (response.ok) {
                   publicUrl = candidateUrl;
@@ -150,7 +150,7 @@ export function ControlPanel({
 
             if (!publicUrl) {
               console.log(
-                "AVATAR URL: No valid public URL found after trying common extensions."
+                'AVATAR URL: No valid public URL found after trying common extensions.'
               );
             }
           } else {
@@ -168,7 +168,7 @@ export function ControlPanel({
           );
         } else {
           console.log(
-            "PROFILE LOAD: No profile found for user ID. Data is null/undefined."
+            'PROFILE LOAD: No profile found for user ID. Data is null/undefined.'
           );
         }
       };
@@ -202,7 +202,7 @@ export function ControlPanel({
   };
 
   // Date filter state
-  const [dateFilter, setDateFilter] = useState<DateFilterValue>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
 
   const handleSignOut = async () => {
     const session = await supabase.auth.getSession();
@@ -211,7 +211,7 @@ export function ControlPanel({
       localStorage.removeItem(cacheKey);
     }
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push('/login');
   };
 
   // Data hooks
@@ -222,29 +222,34 @@ export function ControlPanel({
 
   const selectedItem =
     selectedInlet || selectedPipe || selectedOutlet || selectedDrain;
-  const selectedItemTitle = selectedItem ? DETAIL_TITLES[dataset] : "";
+  const selectedItemTitle = selectedItem ? DETAIL_TITLES[dataset] : '';
 
   const handleNavigateToTable = (
-    dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
+    dataset: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
   ) => {
     onDatasetChange(dataset);
-    onTabChange("stats");
+    onTabChange('stats');
   };
 
   const handleNavigateToReportForm = () => {
-    onTabChange("report");
+    onTabChange('report');
   };
 
   const handleNavigateToDataSource = () => {
-    window.open("https://psa.gov.ph/statistics/population-and-housing/node/166426", "_blank");
+    window.open(
+      'https://psa.gov.ph/statistics/population-and-housing/node/166426',
+      '_blank'
+    );
   };
 
   return (
-    <div className={`absolute m-5 flex flex-row h-[600px] w-sm rounded-2xl overflow-hidden ${
-      activeTab === "chatbot"
-        ? "bg-gradient-to-b from-blue-50 via-white to-blue-50"
-        : "bg-white"
-    }`}>
+    <div
+      className={`absolute m-5 flex h-[600px] w-sm flex-row overflow-hidden rounded-2xl ${
+        activeTab === 'chatbot'
+          ? 'bg-gradient-to-b from-blue-50 via-white to-blue-50'
+          : 'bg-white'
+      }`}
+    >
       {/* Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -279,7 +284,7 @@ export function ControlPanel({
         {/* Main Content */}
         <div
           className={`control-panel-scroll relative flex-1 overflow-auto ${
-            activeTab === "stats" ? "overflow-y-scroll" : ""
+            activeTab === 'stats' ? 'overflow-y-scroll' : ''
           }`}
         >
           <ContentRenderer

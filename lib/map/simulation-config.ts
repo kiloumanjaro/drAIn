@@ -1,4 +1,4 @@
-export const SIMULATION_MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
+export const SIMULATION_MAP_STYLE = 'mapbox://styles/mapbox/dark-v11';
 export const SIMULATION_PITCH = 60;
 export const SIMULATION_BEARING = -17.6;
 
@@ -33,36 +33,36 @@ export const CAMERA_ANIMATION = {
 
 export const LAYER_COLORS = {
   man_pipes: {
-    color: "#8558c9", // Dark magenta/purple for pipes
-    selectedColor: "#dc2eef", // Bright magenta when selected
+    color: '#8558c9', // Dark magenta/purple for pipes
+    selectedColor: '#dc2eef', // Bright magenta when selected
     width: 2.5, // Normal line width
     selectedWidth: 6, // Selected line width
   },
   storm_drains: {
-    color: "#5687ca", // Blue for storm drains
-    selectedColor: "#49a8ff", // Cyan when selected
-    strokeColor: "#00346c", // Dark blue border
-    selectedStrokeColor: "#355491", // Lighter border when selected
+    color: '#5687ca', // Blue for storm drains
+    selectedColor: '#49a8ff', // Cyan when selected
+    strokeColor: '#00346c', // Dark blue border
+    selectedStrokeColor: '#355491', // Lighter border when selected
     radius: 4, // Normal circle radius
     selectedRadius: 10, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
     selectedStrokeWidth: 1, // Selected border width
   },
   inlets: {
-    color: "#00ca67", // Green for inlets
-    selectedColor: "#66ed7b", // Light green when selected
-    strokeColor: "#005400", // Dark green border
-    selectedStrokeColor: "#307524", // Lighter border when selected
+    color: '#00ca67', // Green for inlets
+    selectedColor: '#66ed7b', // Light green when selected
+    strokeColor: '#005400', // Dark green border
+    selectedStrokeColor: '#307524', // Lighter border when selected
     radius: 6, // Normal circle radius
     selectedRadius: 12, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
     selectedStrokeWidth: 1.2, // Selected border width
   },
   outlets: {
-    color: "#dd4337", // Red for outlets
-    selectedColor: "#ff4b50", // Bright red when selected
-    strokeColor: "#6a0000", // Dark red border
-    selectedStrokeColor: "#7e1c14", // Lighter border when selected
+    color: '#dd4337', // Red for outlets
+    selectedColor: '#ff4b50', // Bright red when selected
+    strokeColor: '#6a0000', // Dark red border
+    selectedStrokeColor: '#7e1c14', // Lighter border when selected
     radius: 6, // Normal circle radius
     selectedRadius: 12, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
@@ -71,14 +71,14 @@ export const LAYER_COLORS = {
 } as const;
 
 export const SIMULATION_LAYERS = [
-  { id: "man_pipes-layer", name: "Pipes", color: LAYER_COLORS.man_pipes.color },
+  { id: 'man_pipes-layer', name: 'Pipes', color: LAYER_COLORS.man_pipes.color },
   {
-    id: "storm_drains-layer",
-    name: "Storm Drains",
+    id: 'storm_drains-layer',
+    name: 'Storm Drains',
     color: LAYER_COLORS.storm_drains.color,
   },
-  { id: "inlets-layer", name: "Inlets", color: LAYER_COLORS.inlets.color },
-  { id: "outlets-layer", name: "Outlets", color: LAYER_COLORS.outlets.color },
+  { id: 'inlets-layer', name: 'Inlets', color: LAYER_COLORS.inlets.color },
+  { id: 'outlets-layer', name: 'Outlets', color: LAYER_COLORS.outlets.color },
 ];
 
 export const SIMULATION_LAYER_IDS = SIMULATION_LAYERS.map((layer) => layer.id);
@@ -92,28 +92,28 @@ export const SIMULATION_LAYER_IDS = SIMULATION_LAYERS.map((layer) => layer.id);
  */
 export function getLinePaintConfig(layerType: keyof typeof LAYER_COLORS) {
   const config = LAYER_COLORS[layerType];
-  if (!("width" in config)) {
+  if (!('width' in config)) {
     throw new Error(`Layer type ${layerType} is not a line layer`);
   }
 
   return {
-    "line-color": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'line-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedColor,
       config.color,
     ] as unknown as string,
-    "line-width": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'line-width': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedWidth,
       config.width,
     ] as unknown as number,
-    "line-color-transition": {
+    'line-color-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "line-width-transition": {
+    'line-width-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
@@ -125,48 +125,48 @@ export function getLinePaintConfig(layerType: keyof typeof LAYER_COLORS) {
  */
 export function getCirclePaintConfig(layerType: keyof typeof LAYER_COLORS) {
   const config = LAYER_COLORS[layerType];
-  if (!("radius" in config)) {
+  if (!('radius' in config)) {
     throw new Error(`Layer type ${layerType} is not a circle layer`);
   }
 
   return {
-    "circle-radius": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-radius': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedRadius,
       config.radius,
     ] as unknown as number,
-    "circle-color": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedColor,
       config.color,
     ] as unknown as string,
-    "circle-stroke-color": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-stroke-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedStrokeColor,
       config.strokeColor,
     ] as unknown as string,
-    "circle-stroke-width": [
-      "case",
-      ["boolean", ["feature-state", "selected"], false],
+    'circle-stroke-width': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
       config.selectedStrokeWidth,
       config.strokeWidth,
     ] as unknown as number,
-    "circle-radius-transition": {
+    'circle-radius-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "circle-color-transition": {
+    'circle-color-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "circle-stroke-color-transition": {
+    'circle-stroke-color-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },
-    "circle-stroke-width-transition": {
+    'circle-stroke-width-transition': {
       duration: TRANSITION_CONFIG.duration,
       delay: TRANSITION_CONFIG.delay,
     },

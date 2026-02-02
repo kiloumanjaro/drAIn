@@ -1,11 +1,11 @@
-import type { DatasetType, Pipe, Inlet, Outlet, Drain } from "../types";
-import type { Report } from "@/lib/supabase/report";
-import { FIELD_CONFIGS, MODEL_URLS } from "../constants";
-import { DetailView } from "./detail-view";
-import OverlaysContent from "../tabs/overlays-content";
-import { ReportsTab } from "../tabs/reports-content";
-import { ChatbotView } from "../tabs/chatbot-content";
-import type { DateFilterValue } from "../../date-sort";
+import type { DatasetType, Pipe, Inlet, Outlet, Drain } from '../types';
+import type { Report } from '@/lib/supabase/report';
+import { FIELD_CONFIGS, MODEL_URLS } from '../constants';
+import { DetailView } from './detail-view';
+import OverlaysContent from '../tabs/overlays-content';
+import { ReportsTab } from '../tabs/reports-content';
+import { ChatbotView } from '../tabs/chatbot-content';
+import type { DateFilterValue } from '../../date-sort';
 import {
   PipeTable,
   InletTable,
@@ -15,15 +15,15 @@ import {
   InletSortField,
   OutletSortField,
   DrainSortField,
-} from "@/components/control-panel/tabs/tables-content";
-import SimulationsContent from "@/components/control-panel/tabs/simulations-content";
+} from '@/components/control-panel/tabs/tables-content';
+import SimulationsContent from '@/components/control-panel/tabs/simulations-content';
 import {
   type NodeParams,
   type LinkParams,
-} from "@/components/control-panel/tabs/simulation-models/model3";
-import ProfileContent from "@/components/control-panel/tabs/profile-content";
-import HistoryContent from "@/components/control-panel/tabs/history-content";
-import type { ProfileView } from "../hooks/use-control-panel-state";
+} from '@/components/control-panel/tabs/simulation-models/model3';
+import ProfileContent from '@/components/control-panel/tabs/profile-content';
+import HistoryContent from '@/components/control-panel/tabs/history-content';
+import type { ProfileView } from '../hooks/use-control-panel-state';
 
 interface RainfallParams {
   total_precip: number;
@@ -40,7 +40,7 @@ interface ContentRendererProps {
   dataset: DatasetType;
   searchTerm: string;
   sortField: string;
-  sortDirection: "asc" | "desc";
+  sortDirection: 'asc' | 'desc';
   onSort: (field: string) => void;
 
   // Data and loading states
@@ -87,7 +87,7 @@ interface ContentRendererProps {
 
   // Navigation props
   onNavigateToTable?: (
-    dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
+    dataset: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
   ) => void;
   onNavigateToReportForm?: () => void;
   onNavigateToDataSource?: () => void;
@@ -102,8 +102,8 @@ interface ContentRendererProps {
 
   // Reports
   reports: Report[];
-  activeReportTab?: "submission" | "reports";
-  activeAdminTab?: "maintenance" | "reports";
+  activeReportTab?: 'submission' | 'reports';
+  activeAdminTab?: 'maintenance' | 'reports';
   dateFilter?: DateFilterValue;
   onRefreshReports?: () => Promise<void>;
   isRefreshingReports?: boolean;
@@ -197,12 +197,12 @@ export function ContentRenderer({
   onToggleDrag,
   isSimulationMode = false,
   selectedPointForSimulation = null,
-  activeReportTab = "submission",
-  activeAdminTab = "reports",
-  dateFilter = "all",
+  activeReportTab = 'submission',
+  activeAdminTab = 'reports',
+  dateFilter = 'all',
   onRefreshReports,
   isRefreshingReports = false,
-  profileView = "main",
+  profileView = 'main',
   onProfileViewChange = () => {},
   profile,
   publicAvatarUrl,
@@ -253,7 +253,7 @@ export function ContentRenderer({
     return <div className="p-4 text-center">Loading drains...</div>;
 
   switch (activeTab) {
-    case "overlays":
+    case 'overlays':
       return (
         <OverlaysContent
           overlays={overlays}
@@ -274,10 +274,10 @@ export function ContentRenderer({
         />
       );
 
-    case "stats":
+    case 'stats':
       return renderStatsContent();
 
-    case "simulations":
+    case 'simulations':
       return (
         <SimulationsContent
           isSimulationMode={isSimulationMode}
@@ -320,7 +320,7 @@ export function ContentRenderer({
         />
       );
 
-    case "report":
+    case 'report':
       return (
         <ReportsTab
           activeReportTab={activeReportTab}
@@ -336,10 +336,10 @@ export function ContentRenderer({
         />
       );
 
-    case "chatbot":
+    case 'chatbot':
       return <ChatbotView />;
 
-    case "profile":
+    case 'profile':
       return (
         <ProfileContent
           profileView={profileView}
@@ -351,7 +351,7 @@ export function ContentRenderer({
         />
       );
 
-    case "admin":
+    case 'admin':
       return (
         <HistoryContent
           activeAdminTab={activeAdminTab}
@@ -388,7 +388,7 @@ export function ContentRenderer({
 
     // Render appropriate table based on dataset
     switch (dataset) {
-      case "inlets":
+      case 'inlets':
         return (
           <InletTable
             data={inlets}
@@ -402,7 +402,7 @@ export function ContentRenderer({
           />
         );
 
-      case "man_pipes":
+      case 'man_pipes':
         return (
           <PipeTable
             data={pipes}
@@ -416,7 +416,7 @@ export function ContentRenderer({
           />
         );
 
-      case "outlets":
+      case 'outlets':
         return (
           <OutletTable
             data={outlets}
@@ -430,7 +430,7 @@ export function ContentRenderer({
           />
         );
 
-      case "storm_drains":
+      case 'storm_drains':
         return (
           <DrainTable
             data={drains}

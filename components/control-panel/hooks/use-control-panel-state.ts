@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import type { SortField, Pipe, Inlet, Outlet, Drain } from "../types";
+import { useState } from 'react';
+import type { SortField, Pipe, Inlet, Outlet, Drain } from '../types';
 
-export type ProfileView = "main" | "edit" | "links" | "reports";
+export type ProfileView = 'main' | 'edit' | 'links' | 'reports';
 
 export function useControlPanelState() {
-  const [activeTab, setActiveTab] = useState("overlays");
-  const [sortField, setSortField] = useState<SortField>("id");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [profileView, setProfileView] = useState<ProfileView>("main");
+  const [activeTab, setActiveTab] = useState('overlays');
+  const [sortField, setSortField] = useState<SortField>('id');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [profileView, setProfileView] = useState<ProfileView>('main');
   const [activeReportTab, setActiveReportTab] = useState<
-    "submission" | "reports"
-  >("submission");
+    'submission' | 'reports'
+  >('submission');
   const [activeAdminTab, setActiveAdminTab] = useState<
-    "maintenance" | "reports"
-  >("reports");
+    'maintenance' | 'reports'
+  >('reports');
 
   // Selected items state
   const [selectedInlet, setSelectedInlet] = useState<Inlet | null>(null);
@@ -26,10 +26,10 @@ export function useControlPanelState() {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection('asc');
     }
   };
 

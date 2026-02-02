@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -15,13 +15,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
-import type { Outlet } from "@/components/control-panel/types";
+} from '@/components/ui/table';
+import { ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
+import type { Outlet } from '@/components/control-panel/types';
 
-
-export type OutletSortField = "id" | "Inv_Elev" | "AllowQ" | "FlapGate";
-export type SortDirection = "asc" | "desc";
+export type OutletSortField = 'id' | 'Inv_Elev' | 'AllowQ' | 'FlapGate';
+export type SortDirection = 'asc' | 'desc';
 
 export interface OutletTableProps {
   data: Outlet[];
@@ -54,13 +53,13 @@ export function OutletTable({
       const aValue = a[sortField];
       const bValue = b[sortField];
 
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortDirection === "asc"
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
       }
       return 0;
     });
@@ -71,7 +70,7 @@ export function OutletTable({
     if (sortField !== field) {
       return <ArrowUpDown className="ml-2 h-4 w-4" />;
     }
-    return sortDirection === "asc" ? (
+    return sortDirection === 'asc' ? (
       <ArrowUp className="ml-2 h-4 w-4" />
     ) : (
       <ArrowDown className="ml-2 h-4 w-4" />
@@ -79,8 +78,8 @@ export function OutletTable({
   };
 
   return (
-    <div className="flex flex-col flex-1 pl-5 pr-3 pt-3 pb-5 gap-6">
-      <CardHeader className="py-0 px-1">
+    <div className="flex flex-1 flex-col gap-6 pt-3 pr-3 pb-5 pl-5">
+      <CardHeader className="px-1 py-0">
         <CardTitle>Outlet Inventory</CardTitle>
         <CardDescription className="text-xs">
           Showing {sortedData.length} of {data.length} outlets
@@ -95,21 +94,21 @@ export function OutletTable({
                 <TableHead className="text-center">
                   <Button
                     variant="ghost"
-                    onClick={() => onSort("id")}
+                    onClick={() => onSort('id')}
                     className="hover:bg-accent"
                   >
                     Outlet ID
-                    {renderSortIcon("id")}
+                    {renderSortIcon('id')}
                   </Button>
                 </TableHead>
                 <TableHead className="text-center">
                   <Button
                     variant="ghost"
-                    onClick={() => onSort("Inv_Elev")}
+                    onClick={() => onSort('Inv_Elev')}
                     className="hover:bg-accent"
                   >
                     Inv. Elev (m)
-                    {renderSortIcon("Inv_Elev")}
+                    {renderSortIcon('Inv_Elev')}
                   </Button>
                 </TableHead>
               </TableRow>
@@ -126,7 +125,7 @@ export function OutletTable({
                   <TableRow
                     key={outlet.id}
                     onClick={() => onSelectOutlet(outlet)}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="hover:bg-muted/50 cursor-pointer transition-colors"
                   >
                     <TableCell className="text-center font-mono text-sm">
                       {outlet.id}

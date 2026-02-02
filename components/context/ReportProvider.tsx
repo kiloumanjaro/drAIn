@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -6,15 +6,15 @@ import {
   useEffect,
   useState,
   ReactNode,
-  useCallback
-} from "react";
+  useCallback,
+} from 'react';
 import {
   subscribeToReportChanges,
   fetchAllReports,
   fetchLatestReportsPerComponent,
   formatReport,
   Report,
-} from "@/lib/supabase/report";
+} from '@/lib/supabase/report';
 
 interface ReportContextType {
   allReports: Report[];
@@ -36,7 +36,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const handleOpenNotifications = () => setUnreadCount(0);
-  
+
   const refreshReports = useCallback(async () => {
     setIsRefreshingReports(true);
     try {
@@ -45,7 +45,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       const latest = await fetchLatestReportsPerComponent(fetchedAllReports);
       setLatestReports(latest);
     } catch (err) {
-      console.error("Failed to refresh reports in provider:", err);
+      console.error('Failed to refresh reports in provider:', err);
     } finally {
       setIsRefreshingReports(false);
     }
@@ -56,10 +56,10 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
     const handleInsert = (newReport: Report) => {
       const formatted = formatReport(newReport);
-      
+
       setAllReports((prev) => [formatted, ...prev]);
       setNotifications((prev) => [formatted, ...prev]);
-      setUnreadCount(c => c + 1);
+      setUnreadCount((c) => c + 1);
 
       setLatestReports((prev) => {
         const newLatestMap = new Map(prev.map((r) => [r.componentId, r]));
@@ -74,11 +74,13 @@ export function ReportProvider({ children }: { children: ReactNode }) {
     const handleUpdate = (updatedReport: Report) => {
       const formatted = formatReport(updatedReport);
 
-      setNotifications(prev => [formatted, ...prev.filter(n => n.id !== formatted.id)]);
+      setNotifications((prev) => [
+        formatted,
+        ...prev.filter((n) => n.id !== formatted.id),
+      ]);
 
-      setAllReports(prevAllReports => {
-        
-        const updatedAllReports = prevAllReports.map(r =>
+      setAllReports((prevAllReports) => {
+        const updatedAllReports = prevAllReports.map((r) =>
           r.id === formatted.id ? formatted : r
         );
 
@@ -89,9 +91,9 @@ export function ReportProvider({ children }: { children: ReactNode }) {
             latestFromUpdated.set(report.componentId, report);
           }
         }
-        
+
         setLatestReports(Array.from(latestFromUpdated.values()));
-        
+
         return updatedAllReports;
       });
     };
@@ -105,7 +107,15 @@ export function ReportProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshReports]);
 
-  const value = { allReports, latestReports, isRefreshingReports, refreshReports, notifications, unreadCount, handleOpenNotifications };
+  const value = {
+    allReports,
+    latestReports,
+    isRefreshingReports,
+    refreshReports,
+    notifications,
+    unreadCount,
+    handleOpenNotifications,
+  };
 
   return (
     <ReportContext.Provider value={value}>{children}</ReportContext.Provider>
@@ -115,7 +125,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 export function useReports() {
   const context = useContext(ReportContext);
   if (context === undefined) {
-    throw new Error("useReports must be used within a ReportProvider");
+    throw new Error('useReports must be used within a ReportProvider');
   }
   return context;
 }

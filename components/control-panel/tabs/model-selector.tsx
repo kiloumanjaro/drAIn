@@ -1,17 +1,13 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import {
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
+import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
-export type ModelType = "model2" | "model3";
+export type ModelType = 'model2' | 'model3';
 
 interface ModelOption {
   id: ModelType;
@@ -21,16 +17,16 @@ interface ModelOption {
 
 const MODEL_OPTIONS: ModelOption[] = [
   {
-    id: "model2",
-    title: "Hydraulic Capacity Model",
+    id: 'model2',
+    title: 'Hydraulic Capacity Model',
     description:
-      "Analyze drainage system capacity and flow rates under various conditions",
+      'Analyze drainage system capacity and flow rates under various conditions',
   },
   {
-    id: "model3",
-    title: "Infrastructure Health Model",
+    id: 'model3',
+    title: 'Infrastructure Health Model',
     description:
-      "Assess structural integrity and maintenance requirements of drainage components",
+      'Assess structural integrity and maintenance requirements of drainage components',
   },
 ];
 
@@ -48,9 +44,9 @@ export function ModelSelector({ onModelSelect }: ModelSelectorProps) {
   };
 
   return (
-    <div className="flex flex-col justify-between flex-1 pt-3 pb-5 pl-5 pr-4 space-y-4">
+    <div className="flex flex-1 flex-col justify-between space-y-4 pt-3 pr-4 pb-5 pl-5">
       <div className="flex flex-col gap-2">
-        <CardHeader className="py-0 px-1 mb-3">
+        <CardHeader className="mb-3 px-1 py-0">
           <CardTitle>Select Simulation Model</CardTitle>
           <CardDescription className="text-xs">
             Choose a simulation model to analyze your drainage system
@@ -58,7 +54,7 @@ export function ModelSelector({ onModelSelect }: ModelSelectorProps) {
         </CardHeader>
 
         <RadioGroup
-          value={selectedModel || ""}
+          value={selectedModel || ''}
           onValueChange={(value) => setSelectedModel(value as ModelType)}
           className="gap-4"
         >
@@ -72,22 +68,22 @@ export function ModelSelector({ onModelSelect }: ModelSelectorProps) {
               <Label
                 htmlFor={model.id}
                 className={cn(
-                  "flex cursor-pointer rounded-lg border p-4 transition-all",
-                  "hover:bg-accent hover:border-accent-foreground/20",
-                  "peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50/50 dark:peer-data-[state=checked]:bg-blue-950/20",
+                  'flex cursor-pointer rounded-lg border p-4 transition-all',
+                  'hover:bg-accent hover:border-accent-foreground/20',
+                  'peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50/50 dark:peer-data-[state=checked]:bg-blue-950/20',
                   selectedModel === model.id
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/20"
-                    : "border-border"
+                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+                    : 'border-border'
                 )}
               >
-                <div className="flex flex-col space-y-1.5 flex-1">
+                <div className="flex flex-1 flex-col space-y-1.5">
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
-                        "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
+                        'flex h-4 w-4 items-center justify-center rounded-full border-2 transition-all',
                         selectedModel === model.id
-                          ? "border-blue-500 bg-blue-500"
-                          : "border-muted-foreground"
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-muted-foreground'
                       )}
                     >
                       {selectedModel === model.id && (
@@ -96,7 +92,7 @@ export function ModelSelector({ onModelSelect }: ModelSelectorProps) {
                     </div>
                     <span className="font-normal">{model.title}</span>
                   </div>
-                  <p className="text-xs font-normal text-muted-foreground pl-6">
+                  <p className="text-muted-foreground pl-6 text-xs font-normal">
                     {model.description}
                   </p>
                 </div>

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 interface LinkParams {
   init_flow: number;
@@ -34,7 +34,7 @@ export function LinkParametersPanel({
   position,
   onPositionChange,
 }: LinkParametersPanelProps) {
-  const [activeTab, setActiveTab] = useState<string>(selectedPipeIds[0] || "");
+  const [activeTab, setActiveTab] = useState<string>(selectedPipeIds[0] || '');
   const [isDragging, setIsDragging] = useState(false);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
@@ -66,12 +66,12 @@ export function LinkParametersPanel({
 
     checkScroll();
     const tabsList = tabsListRef.current;
-    tabsList?.addEventListener("scroll", checkScroll);
-    window.addEventListener("resize", checkScroll);
+    tabsList?.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
 
     return () => {
-      tabsList?.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
+      tabsList?.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
     };
   }, [selectedPipeIds]);
 
@@ -98,17 +98,20 @@ export function LinkParametersPanel({
     e.preventDefault();
   };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || !dragRef.current) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging || !dragRef.current) return;
 
-    const deltaX = e.clientX - dragRef.current.startX;
-    const deltaY = e.clientY - dragRef.current.startY;
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
 
-    onPositionChange({
-      x: dragRef.current.startPosX + deltaX,
-      y: dragRef.current.startPosY + deltaY,
-    });
-  }, [isDragging, onPositionChange]);
+      onPositionChange({
+        x: dragRef.current.startPosX + deltaX,
+        y: dragRef.current.startPosY + deltaY,
+      });
+    },
+    [isDragging, onPositionChange]
+  );
 
   const handleMouseUp = () => {
     setIsDragging(false);
@@ -138,18 +141,21 @@ export function LinkParametersPanel({
     };
   };
 
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDragging || !dragRef.current) return;
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!isDragging || !dragRef.current) return;
 
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - dragRef.current.startX;
-    const deltaY = touch.clientY - dragRef.current.startY;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragRef.current.startX;
+      const deltaY = touch.clientY - dragRef.current.startY;
 
-    onPositionChange({
-      x: dragRef.current.startPosX + deltaX,
-      y: dragRef.current.startPosY + deltaY,
-    });
-  }, [isDragging, onPositionChange]);
+      onPositionChange({
+        x: dragRef.current.startPosX + deltaX,
+        y: dragRef.current.startPosY + deltaY,
+      });
+    },
+    [isDragging, onPositionChange]
+  );
 
   const handleTouchEnd = () => {
     setIsDragging(false);
@@ -159,16 +165,16 @@ export function LinkParametersPanel({
   // Add event listeners
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleTouchMove);
-      document.addEventListener("touchend", handleTouchEnd);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
 
       return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.removeEventListener("touchmove", handleTouchMove);
-        document.removeEventListener("touchend", handleTouchEnd);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [isDragging, handleMouseMove, handleTouchMove]);
@@ -180,9 +186,9 @@ export function LinkParametersPanel({
     const prevHtmlTouch = document.documentElement.style.touchAction;
 
     if (isDragging) {
-      document.documentElement.style.overflow = "hidden";
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.touchAction = "none";
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.touchAction = 'none';
     }
 
     return () => {
@@ -192,12 +198,12 @@ export function LinkParametersPanel({
     };
   }, [isDragging]);
 
-  const scrollTabs = (direction: "left" | "right") => {
+  const scrollTabs = (direction: 'left' | 'right') => {
     if (tabsListRef.current) {
       const scrollAmount = 200;
       tabsListRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
       });
     }
   };
@@ -212,24 +218,24 @@ export function LinkParametersPanel({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col border bg-background rounded-lg shadow-lg pb-2"
+      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg"
       style={{
-        minWidth: "450px",
-        maxWidth: "600px",
-        maxHeight: "calc(100vh - 120px)",
+        minWidth: '450px',
+        maxWidth: '600px',
+        maxHeight: 'calc(100vh - 120px)',
       }}
     >
       {/* Header */}
       <div
         className={cn(
-          "flex items-center justify-between gap-2 px-3 py-2 border-b rounded-t-lg bg-muted/50",
-          "cursor-grab active:cursor-grabbing",
-          isDragging && "cursor-grabbing select-none"
+          'bg-muted/50 flex items-center justify-between gap-2 rounded-t-lg border-b px-3 py-2',
+          'cursor-grab active:cursor-grabbing',
+          isDragging && 'cursor-grabbing select-none'
         )}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
-        <h3 className="font-semibold ml-2 text-sm text-muted-foreground">
+        <h3 className="text-muted-foreground ml-2 text-sm font-semibold">
           Link Parameters
         </h3>
         <Button
@@ -249,7 +255,7 @@ export function LinkParametersPanel({
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         {selectedPipeIds.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+          <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
             No pipes selected
           </div>
         ) : (
@@ -260,8 +266,8 @@ export function LinkParametersPanel({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-0 top-0 z-10 h-10 w-8 rounded-none bg-background/80 hover:bg-background no-drag"
-                  onClick={() => scrollTabs("left")}
+                  className="bg-background/80 hover:bg-background no-drag absolute top-0 left-0 z-10 h-10 w-8 rounded-none"
+                  onClick={() => scrollTabs('left')}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -269,10 +275,10 @@ export function LinkParametersPanel({
 
               <div
                 ref={tabsListRef}
-                className="overflow-x-auto scrollbar-hide"
+                className="scrollbar-hide overflow-x-auto"
                 style={{
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
                 }}
               >
                 <TabsList className="w-full justify-start">
@@ -292,8 +298,8 @@ export function LinkParametersPanel({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 z-10 h-10 w-8 rounded-none bg-background/80 hover:bg-background no-drag"
-                  onClick={() => scrollTabs("right")}
+                  className="bg-background/80 hover:bg-background no-drag absolute top-0 right-0 z-10 h-10 w-8 rounded-none"
+                  onClick={() => scrollTabs('right')}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -307,29 +313,29 @@ export function LinkParametersPanel({
                 <TabsContent
                   key={id}
                   value={id}
-                  className="space-y-4 mt-0 px-2"
+                  className="mt-0 space-y-4 px-2"
                 >
                   {/* Initial Flow */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Initial Flow
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.init_flow.toFixed(2)} m³/s
                       </span>
                     </div>
                     <Slider
                       value={[params.init_flow]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "init_flow", value[0])
+                        onUpdateParam(id, 'init_flow', value[0])
                       }
                       min={0}
                       max={5}
                       step={0.1}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m³/s</span>
                       <span>5 m³/s</span>
                     </div>
@@ -337,25 +343,25 @@ export function LinkParametersPanel({
 
                   {/* Upstream Offset Depth */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Upstream Offset
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.upstrm_offset_depth.toFixed(1)} m
                       </span>
                     </div>
                     <Slider
                       value={[params.upstrm_offset_depth]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "upstrm_offset_depth", value[0])
+                        onUpdateParam(id, 'upstrm_offset_depth', value[0])
                       }
                       min={0}
                       max={20}
                       step={0.5}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m</span>
                       <span>20 m</span>
                     </div>
@@ -363,25 +369,25 @@ export function LinkParametersPanel({
 
                   {/* Downstream Offset Depth */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Downstream Offset
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.downstrm_offset_depth.toFixed(1)} m
                       </span>
                     </div>
                     <Slider
                       value={[params.downstrm_offset_depth]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "downstrm_offset_depth", value[0])
+                        onUpdateParam(id, 'downstrm_offset_depth', value[0])
                       }
                       min={0}
                       max={20}
                       step={0.5}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0 m</span>
                       <span>20 m</span>
                     </div>
@@ -389,25 +395,25 @@ export function LinkParametersPanel({
 
                   {/* Average Conduit Loss */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-normal text-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">
                         Avg Conduit Loss
                       </Label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         {params.avg_conduit_loss.toFixed(1)}
                       </span>
                     </div>
                     <Slider
                       value={[params.avg_conduit_loss]}
                       onValueChange={(value) =>
-                        onUpdateParam(id, "avg_conduit_loss", value[0])
+                        onUpdateParam(id, 'avg_conduit_loss', value[0])
                       }
                       min={0}
                       max={100}
                       step={1}
-                      className="w-full no-drag"
+                      className="no-drag w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex justify-between text-xs">
                       <span>0</span>
                       <span>100</span>
                     </div>

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import type { Inlet, Outlet, Pipe, Drain } from "../types";
-import ReportHistoryList from "../../report-history-list";
-import type { DateFilterValue } from "../../date-sort";
-import Maintenance from "./maintenance";
-import type { Report } from "@/lib/supabase/report";
+import type { Inlet, Outlet, Pipe, Drain } from '../types';
+import ReportHistoryList from '../../report-history-list';
+import type { DateFilterValue } from '../../date-sort';
+import Maintenance from './maintenance';
+import type { Report } from '@/lib/supabase/report';
 
 export type HistoryContentProps = {
-  activeAdminTab?: "maintenance" | "reports";
+  activeAdminTab?: 'maintenance' | 'reports';
   dateFilter?: DateFilterValue;
   selectedInlet?: Inlet | null;
   selectedOutlet?: Outlet | null;
@@ -21,8 +21,8 @@ export type HistoryContentProps = {
 };
 
 export default function HistoryContent({
-  activeAdminTab = "maintenance",
-  dateFilter = "all",
+  activeAdminTab = 'maintenance',
+  dateFilter = 'all',
   selectedInlet,
   selectedOutlet,
   selectedPipe,
@@ -34,8 +34,8 @@ export default function HistoryContent({
   profile,
 }: HistoryContentProps) {
   return (
-    <div className="w-full h-full flex flex-col">
-      {activeAdminTab === "maintenance" ? (
+    <div className="flex h-full w-full flex-col">
+      {activeAdminTab === 'maintenance' ? (
         <Maintenance
           selectedInlet={selectedInlet}
           selectedOutlet={selectedOutlet}

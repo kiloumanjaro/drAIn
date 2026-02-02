@@ -2,34 +2,34 @@
  * All 29 barangays in Mandaue City
  */
 export const MANDAUE_BARANGAYS = [
-  "Bakilid",
-  "Centro",
-  "Casuntingan",
-  "Casili",
-  "Canduman",
-  "Cambaro",
-  "Cabancalan",
-  "Cubacub",
-  "Basak",
-  "Banilad",
-  "Alang-alang",
-  "Ibabao",
-  "Jagobiao",
-  "Guizo",
-  "Looc",
-  "Maguikay",
-  "Opao",
-  "Labogon",
-  "Mantuyong",
-  "Pagsabungan",
-  "Pakna-an",
-  "Recle",
-  "Tabok",
-  "Subangdaku",
-  "Tawason",
-  "Tingub",
-  "Tipolo",
-  "Umapad",
+  'Bakilid',
+  'Centro',
+  'Casuntingan',
+  'Casili',
+  'Canduman',
+  'Cambaro',
+  'Cabancalan',
+  'Cubacub',
+  'Basak',
+  'Banilad',
+  'Alang-alang',
+  'Ibabao',
+  'Jagobiao',
+  'Guizo',
+  'Looc',
+  'Maguikay',
+  'Opao',
+  'Labogon',
+  'Mantuyong',
+  'Pagsabungan',
+  'Pakna-an',
+  'Recle',
+  'Tabok',
+  'Subangdaku',
+  'Tawason',
+  'Tingub',
+  'Tipolo',
+  'Umapad',
 ];
 
 /**
@@ -37,7 +37,7 @@ export const MANDAUE_BARANGAYS = [
  * Matches against known barangay names in Mandaue City
  */
 export function extractZoneFromAddress(address: string): string {
-  if (!address) return "Unknown";
+  if (!address) return 'Unknown';
 
   const lowerAddress = address.toLowerCase();
 
@@ -46,7 +46,7 @@ export function extractZoneFromAddress(address: string): string {
     lowerAddress.includes(barangay.toLowerCase())
   );
 
-  return found || "Unknown";
+  return found || 'Unknown';
 }
 
 /**
@@ -54,45 +54,43 @@ export function extractZoneFromAddress(address: string): string {
  * This should be loaded from the public assets
  */
 export interface GeoJSONFeature {
-  type: "Feature";
+  type: 'Feature';
   properties: {
     name: string;
-    "population-count": string;
-    "population-density": string;
-    "land-area": string;
+    'population-count': string;
+    'population-density': string;
+    'land-area': string;
     fill: string;
     stroke: string;
-    "fill-opacity": number;
-    "stroke-opacity": number;
-    "stroke-width": number;
+    'fill-opacity': number;
+    'stroke-opacity': number;
+    'stroke-width': number;
   };
   geometry: {
-    type: "Polygon" | "MultiPolygon";
+    type: 'Polygon' | 'MultiPolygon';
     coordinates: number[][][] | number[][][][];
   };
 }
 
 export interface GeoJSONFeatureCollection {
-  type: "FeatureCollection";
+  type: 'FeatureCollection';
   features: GeoJSONFeature[];
 }
 
 /**
  * Fetch GeoJSON data from public assets
  */
-export async function loadMandaueGeoJSON(): Promise<
-  GeoJSONFeatureCollection | null
-> {
+export async function loadMandaueGeoJSON(): Promise<GeoJSONFeatureCollection | null> {
   try {
     const response = await fetch(
-      "/additional-overlays/mandaue_population.geojson"
+      '/additional-overlays/mandaue_population.geojson'
     );
     if (!response.ok) {
       throw new Error(`Failed to load GeoJSON: ${response.statusText}`);
     }
     return await response.json();
   } catch (error) {
-    console.error("Error loading GeoJSON:", error);
+    console.error('Error loading GeoJSON:', error);
     return null;
   }
 }
@@ -116,7 +114,7 @@ export function getBarangayFeature(
  * Format population count (remove commas)
  */
 export function formatPopulation(populationStr: string): number {
-  return parseInt(populationStr.replace(/,/g, ""), 10) || 0;
+  return parseInt(populationStr.replace(/,/g, ''), 10) || 0;
 }
 
 /**
@@ -129,14 +127,12 @@ export interface BarangayInfo {
   area: number;
 }
 
-export function getBarangayInfo(
-  feature: GeoJSONFeature
-): BarangayInfo {
+export function getBarangayInfo(feature: GeoJSONFeature): BarangayInfo {
   return {
     name: feature.properties.name,
-    population: formatPopulation(feature.properties["population-count"]),
-    density: formatPopulation(feature.properties["population-density"]),
-    area: parseFloat(feature.properties["land-area"]) || 0,
+    population: formatPopulation(feature.properties['population-count']),
+    density: formatPopulation(feature.properties['population-density']),
+    area: parseFloat(feature.properties['land-area']) || 0,
   };
 }
 
@@ -148,7 +144,7 @@ export function getBarangayNamesFromGeoJSON(
 ): string[] {
   return geojson.features
     .map((feature) => feature.properties.name)
-    .filter((name) => name && name !== "Mandaue City");
+    .filter((name) => name && name !== 'Mandaue City');
 }
 
 /**
@@ -160,25 +156,25 @@ export function getZoneColorByCount(count: number): {
   bgColor: string;
 } {
   if (count >= 20) {
-    return { color: "text-red-600", bgColor: "bg-red-100" };
+    return { color: 'text-red-600', bgColor: 'bg-red-100' };
   }
   if (count >= 15) {
-    return { color: "text-orange-600", bgColor: "bg-orange-100" };
+    return { color: 'text-orange-600', bgColor: 'bg-orange-100' };
   }
   if (count >= 10) {
-    return { color: "text-yellow-600", bgColor: "bg-yellow-100" };
+    return { color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
   }
   if (count >= 5) {
-    return { color: "text-blue-600", bgColor: "bg-blue-100" };
+    return { color: 'text-blue-600', bgColor: 'bg-blue-100' };
   }
-  return { color: "text-gray-600", bgColor: "bg-gray-100" };
+  return { color: 'text-gray-600', bgColor: 'bg-gray-100' };
 }
 
 /**
  * Format zone name for display
  */
 export function formatZoneName(zone: string): string {
-  return zone || "Unknown Zone";
+  return zone || 'Unknown Zone';
 }
 
 /**

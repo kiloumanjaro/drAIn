@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { Collapsible } from "@/components/ui/collapsible";
+import { Collapsible } from '@/components/ui/collapsible';
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { usePageTransition } from "@/hooks/usePageTransition";
+} from '@/components/ui/sidebar';
+import { usePageTransition } from '@/hooks/usePageTransition';
 
 export function NavMain({
   items,
@@ -50,7 +50,9 @@ export function NavMain({
                   tooltip={item.title}
                   onClick={(e) => item.url && handleNavClick(e, item.url)}
                 >
-                  {item.icon && <item.icon className="text-[#b2adab] cursor-pointer" />}
+                  {item.icon && (
+                    <item.icon className="cursor-pointer text-[#b2adab]" />
+                  )}
                   <span>{item.title}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 
 import {
   SidebarMenu,
@@ -8,7 +8,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 
 export function TeamSwitcher({
   team,
@@ -27,15 +27,15 @@ export function TeamSwitcher({
         <SidebarMenuButton
           size="lg"
           asChild
-          tooltip={state === "collapsed" ? team.name : undefined}
+          tooltip={state === 'collapsed' ? team.name : undefined}
         >
           <div className="flex flex-row gap-4">
-            <div className="flex size-12 items-center justify-center rounded-lg text-primary-foreground">
+            <div className="text-primary-foreground flex size-12 items-center justify-center rounded-lg">
               <SidebarTrigger />
             </div>
-            <div className="flex flex-col gap-0.5 leading-none pt-1 group-data-[collapsible=icon]:hidden">
+            <div className="flex flex-col gap-0.5 pt-1 leading-none group-data-[collapsible=icon]:hidden">
               <span className="font-semibold">{team.name}</span>
-              <span className="text-xs text-muted-foreground">{team.plan}</span>
+              <span className="text-muted-foreground text-xs">{team.plan}</span>
             </div>
           </div>
         </SidebarMenuButton>

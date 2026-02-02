@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import type {
   FeatureCollection,
   Feature,
   GeoJsonProperties,
   LineString,
-} from "geojson";
+} from 'geojson';
 
-import type { Pipe } from "@/components/control-panel/types";
+import type { Pipe } from '@/components/control-panel/types';
 
 export function transformGeoJSON(geojson: FeatureCollection): Pipe[] {
   return geojson.features.map((f: Feature) => {
@@ -24,7 +24,7 @@ export function transformGeoJSON(geojson: FeatureCollection): Pipe[] {
     };
 
     const coords =
-      f.geometry && f.geometry.type === "LineString"
+      f.geometry && f.geometry.type === 'LineString'
         ? (f.geometry as LineString).coordinates
         : [];
 
@@ -51,12 +51,12 @@ export function usePipes() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/drainage/man_pipes.geojson");
+        const res = await fetch('/drainage/man_pipes.geojson');
         const geojson = await res.json();
         const data = transformGeoJSON(geojson);
         setPipes(data);
       } catch (err) {
-        console.error("Failed to load man_pipes.geojson", err);
+        console.error('Failed to load man_pipes.geojson', err);
       } finally {
         setLoading(false);
       }

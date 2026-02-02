@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Select,
@@ -6,8 +6,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { X } from "lucide-react";
+} from '@/components/ui/select';
+import { X } from 'lucide-react';
 
 interface ReportFiltersProps {
   priority: string;
@@ -28,14 +28,15 @@ export default function ReportFilters({
   onComponentTypeChange,
   onClear,
 }: ReportFiltersProps) {
-  const hasFilters = priority !== "all" || status !== "all" || componentType !== "all";
+  const hasFilters =
+    priority !== 'all' || status !== 'all' || componentType !== 'all';
 
   return (
-    <div className="bg-white rounded-lg border border-[#ced1cd] p-4 mb-6">
-      <div className="flex flex-col md:flex-row gap-4 md:items-end">
+    <div className="mb-6 rounded-lg border border-[#ced1cd] bg-white p-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
         {/* Priority Filter */}
         <div className="flex-1">
-          <label className="text-sm font-medium text-gray-700 block mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             Priority
           </label>
           <Select value={priority} onValueChange={onPriorityChange}>
@@ -54,7 +55,7 @@ export default function ReportFilters({
 
         {/* Status Filter */}
         <div className="flex-1">
-          <label className="text-sm font-medium text-gray-700 block mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             Status
           </label>
           <Select value={status} onValueChange={onStatusChange}>
@@ -72,7 +73,7 @@ export default function ReportFilters({
 
         {/* Component Type Filter */}
         <div className="flex-1">
-          <label className="text-sm font-medium text-gray-700 block mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             Component Type
           </label>
           <Select value={componentType} onValueChange={onComponentTypeChange}>
@@ -93,9 +94,9 @@ export default function ReportFilters({
         {hasFilters && (
           <button
             onClick={onClear}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
             <span>Clear</span>
           </button>
         )}

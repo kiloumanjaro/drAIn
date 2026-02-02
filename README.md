@@ -98,6 +98,7 @@ Comprehensive documentation is available in the [docs/](docs/) folder:
 - **[Development](docs/development/)** - Developer resources
 
 Quick links:
+
 - [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)
 - [Tech Stack](docs/architecture/TECH_STACK.md)
 - [Dashboard Quick Start](docs/guides/DASHBOARD_QUICK_START.md)

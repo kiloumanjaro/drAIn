@@ -5,6 +5,7 @@ Complete reference for Supabase database operations, authentication, storage, an
 ## Overview
 
 drAIn uses Supabase as its primary backend, providing:
+
 - PostgreSQL database with PostGIS extension
 - Authentication and user management
 - File storage for images
@@ -23,12 +24,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 ```typescript
 // lib/supabase/client.ts
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+);
 ```
 
 ## Database Schema
@@ -36,6 +37,7 @@ export const supabase = createClient(
 ### Tables
 
 #### profiles
+
 User profile information.
 
 ```sql
@@ -49,6 +51,7 @@ CREATE TABLE profiles (
 ```
 
 **Columns:**
+
 - `id` (UUID, PK): User ID from auth.users
 - `full_name` (TEXT): User's full name
 - `avatar_url` (TEXT): URL to avatar image in storage
@@ -56,6 +59,7 @@ CREATE TABLE profiles (
 - `created_at` (TIMESTAMP): Account creation time
 
 #### reports
+
 Flood and drainage issue reports.
 
 ```sql
@@ -77,6 +81,7 @@ CREATE TABLE reports (
 ```
 
 **Columns:**
+
 - `id` (UUID, PK): Unique report identifier
 - `category` (TEXT): Report type (blockage, overflow, damage, other)
 - `description` (TEXT): Detailed description of the issue
@@ -122,13 +127,14 @@ const { data, error } = await supabase.auth.signUp({
   password: 'secure_password123',
   options: {
     data: {
-      full_name: 'John Doe'
-    }
-  }
-})
+      full_name: 'John Doe',
+    },
+  },
+});
 ```
 
 **Response:**
+
 ```typescript
 {
   user: {
@@ -151,8 +157,8 @@ Authenticate an existing user.
 ```typescript
 const { data, error } = await supabase.auth.signInWithPassword({
   email: 'user@example.com',
-  password: 'secure_password123'
-})
+  password: 'secure_password123',
+});
 ```
 
 ### Get Session
@@ -160,7 +166,10 @@ const { data, error } = await supabase.auth.signInWithPassword({
 Retrieve the current session.
 
 ```typescript
-const { data: { session }, error } = await supabase.auth.getSession()
+const {
+  data: { session },
+  error,
+} = await supabase.auth.getSession();
 ```
 
 ### Sign Out
@@ -168,7 +177,7 @@ const { data: { session }, error } = await supabase.auth.getSession()
 Log out the current user.
 
 ```typescript
-const { error } = await supabase.auth.signOut()
+const { error } = await supabase.auth.signOut();
 ```
 
 ### Get User
@@ -176,7 +185,10 @@ const { error } = await supabase.auth.signOut()
 Get the currently authenticated user.
 
 ```typescript
-const { data: { user }, error } = await supabase.auth.getUser()
+const {
+  data: { user },
+  error,
+} = await supabase.auth.getUser();
 ```
 
 ## Database Operations
@@ -192,10 +204,10 @@ export async function getProfile(userId: string) {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -211,10 +223,10 @@ export async function updateUserProfile(
     .update(updates)
     .eq('id', userId)
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -228,10 +240,10 @@ export async function fetchAllReports() {
   const { data, error } = await supabase
     .from('reports')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false });
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -243,10 +255,10 @@ export async function fetchReportsByStatus(status: string) {
     .from('reports')
     .select('*')
     .eq('status', status)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false });
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -254,11 +266,12 @@ export async function fetchReportsByStatus(status: string) {
 
 ```typescript
 export async function fetchLatestReportsPerComponent() {
-  const { data, error } = await supabase
-    .rpc('get_latest_reports_per_component')
+  const { data, error } = await supabase.rpc(
+    'get_latest_reports_per_component'
+  );
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -266,35 +279,33 @@ export async function fetchLatestReportsPerComponent() {
 
 ```typescript
 export async function uploadReport(report: {
-  category: string
-  description: string
-  image?: File
-  reporter_name: string
-  status: string
-  long: number
-  lat: number
-  address: string
-  user_id?: string
+  category: string;
+  description: string;
+  image?: File;
+  reporter_name: string;
+  status: string;
+  long: number;
+  lat: number;
+  address: string;
+  user_id?: string;
 }) {
-  let imageUrl: string | null = null
+  let imageUrl: string | null = null;
 
   // Upload image if provided
   if (report.image) {
-    const fileName = `${Date.now()}_${report.image.name}`
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
+    const fileName = `${Date.now()}_${report.image.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('ReportImage')
-      .upload(fileName, report.image)
+      .upload(fileName, report.image);
 
-    if (uploadError) throw uploadError
+    if (uploadError) throw uploadError;
 
     // Get public URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('ReportImage')
-      .getPublicUrl(fileName)
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('ReportImage').getPublicUrl(fileName);
 
-    imageUrl = publicUrl
+    imageUrl = publicUrl;
   }
 
   // Insert report
@@ -302,32 +313,29 @@ export async function uploadReport(report: {
     .from('reports')
     .insert({
       ...report,
-      image: imageUrl
+      image: imageUrl,
     })
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
 #### Update Report Status
 
 ```typescript
-export async function updateReportStatus(
-  reportId: string,
-  status: string
-) {
+export async function updateReportStatus(reportId: string, status: string) {
   const { data, error } = await supabase
     .from('reports')
     .update({ status })
     .eq('id', reportId)
     .select()
-    .single()
+    .single();
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -335,12 +343,9 @@ export async function updateReportStatus(
 
 ```typescript
 export async function deleteReport(reportId: string) {
-  const { error } = await supabase
-    .from('reports')
-    .delete()
-    .eq('id', reportId)
+  const { error } = await supabase.from('reports').delete().eq('id', reportId);
 
-  if (error) throw error
+  if (error) throw error;
 }
 ```
 
@@ -349,46 +354,42 @@ export async function deleteReport(reportId: string) {
 ### Upload Image
 
 ```typescript
-const { data, error } = await supabase
-  .storage
+const { data, error } = await supabase.storage
   .from('ReportImage')
   .upload('path/to/image.jpg', file, {
     cacheControl: '3600',
-    upsert: false
-  })
+    upsert: false,
+  });
 ```
 
 ### Get Public URL
 
 ```typescript
-const { data } = supabase
-  .storage
+const { data } = supabase.storage
   .from('ReportImage')
-  .getPublicUrl('path/to/image.jpg')
+  .getPublicUrl('path/to/image.jpg');
 
-const publicUrl = data.publicUrl
+const publicUrl = data.publicUrl;
 ```
 
 ### Delete Image
 
 ```typescript
-const { error } = await supabase
-  .storage
+const { error } = await supabase.storage
   .from('ReportImage')
-  .remove(['path/to/image.jpg'])
+  .remove(['path/to/image.jpg']);
 ```
 
 ### List Files
 
 ```typescript
-const { data, error } = await supabase
-  .storage
+const { data, error } = await supabase.storage
   .from('ReportImage')
   .list('folder', {
     limit: 100,
     offset: 0,
-    sortBy: { column: 'name', order: 'asc' }
-  })
+    sortBy: { column: 'name', order: 'asc' },
+  });
 ```
 
 ## Real-time Subscriptions
@@ -403,14 +404,14 @@ const channel = supabase
     {
       event: '*', // INSERT, UPDATE, DELETE, or *
       schema: 'public',
-      table: 'reports'
+      table: 'reports',
     },
     (payload) => {
-      console.log('Change received!', payload)
+      console.log('Change received!', payload);
       // Handle the change
     }
   )
-  .subscribe()
+  .subscribe();
 ```
 
 ### Subscribe to Specific Event
@@ -424,13 +425,13 @@ const channel = supabase
     {
       event: 'INSERT',
       schema: 'public',
-      table: 'reports'
+      table: 'reports',
     },
     (payload) => {
-      console.log('New report:', payload.new)
+      console.log('New report:', payload.new);
     }
   )
-  .subscribe()
+  .subscribe();
 ```
 
 ### Subscribe with Filters
@@ -445,19 +446,19 @@ const channel = supabase
       event: 'UPDATE',
       schema: 'public',
       table: 'reports',
-      filter: 'status=eq.pending'
+      filter: 'status=eq.pending',
     },
     (payload) => {
-      console.log('Pending report updated:', payload.new)
+      console.log('Pending report updated:', payload.new);
     }
   )
-  .subscribe()
+  .subscribe();
 ```
 
 ### Unsubscribe
 
 ```typescript
-supabase.removeChannel(channel)
+supabase.removeChannel(channel);
 ```
 
 ## Row Level Security (RLS)
@@ -492,21 +493,19 @@ CREATE POLICY "Users can view their own profile"
 
 ```typescript
 try {
-  const { data, error } = await supabase
-    .from('reports')
-    .select('*')
+  const { data, error } = await supabase.from('reports').select('*');
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 } catch (error) {
   if (error.code === 'PGRST116') {
     // No rows returned
-    console.log('No data found')
+    console.log('No data found');
   } else if (error.code === '23505') {
     // Unique constraint violation
-    console.error('Duplicate entry')
+    console.error('Duplicate entry');
   } else {
-    console.error('Database error:', error.message)
+    console.error('Database error:', error.message);
   }
 }
 ```

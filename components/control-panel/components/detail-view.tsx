@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
-import type { DetailItem, FieldConfig } from "../types";
-import ModelViewer from "../../ModelViewer";
-import { DataFieldCard } from "./DataFieldCard";
+import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import type { DetailItem, FieldConfig } from '../types';
+import ModelViewer from '../../ModelViewer';
+import { DataFieldCard } from './DataFieldCard';
 
 interface DetailViewProps {
   item: DetailItem;
@@ -28,7 +28,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
         },
         {
           threshold: 0.6, // Card needs to be 60% visible
-          rootMargin: "-20% 0px -20% 0px", // Focus on center of viewport
+          rootMargin: '-20% 0px -20% 0px', // Focus on center of viewport
         }
       );
 
@@ -42,17 +42,17 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
   }, [fields.length]);
 
   return (
-    <div className="px-4 space-y-4 pb-8">
+    <div className="space-y-4 px-4 pb-8">
       <div className="space-y-2">
-        <div className="flex border border-[#ced1cd] rounded-md">
+        <div className="flex rounded-md border border-[#ced1cd]">
           {!showModel ? (
             <button
               type="button"
               onClick={() => setShowModel(true)}
-              className="flex-1 h-[250px] border-none rounded-lg flex flex-col items-center justify-center gap-3 hover:bg-[#f5f5f5] !cursor-pointer"
+              className="flex h-[250px] flex-1 !cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-none hover:bg-[#f5f5f5]"
             >
               <svg
-                className="w-15 h-15 text-muted-foreground/50"
+                className="text-muted-foreground/50 h-15 w-15"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -83,9 +83,9 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
             />
           )}
         </div>
-        <div className="flex items-start gap-2 px-2 py-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-md">
+        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 dark:border-amber-900/30 dark:bg-amber-950/20">
           <svg
-            className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5"
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -97,7 +97,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+          <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
             The 3D model shown is a generic visual guide and not specifications
             of this specific component.
           </p>
@@ -106,7 +106,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
 
       <div className="flex gap-3">
         {/* Timeline column with background line */}
-        <div className="relative flex flex-col gap-4" style={{ width: "20px" }}>
+        <div className="relative flex flex-col gap-4" style={{ width: '20px' }}>
           {/* Vertical connecting line - starts from first dot center to last dot center with padding */}
           <div
             className="absolute left-1/2 w-[2px] -translate-x-1/2 bg-gray-200"
@@ -125,16 +125,16 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
                   ? `calc(${((activeIndex + 0.5) / fields.length) * 100}% - ${
                       (0.5 / fields.length) * 100
                     }% + 8px)`
-                  : "0%",
+                  : '0%',
             }}
             transition={{
-              type: "spring",
+              type: 'spring',
               stiffness: 100,
               damping: 20,
             }}
             style={{
               top: `calc(${(0.5 / fields.length) * 100}% - 4px)`, // Start 4px earlier
-              backgroundColor: "#3b82f6",
+              backgroundColor: '#3b82f6',
             }}
           />
 
@@ -147,34 +147,34 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
               <div
                 key={index}
                 className="relative flex items-center justify-center"
-                style={{ flex: "1 1 0px", minHeight: "40px" }}
+                style={{ flex: '1 1 0px', minHeight: '40px' }}
               >
                 <motion.div
-                  className={`w-3 h-3 rounded-full border-2 z-10 ${
+                  className={`z-10 h-3 w-3 rounded-full border-2 ${
                     isActive
-                      ? "bg-[#3b82f6] border-[#3b82f6]"
-                      : "bg-white border-gray-300"
+                      ? 'border-[#3b82f6] bg-[#3b82f6]'
+                      : 'border-gray-300 bg-white'
                   }`}
                   animate={{
                     scale: isCurrent ? [1, 1.3, 1] : 1,
                     boxShadow: isCurrent
                       ? [
-                          "0 0 0 0 rgba(59, 130, 246, 0)",
-                          "0 0 0 8px rgba(59, 130, 246, 0.2)",
-                          "0 0 0 0 rgba(59, 130, 246, 0)",
+                          '0 0 0 0 rgba(59, 130, 246, 0)',
+                          '0 0 0 8px rgba(59, 130, 246, 0.2)',
+                          '0 0 0 0 rgba(59, 130, 246, 0)',
                         ]
-                      : "0 0 0 0 rgba(59, 130, 246, 0)",
+                      : '0 0 0 0 rgba(59, 130, 246, 0)',
                   }}
                   transition={{
                     scale: {
                       duration: 0.6,
                       repeat: isCurrent ? Infinity : 0,
-                      repeatType: "loop",
+                      repeatType: 'loop',
                     },
                     boxShadow: {
                       duration: 1.5,
                       repeat: isCurrent ? Infinity : 0,
-                      repeatType: "loop",
+                      repeatType: 'loop',
                     },
                   }}
                 />
@@ -184,7 +184,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
         </div>
 
         {/* Cards column */}
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex flex-1 flex-col gap-4">
           {fields.map((field, index) => (
             <DataFieldCard
               key={field.key}

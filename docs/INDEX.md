@@ -16,78 +16,82 @@ Start here if you're new to the project:
 
 Understand the technical design and structure of drAIn.
 
-| Document | Description |
-|----------|-------------|
+| Document                                                   | Description                                                        |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
 | [System Architecture](architecture/SYSTEM_ARCHITECTURE.md) | Complete overview of system structure, components, and integration |
-| [Tech Stack](architecture/TECH_STACK.md) | Detailed breakdown of all technologies, libraries, and tools |
-| [Data Flow](architecture/DATA_FLOW.md) | How data moves through the system from user to database |
+| [Tech Stack](architecture/TECH_STACK.md)                   | Detailed breakdown of all technologies, libraries, and tools       |
+| [Data Flow](architecture/DATA_FLOW.md)                     | How data moves through the system from user to database            |
 
 ### API Reference
 
 Technical reference for backend APIs and integrations.
 
-| Document | Description |
-|----------|-------------|
-| [Supabase API](api/SUPABASE.md) | Database operations, authentication, storage, and real-time subscriptions |
-| [SWMM Simulation API](api/SIMULATION.md) | Storm Water Management Model simulation endpoints and usage |
+| Document                                 | Description                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| [Supabase API](api/SUPABASE.md)          | Database operations, authentication, storage, and real-time subscriptions |
+| [SWMM Simulation API](api/SIMULATION.md) | Storm Water Management Model simulation endpoints and usage               |
 
 ### Components
 
 Documentation for React components and their usage.
 
-| Document | Description |
-|----------|-------------|
-| [Component Overview](components/README.md) | Guide to all React components in the application |
-| [DataFlow Component](components/data-flow-README.md) | Animated SVG pipeline visualization component |
+| Document                                             | Description                                      |
+| ---------------------------------------------------- | ------------------------------------------------ |
+| [Component Overview](components/README.md)           | Guide to all React components in the application |
+| [DataFlow Component](components/data-flow-README.md) | Animated SVG pipeline visualization component    |
 
 ### User Guides
 
 Step-by-step guides for using drAIn features.
 
-| Document | Description |
-|----------|-------------|
+| Document                                                 | Description                                  |
+| -------------------------------------------------------- | -------------------------------------------- |
 | [Dashboard Quick Start](guides/DASHBOARD_QUICK_START.md) | Getting started with the analytics dashboard |
-| [Event Widget Guide](guides/EVENT_WIDGET_GUIDE.md) | Using the event notification system |
-| [Flood Reports Guide](guides/FLOOD_REPORTS_GUIDE.md) | How to submit and manage flood reports |
+| [Event Widget Guide](guides/EVENT_WIDGET_GUIDE.md)       | Using the event notification system          |
+| [Flood Reports Guide](guides/FLOOD_REPORTS_GUIDE.md)     | How to submit and manage flood reports       |
 
 ### Features
 
 Documentation for major features and implementations.
 
-| Document | Description |
-|----------|-------------|
-| [Dashboard Implementation](features/DASHBOARD_IMPLEMENTATION_COMPLETE.md) | Complete dashboard feature documentation |
-| [Dashboard Implementation Plan](features/DASHBOARD_IMPLEMENTATION_PLAN.md) | Original implementation plan and design decisions |
-| [PostGIS Barangay Zones](features/POSTGIS_BARANGAY_ZONES.md) | Geographic zone implementation with PostGIS |
-| [PostGIS Implementation Summary](features/POSTGIS_IMPLEMENTATION_SUMMARY.md) | Summary of PostGIS integration |
+| Document                                                                     | Description                                       |
+| ---------------------------------------------------------------------------- | ------------------------------------------------- |
+| [Dashboard Implementation](features/DASHBOARD_IMPLEMENTATION_COMPLETE.md)    | Complete dashboard feature documentation          |
+| [Dashboard Implementation Plan](features/DASHBOARD_IMPLEMENTATION_PLAN.md)   | Original implementation plan and design decisions |
+| [PostGIS Barangay Zones](features/POSTGIS_BARANGAY_ZONES.md)                 | Geographic zone implementation with PostGIS       |
+| [PostGIS Implementation Summary](features/POSTGIS_IMPLEMENTATION_SUMMARY.md) | Summary of PostGIS integration                    |
 
 ### Development
 
 Resources for developers contributing to the project.
 
-| Document | Description |
-|----------|-------------|
+| Document                                      | Description                           |
+| --------------------------------------------- | ------------------------------------- |
 | [Fixes Applied](development/FIXES_APPLIED.md) | History of bug fixes and improvements |
 
 ## Documentation by Audience
 
 ### For New Users
+
 1. [Main README](../README.md)
 2. [Dashboard Quick Start](guides/DASHBOARD_QUICK_START.md)
 3. [Flood Reports Guide](guides/FLOOD_REPORTS_GUIDE.md)
 
 ### For Developers
+
 1. [System Architecture](architecture/SYSTEM_ARCHITECTURE.md)
 2. [Tech Stack](architecture/TECH_STACK.md)
 3. [Component Overview](components/README.md)
 4. [Supabase API](api/SUPABASE.md)
 
 ### For DevOps/Infrastructure
+
 1. [System Architecture](architecture/SYSTEM_ARCHITECTURE.md) - Deployment section
 2. [Tech Stack](architecture/TECH_STACK.md) - Hosting and CI/CD
 3. [Supabase API](api/SUPABASE.md) - Database setup
 
 ### For Data Scientists/Engineers
+
 1. [SWMM Simulation API](api/SIMULATION.md)
 2. [PostGIS Implementation](features/POSTGIS_IMPLEMENTATION_SUMMARY.md)
 3. [Data Flow](architecture/DATA_FLOW.md)
@@ -95,28 +99,34 @@ Resources for developers contributing to the project.
 ## Documentation by Task
 
 ### Setting Up the Project
+
 1. [Main README](../README.md) - Installation instructions
 2. [Tech Stack](architecture/TECH_STACK.md) - Environment variables
 
 ### Understanding the Codebase
+
 1. [System Architecture](architecture/SYSTEM_ARCHITECTURE.md)
 2. [Data Flow](architecture/DATA_FLOW.md)
 3. [Component Overview](components/README.md)
 
 ### Working with the Database
+
 1. [Supabase API](api/SUPABASE.md)
 2. [PostGIS Implementation](features/POSTGIS_IMPLEMENTATION_SUMMARY.md)
 
 ### Running Simulations
+
 1. [SWMM Simulation API](api/SIMULATION.md)
 2. [System Architecture](architecture/SYSTEM_ARCHITECTURE.md) - Simulation Module section
 
 ### Building UI Components
+
 1. [Component Overview](components/README.md)
 2. [DataFlow Component](components/data-flow-README.md)
 3. [Tech Stack](architecture/TECH_STACK.md) - Styling section
 
 ### Deploying to Production
+
 1. [System Architecture](architecture/SYSTEM_ARCHITECTURE.md) - Deployment Architecture
 2. [Tech Stack](architecture/TECH_STACK.md) - Deployment section
 
@@ -169,11 +179,13 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
 ## File Locations
 
 ### Static Assets
+
 - GeoJSON data: `public/drainage/*.geojson`
 - Images: `public/images/`
 - Icons: `public/icons/`
 
 ### Source Code
+
 - Pages: `app/`
 - Components: `components/`
 - Utilities: `lib/`
@@ -181,6 +193,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
 - Styles: `app/globals.css`
 
 ### Configuration
+
 - TypeScript: `tsconfig.json`
 - ESLint: `eslint.config.mjs`
 - Tailwind: `tailwind.config.js` (generated)
@@ -216,14 +229,14 @@ When adding new documentation:
 
 ## Documentation Status
 
-| Category | Status | Last Updated |
-|----------|--------|--------------|
-| Architecture | ✅ Complete | 2026-01-30 |
-| API Reference | ✅ Complete | 2026-01-30 |
-| Components | ✅ Complete | 2026-01-30 |
-| User Guides | ✅ Complete | 2026-01-30 |
-| Features | ✅ Complete | 2026-01-30 |
-| Development | 🔄 In Progress | 2026-01-30 |
+| Category      | Status         | Last Updated |
+| ------------- | -------------- | ------------ |
+| Architecture  | ✅ Complete    | 2026-01-30   |
+| API Reference | ✅ Complete    | 2026-01-30   |
+| Components    | ✅ Complete    | 2026-01-30   |
+| User Guides   | ✅ Complete    | 2026-01-30   |
+| Features      | ✅ Complete    | 2026-01-30   |
+| Development   | 🔄 In Progress | 2026-01-30   |
 
 ## Roadmap
 

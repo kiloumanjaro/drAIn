@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/context/AuthProvider";
-import client from "@/app/api/client";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/context/AuthProvider';
+import client from '@/app/api/client';
 
 export function Header() {
   const { user } = useAuth();
@@ -11,46 +11,46 @@ export function Header() {
 
   const handleLogout = async () => {
     await client.auth.signOut();
-    router.push("/login");
+    router.push('/login');
   };
 
   return (
-    <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-      <div className="w-full flex justify-between items-center p-3 px-5 text-sm">
+    <nav className="border-b-foreground/10 flex h-16 w-full justify-center border-b">
+      <div className="flex w-full items-center justify-between p-3 px-5 text-sm">
         <div className="w-72 items-center text-xl font-semibold">
-          <Link href={"/"}>drAIn</Link>
+          <Link href={'/'}>drAIn</Link>
         </div>
 
         <div className="flex gap-10 font-medium">
-          <Link href={"/map"} className="hover:text-primary transition-colors">
+          <Link href={'/map'} className="hover:text-primary transition-colors">
             Map
           </Link>
           <Link
-            href={"/timeline"}
+            href={'/timeline'}
             className="hover:text-primary transition-colors"
           >
             Timeline
           </Link>
           <Link
-            href={"/about"}
+            href={'/about'}
             className="hover:text-primary transition-colors"
           >
             About
           </Link>
         </div>
 
-        <div className="w-72 flex justify-end">
+        <div className="flex w-72 justify-end">
           {user ? (
             <button
               onClick={handleLogout}
-              className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+              className="rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600"
             >
               Log out
             </button>
           ) : (
             <Link
               href="/login"
-              className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+              className="bg-primary hover:bg-primary/90 rounded-lg px-4 py-2 text-white transition-colors"
             >
               Log in
             </Link>

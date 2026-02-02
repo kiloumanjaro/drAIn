@@ -1,23 +1,23 @@
 /* eslint-disable */
 
-"use client";
+'use client';
 
-import { ControlPanel } from "@/components/control-panel";
-import { CameraControls } from "@/components/camera-controls";
-import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { ControlPanel } from '@/components/control-panel';
+import { CameraControls } from '@/components/camera-controls';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
   MAP_BOUNDS,
   MAPBOX_ACCESS_TOKEN,
-} from "@/lib/map/config";
+} from '@/lib/map/config';
 
 import {
   runSimulation,
   transformToNodeDetails,
-} from "@/lib/simulation-api/simulation";
-import { enableRain, disableRain } from "@/lib/map/effects/rain-utils";
+} from '@/lib/simulation-api/simulation';
+import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -28,30 +28,30 @@ import {
   CAMERA_ANIMATION,
   getLinePaintConfig,
   getCirclePaintConfig,
-} from "@/lib/map/simulation-config";
-import mapboxgl from "mapbox-gl";
-import { useInlets } from "@/hooks/useInlets";
-import { useOutlets } from "@/hooks/useOutlets";
-import { useDrain } from "@/hooks/useDrain";
-import { usePipes } from "@/hooks/usePipes";
+} from '@/lib/map/simulation-config';
+import mapboxgl from 'mapbox-gl';
+import { useInlets } from '@/hooks/useInlets';
+import { useOutlets } from '@/hooks/useOutlets';
+import { useDrain } from '@/hooks/useDrain';
+import { usePipes } from '@/hooks/usePipes';
 import type {
   DatasetType,
   Inlet,
   Outlet,
   Drain,
   Pipe,
-} from "@/components/control-panel/types";
+} from '@/components/control-panel/types';
 
-import "mapbox-gl/dist/mapbox-gl.css";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { toast } from "sonner";
-import { VulnerabilityDataTable } from "@/components/vulnerability-data-table";
-import { fetchYRTable } from "@/lib/Vulnerabilities/FetchDeets";
-import { NodeSimulationSlideshow } from "@/components/node-simulation-slideshow";
-import { NodeParametersPanel } from "@/components/node-parameters-panel";
-import { LinkParametersPanel } from "@/components/link-parameters-panel";
-import { Minimize } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { toast } from 'sonner';
+import { VulnerabilityDataTable } from '@/components/vulnerability-data-table';
+import { fetchYRTable } from '@/lib/Vulnerabilities/FetchDeets';
+import { NodeSimulationSlideshow } from '@/components/node-simulation-slideshow';
+import { NodeParametersPanel } from '@/components/node-parameters-panel';
+import { LinkParametersPanel } from '@/components/link-parameters-panel';
+import { Minimize } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
@@ -83,20 +83,20 @@ const rainfallVal = {
 export default function SimulationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isSimulationActive = searchParams.get("active") === "true";
+  const isSimulationActive = searchParams.get('active') === 'true';
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedFloodScenario, setSelectedFloodScenario] =
-    useState<string>("5YR");
+    useState<string>('5YR');
 
   const [overlayVisibility, setOverlayVisibility] = useState({
-    "man_pipes-layer": true,
-    "storm_drains-layer": true,
-    "inlets-layer": true,
-    "outlets-layer": true,
+    'man_pipes-layer': true,
+    'storm_drains-layer': true,
+    'inlets-layer': true,
+    'outlets-layer': true,
   });
 
   const [selectedFeature, setSelectedFeature] = useState<{
@@ -126,9 +126,9 @@ export default function SimulationPage() {
   const [selectedDrain, setSelectedDrain] = useState<Drain | null>(null);
 
   // Control panel state
-  const [controlPanelTab, setControlPanelTab] = useState<string>("simulations");
+  const [controlPanelTab, setControlPanelTab] = useState<string>('simulations');
   const [controlPanelDataset, setControlPanelDataset] =
-    useState<DatasetType>("inlets");
+    useState<DatasetType>('inlets');
   const [selectedPointForSimulation, setSelectedPointForSimulation] = useState<
     string | null
   >(null);
@@ -139,8 +139,8 @@ export default function SimulationPage() {
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [isTableMinimized, setIsTableMinimized] = useState(false);
   const [tablePosition, setTablePosition] = useState<{ x: number; y: number }>({
-    x: typeof window !== "undefined" ? window.innerWidth * 0.6 - 250 : 400,
-    y: typeof window !== "undefined" ? window.innerHeight * 0.5 - 300 : 100,
+    x: typeof window !== 'undefined' ? window.innerWidth * 0.6 - 250 : 400,
+    y: typeof window !== 'undefined' ? window.innerHeight * 0.5 - 300 : 100,
   });
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(
     new Set()
@@ -157,8 +157,8 @@ export default function SimulationPage() {
     x: number;
     y: number;
   }>({
-    x: typeof window !== "undefined" ? window.innerWidth * 0.6 - 250 : 400,
-    y: typeof window !== "undefined" ? window.innerHeight * 0.5 - 300 : 100,
+    x: typeof window !== 'undefined' ? window.innerWidth * 0.6 - 250 : 400,
+    y: typeof window !== 'undefined' ? window.innerHeight * 0.5 - 300 : 100,
   });
 
   // Slideshow state
@@ -186,20 +186,20 @@ export default function SimulationPage() {
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
 
   // Panel visibility - mutual exclusivity
-  const [activePanel, setActivePanel] = useState<"node" | "link" | null>(null);
+  const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
 
   // Panel positions (persisted in localStorage)
   const [nodePanelPosition, setNodePanelPosition] = useState<{
     x: number;
     y: number;
   }>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("nodePanelPosition");
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nodePanelPosition');
       if (saved) {
         try {
           return JSON.parse(saved);
         } catch (e) {
-          console.error("Failed to parse saved node panel position", e);
+          console.error('Failed to parse saved node panel position', e);
         }
       }
       return {
@@ -214,13 +214,13 @@ export default function SimulationPage() {
     x: number;
     y: number;
   }>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("linkPanelPosition");
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('linkPanelPosition');
       if (saved) {
         try {
           return JSON.parse(saved);
         } catch (e) {
-          console.error("Failed to parse saved link panel position", e);
+          console.error('Failed to parse saved link panel position', e);
         }
       }
       return {
@@ -281,18 +281,18 @@ export default function SimulationPage() {
 
   // Save panel positions to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       localStorage.setItem(
-        "nodePanelPosition",
+        'nodePanelPosition',
         JSON.stringify(nodePanelPosition)
       );
     }
   }, [nodePanelPosition]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       localStorage.setItem(
-        "linkPanelPosition",
+        'linkPanelPosition',
         JSON.stringify(linkPanelPosition)
       );
     }
@@ -300,18 +300,18 @@ export default function SimulationPage() {
 
   // Auto-open node panel when components selected
   useEffect(() => {
-    if (selectedComponentIds.length > 0 && activePanel !== "node") {
-      setActivePanel("node");
-    } else if (selectedComponentIds.length === 0 && activePanel === "node") {
+    if (selectedComponentIds.length > 0 && activePanel !== 'node') {
+      setActivePanel('node');
+    } else if (selectedComponentIds.length === 0 && activePanel === 'node') {
       setActivePanel(null);
     }
   }, [selectedComponentIds.length]);
 
   // Auto-open link panel when pipes selected
   useEffect(() => {
-    if (selectedPipeIds.length > 0 && activePanel !== "link") {
-      setActivePanel("link");
-    } else if (selectedPipeIds.length === 0 && activePanel === "link") {
+    if (selectedPipeIds.length > 0 && activePanel !== 'link') {
+      setActivePanel('link');
+    } else if (selectedPipeIds.length === 0 && activePanel === 'link') {
       setActivePanel(null);
     }
   }, [selectedPipeIds.length]);
@@ -343,14 +343,14 @@ export default function SimulationPage() {
       mapRef.current = map;
 
       const addCustomLayers = () => {
-        if (!map.getSource("mapbox-dem")) {
-          map.addSource("mapbox-dem", {
-            type: "raster-dem",
-            url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
             tileSize: 512,
             maxzoom: 14,
           });
-          map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+          map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
         }
 
         // Enable 3D buildings using Mapbox Standard style configuration
@@ -360,78 +360,78 @@ export default function SimulationPage() {
             map.setConfigProperty('basemap', 'showBuildingExtrusions', true);
           }
         } catch (error) {
-          console.warn("Could not enable 3D buildings:", error);
+          console.warn('Could not enable 3D buildings:', error);
         }
 
-        if (!map.getSource("man_pipes")) {
-          map.addSource("man_pipes", {
-            type: "geojson",
-            data: "/drainage/man_pipes.geojson",
-            promoteId: "Name",
+        if (!map.getSource('man_pipes')) {
+          map.addSource('man_pipes', {
+            type: 'geojson',
+            data: '/drainage/man_pipes.geojson',
+            promoteId: 'Name',
           });
           map.addLayer({
-            id: "man_pipes-layer",
-            type: "line",
-            source: "man_pipes",
-            paint: getLinePaintConfig("man_pipes"),
-          });
-        }
-
-        if (!map.getSource("storm_drains")) {
-          map.addSource("storm_drains", {
-            type: "geojson",
-            data: "/drainage/storm_drains.geojson",
-            promoteId: "In_Name",
-          });
-          map.addLayer({
-            id: "storm_drains-layer",
-            type: "circle",
-            source: "storm_drains",
-            paint: getCirclePaintConfig("storm_drains"),
+            id: 'man_pipes-layer',
+            type: 'line',
+            source: 'man_pipes',
+            paint: getLinePaintConfig('man_pipes'),
           });
         }
 
-        if (!map.getSource("inlets")) {
-          map.addSource("inlets", {
-            type: "geojson",
-            data: "/drainage/inlets.geojson",
-            promoteId: "In_Name",
+        if (!map.getSource('storm_drains')) {
+          map.addSource('storm_drains', {
+            type: 'geojson',
+            data: '/drainage/storm_drains.geojson',
+            promoteId: 'In_Name',
           });
           map.addLayer({
-            id: "inlets-layer",
-            type: "circle",
-            source: "inlets",
-            paint: getCirclePaintConfig("inlets"),
+            id: 'storm_drains-layer',
+            type: 'circle',
+            source: 'storm_drains',
+            paint: getCirclePaintConfig('storm_drains'),
           });
         }
 
-        if (!map.getSource("outlets")) {
-          map.addSource("outlets", {
-            type: "geojson",
-            data: "/drainage/outlets.geojson",
-            promoteId: "Out_Name",
+        if (!map.getSource('inlets')) {
+          map.addSource('inlets', {
+            type: 'geojson',
+            data: '/drainage/inlets.geojson',
+            promoteId: 'In_Name',
           });
           map.addLayer({
-            id: "outlets-layer",
-            type: "circle",
-            source: "outlets",
-            paint: getCirclePaintConfig("outlets"),
+            id: 'inlets-layer',
+            type: 'circle',
+            source: 'inlets',
+            paint: getCirclePaintConfig('inlets'),
+          });
+        }
+
+        if (!map.getSource('outlets')) {
+          map.addSource('outlets', {
+            type: 'geojson',
+            data: '/drainage/outlets.geojson',
+            promoteId: 'Out_Name',
+          });
+          map.addLayer({
+            id: 'outlets-layer',
+            type: 'circle',
+            source: 'outlets',
+            paint: getCirclePaintConfig('outlets'),
           });
         }
       };
 
-      map.on("load", addCustomLayers);
-      map.on("style.load", addCustomLayers);
+      map.on('load', addCustomLayers);
+      map.on('style.load', addCustomLayers);
 
       // Click handlers
-      map.on("click", (e) => {
+      map.on('click', (e) => {
         if (!isSimulationActive) return;
 
         const validLayers = [
-          "inlets-layer",
-          "outlets-layer",
-          "storm_drains-layer",
-          "man_pipes-layer",
+          'inlets-layer',
+          'outlets-layer',
+          'storm_drains-layer',
+          'man_pipes-layer',
         ].filter((id) => map.getLayer(id));
 
         if (!validLayers.length) return;
@@ -442,7 +442,7 @@ export default function SimulationPage() {
 
         if (!features.length) {
           clearSelections();
-          setControlPanelTab("simulations");
+          setControlPanelTab('simulations');
           return;
         }
 
@@ -451,24 +451,24 @@ export default function SimulationPage() {
         if (!feature.layer) return;
 
         switch (feature.layer.id) {
-          case "man_pipes-layer": {
+          case 'man_pipes-layer': {
             const pipe = pipesRef.current.find((p) => p.id === props.Name);
             if (pipe) handleSelectPipe(pipe);
             break;
           }
-          case "inlets-layer": {
+          case 'inlets-layer': {
             const inlet = inletsRef.current.find((i) => i.id === props.In_Name);
             if (inlet) handleSelectInlet(inlet);
             break;
           }
-          case "outlets-layer": {
+          case 'outlets-layer': {
             const outlet = outletsRef.current.find(
               (o) => o.id === props.Out_Name
             );
             if (outlet) handleSelectOutlet(outlet);
             break;
           }
-          case "storm_drains-layer": {
+          case 'storm_drains-layer': {
             const drain = drainsRef.current.find((d) => d.id === props.In_Name);
             if (drain) handleSelectDrain(drain);
             break;
@@ -478,13 +478,13 @@ export default function SimulationPage() {
 
       // Cursor style
       layerIds.forEach((layerId) => {
-        map.on("mouseenter", layerId, () => {
+        map.on('mouseenter', layerId, () => {
           if (isSimulationActive) {
-            map.getCanvas().style.cursor = "pointer";
+            map.getCanvas().style.cursor = 'pointer';
           }
         });
-        map.on("mouseleave", layerId, () => {
-          map.getCanvas().style.cursor = "";
+        map.on('mouseleave', layerId, () => {
+          map.getCanvas().style.cursor = '';
         });
       });
     }
@@ -496,10 +496,10 @@ export default function SimulationPage() {
         if (mapRef.current?.getLayer(layerId)) {
           mapRef.current.setLayoutProperty(
             layerId,
-            "visibility",
+            'visibility',
             overlayVisibility[layerId as keyof typeof overlayVisibility]
-              ? "visible"
-              : "none"
+              ? 'visible'
+              : 'none'
           );
         }
       });
@@ -517,13 +517,14 @@ export default function SimulationPage() {
   };
 
   const handleOverlayToggle = (layerId: string) => {
-    const isVisible = !overlayVisibility[layerId as keyof typeof overlayVisibility];
+    const isVisible =
+      !overlayVisibility[layerId as keyof typeof overlayVisibility];
     setOverlayVisibility((prev) => ({
       ...prev,
       [layerId]: !prev[layerId as keyof typeof prev],
     }));
 
-    if (layerId === "flood_hazard-layer") {
+    if (layerId === 'flood_hazard-layer') {
       if (isVisible) {
         // If flood hazard layer is being turned ON
         setIsFloodScenarioLoading(true);
@@ -537,28 +538,28 @@ export default function SimulationPage() {
 
   const overlayData = [
     {
-      id: "man_pipes-layer",
-      name: "Pipes",
+      id: 'man_pipes-layer',
+      name: 'Pipes',
       color: LAYER_COLORS.man_pipes.color,
-      visible: overlayVisibility["man_pipes-layer"],
+      visible: overlayVisibility['man_pipes-layer'],
     },
     {
-      id: "storm_drains-layer",
-      name: "Storm Drains",
+      id: 'storm_drains-layer',
+      name: 'Storm Drains',
       color: LAYER_COLORS.storm_drains.color,
-      visible: overlayVisibility["storm_drains-layer"],
+      visible: overlayVisibility['storm_drains-layer'],
     },
     {
-      id: "inlets-layer",
-      name: "Inlets",
+      id: 'inlets-layer',
+      name: 'Inlets',
       color: LAYER_COLORS.inlets.color,
-      visible: overlayVisibility["inlets-layer"],
+      visible: overlayVisibility['inlets-layer'],
     },
     {
-      id: "outlets-layer",
-      name: "Outlets",
+      id: 'outlets-layer',
+      name: 'Outlets',
       color: LAYER_COLORS.outlets.color,
-      visible: overlayVisibility["outlets-layer"],
+      visible: overlayVisibility['outlets-layer'],
     },
   ];
 
@@ -566,10 +567,10 @@ export default function SimulationPage() {
     const someVisible = Object.values(overlayVisibility).some(Boolean);
 
     const updated: typeof overlayVisibility = {
-      "man_pipes-layer": !someVisible,
-      "storm_drains-layer": !someVisible,
-      "inlets-layer": !someVisible,
-      "outlets-layer": !someVisible,
+      'man_pipes-layer': !someVisible,
+      'storm_drains-layer': !someVisible,
+      'inlets-layer': !someVisible,
+      'outlets-layer': !someVisible,
     };
 
     setOverlayVisibility(updated);
@@ -579,18 +580,18 @@ export default function SimulationPage() {
 
   // Panel toggle handlers
   const handleToggleNodePanel = () => {
-    if (activePanel === "node") {
+    if (activePanel === 'node') {
       setActivePanel(null); // Close
     } else {
-      setActivePanel("node"); // Open and close link panel
+      setActivePanel('node'); // Open and close link panel
     }
   };
 
   const handleToggleLinkPanel = () => {
-    if (activePanel === "link") {
+    if (activePanel === 'link') {
       setActivePanel(null); // Close
     } else {
-      setActivePanel("link"); // Open and close node panel
+      setActivePanel('link'); // Open and close node panel
     }
   };
 
@@ -612,7 +613,7 @@ export default function SimulationPage() {
   // Handler for the back button in control panel
   const handleControlPanelBack = () => {
     clearSelections();
-    setControlPanelTab("simulations");
+    setControlPanelTab('simulations');
   };
 
   const handleSelectInlet = (inlet: Inlet) => {
@@ -624,19 +625,19 @@ export default function SimulationPage() {
 
     // Set the new selection state for control panel
     setSelectedInlet(inlet);
-    setControlPanelTab("simulations"); // Switch to simulations tab
-    setControlPanelDataset("inlets");
+    setControlPanelTab('simulations'); // Switch to simulations tab
+    setControlPanelDataset('inlets');
     setSelectedPointForSimulation(inlet.id); // Pass to simulations content
 
     // Set new map feature state
     mapRef.current.setFeatureState(
-      { source: "inlets", id: inlet.id },
+      { source: 'inlets', id: inlet.id },
       { selected: true }
     );
     setSelectedFeature({
       id: inlet.id,
-      source: "inlets",
-      layer: "inlets-layer",
+      source: 'inlets',
+      layer: 'inlets-layer',
     });
 
     // Fly to the selected feature with smooth animation
@@ -652,15 +653,15 @@ export default function SimulationPage() {
     // Show toast notification
     toast.info(
       <div>
-        Outlet distance updated. Go{" "}
+        Outlet distance updated. Go{' '}
         <button
-          className="underline hover:text-[#5a525a] cursor-pointer bg-transparent border-none p-0"
+          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
           onClick={() => {
-            setControlPanelTab("stats");
+            setControlPanelTab('stats');
           }}
         >
           here
-        </button>{" "}
+        </button>{' '}
         to view more details
       </div>
     );
@@ -676,17 +677,17 @@ export default function SimulationPage() {
     // Set the new selection state for control panel
     setSelectedOutlet(outlet);
     // DON'T change tab - stay on current tab
-    setControlPanelDataset("outlets");
+    setControlPanelDataset('outlets');
 
     // Set new map feature state
     mapRef.current.setFeatureState(
-      { source: "outlets", id: outlet.id },
+      { source: 'outlets', id: outlet.id },
       { selected: true }
     );
     setSelectedFeature({
       id: outlet.id,
-      source: "outlets",
-      layer: "outlets-layer",
+      source: 'outlets',
+      layer: 'outlets-layer',
     });
 
     // Fly to the selected feature with smooth animation
@@ -702,15 +703,15 @@ export default function SimulationPage() {
     // Show toast notification
     toast.info(
       <div>
-        <strong>{outlet.id}</strong> is selected. Go{" "}
+        <strong>{outlet.id}</strong> is selected. Go{' '}
         <button
-          className="underline hover:text-[#5a525a] cursor-pointer bg-transparent border-none p-0"
+          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
           onClick={() => {
-            setControlPanelTab("stats");
+            setControlPanelTab('stats');
           }}
         >
           here
-        </button>{" "}
+        </button>{' '}
         to view details
       </div>
     );
@@ -725,19 +726,19 @@ export default function SimulationPage() {
 
     // Set the new selection state for control panel
     setSelectedDrain(drain);
-    setControlPanelTab("simulations"); // Switch to simulations tab
-    setControlPanelDataset("storm_drains");
+    setControlPanelTab('simulations'); // Switch to simulations tab
+    setControlPanelDataset('storm_drains');
     setSelectedPointForSimulation(drain.id); // Pass to simulations content
 
     // Set new map feature state
     mapRef.current.setFeatureState(
-      { source: "storm_drains", id: drain.id },
+      { source: 'storm_drains', id: drain.id },
       { selected: true }
     );
     setSelectedFeature({
       id: drain.id,
-      source: "storm_drains",
-      layer: "storm_drains-layer",
+      source: 'storm_drains',
+      layer: 'storm_drains-layer',
     });
 
     // Fly to the selected feature with smooth animation
@@ -753,15 +754,15 @@ export default function SimulationPage() {
     // Show toast notification
     toast.info(
       <div>
-        Outlet distance updated. Go{" "}
+        Outlet distance updated. Go{' '}
         <button
-          className="underline hover:text-[#5a525a] cursor-pointer bg-transparent border-none p-0"
+          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
           onClick={() => {
-            setControlPanelTab("stats");
+            setControlPanelTab('stats');
           }}
         >
           here
-        </button>{" "}
+        </button>{' '}
         for more details
       </div>
     );
@@ -777,17 +778,17 @@ export default function SimulationPage() {
     // Set the new selection state for control panel
     setSelectedPipe(pipe);
     // DON'T change tab - stay on current tab
-    setControlPanelDataset("man_pipes");
+    setControlPanelDataset('man_pipes');
 
     // Set new map feature state
     mapRef.current.setFeatureState(
-      { source: "man_pipes", id: pipe.id },
+      { source: 'man_pipes', id: pipe.id },
       { selected: true }
     );
     setSelectedFeature({
       id: pipe.id,
-      source: "man_pipes",
-      layer: "man_pipes-layer",
+      source: 'man_pipes',
+      layer: 'man_pipes-layer',
     });
 
     // Popup at midpoint
@@ -807,15 +808,15 @@ export default function SimulationPage() {
     // Show toast notifications
     toast.info(
       <div>
-        <strong>{pipe.id}</strong> is selected. Go{" "}
+        <strong>{pipe.id}</strong> is selected. Go{' '}
         <button
-          className="underline hover:text-[#5a525a] cursor-pointer bg-transparent border-none p-0"
+          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
           onClick={() => {
-            setControlPanelTab("stats");
+            setControlPanelTab('stats');
           }}
         >
           here
-        </button>{" "}
+        </button>{' '}
         for more details
       </div>
     );
@@ -831,7 +832,7 @@ export default function SimulationPage() {
 
     // Navigate after a delay to ensure sidebar closes
     setTimeout(() => {
-      router.push("/map");
+      router.push('/map');
     }, 200);
   };
 
@@ -852,7 +853,7 @@ export default function SimulationPage() {
       vulnerabilityData.map((node) => node.Vulnerability_Category)
     );
     console.log(
-      "Unique vulnerability categories:",
+      'Unique vulnerability categories:',
       Array.from(uniqueCategories)
     );
     // console.log("Sample nodes:", vulnerabilityData.slice(0, 5));
@@ -862,56 +863,56 @@ export default function SimulationPage() {
     const getColorForCategory = (category: string): string => {
       const normalized = category.toLowerCase().trim();
 
-      if (normalized.includes("high")) return "#D32F2F";
-      if (normalized.includes("medium")) return "#FFA000";
-      if (normalized.includes("low")) return "#FFF176";
-      if (normalized.includes("no")) return "#388E3C";
+      if (normalized.includes('high')) return '#D32F2F';
+      if (normalized.includes('medium')) return '#FFA000';
+      if (normalized.includes('low')) return '#FFF176';
+      if (normalized.includes('no')) return '#388E3C';
 
       // Fallback based on exact matches
       const colorMap: Record<string, string> = {
-        "High Risk": "#D32F2F",
-        "Medium Risk": "#FFA000",
-        "Low Risk": "#FFF176",
-        "No Risk": "#388E3C",
-        "high risk": "#D32F2F",
-        "medium risk": "#FFA000",
-        "low risk": "#FFF176",
-        "no risk": "#388E3C",
+        'High Risk': '#D32F2F',
+        'Medium Risk': '#FFA000',
+        'Low Risk': '#FFF176',
+        'No Risk': '#388E3C',
+        'high risk': '#D32F2F',
+        'medium risk': '#FFA000',
+        'low risk': '#FFF176',
+        'no risk': '#388E3C',
       };
 
-      return colorMap[category] || colorMap[normalized] || "#5687ca";
+      return colorMap[category] || colorMap[normalized] || '#5687ca';
     };
 
     // Get darker stroke color for vulnerability categories
     const getStrokeColorForCategory = (category: string): string => {
       const normalized = category.toLowerCase().trim();
 
-      if (normalized.includes("high")) return "#8B0000"; // Dark red
-      if (normalized.includes("medium")) return "#B36200"; // Dark amber
-      if (normalized.includes("low")) return "#C4B000"; // Dark yellow
-      if (normalized.includes("no")) return "#1B5E20"; // Dark green
+      if (normalized.includes('high')) return '#8B0000'; // Dark red
+      if (normalized.includes('medium')) return '#B36200'; // Dark amber
+      if (normalized.includes('low')) return '#C4B000'; // Dark yellow
+      if (normalized.includes('no')) return '#1B5E20'; // Dark green
 
       // Fallback based on exact matches
       const strokeColorMap: Record<string, string> = {
-        "High Risk": "#8B0000",
-        "Medium Risk": "#B36200",
-        "Low Risk": "#C4B000",
-        "No Risk": "#1B5E20",
-        "high risk": "#8B0000",
-        "medium risk": "#B36200",
-        "low risk": "#C4B000",
-        "no risk": "#1B5E20",
+        'High Risk': '#8B0000',
+        'Medium Risk': '#B36200',
+        'Low Risk': '#C4B000',
+        'No Risk': '#1B5E20',
+        'high risk': '#8B0000',
+        'medium risk': '#B36200',
+        'low risk': '#C4B000',
+        'no risk': '#1B5E20',
       };
 
       return (
-        strokeColorMap[category] || strokeColorMap[normalized] || "#00346c"
+        strokeColorMap[category] || strokeColorMap[normalized] || '#00346c'
       );
     };
 
     // Build match expression for Mapbox for inlets
     // Format: ["match", ["get", "In_Name"], node1, color1, node2, color2, ..., defaultColor]
-    const inletsMatchExpression: any[] = ["match", ["get", "In_Name"]];
-    const inletsStrokeMatchExpression: any[] = ["match", ["get", "In_Name"]];
+    const inletsMatchExpression: any[] = ['match', ['get', 'In_Name']];
+    const inletsStrokeMatchExpression: any[] = ['match', ['get', 'In_Name']];
 
     vulnerabilityData.forEach((node) => {
       const color = getColorForCategory(node.Vulnerability_Category);
@@ -926,12 +927,12 @@ export default function SimulationPage() {
     });
 
     // Default color for inlets not in vulnerability data
-    inletsMatchExpression.push("#00ca67"); // Original inlets color
-    inletsStrokeMatchExpression.push("#005400"); // Original inlets stroke color
+    inletsMatchExpression.push('#00ca67'); // Original inlets color
+    inletsStrokeMatchExpression.push('#005400'); // Original inlets stroke color
 
     // Build match expression for storm drains
-    const drainsMatchExpression: any[] = ["match", ["get", "In_Name"]];
-    const drainsStrokeMatchExpression: any[] = ["match", ["get", "In_Name"]];
+    const drainsMatchExpression: any[] = ['match', ['get', 'In_Name']];
+    const drainsStrokeMatchExpression: any[] = ['match', ['get', 'In_Name']];
 
     vulnerabilityData.forEach((node) => {
       const color = getColorForCategory(node.Vulnerability_Category);
@@ -943,38 +944,38 @@ export default function SimulationPage() {
     });
 
     // Default color for drains not in vulnerability data
-    drainsMatchExpression.push("#5687ca"); // Original storm_drains color
-    drainsStrokeMatchExpression.push("#00346c"); // Original storm_drains stroke color
+    drainsMatchExpression.push('#5687ca'); // Original storm_drains color
+    drainsStrokeMatchExpression.push('#00346c'); // Original storm_drains stroke color
 
     // Update inlets-layer color and stroke
-    if (map.getLayer("inlets-layer")) {
-      map.setPaintProperty("inlets-layer", "circle-color", [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        "#66ed7b", // Selected color (light green)
+    if (map.getLayer('inlets-layer')) {
+      map.setPaintProperty('inlets-layer', 'circle-color', [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        '#66ed7b', // Selected color (light green)
         inletsMatchExpression,
       ]);
-      map.setPaintProperty("inlets-layer", "circle-stroke-color", [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        "#307524", // Selected stroke color
+      map.setPaintProperty('inlets-layer', 'circle-stroke-color', [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        '#307524', // Selected stroke color
         inletsStrokeMatchExpression,
       ]);
       // console.log("Updated inlets-layer color and stroke");
     }
 
     // Update storm_drains-layer color and stroke
-    if (map.getLayer("storm_drains-layer")) {
-      map.setPaintProperty("storm_drains-layer", "circle-color", [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        "#49a8ff", // Selected color (cyan)
+    if (map.getLayer('storm_drains-layer')) {
+      map.setPaintProperty('storm_drains-layer', 'circle-color', [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        '#49a8ff', // Selected color (cyan)
         drainsMatchExpression,
       ]);
-      map.setPaintProperty("storm_drains-layer", "circle-stroke-color", [
-        "case",
-        ["boolean", ["feature-state", "selected"], false],
-        "#355491", // Selected stroke color
+      map.setPaintProperty('storm_drains-layer', 'circle-stroke-color', [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        '#355491', // Selected stroke color
         drainsStrokeMatchExpression,
       ]);
       // console.log("Updated storm_drains-layer color and stroke");
@@ -987,7 +988,7 @@ export default function SimulationPage() {
     setTableData(null);
     setTableData3(null);
     setActivePanel(null);
-  }
+  };
   // Vulnerability table handlers
   const handleGenerateTable = async () => {
     if (!selectedYear) return;
@@ -1006,8 +1007,8 @@ export default function SimulationPage() {
       // Hide outlets and pipes layers when table is generated
       setOverlayVisibility((prev) => ({
         ...prev,
-        "outlets-layer": false,
-        "man_pipes-layer": false,
+        'outlets-layer': false,
+        'man_pipes-layer': false,
       }));
 
       // Apply vulnerability colors to inlets and storm drains
@@ -1023,8 +1024,8 @@ export default function SimulationPage() {
         `Successfully loaded ${data.length} nodes for ${selectedYear}YR`
       );
     } catch (error) {
-      console.error("Error fetching vulnerability data:", error);
-      toast.error("Failed to load vulnerability data. Please try again.");
+      console.error('Error fetching vulnerability data:', error);
+      toast.error('Failed to load vulnerability data. Please try again.');
       setTableData(null);
     } finally {
       setIsLoadingTable(false);
@@ -1034,15 +1035,15 @@ export default function SimulationPage() {
   // Model 3 table handler
   const handleGenerateTable3 = async () => {
     if (selectedComponentIds.length === 0) {
-      toast.error("Please select at least one component");
+      toast.error('Please select at least one component');
       return;
     }
 
     // Close panels before starting
-    if (activePanel === "node") {
+    if (activePanel === 'node') {
       setActivePanel(null);
     }
-    if (activePanel === "link") {
+    if (activePanel === 'link') {
       setActivePanel(null);
     }
 
@@ -1078,8 +1079,8 @@ export default function SimulationPage() {
       // Hide outlets and pipes layers when table is generated
       setOverlayVisibility((prev) => ({
         ...prev,
-        "outlets-layer": false,
-        "man_pipes-layer": false,
+        'outlets-layer': false,
+        'man_pipes-layer': false,
       }));
 
       // Apply vulnerability colors to inlets and storm drains
@@ -1089,7 +1090,7 @@ export default function SimulationPage() {
       if (mapRef.current) {
         // Map 0-300mm precipitation to 0.3-1.0 intensity range
         const normalized = rainfallParams.total_precip / 300; // 0-1 range
-        const intensity = 0.3 + (normalized * 0.7); // Map to 0.3-1.0
+        const intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
         enableRain(mapRef.current, intensity);
         setIsRainActive(true);
       }
@@ -1098,8 +1099,8 @@ export default function SimulationPage() {
         `Successfully generated vulnerability data for ${transformedData.length} nodes`
       );
     } catch (error) {
-      console.error("Error running simulation:", error);
-      toast.error("Simulation failed. Please try again.");
+      console.error('Error running simulation:', error);
+      toast.error('Simulation failed. Please try again.');
       setTableData3(null);
     } finally {
       setIsLoadingTable3(false);
@@ -1130,38 +1131,41 @@ export default function SimulationPage() {
   };
 
   // Rain toggle handler
-  const handleToggleRain = useCallback((enabled: boolean) => {
-    if (!mapRef.current) return;
+  const handleToggleRain = useCallback(
+    (enabled: boolean) => {
+      if (!mapRef.current) return;
 
-    if (enabled) {
-      // Determine intensity based on which model is active
-      let intensity = 1.0; // Default for Model2
+      if (enabled) {
+        // Determine intensity based on which model is active
+        let intensity = 1.0; // Default for Model2
 
-      // If Model3 is active and has rainfall params, use dynamic intensity
-      // Map 0-300mm precipitation to 0.3-1.0 intensity range
-      if (tableData3 && rainfallParams) {
-        const normalized = rainfallParams.total_precip / 300; // 0-1 range
-        intensity = 0.3 + (normalized * 0.7); // Map to 0.3-1.0
+        // If Model3 is active and has rainfall params, use dynamic intensity
+        // Map 0-300mm precipitation to 0.3-1.0 intensity range
+        if (tableData3 && rainfallParams) {
+          const normalized = rainfallParams.total_precip / 300; // 0-1 range
+          intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
+        }
+
+        enableRain(mapRef.current, intensity);
+        setIsRainActive(true);
+      } else {
+        disableRain(mapRef.current);
+        setIsRainActive(false);
       }
-
-      enableRain(mapRef.current, intensity);
-      setIsRainActive(true);
-    } else {
-      disableRain(mapRef.current);
-      setIsRainActive(false);
-    }
-  }, [tableData3, rainfallParams]);
+    },
+    [tableData3, rainfallParams]
+  );
 
   // Helper function to parse Node_ID and determine source and feature ID
   const parseNodeId = (
     nodeId: string
   ): { source: string | null; featureId: string | null } => {
-    if (nodeId.startsWith("ISD-")) {
+    if (nodeId.startsWith('ISD-')) {
       // Storm drain: ISD-* maps to storm_drains source with In_Name as promoteId
-      return { source: "storm_drains", featureId: nodeId };
-    } else if (nodeId.startsWith("I-")) {
+      return { source: 'storm_drains', featureId: nodeId };
+    } else if (nodeId.startsWith('I-')) {
       // Inlet: I-* maps to inlets source with In_Name as promoteId
-      return { source: "inlets", featureId: nodeId };
+      return { source: 'inlets', featureId: nodeId };
     }
     return { source: null, featureId: null };
   };
@@ -1198,22 +1202,22 @@ export default function SimulationPage() {
     // Parse node ID to get source and feature ID
     const { source, featureId } = parseNodeId(nodeId);
     if (!source || !featureId) {
-      toast.error("Unable to locate node on map");
+      toast.error('Unable to locate node on map');
       return;
     }
 
     // Find the node coordinates from our data
     let coordinates: [number, number] | null = null;
-    if (source === "inlets") {
+    if (source === 'inlets') {
       const inlet = inletsRef.current.find((i) => i.id === featureId);
       if (inlet) coordinates = inlet.coordinates;
-    } else if (source === "storm_drains") {
+    } else if (source === 'storm_drains') {
       const drain = drainsRef.current.find((d) => d.id === featureId);
       if (drain) coordinates = drain.coordinates;
     }
 
     if (!coordinates) {
-      toast.error("Unable to locate node coordinates");
+      toast.error('Unable to locate node coordinates');
       return;
     }
 
@@ -1228,11 +1232,11 @@ export default function SimulationPage() {
           yearToUse = nodeData.YR as YearOption;
           setSelectedYear(yearToUse);
         } else {
-          toast.error("Unable to determine year for simulation data");
+          toast.error('Unable to determine year for simulation data');
           return;
         }
       } else {
-        toast.error("Please select a year or generate simulation data first");
+        toast.error('Please select a year or generate simulation data first');
         return;
       }
     }
@@ -1240,13 +1244,13 @@ export default function SimulationPage() {
     // Step 1: Extract node data and all data from the appropriate table
     const activeTableData = tableData3 || tableData;
     if (!activeTableData) {
-      toast.error("No table data available");
+      toast.error('No table data available');
       return;
     }
 
     const nodeData = activeTableData.find((node) => node.Node_ID === nodeId);
     if (!nodeData) {
-      toast.error("Node data not found in table");
+      toast.error('Node data not found in table');
       return;
     }
 
@@ -1314,17 +1318,17 @@ export default function SimulationPage() {
 
   return (
     <>
-      <main className="relative min-h-screen flex flex-col bg-gray-900">
+      <main className="relative flex min-h-screen flex-col bg-gray-900">
         <div
-          className="w-full h-screen relative"
-          style={{ pointerEvents: isSimulationActive ? "auto" : "none" }}
+          className="relative h-screen w-full"
+          style={{ pointerEvents: isSimulationActive ? 'auto' : 'none' }}
         >
-          <div ref={mapContainerRef} className="w-full h-full" />
+          <div ref={mapContainerRef} className="h-full w-full" />
 
           {/* Grey overlay when simulation is not active */}
           {!isSimulationActive && (
-            <div className="absolute inset-0 bg-black/60 z-10 flex items-center justify-center">
-              <div className="text-white text-xl font-medium">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
+              <div className="text-xl font-medium text-white">
                 Enter Simulation Mode to activate map
               </div>
             </div>
@@ -1364,9 +1368,9 @@ export default function SimulationPage() {
           onPipeParamsChange={setPipeParams}
           rainfallParams={rainfallParams}
           onRainfallParamsChange={setRainfallParams}
-          showNodePanel={activePanel === "node"}
+          showNodePanel={activePanel === 'node'}
           onToggleNodePanel={handleToggleNodePanel}
-          showLinkPanel={activePanel === "link"}
+          showLinkPanel={activePanel === 'link'}
           onToggleLinkPanel={handleToggleLinkPanel}
           onRefreshReports={async () => {}}
           isRefreshingReports={false}
@@ -1403,42 +1407,50 @@ export default function SimulationPage() {
         {/* Vulnerability Data Table Overlay (Model 2) - Only render when NOT minimized */}
         {tableData && !isTableMinimized && (
           <div
-            className="absolute z-20 pointer-events-auto"
+            className="pointer-events-auto absolute z-20"
             style={{
               left: `${tablePosition.x}px`,
               top: `${tablePosition.y}px`,
             }}
           >
-            {isLoadingTable ? <Spinner /> : <VulnerabilityDataTable
-              data={tableData}
-              isMinimized={false}
-              onToggleMinimize={handleToggleTableMinimize}
-              position={tablePosition}
-              onPositionChange={setTablePosition}
-              onHighlightNodes={handleHighlightNodes}
-              onOpenNodeSimulation={handleOpenNodeSimulation}
-            />}
+            {isLoadingTable ? (
+              <Spinner />
+            ) : (
+              <VulnerabilityDataTable
+                data={tableData}
+                isMinimized={false}
+                onToggleMinimize={handleToggleTableMinimize}
+                position={tablePosition}
+                onPositionChange={setTablePosition}
+                onHighlightNodes={handleHighlightNodes}
+                onOpenNodeSimulation={handleOpenNodeSimulation}
+              />
+            )}
           </div>
         )}
 
         {/* Vulnerability Data Table Overlay (Model 3) - Only render when NOT minimized */}
         {tableData3 && !isTable3Minimized && (
           <div
-            className="absolute z-20 pointer-events-auto"
+            className="pointer-events-auto absolute z-20"
             style={{
               left: `${table3Position.x}px`,
               top: `${table3Position.y}px`,
             }}
           >
-            {isLoadingTable3 ? <Spinner /> : <VulnerabilityDataTable
-              data={tableData3}
-              isMinimized={false}
-              onToggleMinimize={handleToggleTable3Minimize}
-              position={table3Position}
-              onPositionChange={setTable3Position}
-              onHighlightNodes={handleHighlightNodes}
-              onOpenNodeSimulation={handleOpenNodeSimulation}
-            />}
+            {isLoadingTable3 ? (
+              <Spinner />
+            ) : (
+              <VulnerabilityDataTable
+                data={tableData3}
+                isMinimized={false}
+                onToggleMinimize={handleToggleTable3Minimize}
+                position={table3Position}
+                onPositionChange={setTable3Position}
+                onHighlightNodes={handleHighlightNodes}
+                onOpenNodeSimulation={handleOpenNodeSimulation}
+              />
+            )}
           </div>
         )}
 
@@ -1457,10 +1469,10 @@ export default function SimulationPage() {
           )}
 
         {/* Node Parameters Panel - Draggable */}
-        {activePanel === "node" && selectedComponentIds.length > 0 && (
+        {activePanel === 'node' && selectedComponentIds.length > 0 && (
           <div
             style={{
-              position: "fixed",
+              position: 'fixed',
               left: nodePanelPosition.x,
               top: nodePanelPosition.y,
               zIndex: 1000,
@@ -1480,10 +1492,10 @@ export default function SimulationPage() {
         )}
 
         {/* Link Parameters Panel - Draggable */}
-        {activePanel === "link" && selectedPipeIds.length > 0 && (
+        {activePanel === 'link' && selectedPipeIds.length > 0 && (
           <div
             style={{
-              position: "fixed",
+              position: 'fixed',
               left: linkPanelPosition.x,
               top: linkPanelPosition.y,
               zIndex: 1000,
