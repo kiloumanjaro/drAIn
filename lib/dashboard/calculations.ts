@@ -124,7 +124,7 @@ export function formatComponentType(
     inlets: 'Inlets',
     outlets: 'Outlets',
     storm_drains: 'Storm Drains',
-    man_pipes: 'Manhole Pipes',
+    man_pipes: 'Pipes',
   };
   return map[type] || 'Unknown';
 }

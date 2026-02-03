@@ -1,21 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import StatsCards from '../overview/StatsCards';
+import RepairTrendChart from '../overview/RepairTrendChart';
 import ZoneMap from './ZoneMap';
 import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
 import {
+  getOverviewMetrics,
+  getRepairTrendData,
   getIssuesPerZone,
   getComponentTypeData,
   getRepairTimeByComponent,
 } from '@/lib/dashboard/queries';
 import type {
+  OverviewMetrics,
+  RepairTrendData,
   ZoneIssueData,
   ComponentTypeData,
   RepairTimeByComponentData,
 } from '@/lib/dashboard/queries';
 
 export default function AnalyticsTab() {
+  const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
+  const [trendData, setTrendData] = useState<RepairTrendData[]>([]);
   const [zoneData, setZoneData] = useState<ZoneIssueData[]>([]);
   const [componentData, setComponentData] = useState<ComponentTypeData[]>([]);
   const [repairTimeData, setRepairTimeData] = useState<
@@ -28,11 +36,15 @@ export default function AnalyticsTab() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [zones, components, times] = await Promise.all([
+        const [metricsData, trendDataResult, zones, components, times] = await Promise.all([
+          getOverviewMetrics(),
+          getRepairTrendData(),
           getIssuesPerZone(),
           getComponentTypeData(),
           getRepairTimeByComponent(),
         ]);
+        setMetrics(metricsData);
+        setTrendData(trendDataResult);
         setZoneData(zones);
         setComponentData(components);
         setRepairTimeData(times);
@@ -57,6 +69,17 @@ export default function AnalyticsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Stats Cards */}
+      <StatsCards
+        fixedThisMonth={metrics?.fixedThisMonth ?? 0}
+        pendingIssues={metrics?.pendingIssues ?? 0}
+        averageRepairDays={metrics?.averageRepairDays ?? 0}
+        loading={loading}
+      />
+
+      {/* Repair Trend Chart */}
+      <RepairTrendChart data={trendData} loading={loading} />
+
       {/* Zone Map */}
       <ZoneMap data={zoneData} loading={loading} />
 

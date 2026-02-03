@@ -93,7 +93,7 @@ Detailed operational analytics visible to all
   - Inlets
   - Outlets
   - Storm Drains
-  - Manhole Pipes
+  - Pipes
 - Calculated: `AVG(last_cleaned_at - created_at)` grouped by component type
 
 **3. Most Common Component Type Problems**

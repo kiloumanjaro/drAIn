@@ -123,7 +123,7 @@ export default function ReportFilters({
       inlets: 'Inlets',
       outlets: 'Outlets',
       storm_drains: 'Storm Drains',
-      man_pipes: 'Manhole Pipes',
+      man_pipes: 'Pipes',
     };
 
     return {
@@ -260,7 +260,7 @@ export default function ReportFilters({
                 value="man_pipes"
                 className="data-[state=checked]:text-[#5a87e7] [&>span>svg]:text-[#5a87e7]"
               >
-                Manhole Pipes
+                Pipes
               </SelectItem>
             </SelectContent>
           </Select>

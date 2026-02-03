@@ -61,6 +61,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
         dragRotate: false,
         doubleClickZoom: false,
         touchZoomRotate: false,
+        attributionControl: false,
       });
 
       map.current.on('load', () => {
@@ -74,7 +75,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
           generateId: true,
         });
 
-        // Add fill layer with soft gradient heatmap effect
+        // Add fill layer with enhanced visibility for low-count zones
         map.current.addLayer({
           id: 'barangay-fill',
           type: 'fill',
@@ -85,45 +86,58 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
               ['linear'],
               ['coalesce', ['feature-state', 'issueCount'], 0],
               0,
-              'rgba(255, 255, 255, 0)',
-              2,
-              'rgba(219, 234, 254, 0.5)',
+              'rgba(240, 240, 240, 0.3)',
+              1,
+              'rgba(191, 219, 254, 0.7)',
+              3,
+              'rgba(147, 197, 253, 0.75)',
               5,
-              'rgba(191, 219, 254, 0.6)',
+              'rgba(96, 165, 250, 0.8)',
               10,
-              'rgba(96, 165, 250, 0.7)',
+              'rgba(251, 146, 60, 0.85)',
               15,
-              'rgba(249, 115, 22, 0.75)',
+              'rgba(249, 115, 22, 0.9)',
               20,
-              'rgba(220, 38, 38, 0.8)',
+              'rgba(220, 38, 38, 0.95)',
             ],
             'fill-opacity': [
-              'interpolate',
-              ['linear'],
-              ['coalesce', ['feature-state', 'issueCount'], 0],
-              0,
-              0.1,
-              5,
-              0.4,
-              10,
-              0.6,
-              15,
-              0.7,
-              20,
-              0.8,
+              'case',
+              ['==', ['feature-state', 'issueCount'], 0],
+              0.15,
+              ['>=', ['feature-state', 'issueCount'], 1],
+              0.85,
+              0.15,
             ],
           },
         });
 
-        // Add thin outline layer
+        // Add outline layer with emphasis on zones with issues
         map.current.addLayer({
           id: 'barangay-outline',
           type: 'line',
           source: 'barangay-source',
           paint: {
-            'line-color': 'rgba(100, 100, 100, 0.4)',
-            'line-width': 1,
-            'line-opacity': 0.5,
+            'line-color': [
+              'case',
+              ['>=', ['feature-state', 'issueCount'], 10],
+              'rgba(220, 38, 38, 0.9)',
+              ['>=', ['feature-state', 'issueCount'], 5],
+              'rgba(249, 115, 22, 0.8)',
+              ['>=', ['feature-state', 'issueCount'], 1],
+              'rgba(59, 130, 246, 0.7)',
+              'rgba(100, 100, 100, 0.3)',
+            ],
+            'line-width': [
+              'case',
+              ['>=', ['feature-state', 'issueCount'], 10],
+              3,
+              ['>=', ['feature-state', 'issueCount'], 5],
+              2.5,
+              ['>=', ['feature-state', 'issueCount'], 1],
+              2,
+              1,
+            ],
+            'line-opacity': 1,
           },
         });
 
@@ -215,7 +229,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
           ) : (
             <div
               ref={mapContainer}
-              className="h-[28rem] overflow-hidden rounded-lg border border-gray-300 md:h-[36rem]"
+              className="h-[28rem] overflow-hidden rounded-lg border md:h-[36rem]"
             />
           )}
         </div>

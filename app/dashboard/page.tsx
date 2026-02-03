@@ -2,16 +2,15 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Map, FileText, Clock, RefreshCw } from 'lucide-react';
+import { BarChart3, FileText, Clock, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 // Import tab components (will create these)
-import OverviewTab from '@/components/dashboard/overview/OverviewTab';
 import AnalyticsTab from '@/components/dashboard/analytics/AnalyticsTab';
 import ReportsTab from '@/components/dashboard/reports/ReportsTab';
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('analytics');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshTimerRef = React.useRef<number | null>(null);
@@ -98,16 +97,12 @@ export default function DashboardPage() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-3 rounded-t-xl border-b border-blue-200 bg-blue-50">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span>Overview</span>
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 rounded-t-xl border-b border-blue-200 bg-blue-50">
               <TabsTrigger
                 value="analytics"
                 className="flex items-center gap-2"
               >
-                <Map className="h-4 w-4" />
+                <BarChart3 className="h-4 w-4" />
                 <span>Analytics</span>
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2">
@@ -118,9 +113,6 @@ export default function DashboardPage() {
 
             {/* Tab Content */}
             <div className="p-6">
-              <TabsContent value="overview" className="m-0">
-                <OverviewTab />
-              </TabsContent>
               <TabsContent value="analytics" className="m-0">
                 <AnalyticsTab />
               </TabsContent>

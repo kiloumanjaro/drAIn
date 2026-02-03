@@ -60,8 +60,15 @@ export default function PriorityBadge({
   const IconComponent = config.icon;
 
   return (
-    <button
+    <div
       onClick={() => onClick?.(priority)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick?.(priority);
+        }
+      }}
       className={`inline-flex cursor-pointer items-center rounded-md border font-semibold transition-opacity hover:opacity-80 ${sizeClasses[size]} ${config.bgGradient}`}
       style={{
         color: config.textColor,
@@ -70,6 +77,6 @@ export default function PriorityBadge({
     >
       <IconComponent className={iconSizes[size]} />
       {config.label}
-    </button>
+    </div>
   );
 }

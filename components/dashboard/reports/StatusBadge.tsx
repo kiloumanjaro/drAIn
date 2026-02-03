@@ -36,8 +36,15 @@ export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
   const IconComponent = config.icon;
 
   return (
-    <button
+    <div
       onClick={() => onClick?.(status)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick?.(status);
+        }
+      }}
       className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer"
       style={{
         backgroundColor: config.bgColor,
@@ -47,6 +54,6 @@ export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
     >
       <IconComponent className="h-3.5 w-3.5" />
       {config.label}
-    </button>
+    </div>
   );
 }

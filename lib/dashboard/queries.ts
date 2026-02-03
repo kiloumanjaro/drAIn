@@ -25,6 +25,7 @@ export interface ComponentTypeData {
 export interface RepairTimeByComponentData {
   type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
   averageDays: number;
+  resolvedCount?: number;
 }
 
 export interface TeamPerformanceData {
@@ -410,6 +411,7 @@ export async function getRepairTimeByComponent(): Promise<
     return Array.from(componentMap.entries()).map(([type, data]) => ({
       type: type as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes',
       averageDays: Math.round((data.totalDays / data.count) * 10) / 10,
+      resolvedCount: data.count,
     }));
   } catch (error) {
     console.error('Error fetching repair time by component:', error);
