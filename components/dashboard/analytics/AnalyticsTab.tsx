@@ -1,20 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import StatsCards from './StatsCards';
 import RepairTrendChart from './RepairTrendChart';
 import ZoneMap from './ZoneMap';
 import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
 import {
-  getOverviewMetrics,
   getRepairTrendData,
   getIssuesPerZone,
   getComponentTypeData,
   getRepairTimeByComponent,
 } from '@/lib/dashboard/queries';
 import type {
-  OverviewMetrics,
   RepairTrendData,
   ZoneIssueData,
   ComponentTypeData,
@@ -29,7 +26,6 @@ import {
 } from '@/components/ui/card';
 
 export default function AnalyticsTab() {
-  const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
   const [trendData, setTrendData] = useState<RepairTrendData[]>([]);
   const [zoneData, setZoneData] = useState<ZoneIssueData[]>([]);
   const [componentData, setComponentData] = useState<ComponentTypeData[]>([]);
@@ -43,15 +39,13 @@ export default function AnalyticsTab() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [metricsData, trendDataResult, zones, components, times] =
+        const [trendDataResult, zones, components, times] =
           await Promise.all([
-            getOverviewMetrics(),
             getRepairTrendData(),
             getIssuesPerZone(),
             getComponentTypeData(),
             getRepairTimeByComponent(),
           ]);
-        setMetrics(metricsData);
         setTrendData(trendDataResult);
         setZoneData(zones);
         setComponentData(components);
@@ -77,25 +71,6 @@ export default function AnalyticsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div>
-        <h2 className="mb-1 text-xl font-semibold text-gray-900">
-          System Analytics & Overview
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Real-time monitoring and analysis of the drainage system
-          infrastructure.
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <StatsCards
-        fixedThisMonth={metrics?.fixedThisMonth ?? 0}
-        pendingIssues={metrics?.pendingIssues ?? 0}
-        averageRepairDays={metrics?.averageRepairDays ?? 0}
-        loading={loading}
-      />
-
       {/* Zone Map */}
       <ZoneMap data={zoneData} loading={loading} />
 

@@ -87,19 +87,9 @@ export default function ReportsTab() {
         onStatusChange={setStatus}
         onComponentTypeChange={setComponentType}
         onClear={handleClear}
+        filteredCount={sortedReports.length}
+        totalCount={reports.length}
       />
-
-      {/* Results Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-700">
-          Showing{' '}
-          <span className="font-bold text-gray-900">
-            {sortedReports.length}
-          </span>{' '}
-          of <span className="font-bold text-gray-900">{reports.length}</span>{' '}
-          reports
-        </p>
-      </div>
 
       {/* Loading State */}
       {loading ? (

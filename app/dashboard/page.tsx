@@ -1,31 +1,61 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from 'react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs-custom';
 import { BarChart3, FileText, Clock, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 // Import tab components (will create these)
 import AnalyticsTab from '@/components/dashboard/analytics/AnalyticsTab';
 import ReportsTab from '@/components/dashboard/reports/ReportsTab';
+import StatsCards from '@/components/dashboard/analytics/StatsCards';
+import { getOverviewMetrics } from '@/lib/dashboard/queries';
+import type { OverviewMetrics } from '@/lib/dashboard/queries';
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('analytics');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
   const refreshTimerRef = React.useRef<number | null>(null);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    // update timestamp (replace with real fetch if available)
-    setLastUpdated(new Date());
-    // simulate a short refresh animation / async op
-    refreshTimerRef.current = window.setTimeout(() => {
-      setIsRefreshing(false);
-      refreshTimerRef.current = null;
-    }, 800);
+    try {
+      const data = await getOverviewMetrics();
+      setMetrics(data);
+    } catch (err) {
+      console.error('Error refreshing metrics:', err);
+    } finally {
+      setLastUpdated(new Date());
+      refreshTimerRef.current = window.setTimeout(() => {
+        setIsRefreshing(false);
+        refreshTimerRef.current = null;
+      }, 800);
+    }
   };
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const data = await getOverviewMetrics();
+        setMetrics(data);
+      } catch (err) {
+        console.error('Error fetching metrics:', err);
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
+
+    fetchMetrics();
+  }, []);
 
   React.useEffect(() => {
     return () => {
@@ -76,37 +106,60 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="overflow-hidden border border-[#dfdfdf] bg-[#fcfcfc]">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2 rounded-t-xl border-b border-blue-200 bg-blue-50">
-              <TabsTrigger
-                value="analytics"
-                className="flex items-center gap-2"
-              >
-                <BarChart3 className="h-4 w-4" />
-                <span>Analytics</span>
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span>All Reports</span>
-              </TabsTrigger>
-            </TabsList>
+        <div className="border-x border-[#dfdfdf] bg-[#fcfcfc] pt-6">
+          {/* Header Section */}
+          <div className="space-y-6 px-8">
+            <h2 className="mb-1 text-xl font-semibold text-gray-900">
+              System Analytics & Overview
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Real-time monitoring and analysis of the drainage system
+              infrastructure.
+            </p>
+            {/* Stats Cards */}
+            <StatsCards
+              fixedThisMonth={metrics?.fixedThisMonth ?? 0}
+              pendingIssues={metrics?.pendingIssues ?? 0}
+              averageRepairDays={metrics?.averageRepairDays ?? 0}
+              loading={metricsLoading}
+            />
+          </div>
 
-            {/* Tab Content */}
-            <div className="px-10 py-5">
-              <TabsContent value="analytics" className="m-0">
-                <AnalyticsTab />
-              </TabsContent>
-              <TabsContent value="reports" className="m-0">
-                <ReportsTab />
-              </TabsContent>
-            </div>
-          </Tabs>
+          {/* Tabs */}
+          <div className="mt-5 overflow-hidden">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList>
+                <TabsTrigger
+                  value="analytics"
+                  className="flex items-center gap-2"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Analytics</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reports"
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>All Reports</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Tab Content */}
+              <div className="border-y border-[#dfdfdf] bg-[#fcfcfc] px-10 py-5">
+                <TabsContent value="analytics" className="m-0">
+                  <AnalyticsTab />
+                </TabsContent>
+                <TabsContent value="reports" className="m-0">
+                  <ReportsTab />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
         </div>
       </div>
     </div>

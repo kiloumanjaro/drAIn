@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
-import { X, AlertTriangle, Clock, Settings2 } from 'lucide-react';
+import { X, AlertTriangle, Clock, Settings2, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 interface ReportFiltersProps {
@@ -17,6 +17,8 @@ interface ReportFiltersProps {
   onStatusChange: (value: string) => void;
   onComponentTypeChange: (value: string) => void;
   onClear: () => void;
+  filteredCount?: number;
+  totalCount?: number;
 }
 
 export default function ReportFilters({
@@ -27,6 +29,8 @@ export default function ReportFilters({
   onStatusChange,
   onComponentTypeChange,
   onClear,
+  filteredCount = 0,
+  totalCount = 0,
 }: ReportFiltersProps) {
   const [_openDropdown, setOpenDropdown] = useState<string | null>(null);
 
@@ -266,16 +270,32 @@ export default function ReportFilters({
           </Select>
         </div>
 
-        {/* Clear Button */}
-        {hasFilters && (
-          <button
-            onClick={onClear}
-            className="ml-auto flex h-9 w-auto min-w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            <X className="h-3.5 w-3.5" style={{ color: '#5a87e7' }} />
-            <span>Clear All</span>
-          </button>
-        )}
+        {/* Count and Clear Button Container */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* Report Count */}
+          {totalCount > 0 && (
+            <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-600">
+              <FileText className="h-4 w-4" style={{ color: '#5a87e7' }} />
+              <span>
+                <span className="font-semibold text-gray-700">
+                  {filteredCount}
+                </span>
+                <span className="text-gray-500">/{totalCount}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Clear Button */}
+          {hasFilters && (
+            <button
+              onClick={onClear}
+              className="flex h-9 w-auto min-w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <X className="h-3.5 w-3.5" style={{ color: '#5a87e7' }} />
+              <span>Clear All</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
