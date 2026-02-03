@@ -447,15 +447,20 @@ export async function getAllReports(): Promise<ReportWithMetadata[]> {
     if (!reports) return [];
 
     // Transform database records to match Report interface
-    // Map created_at to date field
+    // Map created_at to date field and convert image paths to public URLs
     return reports.map(
-      (report: any) =>
-        ({
+      (report: any) => {
+        // Get public URL for image if it exists
+        const { data: img } = report.image 
+          ? client.storage.from('ReportImage').getPublicUrl(report.image)
+          : { data: { publicUrl: '' } };
+
+        return {
           id: report.id,
           date: report.created_at || new Date().toISOString(),
           category: report.category || 'Uncategorized',
           description: report.description || 'No description',
-          image: report.image || '',
+          image: img?.publicUrl || '',
           reporterName: report.reporter_name || 'Anonymous',
           status: report.status || 'pending',
           componentId: report.component_id || '',
@@ -467,7 +472,8 @@ export async function getAllReports(): Promise<ReportWithMetadata[]> {
           address: report.address || 'Unknown',
           priority: report.priority || 'low',
           zone: report.zone,
-        }) as ReportWithMetadata
+        } as ReportWithMetadata;
+      }
     );
   } catch (error) {
     console.error('Error fetching all reports:', error);

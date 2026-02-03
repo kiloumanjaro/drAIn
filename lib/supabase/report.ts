@@ -28,7 +28,8 @@ export const uploadReport = async (
   long: number,
   lat: number,
   userId: string | null,
-  reporterName: string
+  reporterName: string,
+  priority: 'low' | 'medium' | 'high' | 'critical' = 'low'
 ) => {
   try {
     const { error } = await client.storage
@@ -56,6 +57,7 @@ export const uploadReport = async (
         address: null,
         geocoded_status: 'pending',
         user_id: userId ?? null,
+        priority: priority,
       },
     ]);
 
