@@ -37,18 +37,18 @@ export default function ReportFilters({
   const getPriorityDisplay = () => {
     const iconColor = '#5a87e7';
     const icon = (
-      <AlertTriangle className="h-4 w-4" style={{ color: iconColor }} />
+      <AlertTriangle className="h-3.5 w-3.5" style={{ color: iconColor }} />
     );
     if (priority === 'all')
-      return { 
-        icon, 
+      return {
+        icon,
         text: (
           <span>
             <span className="font-semibold">Priority</span> is{' '}
             <span className="font-semibold">All</span>
           </span>
-        ), 
-        isSelected: true 
+        ),
+        isSelected: true,
       };
 
     const priorityMap: Record<string, string> = {
@@ -74,16 +74,16 @@ export default function ReportFilters({
   const getStatusDisplay = () => {
     const iconColor = '#5a87e7';
     const icon = <Clock className="h-4 w-4" style={{ color: iconColor }} />;
-    if (status === 'all') 
-      return { 
-        icon, 
+    if (status === 'all')
+      return {
+        icon,
         text: (
           <span>
             <span className="font-semibold">Status</span> is{' '}
             <span className="font-semibold">All</span>
           </span>
-        ), 
-        isSelected: true 
+        ),
+        isSelected: true,
       };
 
     const statusMap: Record<string, string> = {
@@ -108,15 +108,15 @@ export default function ReportFilters({
     const iconColor = '#5a87e7';
     const icon = <Settings2 className="h-4 w-4" style={{ color: iconColor }} />;
     if (componentType === 'all')
-      return { 
-        icon, 
+      return {
+        icon,
         text: (
           <span>
             <span className="font-semibold">Type</span> is{' '}
             <span className="font-semibold">All</span>
           </span>
-        ), 
-        isSelected: true 
+        ),
+        isSelected: true,
       };
 
     const typeMap: Record<string, string> = {
@@ -148,9 +148,7 @@ export default function ReportFilters({
             onValueChange={onPriorityChange}
             onOpenChange={(open) => setOpenDropdown(open ? 'priority' : null)}
           >
-            <SelectTrigger
-              className="w-auto min-w-fit gap-2 px-4 py-2 text-sm hover:bg-gray-50 border-gray-300 bg-white [&>svg:last-child]:hidden"
-            >
+            <SelectTrigger className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden">
               <div className="flex items-center gap-2">
                 {getPriorityDisplay().icon}
                 <span className="text-gray-700">
@@ -195,9 +193,7 @@ export default function ReportFilters({
             onValueChange={onStatusChange}
             onOpenChange={(open) => setOpenDropdown(open ? 'status' : null)}
           >
-            <SelectTrigger
-              className="w-auto min-w-fit gap-2 px-4 py-2 text-sm hover:bg-gray-50 border-gray-300 bg-white [&>svg:last-child]:hidden"
-            >
+            <SelectTrigger className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden">
               <div className="flex items-center gap-2">
                 {getStatusDisplay().icon}
                 <span className="text-gray-700">{getStatusDisplay().text}</span>
@@ -234,9 +230,7 @@ export default function ReportFilters({
             onValueChange={onComponentTypeChange}
             onOpenChange={(open) => setOpenDropdown(open ? 'type' : null)}
           >
-            <SelectTrigger
-              className="w-auto min-w-fit gap-2 px-4 py-2 text-sm hover:bg-gray-50 border-gray-300 bg-white [&>svg:last-child]:hidden"
-            >
+            <SelectTrigger className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden">
               <div className="flex items-center gap-2">
                 {getTypeDisplay().icon}
                 <span className="text-gray-700">{getTypeDisplay().text}</span>
@@ -276,9 +270,9 @@ export default function ReportFilters({
         {hasFilters && (
           <button
             onClick={onClear}
-            className="ml-auto flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+            className="ml-auto flex h-9 w-auto min-w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
           >
-            <X className="h-4 w-4" style={{ color: '#5a87e7' }} />
+            <X className="h-3.5 w-3.5" style={{ color: '#5a87e7' }} />
             <span>Clear All</span>
           </button>
         )}

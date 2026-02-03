@@ -38,7 +38,7 @@ export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
   return (
     <button
       onClick={() => onClick?.(status)}
-      className="inline-flex items-center gap-1.5 rounded-md border px-2 text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer"
+      className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer"
       style={{
         backgroundColor: config.bgColor,
         borderColor: config.borderColor,

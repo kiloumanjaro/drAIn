@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import PriorityBadge from './PriorityBadge';
 import StatusBadge from './StatusBadge';
 import ComponentTypeBadge from './ComponentTypeBadge';
@@ -12,11 +14,20 @@ interface ReportCardProps {
   report: ReportWithMetadata;
   onPriorityFilter?: (priority: 'low' | 'medium' | 'high' | 'critical') => void;
   onStatusFilter?: (status: 'pending' | 'in-progress' | 'resolved') => void;
-  onComponentTypeFilter?: (componentType: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes') => void;
+  onComponentTypeFilter?: (
+    componentType: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
+  ) => void;
 }
 
-export default function ReportCard({ report, onPriorityFilter, onStatusFilter, onComponentTypeFilter }: ReportCardProps) {
+export default function ReportCard({
+  report,
+  onPriorityFilter,
+  onStatusFilter,
+  onComponentTypeFilter,
+}: ReportCardProps) {
+  const router = useRouter();
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  const [expandedDescription, setExpandedDescription] = useState(false);
 
   // Function to shorten address by removing province and country
   const shortenAddress = (address: string): string => {
@@ -44,7 +55,8 @@ export default function ReportCard({ report, onPriorityFilter, onStatusFilter, o
 
   const images = report.image ? [report.image] : [];
 
-  const handleCopyId = async () => {
+  const handleCopyId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(report.id);
       setShowCopyTooltip(true);
@@ -54,16 +66,30 @@ export default function ReportCard({ report, onPriorityFilter, onStatusFilter, o
     }
   };
 
+  const handleCardClick = () => {
+    if (report.componentId && report.category) {
+      router.push(
+        `/map?component=${report.componentId}&type=${report.category}`
+      );
+    } else {
+      router.push(`/map?reportId=${report.id}`);
+    }
+  };
+
   return (
-    <div className="overflow-hidden rounded-lg border border-[#ced1cd] bg-white transition-shadow hover:shadow-lg">
+    <button
+      onClick={handleCardClick}
+      className="group flex h-full max-h-100 w-full flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all hover:bg-[#fafafa]"
+    >
       {/* Image Gallery */}
       <div className="relative h-48 w-full overflow-hidden bg-gray-100">
         {images.length > 0 ? (
-          <img
+          <Image
             src={images[0]}
             alt={`Report ${report.id}`}
-            className="h-full w-full cursor-pointer object-cover"
-            onClick={() => window.open(images[0], '_blank')}
+            fill
+            className="object-cover transition-all group-hover:brightness-95"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-gray-400">
@@ -72,22 +98,44 @@ export default function ReportCard({ report, onPriorityFilter, onStatusFilter, o
         )}
       </div>
 
-      <div>
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Content */}
-        <div className="space-y-3 p-4">
+        <div className="max-h-38 space-y-3 overflow-y-auto p-4">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
-            <PriorityBadge priority={report.priority} size="sm" onClick={onPriorityFilter} />
-            <StatusBadge status={report.status as 'pending' | 'in-progress' | 'resolved'} onClick={onStatusFilter} />
-            <ComponentTypeBadge componentType={componentType as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'} onClick={onComponentTypeFilter} />
+            <div onClick={(e) => e.stopPropagation()}>
+              <PriorityBadge
+                priority={report.priority}
+                size="sm"
+                onClick={onPriorityFilter}
+              />
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <StatusBadge
+                status={report.status as 'pending' | 'in-progress' | 'resolved'}
+                onClick={onStatusFilter}
+              />
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <ComponentTypeBadge
+                componentType={
+                  componentType as
+                    | 'inlets'
+                    | 'outlets'
+                    | 'storm_drains'
+                    | 'man_pipes'
+                }
+                onClick={onComponentTypeFilter}
+              />
+            </div>
           </div>
 
           {/* Location */}
           <div className="flex items-center gap-2">
             <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" />
-            <p className="text-xs text-gray-600">
+            <p className="truncate text-xs text-gray-600">
               Location{' '}
-              <span className="font-semibold text-gray-900">
+              <span className="truncate font-semibold text-gray-900">
                 {shortenAddress(report.address)}
               </span>
             </p>
@@ -110,39 +158,48 @@ export default function ReportCard({ report, onPriorityFilter, onStatusFilter, o
           {report.description && (
             <div className="flex items-center gap-2">
               <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" />
-              <p className="text-xs text-gray-600">{report.description}</p>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedDescription(!expandedDescription);
+                }}
+                className={`cursor-pointer text-left text-xs text-gray-600 transition-all ${
+                  expandedDescription ? '' : 'line-clamp-1'
+                }`}
+              >
+                {report.description}
+              </div>
             </div>
           )}
         </div>
+      </div>
+      {/* Date and Copy ID */}
+      <div className="flex items-center justify-between border-t border-gray-200 px-4 py-1">
+        <p className="text-xs text-gray-600">
+          Reported on{' '}
+          <span className="font-medium">{formatDateShort(report.date)}</span>
+        </p>
 
-        {/* Date and Copy ID */}
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2">
-          <p className="text-xs text-gray-600">
-            Reported on{' '}
-            <span className="font-medium">{formatDateShort(report.date)}</span>
-          </p>
+        {/* Copy ID Button with Tooltip */}
+        <div className="relative">
+          <button
+            onClick={handleCopyId}
+            onMouseEnter={() => !showCopyTooltip && setShowCopyTooltip(false)}
+            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
+            title="Copy ID"
+          >
+            <Copy className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
+          </button>
 
-          {/* Copy ID Button with Tooltip */}
-          <div className="relative">
-            <button
-              onClick={handleCopyId}
-              onMouseEnter={() => !showCopyTooltip && setShowCopyTooltip(false)}
-              className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
-              title="Copy ID"
-            >
-              <Copy className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
-            </button>
-
-            {/* Tooltip */}
-            {showCopyTooltip && (
-              <div className="absolute right-0 bottom-full z-10 mb-1 rounded bg-gray-800 px-2 py-1 text-xs whitespace-nowrap text-white">
-                ID Copied!
-                <div className="absolute top-full right-2 h-0 w-0 border-t-2 border-r-2 border-l-2 border-transparent border-t-gray-800"></div>
-              </div>
-            )}
-          </div>
+          {/* Tooltip */}
+          {showCopyTooltip && (
+            <div className="absolute right-0 bottom-full z-10 mb-1 rounded bg-gray-800 px-2 py-1 text-xs whitespace-nowrap text-white">
+              ID Copied!
+              <div className="absolute top-full right-2 h-0 w-0 border-t-2 border-r-2 border-l-2 border-transparent border-t-gray-800"></div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

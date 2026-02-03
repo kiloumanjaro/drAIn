@@ -142,6 +142,55 @@ function MapPageContent() {
   const [controlPanelDataset, setControlPanelDataset] =
     useState<DatasetType>('inlets');
 
+  // Handle URL parameters for component selection
+  useEffect(() => {
+    const componentId = searchParams.get('component');
+    const componentType = searchParams.get('type');
+    
+    if (!componentId || !componentType) return;
+    if (!mapRef.current) return;
+
+    // Wait a bit for data to load
+    const timer = setTimeout(() => {
+      switch (componentType) {
+        case 'inlets': {
+          const inlet = inlets.find((i) => i.id === componentId);
+          if (inlet) {
+            handleSelectInlet(inlet);
+            handleTabChange('admin');
+          }
+          break;
+        }
+        case 'outlets': {
+          const outlet = outlets.find((o) => o.id === componentId);
+          if (outlet) {
+            handleSelectOutlet(outlet);
+            handleTabChange('admin');
+          }
+          break;
+        }
+        case 'man_pipes': {
+          const pipe = pipes.find((p) => p.id === componentId);
+          if (pipe) {
+            handleSelectPipe(pipe);
+            handleTabChange('admin');
+          }
+          break;
+        }
+        case 'storm_drains': {
+          const drain = drains.find((d) => d.id === componentId);
+          if (drain) {
+            handleSelectDrain(drain);
+            handleTabChange('admin');
+          }
+          break;
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchParams, inlets, outlets, pipes, drains]);
+
   // Function to clear all selections
   const clearSelections = () => {
     setSelectedInlet(null);
