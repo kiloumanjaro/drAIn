@@ -1,25 +1,22 @@
 'use client';
 
 import PriorityBadge from './PriorityBadge';
-import {
-  formatDateShort,
-  formatComponentType,
-  getStatusBadgeStyle,
-} from '@/lib/dashboard/calculations';
+import StatusBadge from './StatusBadge';
+import ComponentTypeBadge from './ComponentTypeBadge';
+import { formatDateShort } from '@/lib/dashboard/calculations';
 import type { ReportWithMetadata } from '@/lib/dashboard/queries';
 import { MapPin, MapPinHouse, FileText, Copy } from 'lucide-react';
 import { useState } from 'react';
 
 interface ReportCardProps {
   report: ReportWithMetadata;
+  onPriorityFilter?: (priority: 'low' | 'medium' | 'high' | 'critical') => void;
+  onStatusFilter?: (status: 'pending' | 'in-progress' | 'resolved') => void;
+  onComponentTypeFilter?: (componentType: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes') => void;
 }
 
-export default function ReportCard({ report }: ReportCardProps) {
+export default function ReportCard({ report, onPriorityFilter, onStatusFilter, onComponentTypeFilter }: ReportCardProps) {
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
-
-  const statusStyle = getStatusBadgeStyle(
-    report.status as 'pending' | 'in-progress' | 'resolved'
-  );
 
   // Function to shorten address by removing province and country
   const shortenAddress = (address: string): string => {
@@ -42,16 +39,8 @@ export default function ReportCard({ report }: ReportCardProps) {
     return filteredParts.slice(0, 2).join(', ');
   };
 
-  // Determine component type from component_id
-  const componentType = (() => {
-    if (!report.componentId) return 'inlets';
-    const lower = report.componentId.toLowerCase();
-    if (lower.includes('inlet')) return 'inlets';
-    if (lower.includes('outlet')) return 'outlets';
-    if (lower.includes('drain')) return 'storm_drains';
-    if (lower.includes('pipe')) return 'man_pipes';
-    return 'inlets';
-  })();
+  // Get component type from report category
+  const componentType = report.category || 'inlets';
 
   const images = report.image ? [report.image] : [];
 
@@ -73,7 +62,7 @@ export default function ReportCard({ report }: ReportCardProps) {
           <img
             src={images[0]}
             alt={`Report ${report.id}`}
-            className="h-full w-full cursor-pointer object-cover transition-transform hover:scale-105"
+            className="h-full w-full cursor-pointer object-cover"
             onClick={() => window.open(images[0], '_blank')}
           />
         ) : (
@@ -88,15 +77,9 @@ export default function ReportCard({ report }: ReportCardProps) {
         <div className="space-y-3 p-4">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
-            <PriorityBadge priority={report.priority} size="sm" />
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${statusStyle.bgColor} ${statusStyle.textColor}`}
-            >
-              {statusStyle.label}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800">
-              {formatComponentType(componentType as any)}
-            </span>
+            <PriorityBadge priority={report.priority} size="sm" onClick={onPriorityFilter} />
+            <StatusBadge status={report.status as 'pending' | 'in-progress' | 'resolved'} onClick={onStatusFilter} />
+            <ComponentTypeBadge componentType={componentType as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'} onClick={onComponentTypeFilter} />
           </div>
 
           {/* Location */}

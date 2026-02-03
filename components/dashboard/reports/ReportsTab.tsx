@@ -127,7 +127,13 @@ export default function ReportsTab() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sortedReports.map((report) => (
-            <ReportCard key={report.id} report={report} />
+            <ReportCard 
+              key={report.id} 
+              report={report}
+              onPriorityFilter={setPriority}
+              onStatusFilter={setStatus}
+              onComponentTypeFilter={setComponentType}
+            />
           ))}
         </div>
       )}
