@@ -5,6 +5,9 @@ export interface OverviewMetrics {
   fixedThisMonth: number;
   pendingIssues: number;
   averageRepairDays: number;
+  fixedTrend?: number[];
+  pendingTrend?: number[];
+  repairTimeTrend?: number[];
 }
 
 export interface RepairTrendData {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import StatsCards from '../overview/StatsCards';
-import RepairTrendChart from '../overview/RepairTrendChart';
+import StatsCards from './StatsCards';
+import RepairTrendChart from './RepairTrendChart';
 import ZoneMap from './ZoneMap';
 import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
@@ -20,6 +20,13 @@ import type {
   ComponentTypeData,
   RepairTimeByComponentData,
 } from '@/lib/dashboard/queries';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export default function AnalyticsTab() {
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
@@ -36,13 +43,14 @@ export default function AnalyticsTab() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [metricsData, trendDataResult, zones, components, times] = await Promise.all([
-          getOverviewMetrics(),
-          getRepairTrendData(),
-          getIssuesPerZone(),
-          getComponentTypeData(),
-          getRepairTimeByComponent(),
-        ]);
+        const [metricsData, trendDataResult, zones, components, times] =
+          await Promise.all([
+            getOverviewMetrics(),
+            getRepairTrendData(),
+            getIssuesPerZone(),
+            getComponentTypeData(),
+            getRepairTimeByComponent(),
+          ]);
         setMetrics(metricsData);
         setTrendData(trendDataResult);
         setZoneData(zones);
@@ -69,6 +77,17 @@ export default function AnalyticsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Header Section */}
+      <div>
+        <h2 className="mb-1 text-xl font-semibold text-gray-900">
+          System Analytics & Overview
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          Real-time monitoring and analysis of the drainage system
+          infrastructure.
+        </p>
+      </div>
+
       {/* Stats Cards */}
       <StatsCards
         fixedThisMonth={metrics?.fixedThisMonth ?? 0}
@@ -77,11 +96,11 @@ export default function AnalyticsTab() {
         loading={loading}
       />
 
-      {/* Repair Trend Chart */}
-      <RepairTrendChart data={trendData} loading={loading} />
-
       {/* Zone Map */}
       <ZoneMap data={zoneData} loading={loading} />
+
+      {/* Repair Trend Chart */}
+      <RepairTrendChart data={trendData} loading={loading} />
 
       {/* Component Type Chart (left - 2/3) and Repair Time Cards (right - 1/3) */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

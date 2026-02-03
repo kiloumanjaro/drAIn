@@ -44,26 +44,12 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#e8e8e8]/50">
-      <div className="mx-auto w-[1280px] px-4 py-8 md:px-6">
+    <div className="min-h-screen bg-[#e8e8e8]/50 px-5">
+      <div className="mx-auto py-5">
         {/* Header */}
-        <div className="mb-6 rounded-xl border border-[#ced1cd] bg-white px-6 py-6 shadow-sm">
+        <div className="rounded-t-xl border border-[#dfdfdf] bg-[#fcfcfc] px-6 py-2">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center rounded-lg bg-blue-50 p-2 text-blue-600 shadow-inner">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-
-              <div>
-                <h1 className="text-foreground text-2xl leading-tight font-semibold md:text-3xl">
-                  Public Dashboard
-                </h1>
-                <p className="text-foreground/70 mt-1 max-w-lg text-sm">
-                  Real-time transparency and analytics for the drainage system —
-                  publicly available to build community trust.
-                </p>
-              </div>
-            </div>
+            <p className="text-foreground/70 font-semibold">Public Dashboard</p>
 
             <div className="flex items-center gap-3">
               <div className="hidden items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-600 sm:flex">
@@ -91,7 +77,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Tabs */}
-        <div className="overflow-hidden rounded-xl border border-[#ced1cd] bg-white">
+        <div className="overflow-hidden border border-[#dfdfdf] bg-[#fcfcfc]">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
@@ -112,7 +98,7 @@ export default function DashboardPage() {
             </TabsList>
 
             {/* Tab Content */}
-            <div className="p-6">
+            <div className="px-10 py-5">
               <TabsContent value="analytics" className="m-0">
                 <AnalyticsTab />
               </TabsContent>

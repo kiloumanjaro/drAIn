@@ -77,9 +77,16 @@ export default function ReportCard({
   };
 
   return (
-    <button
+    <div
       onClick={handleCardClick}
-      className="group flex h-full max-h-100 w-full flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all hover:bg-[#fafafa]"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleCardClick();
+        }
+      }}
+      className="group flex h-full max-h-100 w-full flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all cursor-pointer hover:bg-[#fafafa]"
     >
       {/* Image Gallery */}
       <div className="relative h-48 w-full overflow-hidden bg-gray-100">
@@ -200,6 +207,6 @@ export default function ReportCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
