@@ -28,7 +28,7 @@ export default function ReportFilters({
   onComponentTypeChange,
   onClear,
 }: ReportFiltersProps) {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [_openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const hasFilters =
     priority !== 'all' || status !== 'all' || componentType !== 'all';

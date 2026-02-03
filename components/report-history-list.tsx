@@ -8,13 +8,7 @@ import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SpinnerEmpty } from '@/components/spinner-empty';
 import { format, subWeeks, subMonths, startOfDay } from 'date-fns';
 import type { DateFilterValue } from './date-sort';
-import {
-  RefreshCw,
-  MapPin,
-  History,
-  ArrowLeftRight,
-  ArrowRight,
-} from 'lucide-react';
+import { RefreshCw, MapPin, History, ArrowRight } from 'lucide-react';
 import type {
   Inlet,
   Outlet,

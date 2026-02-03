@@ -1,7 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDays, formatComponentType } from '@/lib/dashboard/calculations';
 import type { RepairTimeByComponentData } from '@/lib/dashboard/queries';
-import { Clock } from 'lucide-react';
 
 interface RepairTimeCardsProps {
   data: RepairTimeByComponentData[];

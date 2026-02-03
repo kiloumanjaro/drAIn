@@ -77,7 +77,7 @@ console.log(
   `🏘️  Found ${barangays.length} barangays (excluding city boundary)`
 );
 
-barangays.forEach((feature, index) => {
+barangays.forEach((feature, _index) => {
   const name = feature.properties.name.replace(/'/g, "''"); // Escape single quotes
   const popCount = feature.properties['population-count'] || null;
   const popDensity = feature.properties['population-density'] || null;

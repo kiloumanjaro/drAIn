@@ -141,7 +141,7 @@ async function recordMaintenance(
     };
   }
 
-  const payload: any = {
+  const payload: Record<string, unknown> = {
     [idColumn]: assetId,
     agency_id: profile.agency_id,
     represented_by: user.id,

@@ -20,7 +20,6 @@ import {
   History,
   ChevronDown,
   Lock,
-  Camera,
   AlertCircle,
   CheckCircle2,
   X,
@@ -124,7 +123,7 @@ export default function Maintenance({
   const [_reports, setReports] = useState<Report[]>([]);
 
   // Add Image / Report Submission State
-  const { user, profile: authProfile } = useAuth();
+  const { user: _user, profile: _authProfile } = useAuth();
   const [showIncludePhotoDialog, setShowIncludePhotoDialog] = useState(false);
   const [showFullPageUpload, setShowFullPageUpload] = useState(false);
   const [maintenanceImage, setMaintenanceImage] = useState<File | null>(null);
@@ -369,10 +368,11 @@ export default function Maintenance({
 
       // 3. Record Maintenance with Image Path
       await finalRecordMaintenance(pendingStatus, filePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Submission failed';
       setReportStatus({
         type: 'error',
-        message: error.message || 'Submission failed',
+        message: errorMessage,
       });
     } finally {
       setIsSubmittingReport(false);

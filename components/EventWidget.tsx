@@ -61,7 +61,7 @@ export default function EventWidget() {
             {Object.entries(eventData.data).map(([key, value]) => (
               <div key={key} className="text-sm">
                 <strong className="block text-gray-800">{key}:</strong>
-                <span className="text-gray-600">{value as any}</span>
+                <span className="text-gray-600">{String(value)}</span>
               </div>
             ))}
           </div>

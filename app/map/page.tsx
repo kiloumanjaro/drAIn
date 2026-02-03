@@ -189,6 +189,7 @@ function MapPageContent() {
     }, 500);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, inlets, outlets, pipes, drains]);
 
   // Function to clear all selections
@@ -606,8 +607,8 @@ function MapPageContent() {
 
                 // Get feature coordinates (center of the circle)
                 const coordinates = (
-                  feature.geometry as any
-                ).coordinates.slice();
+                  feature.geometry as { coordinates: number[] }
+                ).coordinates.slice() as [number, number];
 
                 // Ensure coordinates don't get wrapped around the globe
                 while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
@@ -1363,7 +1364,7 @@ function MapPageContent() {
     setControlPanelTab('stats');
   };
 
-  const handleSelectInlet = (inlet: Inlet) => {
+  const handleSelectInlet = useCallback((inlet: Inlet) => {
     if (!mapRef.current) return;
     const [lng, lat] = inlet.coordinates;
 
@@ -1395,9 +1396,9 @@ function MapPageContent() {
       essential: CAMERA_ANIMATION.essential,
       easing: CAMERA_ANIMATION.easing,
     });
-  };
+  }, []);
 
-  const handleSelectOutlet = (outlet: Outlet) => {
+  const handleSelectOutlet = useCallback((outlet: Outlet) => {
     if (!mapRef.current) return;
     const [lng, lat] = outlet.coordinates;
 
@@ -1429,9 +1430,9 @@ function MapPageContent() {
       essential: CAMERA_ANIMATION.essential,
       easing: CAMERA_ANIMATION.easing,
     });
-  };
+  }, []);
 
-  const handleSelectDrain = (drain: Drain) => {
+  const handleSelectDrain = useCallback((drain: Drain) => {
     if (!mapRef.current) return;
     const [lng, lat] = drain.coordinates;
 
@@ -1463,9 +1464,9 @@ function MapPageContent() {
       essential: CAMERA_ANIMATION.essential,
       easing: CAMERA_ANIMATION.easing,
     });
-  };
+  }, []);
 
-  const handleSelectPipe = (pipe: Pipe) => {
+  const handleSelectPipe = useCallback((pipe: Pipe) => {
     if (!mapRef.current) return;
     if (!pipe.coordinates || pipe.coordinates.length === 0) return;
 
@@ -1501,20 +1502,20 @@ function MapPageContent() {
       essential: CAMERA_ANIMATION.essential,
       easing: CAMERA_ANIMATION.easing,
     });
-  };
+  }, []);
 
   // Add a ref to track current tab
   const currentTabRef = useRef(initialTab);
 
   // Update the tab change handler
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = useCallback((tab: string) => {
     //console.log("Tab changing from:", currentTabRef.current, "to:", tab);
     setControlPanelTab(tab);
     currentTabRef.current = tab;
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('activetab', tab);
     router.replace(`?${newParams.toString()}`);
-  };
+  }, [searchParams, router]);
 
   // Update the useEffect for URL sync
   useEffect(() => {

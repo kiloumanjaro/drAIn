@@ -9,7 +9,6 @@ import { SidebarLayout } from '@/components/sidebar-layout';
 import { NavigationLoadingOverlay } from '@/components/NavigationLoadingOverlay';
 import { EventWidgetProvider } from '@/components/context/EventWidgetProvider';
 import EventWidget from '@/components/EventWidget';
-import WidgetTrigger from '@/components/WidgetTrigger';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

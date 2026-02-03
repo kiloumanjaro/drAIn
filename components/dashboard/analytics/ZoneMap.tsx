@@ -69,6 +69,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
         // Add GeoJSON source
         map.current.addSource('barangay-source', {
           type: 'geojson',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data: geoJsonData as any,
           generateId: true,
         });

@@ -4,18 +4,15 @@ import { useEffect, useState } from 'react';
 import ZoneMap from './ZoneMap';
 import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
-import TeamTable from './TeamTable';
 import {
   getIssuesPerZone,
   getComponentTypeData,
   getRepairTimeByComponent,
-  getTeamPerformance,
 } from '@/lib/dashboard/queries';
 import type {
   ZoneIssueData,
   ComponentTypeData,
   RepairTimeByComponentData,
-  TeamPerformanceData,
 } from '@/lib/dashboard/queries';
 
 export default function AnalyticsTab() {
@@ -24,7 +21,6 @@ export default function AnalyticsTab() {
   const [repairTimeData, setRepairTimeData] = useState<
     RepairTimeByComponentData[]
   >([]);
-  const [teamData, setTeamData] = useState<TeamPerformanceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,16 +28,14 @@ export default function AnalyticsTab() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [zones, components, times, teams] = await Promise.all([
+        const [zones, components, times] = await Promise.all([
           getIssuesPerZone(),
           getComponentTypeData(),
           getRepairTimeByComponent(),
-          getTeamPerformance(),
         ]);
         setZoneData(zones);
         setComponentData(components);
         setRepairTimeData(times);
-        setTeamData(teams);
       } catch (err) {
         console.error('Error fetching analytics data:', err);
         setError('Failed to load analytics data. Please refresh the page.');
