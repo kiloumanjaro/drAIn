@@ -57,7 +57,7 @@ export default function DashboardPage() {
 
               <div>
                 <h1 className="text-foreground text-2xl leading-tight font-semibold md:text-3xl">
-                  drAIn Public Dashboard
+                  Public Dashboard
                 </h1>
                 <p className="text-foreground/70 mt-1 max-w-lg text-sm">
                   Real-time transparency and analytics for the drainage system —
@@ -86,13 +86,6 @@ export default function DashboardPage() {
                   className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
                 />
                 <span>{isRefreshing ? 'Refreshing' : 'Refresh'}</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('reports')}
-                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-              >
-                Explore
               </button>
             </div>
           </div>

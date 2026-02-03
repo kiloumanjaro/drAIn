@@ -38,19 +38,17 @@ export default function ReportsTab() {
   // Filter and sort reports
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
+      // Priority filter
       if (priority !== 'all' && report.priority !== priority) return false;
+      
+      // Status filter  
       if (status !== 'all' && report.status !== status) return false;
 
-      if (componentType !== 'all' && report.componentId) {
-        const lower = report.componentId.toLowerCase();
-        if (componentType === 'inlets' && !lower.includes('inlet'))
+      // Component type filter - use category field
+      if (componentType !== 'all') {
+        if (!report.category || componentType !== report.category) {
           return false;
-        if (componentType === 'outlets' && !lower.includes('outlet'))
-          return false;
-        if (componentType === 'storm_drains' && !lower.includes('drain'))
-          return false;
-        if (componentType === 'man_pipes' && !lower.includes('pipe'))
-          return false;
+        }
       }
 
       return true;

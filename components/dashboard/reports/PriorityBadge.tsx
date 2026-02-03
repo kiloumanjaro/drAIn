@@ -5,21 +5,6 @@ interface PriorityBadgeProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const getPriorityIcon = (priority: string): string => {
-  switch (priority) {
-    case 'critical':
-      return '🔴';
-    case 'high':
-      return '🟠';
-    case 'medium':
-      return '🟡';
-    case 'low':
-      return '⚪';
-    default:
-      return '⚪';
-  }
-};
-
 const getPriorityLabel = (priority: string): string => {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
 };
@@ -38,9 +23,8 @@ export default function PriorityBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-semibold ${sizeClasses[size]} ${colorClass}`}
+      className={`inline-flex items-center rounded-full font-semibold ${sizeClasses[size]} ${colorClass}`}
     >
-      <span>{getPriorityIcon(priority)}</span>
       <span>{getPriorityLabel(priority)}</span>
     </span>
   );
