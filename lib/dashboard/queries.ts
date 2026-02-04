@@ -5,9 +5,11 @@ export interface OverviewMetrics {
   fixedThisMonth: number;
   pendingIssues: number;
   averageRepairDays: number;
+  totalAdmins: number;
   fixedTrend?: number[];
   pendingTrend?: number[];
   repairTimeTrend?: number[];
+  adminTrend?: number[];
 }
 
 export interface RepairTrendData {
@@ -101,6 +103,12 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending');
 
+    // Get admin count (users with agency_id)
+    const { data: adminData } = await client
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .not('agency_id', 'is', null);
+
     // Get average repair time (join with maintenance records)
     // This is a simplified approach - in production, use a database function
     const { data: allReports } = await client
@@ -168,6 +176,7 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
       fixedThisMonth: fixedData?.length ?? 0,
       pendingIssues: pendingData?.length ?? 0,
       averageRepairDays,
+      totalAdmins: adminData?.length ?? 0,
     };
   } catch (error) {
     console.error('Error fetching overview metrics:', error);
@@ -175,6 +184,7 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
       fixedThisMonth: 0,
       pendingIssues: 0,
       averageRepairDays: 0,
+      totalAdmins: 0,
     };
   }
 }

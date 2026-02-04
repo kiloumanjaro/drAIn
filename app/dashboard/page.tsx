@@ -74,16 +74,16 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#e8e8e8]/50 px-5">
+    <div className="min-h-screen bg-[#e8e8e8]/50 px-8">
       <div className="mx-auto py-5">
         {/* Header */}
-        <div className="rounded-t-xl border border-[#dfdfdf] bg-[#fcfcfc] px-6 py-2">
+        <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
           <div className="flex items-center justify-between gap-4">
             <p className="text-foreground/70 font-semibold">Public Dashboard</p>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-600 sm:flex">
-                <Clock className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center gap-5">
+              <div className="hidden items-center gap-2 rounded-full text-xs text-gray-600 sm:flex">
+                <Clock className="h-3.5 w-3.5 text-gray-500" />
                 <span>
                   Updated{' '}
                   {formatDistanceToNow(lastUpdated, { addSuffix: true })}
@@ -121,6 +121,7 @@ export default function DashboardPage() {
               fixedThisMonth={metrics?.fixedThisMonth ?? 0}
               pendingIssues={metrics?.pendingIssues ?? 0}
               averageRepairDays={metrics?.averageRepairDays ?? 0}
+              totalAdmins={metrics?.totalAdmins ?? 0}
               loading={metricsLoading}
             />
           </div>

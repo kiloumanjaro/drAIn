@@ -163,7 +163,7 @@ export default function ProfileContent({
 
           {/* Tab Navigation */}
           <Tabs
-            value={profileView === 'main' ? 'reports' : profileView}
+            value={profileView === 'main' ? 'links' : profileView}
             onValueChange={(value) => onProfileViewChange(value as ProfileView)}
             className="flex min-h-0 flex-1 flex-col gap-0 space-y-0"
           >

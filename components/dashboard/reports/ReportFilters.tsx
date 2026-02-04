@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
-import { X, AlertTriangle, Clock, Settings2, FileText } from 'lucide-react';
+import { X, AlertTriangle, Clock, Settings2, FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface ReportFiltersProps {
@@ -19,6 +19,7 @@ interface ReportFiltersProps {
   onClear: () => void;
   filteredCount?: number;
   totalCount?: number;
+  isLoading?: boolean;
 }
 
 export default function ReportFilters({
@@ -31,6 +32,7 @@ export default function ReportFilters({
   onClear,
   filteredCount = 0,
   totalCount = 0,
+  isLoading = false,
 }: ReportFiltersProps) {
   const [_openDropdown, setOpenDropdown] = useState<string | null>(null);
 
@@ -273,17 +275,27 @@ export default function ReportFilters({
         {/* Count and Clear Button Container */}
         <div className="ml-auto flex items-center gap-2">
           {/* Report Count */}
-          {totalCount > 0 && (
+          {isLoading || totalCount > 0 ? (
             <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-600">
-              <FileText className="h-4 w-4" style={{ color: '#5a87e7' }} />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#5a87e7' }} />
+              ) : (
+                <FileText className="h-4 w-4" style={{ color: '#5a87e7' }} />
+              )}
               <span>
-                <span className="font-semibold text-gray-700">
-                  {filteredCount}
-                </span>
-                <span className="text-gray-500">/{totalCount}</span>
+                {isLoading ? (
+                  <span className="text-gray-500">Loading...</span>
+                ) : (
+                  <>
+                    <span className="font-semibold text-gray-700">
+                      {filteredCount}
+                    </span>
+                    <span className="text-gray-500">/{totalCount}</span>
+                  </>
+                )}
               </span>
             </div>
-          )}
+          ) : null}
 
           {/* Clear Button */}
           {hasFilters && (
