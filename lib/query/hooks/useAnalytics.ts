@@ -4,6 +4,7 @@ import {
   getIssuesPerZone,
   getComponentTypeData,
   getRepairTimeByComponent,
+  getAllReports,
 } from '@/lib/dashboard/queries';
 import { dashboardKeys } from '@/lib/query/keys';
 import type {
@@ -11,6 +12,7 @@ import type {
   ZoneIssueData,
   ComponentTypeData,
   RepairTimeByComponentData,
+  ReportWithMetadata,
 } from '@/lib/dashboard/queries';
 
 const staleTime = 5 * 60 * 1000; // 5 minutes
@@ -21,6 +23,7 @@ interface AnalyticsData {
   zoneData: ZoneIssueData[];
   componentData: ComponentTypeData[];
   repairTimeData: RepairTimeByComponentData[];
+  allReports: ReportWithMetadata[];
   isLoading: boolean;
   error: Error | null;
 }
@@ -56,6 +59,12 @@ export function useAnalytics(): AnalyticsData {
         staleTime,
         gcTime,
       },
+      {
+        queryKey: dashboardKeys.analyticsDetails().allReports(),
+        queryFn: getAllReports,
+        staleTime,
+        gcTime,
+      },
     ],
   });
 
@@ -67,6 +76,7 @@ export function useAnalytics(): AnalyticsData {
     zoneData: (results[1].data as ZoneIssueData[]) || [],
     componentData: (results[2].data as ComponentTypeData[]) || [],
     repairTimeData: (results[3].data as RepairTimeByComponentData[]) || [],
+    allReports: (results[4].data as ReportWithMetadata[]) || [],
     isLoading,
     error: error as Error | null,
   };

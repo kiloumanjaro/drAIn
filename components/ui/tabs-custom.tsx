@@ -37,7 +37,7 @@ const TabsTrigger = React.forwardRef<
       'border-t border-t-[#dfdfdf]',
       'border-b-0',
       // Active tab: add blue top accent
-      'data-[state=active]:border-t-[3px] data-[state=active]:border-t-[#3F83DB]',
+      'data-[state=active]:border-t-[7px] data-[state=active]:border-t-[#3F83DB]',
       // First tab (Analytics):
       // - When active: NO left border (outer), has right border (shared)
       // - When inactive: NO left border (outer), NO right border (shared)

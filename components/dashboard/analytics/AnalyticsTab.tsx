@@ -10,7 +10,7 @@ interface AnalyticsTabProps {
 }
 
 export default function AnalyticsTab({ onViewReports }: AnalyticsTabProps) {
-  const { zoneData, componentData, repairTimeData, isLoading, error } =
+  const { zoneData, componentData, repairTimeData, allReports, isLoading, error } =
     useAnalytics();
 
   if (error) {
@@ -24,7 +24,7 @@ export default function AnalyticsTab({ onViewReports }: AnalyticsTabProps) {
   return (
     <div className="space-y-6">
       {/* Zone Map */}
-      <ZoneMap data={zoneData} loading={isLoading} />
+      <ZoneMap data={zoneData} reports={allReports} loading={isLoading} />
 
       {/* Component Type Chart (left - 2/3) and Repair Time Cards (right - 1/3) */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

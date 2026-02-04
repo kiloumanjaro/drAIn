@@ -130,11 +130,15 @@ export default function DashboardPage() {
 
               {/* Tab Content */}
               <div className="mb-5 border-t border-[#dfdfdf] bg-[#fcfcfc] px-10 py-5">
-                <TabsContent value="analytics" className="m-0">
-                  <AnalyticsTab onViewReports={() => setActiveTab('reports')} />
+                <TabsContent value="analytics" className="m-0" forceMount>
+                  <div className={activeTab !== 'analytics' ? 'hidden' : ''}>
+                    <AnalyticsTab onViewReports={() => setActiveTab('reports')} />
+                  </div>
                 </TabsContent>
-                <TabsContent value="reports" className="m-0">
-                  <ReportsTab />
+                <TabsContent value="reports" className="m-0" forceMount>
+                  <div className={activeTab !== 'reports' ? 'hidden' : ''}>
+                    <ReportsTab />
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
