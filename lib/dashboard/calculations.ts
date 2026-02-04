@@ -123,7 +123,7 @@ export function formatComponentType(
   const map: Record<string, string> = {
     inlets: 'Inlets',
     outlets: 'Outlets',
-    storm_drains: 'Storm Drains',
+    storm_drains: 'Drains',
     man_pipes: 'Pipes',
   };
   return map[type] || 'Unknown';

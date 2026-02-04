@@ -5,9 +5,19 @@ import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
 import { useAnalytics } from '@/lib/query/hooks/useAnalytics';
 
-export default function AnalyticsTab() {
-  const { zoneData, componentData, repairTimeData, isLoading, error } =
-    useAnalytics();
+interface AnalyticsTabProps {
+  onViewReports?: () => void;
+}
+
+export default function AnalyticsTab({ onViewReports }: AnalyticsTabProps) {
+  const {
+    zoneData,
+    componentData,
+    repairTimeData,
+    allReports,
+    isLoading,
+    error,
+  } = useAnalytics();
 
   if (error) {
     return (
@@ -20,18 +30,19 @@ export default function AnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Zone Map */}
-      <ZoneMap data={zoneData} loading={isLoading} />
+      <ZoneMap data={zoneData} reports={allReports} loading={isLoading} />
 
       {/* Component Type Chart (left - 2/3) and Repair Time Cards (right - 1/3) */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <section className="md:col-span-2">
-          <ComponentTypeChart data={componentData} loading={isLoading} />
+          <ComponentTypeChart
+            data={componentData}
+            loading={isLoading}
+            onViewReports={onViewReports}
+          />
         </section>
 
         <aside className="md:col-span-1">
-          <h3 className="mb-4 text-lg font-semibold">
-            Average Repair Time by Component
-          </h3>
           <RepairTimeCards data={repairTimeData} loading={isLoading} />
         </aside>
       </div>

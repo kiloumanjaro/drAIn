@@ -86,7 +86,7 @@ export default function ReportCard({
           handleCardClick();
         }
       }}
-      className="group flex h-full max-h-100 w-full flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all cursor-pointer hover:bg-[#fafafa]"
+      className="group flex h-full max-h-100 w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all hover:bg-[#fafafa]"
     >
       {/* Image Gallery */}
       <div className="relative h-48 w-full overflow-hidden bg-gray-100">

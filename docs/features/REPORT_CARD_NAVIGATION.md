@@ -25,8 +25,8 @@ Reports contain the necessary linkage data:
 ```typescript
 interface Report {
   id: string;
-  componentId: string;      // ID of the infrastructure component
-  category: string;          // Type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
+  componentId: string; // ID of the infrastructure component
+  category: string; // Type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
   // ... other fields
 }
 ```
@@ -36,17 +36,20 @@ interface Report {
 ### 1. ReportCard Component (`components/dashboard/reports/ReportCard.tsx`)
 
 #### Button Wrapper
+
 The entire card is wrapped in a `<button>` element to make it clickable:
 
 ```tsx
 <button
   onClick={handleCardClick}
-  className="flex h-full max-h-100 flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white transition-shadow hover:shadow-lg text-left w-full">
+  className="flex h-full max-h-100 w-full flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-shadow hover:shadow-lg"
+>
   {/* Card content */}
 </button>
 ```
 
 #### Click Handler
+
 ```tsx
 const handleCardClick = () => {
   if (report.componentId && report.category) {
@@ -60,6 +63,7 @@ const handleCardClick = () => {
 ```
 
 #### Event Propagation Prevention
+
 Interactive elements within the card (badges, copy button, description) prevent event bubbling:
 
 ```tsx
@@ -70,7 +74,7 @@ Interactive elements within the card (badges, copy button, description) prevent 
     size="sm"
     onClick={onPriorityFilter}
   />
-</div>
+</div>;
 
 // Copy ID button
 const handleCopyId = async (e: React.MouseEvent) => {
@@ -82,13 +86,14 @@ const handleCopyId = async (e: React.MouseEvent) => {
 ### 2. Map Page Component (`app/map/page.tsx`)
 
 #### URL Parameter Handling
+
 A dedicated `useEffect` watches for component selection parameters:
 
 ```tsx
 useEffect(() => {
   const componentId = searchParams.get('component');
   const componentType = searchParams.get('type');
-  
+
   if (!componentId || !componentType) return;
   if (!mapRef.current) return;
 
@@ -123,18 +128,19 @@ useEffect(() => {
         const drain = drains.find((d) => d.id === componentId);
         if (drain) {
           handleSelectDrain(drain);
-            handleTabChange('admin');
-          }
-          break;
+          handleTabChange('admin');
         }
+        break;
       }
-    }, 500); // 500ms delay for data loading
+    }
+  }, 500); // 500ms delay for data loading
 
-    return () => clearTimeout(timer);
-  }, [searchParams, inlets, outlets, pipes, drains]);
+  return () => clearTimeout(timer);
+}, [searchParams, inlets, outlets, pipes, drains]);
 ```
 
 #### Component Selection Functions
+
 Each component type has a dedicated selection handler:
 
 ```tsx
@@ -143,7 +149,7 @@ const handleSelectInlet = (inlet: Inlet) => {
   const [lng, lat] = inlet.coordinates;
 
   clearSelections(); // Clear previous selections
-  
+
   setSelectedInlet(inlet);
   setControlPanelDataset('inlets');
 
@@ -152,7 +158,7 @@ const handleSelectInlet = (inlet: Inlet) => {
     { source: 'inlets', id: inlet.id },
     { selected: true }
   );
-  
+
   setSelectedFeature({
     id: inlet.id,
     source: 'inlets',
@@ -174,16 +180,19 @@ const handleSelectInlet = (inlet: Inlet) => {
 ## URL Parameters
 
 ### Navigation from Report Card
+
 ```
 /map?component={componentId}&type={category}
 ```
 
 **Example:**
+
 ```
 /map?component=Inlet_001&type=inlets
 ```
 
 ### Parameters
+
 - `component` (string): The unique ID of the infrastructure component
 - `type` (string): Component category - one of:
   - `inlets`
@@ -192,7 +201,9 @@ const handleSelectInlet = (inlet: Inlet) => {
   - `man_pipes`
 
 ### Fallback
+
 If `componentId` or `category` is missing from the report:
+
 ```
 /map?reportId={reportId}
 ```
@@ -205,6 +216,7 @@ This implementation follows the same pattern used in the inlet table (`component
 2. **Report Card Click** → URL params → `handleSelectInlet(inlet)` → Fly to component
 
 Both methods result in:
+
 - Component highlighted on map
 - Camera animation to location
 - Control panel showing component details
@@ -213,6 +225,7 @@ Both methods result in:
 ## Technical Considerations
 
 ### Data Loading Delay
+
 A 500ms timeout ensures component data is loaded before attempting selection:
 
 ```tsx
@@ -222,12 +235,15 @@ const timer = setTimeout(() => {
 ```
 
 ### Event Propagation
+
 Interactive child elements use `e.stopPropagation()` to prevent triggering the card click when:
+
 - Clicking filter badges
 - Copying report ID
 - Expanding description text
 
 ### State Management
+
 - `selectedInlet/Outlet/Pipe/Drain`: Controls which component is displayed in panel
 - `selectedFeature`: Tracks map feature state for highlighting
 - `controlPanelTab`: Set to 'admin' to show report history

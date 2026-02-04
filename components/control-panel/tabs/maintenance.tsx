@@ -369,7 +369,8 @@ export default function Maintenance({
       // 3. Record Maintenance with Image Path
       await finalRecordMaintenance(pendingStatus, filePath);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Submission failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Submission failed';
       setReportStatus({
         type: 'error',
         message: errorMessage,

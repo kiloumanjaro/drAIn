@@ -124,21 +124,29 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
 
     if (allReports) {
       // Get maintenance records for repair time calculation
-      const { data: inletMaintenance } = await client
+      const { data: inletMaintenance } = (await client
         .from('inlets_maintenance')
-        .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+        .select('in_name, last_cleaned_at')) as {
+        data: MaintenanceRecord[] | null;
+      };
 
-      const { data: outletMaintenance } = await client
+      const { data: outletMaintenance } = (await client
         .from('outlets_maintenance')
-        .select('out_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+        .select('out_name, last_cleaned_at')) as {
+        data: MaintenanceRecord[] | null;
+      };
 
-      const { data: drainMaintenance } = await client
+      const { data: drainMaintenance } = (await client
         .from('storm_drains_maintenance')
-        .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+        .select('in_name, last_cleaned_at')) as {
+        data: MaintenanceRecord[] | null;
+      };
 
-      const { data: pipeMaintenance } = await client
+      const { data: pipeMaintenance } = (await client
         .from('man_pipes_maintenance')
-        .select('name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+        .select('name, last_cleaned_at')) as {
+        data: MaintenanceRecord[] | null;
+      };
 
       // Build maintenance map
       const maintenanceMap = new Map<string, string>();
@@ -197,11 +205,13 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data: reports } = await client
+    const { data: reports } = (await client
       .from('reports')
       .select('id, created_at, component_id, status')
       .eq('status', 'resolved')
-      .gte('created_at', thirtyDaysAgo.toISOString()) as { data: ReportRecord[] | null };
+      .gte('created_at', thirtyDaysAgo.toISOString())) as {
+      data: ReportRecord[] | null;
+    };
 
     if (!reports || reports.length === 0) {
       return [];
@@ -286,10 +296,10 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
  */
 export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
   try {
-    const { data: reports } = await client
+    const { data: reports } = (await client
       .from('reports')
       .select('zone')
-      .not('zone', 'is', null) as { data: ZoneReport[] | null }; // Exclude reports with no zone match
+      .not('zone', 'is', null)) as { data: ZoneReport[] | null }; // Exclude reports with no zone match
 
     if (!reports || reports.length === 0) {
       return [];
@@ -322,7 +332,9 @@ export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
  */
 export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
   try {
-    const { data: reports } = await client.from('reports').select('category') as { data: CategoryReport[] | null };
+    const { data: reports } = (await client
+      .from('reports')
+      .select('category')) as { data: CategoryReport[] | null };
 
     if (!reports) {
       return [];
@@ -354,30 +366,38 @@ export async function getRepairTimeByComponent(): Promise<
   RepairTimeByComponentData[]
 > {
   try {
-    const { data: reports } = await client
+    const { data: reports } = (await client
       .from('reports')
-      .select('category, component_id, created_at, status') as { data: ReportRecord[] | null };
+      .select('category, component_id, created_at, status')) as {
+      data: ReportRecord[] | null;
+    };
 
     if (!reports) {
       return [];
     }
 
     // Fetch maintenance records
-    const { data: inletMaintenance } = await client
+    const { data: inletMaintenance } = (await client
       .from('inlets_maintenance')
-      .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+      .select('in_name, last_cleaned_at')) as {
+      data: MaintenanceRecord[] | null;
+    };
 
-    const { data: outletMaintenance } = await client
+    const { data: outletMaintenance } = (await client
       .from('outlets_maintenance')
-      .select('out_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+      .select('out_name, last_cleaned_at')) as {
+      data: MaintenanceRecord[] | null;
+    };
 
-    const { data: drainMaintenance } = await client
+    const { data: drainMaintenance } = (await client
       .from('storm_drains_maintenance')
-      .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+      .select('in_name, last_cleaned_at')) as {
+      data: MaintenanceRecord[] | null;
+    };
 
-    const { data: pipeMaintenance } = await client
+    const { data: pipeMaintenance } = (await client
       .from('man_pipes_maintenance')
-      .select('name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+      .select('name, last_cleaned_at')) as { data: MaintenanceRecord[] | null };
 
     // Build maintenance map
     const maintenanceMap = new Map<string, string>();
@@ -438,7 +458,11 @@ export async function getRepairTimeByComponent(): Promise<
 export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
   try {
     // Get all agencies
-    const { data: agencies } = await client.from('agencies').select('id, name') as { data: Array<{ id: string; name: string }> | null };
+    const { data: agencies } = (await client
+      .from('agencies')
+      .select('id, name')) as {
+      data: Array<{ id: string; name: string }> | null;
+    };
 
     if (!agencies) {
       return [];
@@ -448,10 +472,10 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
     for (const agency of agencies) {
       // Get all users (profiles) for this agency
-      const { data: profiles } = await client
+      const { data: profiles } = (await client
         .from('profiles')
         .select('id')
-        .eq('agency_id', agency.id) as { data: Profile[] | null };
+        .eq('agency_id', agency.id)) as { data: Profile[] | null };
 
       if (!profiles || profiles.length === 0) {
         continue; // Skip agencies with no users
@@ -459,14 +483,15 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
       // Get all reports submitted by users in this agency
       const userIds = profiles.map((p: Profile) => p.id);
-      const { data: agencyReports } = await client
+      const { data: agencyReports } = (await client
         .from('reports')
         .select('id, status')
-        .in('user_id', userIds) as { data: ReportRecord[] | null };
+        .in('user_id', userIds)) as { data: ReportRecord[] | null };
 
       const totalIssues = agencyReports?.length ?? 0;
       const resolvedIssues =
-        agencyReports?.filter((r: ReportRecord) => r.status === 'resolved').length ?? 0;
+        agencyReports?.filter((r: ReportRecord) => r.status === 'resolved')
+          .length ?? 0;
 
       if (totalIssues > 0) {
         performance.push({
@@ -490,42 +515,42 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
  */
 export async function getAllReports(): Promise<ReportWithMetadata[]> {
   try {
-    const { data: reports } = await client
+    const { data: reports } = (await client
       .from('reports')
       .select('*')
-      .order('created_at', { ascending: false }) as { data: ReportRecord[] | null };
+      .order('created_at', { ascending: false })) as {
+      data: ReportRecord[] | null;
+    };
 
     if (!reports) return [];
 
     // Transform database records to match Report interface
     // Map created_at to date field and convert image paths to public URLs
-    return reports.map(
-      (report: ReportRecord) => {
-        // Get public URL for image if it exists
-        const { data: img } = report.image 
-          ? client.storage.from('ReportImage').getPublicUrl(report.image)
-          : { data: { publicUrl: '' } };
+    return reports.map((report: ReportRecord) => {
+      // Get public URL for image if it exists
+      const { data: img } = report.image
+        ? client.storage.from('ReportImage').getPublicUrl(report.image)
+        : { data: { publicUrl: '' } };
 
-        return {
-          id: report.id,
-          date: report.created_at || new Date().toISOString(),
-          category: report.category || 'Uncategorized',
-          description: report.description || 'No description',
-          image: img?.publicUrl || '',
-          reporterName: report.reporter_name || 'Anonymous',
-          status: report.status || 'pending',
-          componentId: report.component_id || '',
-          coordinates: [
-            parseFloat(report.long || '0') || 0,
-            parseFloat(report.lat || '0') || 0,
-          ] as [number, number],
-          geocoded_status: report.geocoded_status || 'pending',
-          address: report.address || 'Unknown',
-          priority: report.priority || 'low',
-          zone: report.zone,
-        } as ReportWithMetadata;
-      }
-    );
+      return {
+        id: report.id,
+        date: report.created_at || new Date().toISOString(),
+        category: report.category || 'Uncategorized',
+        description: report.description || 'No description',
+        image: img?.publicUrl || '',
+        reporterName: report.reporter_name || 'Anonymous',
+        status: report.status || 'pending',
+        componentId: report.component_id || '',
+        coordinates: [
+          parseFloat(report.long || '0') || 0,
+          parseFloat(report.lat || '0') || 0,
+        ] as [number, number],
+        geocoded_status: report.geocoded_status || 'pending',
+        address: report.address || 'Unknown',
+        priority: report.priority || 'low',
+        zone: report.zone,
+      } as ReportWithMetadata;
+    });
   } catch (error) {
     console.error('Error fetching all reports:', error);
     return [];

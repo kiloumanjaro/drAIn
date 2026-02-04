@@ -17,7 +17,12 @@ import StatsCards from '@/components/dashboard/analytics/StatsCards';
 import { useDashboard } from '@/components/context/DashboardProvider';
 
 export default function DashboardPage() {
-  const { metrics, isLoading: metricsLoading, refresh, isRefreshing } = useDashboard();
+  const {
+    metrics,
+    isLoading: metricsLoading,
+    refresh,
+    isRefreshing,
+  } = useDashboard();
   const [activeTab, setActiveTab] = useState('analytics');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const refreshTimerRef = React.useRef<number | null>(null);
@@ -48,7 +53,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#e8e8e8]/50 px-8">
-      <div className="mx-auto py-5">
+      <div className="mx-auto py-5 pb-5">
         {/* Header */}
         <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
           <div className="flex items-center justify-between gap-4">
@@ -124,16 +129,27 @@ export default function DashboardPage() {
               </TabsList>
 
               {/* Tab Content */}
-              <div className="border-y border-[#dfdfdf] bg-[#fcfcfc] px-10 py-5">
-                <TabsContent value="analytics" className="m-0">
-                  <AnalyticsTab />
+              <div className="mb-5 border-t border-[#dfdfdf] bg-[#fcfcfc] px-10 py-5">
+                <TabsContent value="analytics" className="m-0" forceMount>
+                  <div className={activeTab !== 'analytics' ? 'hidden' : ''}>
+                    <AnalyticsTab
+                      onViewReports={() => setActiveTab('reports')}
+                    />
+                  </div>
                 </TabsContent>
-                <TabsContent value="reports" className="m-0">
-                  <ReportsTab />
+                <TabsContent value="reports" className="m-0" forceMount>
+                  <div className={activeTab !== 'reports' ? 'hidden' : ''}>
+                    <ReportsTab />
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="rounded-b-xl border border-[#dfdfdf] bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] px-6 py-3.5 text-center text-sm text-gray-600">
+          © 2024 drAIn Project. All rights reserved.
         </div>
       </div>
     </div>

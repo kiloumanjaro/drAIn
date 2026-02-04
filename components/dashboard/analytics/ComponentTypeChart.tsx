@@ -1,13 +1,21 @@
 'use client';
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Info } from 'lucide-react';
 import { formatComponentType } from '@/lib/dashboard/calculations';
 import type { ComponentTypeData } from '@/lib/dashboard/queries';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ComponentTypeChartProps {
   data: ComponentTypeData[];
   loading?: boolean;
+  onViewReports?: () => void;
 }
 
 const COLORS = ['#3b82f6', '#ef6537', '#f59e0b', '#10b981'];
@@ -15,6 +23,7 @@ const COLORS = ['#3b82f6', '#ef6537', '#f59e0b', '#10b981'];
 export default function ComponentTypeChart({
   data,
   loading = false,
+  onViewReports,
 }: ComponentTypeChartProps) {
   if (loading) {
     return (
@@ -40,91 +49,134 @@ export default function ComponentTypeChart({
     );
   }
 
-  // Format data for pie chart
+  // Format data for table
   const chartData = data.map((item) => ({
     name: formatComponentType(item.type),
     value: item.count,
+    type: item.type,
   }));
 
   const total = chartData.reduce((sum, it) => sum + it.value, 0);
-  const outerRadius = 110;
-  const innerRadius = Math.floor(outerRadius * 0.55);
 
   return (
-    <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold">
-        Most Common Component Problems
-      </h3>
-      <div className="flex flex-col items-center justify-center gap-6 md:flex-row">
-        {/* Pie: left ~1.3/3 (43.333%) */}
-        <div className="relative flex w-full items-center justify-center md:w-[43.333%]">
-          <div className="h-[360px] w-full max-w-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={false}
-                  innerRadius={innerRadius}
-                  outerRadius={outerRadius}
-                  paddingAngle={2}
-                  cornerRadius={6}
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `${value} issues`} />
-              </PieChart>
-            </ResponsiveContainer>
+    <TooltipProvider>
+      <div>
+        <div className="rounded-t-2xl border border-[#ced1cd] bg-[#f7f7f7]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="rounded-2xl border-b border-[#ced1cd]">
+                <th className="w-[250px] px-4 py-3 text-center font-normal text-gray-700">
+                  <div className="flex items-center justify-center gap-2">
+                    <span>Pie Chart</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 cursor-help opacity-70" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          This shows the distribution of reports per component
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </th>
+                <th className="w-[200px] px-4 py-3 text-center font-normal text-gray-700">
+                  Component Type
+                </th>
+                <th className="px-4 py-3 text-center font-normal text-gray-700">
+                  Number of Issues
+                </th>
+                <th className="px-4 py-3 text-center font-normal text-gray-700">
+                  Percentage
+                </th>
+              </tr>
+            </thead>
 
-            {/* Center total */}
-            <div className="pointer-events-none absolute top-0 right-0 bottom-0 left-0 flex flex-col items-center justify-center">
-              <p className="text-xs text-gray-500">Total</p>
-              <p className="text-2xl font-extrabold text-gray-900">{total}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Legend: right ~1.7/3 (56.667%) */}
-        <div className="flex w-full flex-col md:w-[56.667%] md:justify-center">
-          <div className="w-full pt-2 md:flex md:h-[360px] md:items-center md:pt-0 md:pl-6">
-            <div className="flex w-full flex-col gap-3 md:overflow-auto">
-              {chartData.map((item, index) => (
-                <div
-                  key={item.name}
-                  className="flex w-full items-center justify-between py-2"
+            <tbody>
+              {/* Pie chart row - spans all rows in first column */}
+              <tr>
+                <td
+                  rowSpan={chartData.length}
+                  className="bg-white px-3 py-0 align-middle"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="h-[220px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={false}
+                          innerRadius={55}
+                          outerRadius={85}
+                          paddingAngle={2}
+                          cornerRadius={4}
+                          dataKey="value"
+                        >
+                          {chartData.map((_, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </td>
+                {/* First data row */}
+                <td className="bg-white px-3 py-0 leading-none">
+                  <div className="flex items-center gap-3 pl-12 whitespace-nowrap">
                     <div
-                      className="h-3 w-3 shrink-0 rounded-full shadow-sm"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      className="ml-2 h-3 w-3 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: COLORS[0] }}
                     />
-                    <span className="truncate text-sm font-medium text-gray-700">
-                      {item.name}
+                    <span className="text-sm text-gray-700">
+                      {chartData[0]?.name}
                     </span>
                   </div>
-
-                  <div className="flex shrink-0 items-center gap-4">
-                    <span className="text-sm text-gray-600">
-                      {item.value} issue{item.value !== 1 ? 's' : ''}
-                    </span>
-                    <span className="w-24 text-right text-sm font-semibold text-gray-900">
-                      {((item.value / total) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
+                </td>
+                <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
+                  {chartData[0]?.value} issue
+                  {chartData[0]?.value !== 1 ? 's' : ''}
+                </td>
+                <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
+                  {((chartData[0]?.value / total) * 100).toFixed(1)}%
+                </td>
+              </tr>
+              {/* Remaining data rows */}
+              {chartData.slice(1).map((item, index) => (
+                <tr key={item.name} className="bg-white">
+                  <td className="px-3 py-0 leading-none">
+                    <div className="flex items-center gap-3 pl-12 whitespace-nowrap">
+                      <div
+                        className="ml-2 h-3 w-3 flex-shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: COLORS[(index + 1) % COLORS.length],
+                        }}
+                      />
+                      <span className="text-sm text-gray-700">{item.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
+                    {item.value} issue{item.value !== 1 ? 's' : ''}
+                  </td>
+                  <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
+                    {((item.value / total) * 100).toFixed(1)}%
+                  </td>
+                </tr>
               ))}
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+      <button
+        onClick={onViewReports}
+        className="w-full rounded-b-2xl border-x border-b border-[#ced1cd] bg-[#f7f7f7] p-2.5 text-center text-sm text-gray-700 transition-colors hover:bg-[#e8e8e8]"
+      >
+        View Reports
+      </button>
+    </TooltipProvider>
   );
 }

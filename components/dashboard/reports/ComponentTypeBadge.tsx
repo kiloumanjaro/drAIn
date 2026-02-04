@@ -5,7 +5,9 @@ import { formatComponentType } from '@/lib/dashboard/calculations';
 
 interface ComponentTypeBadgeProps {
   componentType: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
-  onClick?: (componentType: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes') => void;
+  onClick?: (
+    componentType: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
+  ) => void;
 }
 
 export default function ComponentTypeBadge({
@@ -52,7 +54,7 @@ export default function ComponentTypeBadge({
           onClick?.(componentType);
         }
       }}
-      className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 cursor-pointer"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
       style={{
         backgroundColor: config.bgColor,
         borderColor: config.borderColor,

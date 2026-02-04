@@ -107,17 +107,6 @@ export default function ReportsTab() {
           ))}
         </div>
       )}
-
-      {/* Footer Info */}
-      <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <h4 className="mb-2 font-semibold text-blue-900">About Reports</h4>
-        <p className="text-sm text-blue-800">
-          All drainage issues reported by the community are tracked here.
-          Priority levels are assigned based on the severity and number of
-          reports for the same location. Reports progress from pending →
-          in-progress → resolved as maintenance teams address them.
-        </p>
-      </div>
     </div>
   );
 }

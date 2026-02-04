@@ -190,3 +190,167 @@ export function updateReportZones(
     }
   });
 }
+
+/**
+ * Calculate the centroid of a polygon using the formula for center of mass
+ * @param coordinates - Array of [longitude, latitude] pairs forming a polygon ring
+ * @returns [longitude, latitude] of the centroid
+ */
+function calculatePolygonCentroid(coordinates: number[][]): [number, number] {
+  let x = 0,
+    y = 0,
+    area = 0;
+
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const [x1, y1] = coordinates[i];
+    const [x2, y2] = coordinates[i + 1];
+    const cross = x1 * y2 - x2 * y1;
+    area += cross;
+    x += (x1 + x2) * cross;
+    y += (y1 + y2) * cross;
+  }
+
+  area /= 2;
+  x /= 6 * area;
+  y /= 6 * area;
+
+  return [x, y];
+}
+
+/**
+ * Calculate the centroid of a polygon or multipolygon feature
+ * Returns [longitude, latitude]
+ * @param feature - GeoJSON feature with Polygon or MultiPolygon geometry
+ * @returns [longitude, latitude] coordinates of the centroid
+ */
+export function calculateCentroid(feature: GeoJSONFeature): [number, number] {
+  const geometry = feature.geometry;
+
+  if (geometry.type === 'Polygon') {
+    // For simple polygon, use the outer ring (first element)
+    return calculatePolygonCentroid(geometry.coordinates[0] as number[][]);
+  } else if (geometry.type === 'MultiPolygon') {
+    // For multipolygon, use the largest polygon's centroid
+    const polygons = geometry.coordinates as number[][][][];
+    const largestPolygon = polygons.reduce((largest, current) => {
+      return current[0].length > largest[0].length ? current : largest;
+    });
+    return calculatePolygonCentroid(largestPolygon[0] as number[][]);
+  }
+
+  // Fallback to origin if geometry type is unexpected
+  return [0, 0];
+}
+
+/**
+ * Generate random offset from center for organic heatmap distribution
+ * Uses seeded randomness based on barangay name for consistency
+ */
+function getRandomOffset(
+  seed: string,
+  index: number,
+  maxOffset: number
+): [number, number] {
+  // Simple hash function for consistent randomness
+  let hash = 0;
+  const str = seed + index.toString();
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+
+  // Convert hash to pseudo-random angle and distance
+  const angle = ((hash % 360) / 360) * 2 * Math.PI;
+  const distance = ((Math.abs(hash) % 1000) / 1000) * maxOffset;
+
+  return [Math.cos(angle) * distance, Math.sin(angle) * distance];
+}
+
+/**
+ * Create a GeoJSON FeatureCollection of scattered points for organic heatmap
+ * Creates multiple points per barangay to avoid perfect circle effect
+ * @param features - Array of barangay polygon features
+ * @param zoneData - Array of zone issue data with counts
+ * @returns GeoJSON FeatureCollection of Point features
+ */
+export function createHeatmapPoints(
+  features: GeoJSONFeature[],
+  zoneData: { zone: string; count: number }[]
+): GeoJSON.FeatureCollection {
+  const points: GeoJSON.Feature[] = [];
+
+  features.forEach((feature) => {
+    const barangayName = feature.properties?.name;
+    const zoneInfo = zoneData.find(
+      (z) => z.zone.toLowerCase() === barangayName?.toLowerCase()
+    );
+    const issueCount = zoneInfo?.count || 0;
+    const centroid = calculateCentroid(feature);
+
+    // Determine number of scattered points based on issue count
+    // More issues = more points = more irregular shape
+    const numPoints = Math.max(3, Math.min(12, Math.ceil(issueCount / 2) + 3));
+
+    // Maximum offset in degrees (~0.002 degrees ≈ 200m)
+    const maxOffset = 0.002;
+
+    // Create multiple scattered points for organic distribution
+    for (let i = 0; i < numPoints; i++) {
+      const [offsetX, offsetY] = getRandomOffset(
+        barangayName || '',
+        i,
+        maxOffset
+      );
+
+      points.push({
+        type: 'Feature',
+        properties: {
+          name: barangayName,
+          issueCount: Math.ceil(issueCount / numPoints), // Distribute weight across points
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [centroid[0] + offsetX, centroid[1] + offsetY],
+        },
+      });
+    }
+  });
+
+  return {
+    type: 'FeatureCollection',
+    features: points,
+  };
+}
+
+/**
+ * Create a GeoJSON FeatureCollection from actual report coordinates
+ * This creates a truly accurate heatmap based on real report locations
+ * @param reports - Array of reports with coordinates [long, lat]
+ * @returns GeoJSON FeatureCollection of Point features
+ */
+export function createHeatmapFromReports(
+  reports: Array<{ coordinates: [number, number]; zone?: string }>
+): GeoJSON.FeatureCollection {
+  const points: GeoJSON.Feature[] = reports
+    .filter(
+      (report) =>
+        report.coordinates &&
+        report.coordinates[0] !== 0 &&
+        report.coordinates[1] !== 0
+    )
+    .map((report) => ({
+      type: 'Feature',
+      properties: {
+        zone: report.zone || 'Unknown',
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: report.coordinates,
+      },
+    }));
+
+  return {
+    type: 'FeatureCollection',
+    features: points,
+  };
+}

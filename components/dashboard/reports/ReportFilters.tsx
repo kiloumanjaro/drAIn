@@ -6,7 +6,14 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
-import { X, AlertTriangle, Clock, Settings2, FileText, Loader2 } from 'lucide-react';
+import {
+  X,
+  AlertTriangle,
+  Clock,
+  Settings2,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import { useState } from 'react';
 
 interface ReportFiltersProps {
@@ -278,7 +285,10 @@ export default function ReportFilters({
           {isLoading || totalCount > 0 ? (
             <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-600">
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#5a87e7' }} />
+                <Loader2
+                  className="h-4 w-4 animate-spin"
+                  style={{ color: '#5a87e7' }}
+                />
               ) : (
                 <FileText className="h-4 w-4" style={{ color: '#5a87e7' }} />
               )}

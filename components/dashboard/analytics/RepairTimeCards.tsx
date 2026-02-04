@@ -74,30 +74,42 @@ function SortableItem({ item }: SortableItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-[#ced1cd] bg-white p-4 transition-shadow hover:border-blue-400"
+      className="rounded-lg border border-[#ced1cd] bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] px-3 py-3 pr-6 transition-shadow hover:border-blue-400 hover:from-[#f9f9f9] hover:to-[#eaeaea]"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          {IconComponent && <IconComponent className="h-5 w-5 text-gray-600" />}
-          <p className="text-sm font-medium text-gray-600">
-            {config?.label || item.type}
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        {/* Drag handle - Left */}
         <div
-          className="cursor-grab active:cursor-grabbing"
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
-      </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <p className="text-2xl font-semibold text-gray-900">
-          {formatDays(item.averageDays)}
-        </p>
-        <p className="text-xs text-gray-500">
-          {item.resolvedCount} resolved
-        </p>
+
+        {/* Middle: Icon and component info */}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex flex-col items-center">
+            {IconComponent && (
+              <IconComponent className="h-5 w-5 text-gray-600" />
+            )}
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="text-base leading-tight font-medium text-gray-600">
+              {config?.label || item.type}
+            </p>
+            <p className="text-xs leading-tight text-gray-500">
+              {item.resolvedCount} resolved
+            </p>
+          </div>
+        </div>
+
+        {/* Right side: Average days */}
+        <div className="flex flex-shrink-0 items-baseline gap-1 leading-tight">
+          <p className="text-xl font-semibold text-gray-900">
+            {formatDays(item.averageDays)}
+          </p>
+          <p className="text-xs text-gray-500">avg</p>
+        </div>
       </div>
     </div>
   );
@@ -127,8 +139,12 @@ export default function RepairTimeCards({
 
     if (over && active.id !== over.id) {
       setItems((currentItems) => {
-        const oldIndex = currentItems.findIndex((item) => item.type === active.id);
-        const newIndex = currentItems.findIndex((item) => item.type === over.id);
+        const oldIndex = currentItems.findIndex(
+          (item) => item.type === active.id
+        );
+        const newIndex = currentItems.findIndex(
+          (item) => item.type === over.id
+        );
         return arrayMove(currentItems, oldIndex, newIndex);
       });
     }
