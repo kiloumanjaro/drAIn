@@ -134,7 +134,7 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
 
       const { data: drainMaintenance } = await client
         .from('storm_drains_maintenance')
-        .select('name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+        .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
       const { data: pipeMaintenance } = await client
         .from('man_pipes_maintenance')
@@ -218,7 +218,7 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
 
     const { data: drainMaintenance } = await client
       .from('storm_drains_maintenance')
-      .select('name, last_cleaned_at');
+      .select('in_name, last_cleaned_at');
 
     const { data: pipeMaintenance } = await client
       .from('man_pipes_maintenance')
@@ -373,7 +373,7 @@ export async function getRepairTimeByComponent(): Promise<
 
     const { data: drainMaintenance } = await client
       .from('storm_drains_maintenance')
-      .select('name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
+      .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
     const { data: pipeMaintenance } = await client
       .from('man_pipes_maintenance')
