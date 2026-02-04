@@ -1,12 +1,17 @@
+'use client';
 
-"use client";
+import { createContext, useContext, useState, ReactNode } from 'react';
 
-import { createContext, useContext, useState, ReactNode } from "react";
+interface EventData {
+  eventName: string;
+  summary: string;
+  data: Record<string, unknown>;
+}
 
 interface EventWidgetContextType {
   isOpen: boolean;
-  eventData: any;
-  openWidget: (data: any) => void;
+  eventData: EventData | null;
+  openWidget: (data: EventData) => void;
   closeWidget: () => void;
 }
 
@@ -16,9 +21,9 @@ const EventWidgetContext = createContext<EventWidgetContextType | undefined>(
 
 export function EventWidgetProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [eventData, setEventData] = useState<any>(null);
+  const [eventData, setEventData] = useState<EventData | null>(null);
 
-  const openWidget = (data: any) => {
+  const openWidget = (data: EventData) => {
     setEventData(data);
     setIsOpen(true);
   };
@@ -40,7 +45,9 @@ export function EventWidgetProvider({ children }: { children: ReactNode }) {
 export function useEventWidget() {
   const context = useContext(EventWidgetContext);
   if (context === undefined) {
-    throw new Error("useEventWidget must be used within an EventWidgetProvider");
+    throw new Error(
+      'useEventWidget must be used within an EventWidgetProvider'
+    );
   }
   return context;
 }

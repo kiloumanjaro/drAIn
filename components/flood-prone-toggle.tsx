@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Toggle } from "@/components/ui/toggle";
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Toggle } from '@/components/ui/toggle';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Layers } from "lucide-react";
+} from '@/components/ui/card';
+import { Layers } from 'lucide-react';
 
 interface FloodProneToggleProps {
   floodProneAreas: {
@@ -45,8 +45,8 @@ export function FloodProneToggle({
   };
 
   return (
-    <Card className="flex gap-2 flex-col pb-4">
-      <CardHeader className="flex items-center justify-between pb-0 relative">
+    <Card className="flex flex-col gap-2 pb-4">
+      <CardHeader className="relative flex items-center justify-between pb-0">
         <div className="flex flex-col gap-1.5">
           <CardTitle>Flood Prone Areas</CardTitle>
           <CardDescription className="text-xs">
@@ -61,13 +61,13 @@ export function FloodProneToggle({
           variant="outline"
           size="sm"
           aria-label="Toggle all flood prone areas"
-          className={`ml-auto border transition-colors cursor-pointer duration-300 ${
-            allAreasVisible ? "border-[#3F83DB]" : "border-gray-300"
+          className={`ml-auto cursor-pointer border transition-colors duration-300 ${
+            allAreasVisible ? 'border-[#3F83DB]' : 'border-gray-300'
           }`}
         >
           <Layers
             className={`h-4 w-4 ${
-              allAreasVisible ? "text-[#3F83DB]" : "text-gray-400"
+              allAreasVisible ? 'text-[#3F83DB]' : 'text-gray-400'
             }`}
           />
         </Toggle>
@@ -76,39 +76,28 @@ export function FloodProneToggle({
         {floodProneAreas.map((area) => (
           <div key={area.id}>
             <div
-              className={`
-                flex items-center space-x-3 py-2 rounded-lg
-                transition-all duration-200 ease-in-out group cursor-pointer
-              `}
+              className={`group flex cursor-pointer items-center space-x-3 rounded-lg py-2 transition-all duration-200 ease-in-out`}
               onClick={() => onToggleFloodProneArea(area.id)}
             >
-              <div className="flex items-center gap-2.5 flex-1">
+              <div className="flex flex-1 items-center gap-2.5">
                 <div
-                  className={`
-                    w-3 h-3 rounded-full border-2
-                    transition-all duration-200
-                    ${
-                      area.visible
-                        ? "border-white shadow-md scale-110"
-                        : "border-gray-300"
-                    }
-                  `}
+                  className={`h-3 w-3 rounded-full border-2 transition-all duration-200 ${
+                    area.visible
+                      ? 'scale-110 border-white shadow-md'
+                      : 'border-gray-300'
+                  } `}
                   style={{
                     backgroundColor: area.color,
                     boxShadow: area.visible
                       ? `0 0 8px ${area.color}40`
-                      : "none",
+                      : 'none',
                   }}
                 />
                 <Label
                   htmlFor={area.id}
-                  className={`
-                    text-sm cursor-pointer transition-all duration-200 font-normal
-                    ${
-                      area.visible ? "text-foreground" : "text-muted-foreground"
-                    }
-                    group-hover:text-foreground
-                  `}
+                  className={`cursor-pointer text-sm font-normal transition-all duration-200 ${
+                    area.visible ? 'text-foreground' : 'text-muted-foreground'
+                  } group-hover:text-foreground`}
                 >
                   {area.name}
                 </Label>

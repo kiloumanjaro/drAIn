@@ -24,13 +24,16 @@
 ## Overview
 
 ### Core Concept
+
 **ONE public dashboard page** (`/dashboard`) accessible to everyone (no auth required) that combines:
+
 - Public transparency metrics (Overview tab)
 - Analytics with GeoJSON overlays (Analytics tab)
 - All reports with priority management (All Reports tab)
 - All organized in tabs on a single page
 
 ### Access Control
+
 - **PUBLIC** - No authentication required
 - Everyone can view all data
 - No admin-only sections
@@ -41,6 +44,7 @@
 ## Dashboard Structure
 
 ### Route
+
 - **Path:** `app/dashboard/page.tsx`
 - **Access:** Public (no auth check)
 - **Styling:** Matches existing `/docs` and `/about` pages
@@ -48,9 +52,11 @@
 ### Three Tabs
 
 #### **Tab 1: Overview (Public Transparency)**
+
 Displays basic performance metrics to build trust
 
 **Metrics:**
+
 - **Issues Fixed This Month:** Count of resolved reports in current month
 - **Pending Issues:** Count of pending reports
 - **Average Repair Time:** Days between `created_at` and `last_cleaned_at`
@@ -59,6 +65,7 @@ Displays basic performance metrics to build trust
 - **Repair Time Trend Chart:** Line chart showing avg repair time for last 30 days (Recharts)
 
 **Components:**
+
 - `OverviewTab.tsx` - Main container
 - `StatsCards.tsx` - Display metric cards
 - `RepairTrendChart.tsx` - Recharts line chart
@@ -66,11 +73,13 @@ Displays basic performance metrics to build trust
 ---
 
 #### **Tab 2: Analytics**
+
 Detailed operational analytics visible to all
 
 **Sections:**
 
 **1. Issues Per Zone (GeoJSON Map)**
+
 - Load: `public/additional-overlays/mandaue_population.geojson`
 - Extract zone from report's `address` field
 - Match to barangay names (29 total)
@@ -79,14 +88,16 @@ Detailed operational analytics visible to all
 - Interactive - hover for details
 
 **2. Repair Time By Component Type**
+
 - Metric cards showing average repair days per component:
   - Inlets
   - Outlets
   - Storm Drains
-  - Manhole Pipes
+  - Pipes
 - Calculated: `AVG(last_cleaned_at - created_at)` grouped by component type
 
 **3. Most Common Component Type Problems**
+
 - Pie chart (Recharts)
 - Shows distribution of issues by component type:
   - % Inlets
@@ -96,12 +107,14 @@ Detailed operational analytics visible to all
 - NOT by report category (which is free-text)
 
 **4. Team Performance Metrics**
+
 - Table showing agency performance
 - Columns: Agency Name | Total Issues | Resolved | Average Days
 - Data-driven only (no subjective analysis)
 - Sort by average days or resolved count
 
 **Components:**
+
 - `AnalyticsTab.tsx` - Main container
 - `ZoneMap.tsx` - Mapbox + GeoJSON
 - `ComponentTypeChart.tsx` - Pie chart
@@ -111,9 +124,11 @@ Detailed operational analytics visible to all
 ---
 
 #### **Tab 3: All Reports**
+
 Public list of all drainage reports with priority management
 
 **Features:**
+
 - Display all reports in grid/list layout
 - Show for each report:
   - Report image (existing field)
@@ -126,15 +141,18 @@ Public list of all drainage reports with priority management
   - Completion photos (if resolved)
 
 **Filters:**
+
 - Priority: All, Critical, High, Medium, Low
 - Status: All, Pending, In Progress, Resolved
 - Component Type: All, Inlets, Outlets, Storm Drains, Pipes
 
 **Sorting:**
+
 - Date (newest first)
 - Priority (critical first)
 
 **Components:**
+
 - `ReportsTab.tsx` - Main container
 - `ReportCard.tsx` - Individual report card
 - `ReportFilters.tsx` - Filter UI
@@ -222,6 +240,7 @@ lib/
 ### Component Specifications
 
 #### DashboardTabs.tsx
+
 ```typescript
 interface TabConfig {
   id: string;
@@ -235,6 +254,7 @@ interface TabConfig {
 ```
 
 #### StatsCards.tsx
+
 ```typescript
 interface Metric {
   label: string;
@@ -248,6 +268,7 @@ interface Metric {
 ```
 
 #### RepairTrendChart.tsx
+
 ```typescript
 // Recharts line chart
 // X-axis: Date (last 30 days)
@@ -256,6 +277,7 @@ interface Metric {
 ```
 
 #### ZoneMap.tsx
+
 ```typescript
 // Mapbox GL map
 // Loads mandaue_population.geojson
@@ -265,6 +287,7 @@ interface Metric {
 ```
 
 #### ComponentTypeChart.tsx
+
 ```typescript
 // Recharts pie chart
 // Data: Inlets, Outlets, Storm Drains, Pipes
@@ -272,6 +295,7 @@ interface Metric {
 ```
 
 #### RepairTimeCards.tsx
+
 ```typescript
 // Cards showing average repair days by component type
 // 4 cards: Inlets | Outlets | Storm Drains | Pipes
@@ -279,6 +303,7 @@ interface Metric {
 ```
 
 #### TeamTable.tsx
+
 ```typescript
 // Sortable table
 // Columns: Agency Name | Total | Resolved | Avg Days
@@ -287,6 +312,7 @@ interface Metric {
 ```
 
 #### ReportCard.tsx
+
 ```typescript
 interface ReportDisplay {
   id: string;
@@ -297,7 +323,7 @@ interface ReportDisplay {
   status: 'pending' | 'in-progress' | 'resolved';
   created_at: string;
   description: string;
-  completionPhotos?: string[];  // Completion proof images
+  completionPhotos?: string[]; // Completion proof images
 }
 
 // Grid layout with report details
@@ -305,6 +331,7 @@ interface ReportDisplay {
 ```
 
 #### PriorityBadge.tsx
+
 ```typescript
 // Color-coded badge
 // 🔴 Critical (red-600)
@@ -605,18 +632,18 @@ Report Grid (3 columns):
 
 ### Color Palette
 
-| Element | Color | Tailwind |
-|---------|-------|----------|
-| Background | Light Gray | `bg-[#e8e8e8]/50` |
-| Card | White | `bg-white` |
-| Border | Light Gray | `border-[#ced1cd]` |
-| Critical Priority | Red | `text-red-600` |
-| High Priority | Orange | `text-orange-600` |
-| Medium Priority | Yellow | `text-yellow-600` |
-| Low Priority | Gray | `text-gray-500` |
-| Resolved Status | Green | `text-green-600` |
-| In Progress Status | Blue | `text-blue-600` |
-| Pending Status | Orange | `text-orange-600` |
+| Element            | Color      | Tailwind           |
+| ------------------ | ---------- | ------------------ |
+| Background         | Light Gray | `bg-[#e8e8e8]/50`  |
+| Card               | White      | `bg-white`         |
+| Border             | Light Gray | `border-[#ced1cd]` |
+| Critical Priority  | Red        | `text-red-600`     |
+| High Priority      | Orange     | `text-orange-600`  |
+| Medium Priority    | Yellow     | `text-yellow-600`  |
+| Low Priority       | Gray       | `text-gray-500`    |
+| Resolved Status    | Green      | `text-green-600`   |
+| In Progress Status | Blue       | `text-blue-600`    |
+| Pending Status     | Orange     | `text-orange-600`  |
 
 ---
 
@@ -629,8 +656,9 @@ Based on maintenance tab pattern from `components/control-panel/tabs/maintenance
 ```typescript
 // Get report created_at and maintenance last_cleaned_at
 // Calculate difference in days
-const repairDays = (maintenanceRecord.last_cleaned_at - report.created_at)
-  / (1000 * 60 * 60 * 24);
+const repairDays =
+  (maintenanceRecord.last_cleaned_at - report.created_at) /
+  (1000 * 60 * 60 * 24);
 
 // For average: Sum all repair days, divide by count
 const averageRepairDays = totalRepairDays / resolvedReportCount;
@@ -640,20 +668,40 @@ const averageRepairDays = totalRepairDays / resolvedReportCount;
 
 ```typescript
 const barangays = [
-  "Bakilid", "Centro", "Casuntingan", "Casili", "Canduman",
-  "Cambaro", "Cabancalan", "Cubacub", "Basak", "Banilad",
-  "Alang-alang", "Ibabao", "Jagobiao", "Guizo", "Looc",
-  "Maguikay", "Opao", "Labogon", "Mantuyong", "Pagsabungan",
-  "Pakna-an", "Recle", "Tabok", "Subangdaku", "Tawason",
-  "Tingub", "Tipolo", "Umapad"
+  'Bakilid',
+  'Centro',
+  'Casuntingan',
+  'Casili',
+  'Canduman',
+  'Cambaro',
+  'Cabancalan',
+  'Cubacub',
+  'Basak',
+  'Banilad',
+  'Alang-alang',
+  'Ibabao',
+  'Jagobiao',
+  'Guizo',
+  'Looc',
+  'Maguikay',
+  'Opao',
+  'Labogon',
+  'Mantuyong',
+  'Pagsabungan',
+  'Pakna-an',
+  'Recle',
+  'Tabok',
+  'Subangdaku',
+  'Tawason',
+  'Tingub',
+  'Tipolo',
+  'Umapad',
 ];
 
 function extractZoneFromAddress(address: string): string {
   const lowerAddress = address.toLowerCase();
-  const found = barangays.find(b =>
-    lowerAddress.includes(b.toLowerCase())
-  );
-  return found || "Unknown";
+  const found = barangays.find((b) => lowerAddress.includes(b.toLowerCase()));
+  return found || 'Unknown';
 }
 ```
 
@@ -663,8 +711,9 @@ function extractZoneFromAddress(address: string): string {
 // From component_id, determine type
 // Or from which maintenance table record came from
 
-function getComponentType(componentId: string):
-  'inlets' | 'outlets' | 'storm_drains' | 'man_pipes' {
+function getComponentType(
+  componentId: string
+): 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes' {
   if (componentId.startsWith('inlet')) return 'inlets';
   if (componentId.startsWith('outlet')) return 'outlets';
   if (componentId.startsWith('drain')) return 'storm_drains';
@@ -677,16 +726,16 @@ function getComponentType(componentId: string):
 
 ## Timeline & Effort
 
-| Phase | Task | Hours |
-|-------|------|-------|
-| 1 | Database Setup | 1h |
-| 2 | Page Structure | 2h |
-| 3 | Overview Tab | 3h |
-| 4 | Analytics Tab | 5-6h |
-| 5 | Reports Tab | 3-4h |
-| 6 | Utilities | 1-2h |
-| 7 | Polish | 2h |
-| **Total** | | **17-20h** |
+| Phase     | Task           | Hours      |
+| --------- | -------------- | ---------- |
+| 1         | Database Setup | 1h         |
+| 2         | Page Structure | 2h         |
+| 3         | Overview Tab   | 3h         |
+| 4         | Analytics Tab  | 5-6h       |
+| 5         | Reports Tab    | 3-4h       |
+| 6         | Utilities      | 1-2h       |
+| 7         | Polish         | 2h         |
+| **Total** |                | **17-20h** |
 
 ---
 

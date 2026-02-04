@@ -1,5 +1,5 @@
-import type { NodeParams, LinkParams } from "./tabs/simulation-models/model3";
-import type { Report } from "@/lib/supabase/report";
+import type { NodeParams, LinkParams } from './tabs/simulation-models/model3';
+import type { Report } from '@/lib/supabase/report';
 
 export interface Pipe {
   id: string;
@@ -55,7 +55,7 @@ export interface Drain {
 
 export type DetailItem = Pipe | Inlet | Outlet | Drain;
 
-export type DatasetType = "inlets" | "man_pipes" | "outlets" | "storm_drains";
+export type DatasetType = 'inlets' | 'man_pipes' | 'outlets' | 'storm_drains';
 
 export type SortField = string;
 
@@ -97,7 +97,7 @@ export interface ControlPanelProps {
     visible: boolean;
   }[];
   onToggleOverlay: (id: string) => void;
-  selectedFloodScenario: string,
+  selectedFloodScenario: string;
   onChangeFloodScenario: (id: string) => void;
   // Flood prone areas
   floodProneAreas?: {
@@ -139,7 +139,7 @@ export interface ControlPanelProps {
   pipeParams?: Map<string, LinkParams>;
   onPipeParamsChange?: (params: Map<string, LinkParams>) => void;
   showNodePanel?: boolean;
-  rainfallParams?: RainfallParams,
+  rainfallParams?: RainfallParams;
   onRainfallParamsChange?: (params: RainfallParams) => void;
   onToggleNodePanel?: () => void;
   showLinkPanel?: boolean;
@@ -147,8 +147,8 @@ export interface ControlPanelProps {
   // Shared handler for opening node simulation slideshow
   onOpenNodeSimulation?: (nodeId: string) => void;
   // Admin tab state
-  activeAdminTab?: "maintenance" | "reports";
-  onAdminTabChange?: (tab: "maintenance" | "reports") => void;
+  activeAdminTab?: 'maintenance' | 'reports';
+  onAdminTabChange?: (tab: 'maintenance' | 'reports') => void;
   allReportsData: Report[]; // Added for comprehensive report history
   onClosePopUps?: () => void;
   // Rain effect control

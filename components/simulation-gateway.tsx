@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "./ui/button";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from './ui/button';
 import {
   Empty,
   EmptyHeader,
@@ -10,15 +10,15 @@ import {
   EmptyTitle,
   EmptyDescription,
   EmptyContent,
-} from "@/components/ui/empty";
+} from '@/components/ui/empty';
 import {
   IconPlayerPlayFilled,
   IconPlayerPauseFilled,
-} from "@tabler/icons-react";
-import { Play } from "lucide-react";
-import { IconCloud } from "@tabler/icons-react";
-import { Spinner } from "@/components/ui/spinner";
-import { useSidebar } from "@/components/ui/sidebar";
+} from '@tabler/icons-react';
+import { Play } from 'lucide-react';
+import { IconCloud } from '@tabler/icons-react';
+import { Spinner } from '@/components/ui/spinner';
+import { useSidebar } from '@/components/ui/sidebar';
 
 export function SimulationGateway() {
   const router = useRouter();
@@ -38,18 +38,18 @@ export function SimulationGateway() {
 
     // Navigate after a delay to ensure sidebar closes
     setTimeout(() => {
-      router.push("/simulation?active=true");
+      router.push('/simulation?active=true');
     }, 200);
   };
 
   return (
-    <Empty className="h-5/6 flex gap-8">
+    <Empty className="flex h-5/6 gap-8">
       <EmptyHeader>
-        <EmptyMedia variant="icon" className="!size-13 border border-input">
+        <EmptyMedia variant="icon" className="border-input !size-13 border">
           {isLoading ? (
-            <Spinner className="w-6 h-6" />
+            <Spinner className="h-6 w-6" />
           ) : (
-            <IconCloud className="w-16 h-16" />
+            <IconCloud className="h-16 w-16" />
           )}
         </EmptyMedia>
         <EmptyTitle>Simulation Mode</EmptyTitle>
@@ -63,12 +63,12 @@ export function SimulationGateway() {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           disabled={isLoading}
-          className="flex w-32 h-10 justify-center"
+          className="flex h-10 w-32 justify-center"
         >
           {isLoading ? (
-            <IconPlayerPauseFilled className="w-4 h-4" />
+            <IconPlayerPauseFilled className="h-4 w-4" />
           ) : isHovered ? (
-            <IconPlayerPlayFilled className="w-4 h-4" />
+            <IconPlayerPlayFilled className="h-4 w-4" />
           ) : (
             <Play />
           )}

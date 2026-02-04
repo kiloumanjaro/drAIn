@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useSidebar } from "@/components/ui/sidebar";
-import { useNavigationLoading } from "@/components/context/NavigationLoadingProvider";
+import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSidebar } from '@/components/ui/sidebar';
+import { useNavigationLoading } from '@/components/context/NavigationLoadingProvider';
 
 export function usePageTransition() {
   const router = useRouter();
   const { setOpen, isMobile, setOpenMobile } = useSidebar();
-  const { isNavigating, destination, setNavigationState } = useNavigationLoading();
+  const { isNavigating, destination, setNavigationState } =
+    useNavigationLoading();
 
   const navigateTo = useCallback(
     (url: string) => {

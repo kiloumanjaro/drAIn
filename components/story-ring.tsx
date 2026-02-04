@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface StoryRingAvatarProps {
   src: string;
   alt: string;
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
   isSignedIn?: boolean;
 }
@@ -16,7 +16,7 @@ interface StoryRingAvatarProps {
 export function StoryRingAvatar({
   src,
   alt,
-  size = "md",
+  size = 'md',
   className,
   isSignedIn = false,
 }: StoryRingAvatarProps) {
@@ -24,15 +24,15 @@ export function StoryRingAvatar({
   const [_isHovered, _setIsHovered] = useState(false);
 
   const sizeClasses = {
-    sm: "w-10 h-10",
-    md: "w-14 h-14",
-    lg: "w-20 h-20",
+    sm: 'w-10 h-10',
+    md: 'w-14 h-14',
+    lg: 'w-20 h-20',
   };
 
   const innerSizeClasses = {
-    sm: "w-[34px] h-[34px]",
-    md: "w-[50px] h-[50px]",
-    lg: "w-[74px] h-[74px]",
+    sm: 'w-[34px] h-[34px]',
+    md: 'w-[50px] h-[50px]',
+    lg: 'w-[74px] h-[74px]',
   };
 
   return (
@@ -40,27 +40,27 @@ export function StoryRingAvatar({
       {/* Facebook-inspired blue gradient ring */}
       <div
         className={cn(
-          "relative rounded-full p-[3px] cursor-pointer",
-          "bg-gradient-to-tr from-[#0866ff] via-[#0a7cff] via-[#2d88ff] to-[#5ba3ff]",
-          "animate-in zoom-in-50 duration-500 ease-out",
-          "hover:scale-110 hover:rotate-[5deg]",
-          "transition-all duration-300",
+          'relative cursor-pointer rounded-full p-[3px]',
+          'bg-gradient-to-tr from-[#0866ff] via-[#0a7cff] via-[#2d88ff] to-[#5ba3ff]',
+          'animate-in zoom-in-50 duration-500 ease-out',
+          'hover:scale-110 hover:rotate-[5deg]',
+          'transition-all duration-300',
           sizeClasses[size],
           className
         )}
         onClick={() =>
-          router.push(isSignedIn ? "/map?activetab=profile" : "/login")
+          router.push(isSignedIn ? '/map?activetab=profile' : '/login')
         }
       >
         {/* Avatar container */}
         <div
           className={cn(
-            "relative rounded-full bg-[#f2f2f2] overflow-hidden ",
+            'relative overflow-hidden rounded-full bg-[#f2f2f2]',
             innerSizeClasses[size]
           )}
         >
           <Image
-            src={src || "/placeholder.svg"}
+            src={src || '/placeholder.svg'}
             alt={alt}
             fill
             className="object-cover"

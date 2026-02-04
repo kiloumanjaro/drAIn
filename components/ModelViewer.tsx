@@ -7,14 +7,14 @@ import {
   useLayoutEffect,
   useEffect,
   useMemo,
-} from "react";
+} from 'react';
 import {
   Canvas,
   useFrame,
   useLoader,
   useThree,
   invalidate,
-} from "@react-three/fiber";
+} from '@react-three/fiber';
 import {
   OrbitControls,
   useGLTF,
@@ -23,9 +23,9 @@ import {
   Html,
   Environment,
   ContactShadows,
-} from "@react-three/drei";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-import * as THREE from "three";
+} from '@react-three/drei';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import * as THREE from 'three';
 
 export interface ViewerProps {
   url: string;
@@ -47,15 +47,15 @@ export interface ViewerProps {
   fillLightIntensity?: number;
   rimLightIntensity?: number;
   environmentPreset?:
-    | "city"
-    | "sunset"
-    | "night"
-    | "dawn"
-    | "studio"
-    | "apartment"
-    | "forest"
-    | "park"
-    | "none";
+    | 'city'
+    | 'sunset'
+    | 'night'
+    | 'dawn'
+    | 'studio'
+    | 'apartment'
+    | 'forest'
+    | 'park'
+    | 'none';
   autoFrame?: boolean;
   placeholderSrc?: string;
   showScreenshotButton?: boolean;
@@ -66,8 +66,8 @@ export interface ViewerProps {
 }
 
 const isTouch =
-  typeof window !== "undefined" &&
-  ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  typeof window !== 'undefined' &&
+  ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 const deg2rad = (d: number) => (d * Math.PI) / 180;
 const DECIDE = 8; // px before we decide horizontal vs vertical
 const ROTATE_SPEED = 0.005;
@@ -87,7 +87,7 @@ const Loader: FC<{ placeholderSrc?: string }> = ({ placeholderSrc }) => {
           src={placeholderSrc}
           width={128}
           height={128}
-          className="blur-lg rounded-lg"
+          className="rounded-lg blur-lg"
         />
       ) : (
         `${Math.round(progress)} %`
@@ -168,12 +168,12 @@ const ModelInner: FC<ModelInnerProps> = ({
   const tHov = useRef({ x: 0, y: 0 });
   const cHov = useRef({ x: 0, y: 0 });
 
-  const ext = useMemo(() => url.split(".").pop()!.toLowerCase(), [url]);
+  const ext = useMemo(() => url.split('.').pop()!.toLowerCase(), [url]);
   const content = useMemo<THREE.Object3D | null>(() => {
-    if (ext === "glb" || ext === "gltf") return useGLTF(url).scene.clone();
-    if (ext === "fbx") return useFBX(url).clone();
-    if (ext === "obj") return useLoader(OBJLoader, url).clone();
-    console.error("Unsupported format:", ext);
+    if (ext === 'glb' || ext === 'gltf') return useGLTF(url).scene.clone();
+    if (ext === 'fbx') return useFBX(url).clone();
+    if (ext === 'obj') return useLoader(OBJLoader, url).clone();
+    console.error('Unsupported format:', ext);
     return null;
   }, [url, ext]);
 
@@ -245,11 +245,11 @@ const ModelInner: FC<ModelInnerProps> = ({
     let lx = 0,
       ly = 0;
     const down = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
       drag = true;
       lx = e.clientX;
       ly = e.clientY;
-      window.addEventListener("pointerup", up);
+      window.addEventListener('pointerup', up);
     };
     const move = (e: PointerEvent) => {
       if (!drag) return;
@@ -263,12 +263,12 @@ const ModelInner: FC<ModelInnerProps> = ({
       invalidate();
     };
     const up = () => (drag = false);
-    el.addEventListener("pointerdown", down);
-    el.addEventListener("pointermove", move);
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', move);
     return () => {
-      el.removeEventListener("pointerdown", down);
-      el.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
     };
   }, [gl, enableManualRotation]);
 
@@ -276,8 +276,8 @@ const ModelInner: FC<ModelInnerProps> = ({
     if (!isTouch) return;
     const el = gl.domElement;
     const pts = new Map<number, { x: number; y: number }>();
-    type Mode = "idle" | "decide" | "rotate" | "pinch";
-    let mode: Mode = "idle";
+    type Mode = 'idle' | 'decide' | 'rotate' | 'pinch';
+    let mode: Mode = 'idle';
     let sx = 0,
       sy = 0,
       lx = 0,
@@ -286,14 +286,14 @@ const ModelInner: FC<ModelInnerProps> = ({
       startZ = 0;
 
     const down = (e: PointerEvent) => {
-      if (e.pointerType !== "touch") return;
+      if (e.pointerType !== 'touch') return;
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pts.size === 1) {
-        mode = "decide";
+        mode = 'decide';
         sx = lx = e.clientX;
         sy = ly = e.clientY;
       } else if (pts.size === 2 && enableManualZoom) {
-        mode = "pinch";
+        mode = 'pinch';
         const [p1, p2] = [...pts.values()];
         startDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
         startZ = camera.position.z;
@@ -308,21 +308,21 @@ const ModelInner: FC<ModelInnerProps> = ({
       p.x = e.clientX;
       p.y = e.clientY;
 
-      if (mode === "decide") {
+      if (mode === 'decide') {
         const dx = e.clientX - sx;
         const dy = e.clientY - sy;
         if (Math.abs(dx) > DECIDE || Math.abs(dy) > DECIDE) {
           if (enableManualRotation && Math.abs(dx) > Math.abs(dy)) {
-            mode = "rotate";
+            mode = 'rotate';
             el.setPointerCapture(e.pointerId);
           } else {
-            mode = "idle";
+            mode = 'idle';
             pts.clear();
           }
         }
       }
 
-      if (mode === "rotate") {
+      if (mode === 'rotate') {
         e.preventDefault();
         const dx = e.clientX - lx;
         const dy = e.clientY - ly;
@@ -332,7 +332,7 @@ const ModelInner: FC<ModelInnerProps> = ({
         outer.current.rotation.x += dy * ROTATE_SPEED;
         vel.current = { x: dx * ROTATE_SPEED, y: dy * ROTATE_SPEED };
         invalidate();
-      } else if (mode === "pinch" && pts.size === 2) {
+      } else if (mode === 'pinch' && pts.size === 2) {
         e.preventDefault();
         const [p1, p2] = [...pts.values()];
         const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
@@ -348,26 +348,26 @@ const ModelInner: FC<ModelInnerProps> = ({
 
     const up = (e: PointerEvent) => {
       pts.delete(e.pointerId);
-      if (mode === "rotate" && pts.size === 0) mode = "idle";
-      if (mode === "pinch" && pts.size < 2) mode = "idle";
+      if (mode === 'rotate' && pts.size === 0) mode = 'idle';
+      if (mode === 'pinch' && pts.size < 2) mode = 'idle';
     };
 
-    el.addEventListener("pointerdown", down, { passive: true });
-    window.addEventListener("pointermove", move, { passive: false });
-    window.addEventListener("pointerup", up, { passive: true });
-    window.addEventListener("pointercancel", up, { passive: true });
+    el.addEventListener('pointerdown', down, { passive: true });
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up, { passive: true });
+    window.addEventListener('pointercancel', up, { passive: true });
     return () => {
-      el.removeEventListener("pointerdown", down);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      el.removeEventListener('pointerdown', down);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
     };
   }, [gl, enableManualRotation, enableManualZoom, minZoom, maxZoom]);
 
   useEffect(() => {
     if (isTouch) return;
     const mm = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
+      if (e.pointerType !== 'mouse') return;
       const nx = (e.clientX / window.innerWidth) * 2 - 1;
       const ny = (e.clientY / window.innerHeight) * 2 - 1;
       if (enableMouseParallax)
@@ -376,8 +376,8 @@ const ModelInner: FC<ModelInnerProps> = ({
         tHov.current = { x: ny * HOVER_MAG, y: nx * HOVER_MAG };
       invalidate();
     };
-    window.addEventListener("pointermove", mm);
-    return () => window.removeEventListener("pointermove", mm);
+    window.addEventListener('pointermove', mm);
+    return () => window.removeEventListener('pointermove', mm);
   }, [enableMouseParallax, enableHoverRotation]);
 
   useFrame((_, dt) => {
@@ -449,7 +449,7 @@ const ModelViewer: FC<ViewerProps> = ({
   keyLightIntensity = 1,
   fillLightIntensity = 0.5,
   rimLightIntensity = 0.8,
-  environmentPreset = "forest",
+  environmentPreset = 'forest',
   autoFrame = false,
   placeholderSrc,
   showScreenshotButton = true,
@@ -480,16 +480,16 @@ const ModelViewer: FC<ViewerProps> = ({
     g.shadowMap.enabled = false;
     const tmp: { l: THREE.Light; cast: boolean }[] = [];
     s.traverse((o: any) => {
-      if (o.isLight && "castShadow" in o) {
+      if (o.isLight && 'castShadow' in o) {
         tmp.push({ l: o, cast: o.castShadow });
         o.castShadow = false;
       }
     });
     if (contactRef.current) contactRef.current.visible = false;
     g.render(s, c);
-    const urlPNG = g.domElement.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.download = "model.png";
+    const urlPNG = g.domElement.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.download = 'model.png';
     a.href = urlPNG;
     a.click();
     g.shadowMap.enabled = true;
@@ -503,14 +503,14 @@ const ModelViewer: FC<ViewerProps> = ({
       style={{
         width,
         height,
-        touchAction: "pan-y pinch-zoom",
+        touchAction: 'pan-y pinch-zoom',
       }}
       className="relative"
     >
       {showScreenshotButton && (
         <button
           onClick={capture}
-          className="absolute top-4 right-4 z-10 cursor-pointer px-4 py-2 border border-white rounded-xl bg-transparent text-white hover:bg-white hover:text-black transition-colors"
+          className="absolute top-4 right-4 z-10 cursor-pointer rounded-xl border border-white bg-transparent px-4 py-2 text-white transition-colors hover:bg-white hover:text-black"
         >
           Take Screenshot
         </button>
@@ -528,9 +528,9 @@ const ModelViewer: FC<ViewerProps> = ({
           gl.outputColorSpace = THREE.SRGBColorSpace;
         }}
         camera={{ fov: 50, position: [0, 0, camZ], near: 0.01, far: 100 }}
-        style={{ touchAction: "pan-y pinch-zoom" }}
+        style={{ touchAction: 'pan-y pinch-zoom' }}
       >
-        {environmentPreset !== "none" && (
+        {environmentPreset !== 'none' && (
           <Environment preset={environmentPreset as any} background={false} />
         )}
 

@@ -1,8 +1,13 @@
-"use client";
+'use client';
 
-import { LoadingScreen } from "@/components/loading-screen";
-import { useNavigationLoading } from "@/components/context/NavigationLoadingProvider";
-import { IconMap, IconFlask, IconBook, IconInfoCircle } from "@tabler/icons-react";
+import { LoadingScreen } from '@/components/loading-screen';
+import { useNavigationLoading } from '@/components/context/NavigationLoadingProvider';
+import {
+  IconMap,
+  IconFlask,
+  IconBook,
+  IconInfoCircle,
+} from '@tabler/icons-react';
 
 // Page-specific loading configurations
 const loadingConfig: Record<
@@ -13,53 +18,53 @@ const loadingConfig: Record<
     icon: React.ReactNode;
   }
 > = {
-  "/map": {
-    title: "Loading Map",
+  '/map': {
+    title: 'Loading Map',
     messages: [
-      "Loading interactive map...",
-      "Initializing 3D terrain...",
-      "Fetching drainage data...",
-      "Loading report markers...",
+      'Loading interactive map...',
+      'Initializing 3D terrain...',
+      'Fetching drainage data...',
+      'Loading report markers...',
     ],
     icon: <IconMap className="h-4 w-4 text-white" />,
   },
-  "/simulation": {
-    title: "Entering Simulation",
+  '/simulation': {
+    title: 'Entering Simulation',
     messages: [
-      "Entering simulation mode...",
-      "Loading vulnerability models...",
-      "Preparing analysis tools...",
-      "Initializing parameters...",
+      'Entering simulation mode...',
+      'Loading vulnerability models...',
+      'Preparing analysis tools...',
+      'Initializing parameters...',
     ],
     icon: <IconFlask className="h-4 w-4 text-white" />,
   },
-  "/docs": {
-    title: "Loading Documentation",
+  '/docs': {
+    title: 'Loading Documentation',
     messages: [
-      "Loading documentation...",
-      "Fetching guides and resources...",
-      "Preparing content...",
-      "Almost ready...",
+      'Loading documentation...',
+      'Fetching guides and resources...',
+      'Preparing content...',
+      'Almost ready...',
     ],
     icon: <IconBook className="h-4 w-4 text-white" />,
   },
-  "/about": {
-    title: "Loading About",
+  '/about': {
+    title: 'Loading About',
     messages: [
-      "Loading about page...",
-      "Fetching project information...",
-      "Preparing content...",
-      "Almost there...",
+      'Loading about page...',
+      'Fetching project information...',
+      'Preparing content...',
+      'Almost there...',
     ],
     icon: <IconInfoCircle className="h-4 w-4 text-white" />,
   },
-  "/": {
-    title: "Loading Home",
+  '/': {
+    title: 'Loading Home',
     messages: [
-      "Returning to home...",
-      "Loading dashboard...",
-      "Preparing interface...",
-      "Almost ready...",
+      'Returning to home...',
+      'Loading dashboard...',
+      'Preparing interface...',
+      'Almost ready...',
     ],
     icon: <IconInfoCircle className="h-4 w-4 text-white" />,
   },
@@ -73,16 +78,12 @@ export function NavigationLoadingOverlay() {
   }
 
   // Get the base path without query parameters
-  const basePath = destination.split("?")[0];
+  const basePath = destination.split('?')[0];
 
   // Get loading config for the destination, or use default
   const config = loadingConfig[basePath] || {
-    title: "Loading",
-    messages: [
-      "Loading page...",
-      "Preparing content...",
-      "Almost ready...",
-    ],
+    title: 'Loading',
+    messages: ['Loading page...', 'Preparing content...', 'Almost ready...'],
     icon: <IconInfoCircle className="h-4 w-4 text-white" />,
   };
 

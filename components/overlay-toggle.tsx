@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Switch } from "@/components/ui/switch";
+import { Switch } from '@/components/ui/switch';
 
 interface OverlayToggleProps {
   overlaysVisible: boolean;

@@ -348,8 +348,8 @@ export function buildPrompt(
 ): string {
   const historyContext =
     conversationHistory.length > 0
-      ? `\n\nPrevious conversation:\n${conversationHistory.join("\n")}\n`
-      : "";
+      ? `\n\nPrevious conversation:\n${conversationHistory.join('\n')}\n`
+      : '';
 
   return `${SYSTEM_PROMPT}
 

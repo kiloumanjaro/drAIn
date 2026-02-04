@@ -1,16 +1,19 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 interface NavigationLoadingContextType {
   isNavigating: boolean;
   destination: string | null;
-  setNavigationState: (isNavigating: boolean, destination: string | null) => void;
+  setNavigationState: (
+    isNavigating: boolean,
+    destination: string | null
+  ) => void;
 }
 
-const NavigationLoadingContext = createContext<NavigationLoadingContextType | undefined>(
-  undefined
-);
+const NavigationLoadingContext = createContext<
+  NavigationLoadingContextType | undefined
+>(undefined);
 
 export function NavigationLoadingProvider({
   children,
@@ -41,7 +44,7 @@ export function useNavigationLoading() {
   const context = useContext(NavigationLoadingContext);
   if (context === undefined) {
     throw new Error(
-      "useNavigationLoading must be used within a NavigationLoadingProvider"
+      'useNavigationLoading must be used within a NavigationLoadingProvider'
     );
   }
   return context;

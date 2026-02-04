@@ -1,12 +1,15 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { SimulationGateway } from "@/components/simulation-gateway";
-import { ModelSelector, type ModelType } from "./model-selector";
-import Model2 from "./simulation-models/model2";
-import Model3, { type NodeParams, type LinkParams } from "./simulation-models/model3";
-import type { Inlet, Outlet, Pipe, Drain } from "../types";
+import React, { useState, useEffect } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { SimulationGateway } from '@/components/simulation-gateway';
+import { ModelSelector, type ModelType } from './model-selector';
+import Model2 from './simulation-models/model2';
+import Model3, {
+  type NodeParams,
+  type LinkParams,
+} from './simulation-models/model3';
+import type { Inlet, Outlet, Pipe, Drain } from '../types';
 
 interface RainfallParams {
   total_precip: number;
@@ -50,7 +53,7 @@ interface SimulationsContentProps {
   onComponentParamsChange?: (params: Map<string, NodeParams>) => void;
   pipeParams?: Map<string, LinkParams>;
   onPipeParamsChange?: (params: Map<string, LinkParams>) => void;
-  rainfallParams: RainfallParams,
+  rainfallParams: RainfallParams;
   onRainfallParamsChange: (params: RainfallParams) => void;
   showNodePanel?: boolean;
   onToggleNodePanel?: () => void;
@@ -109,11 +112,11 @@ export default function SimulationsContent({
 
   // helper to update the simModel query param while preserving other params
   const updateSimModelParam = (model: ModelType | null) => {
-    const params = new URLSearchParams(searchParams?.toString() || "");
+    const params = new URLSearchParams(searchParams?.toString() || '');
     if (model) {
-      params.set("simModel", model);
+      params.set('simModel', model);
     } else {
-      params.delete("simModel");
+      params.delete('simModel');
     }
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
@@ -121,7 +124,7 @@ export default function SimulationsContent({
 
   // Sync local selectedModel with simModel query param so external clears work
   useEffect(() => {
-    const sm = searchParams?.get("simModel");
+    const sm = searchParams?.get('simModel');
     setSelectedModel(() => {
       // Avoid unnecessary state updates if same
       return sm ? (sm as ModelType) : null;
@@ -145,8 +148,8 @@ export default function SimulationsContent({
     // ModelSelector should be implemented as a column (flex flex-col) and put the confirm button
     // with `mt-auto` (or absolute bottom within a relative parent) so it appears at the bottom.
     return (
-      <div className="flex flex-col flex-1 min-h-0 h-full">
-        <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <ModelSelector onModelSelect={handleModelSelect} />
         </div>
         {/* Optional: if you want a confirm button outside ModelSelector, place it here and use mt-auto on the inner area.
@@ -207,9 +210,9 @@ export default function SimulationsContent({
     };
 
     switch (selectedModel) {
-      case "model2":
+      case 'model2':
         return <Model2 {...model2Props} />;
-      case "model3":
+      case 'model3':
         return <Model3 {...model3Props} />;
       default:
         return null;
@@ -217,7 +220,7 @@ export default function SimulationsContent({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       {/* Render Selected Model */}
       {renderModel()}
     </div>

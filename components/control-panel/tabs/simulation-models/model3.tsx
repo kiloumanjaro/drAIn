@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
+import React, { useState, useEffect } from 'react';
+import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { MultiSelect } from "@/components/ui/multi-select";
+} from '@/components/ui/tooltip';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   AlertCircle,
   RotateCcw,
@@ -22,14 +22,14 @@ import {
   Minimize2,
   Maximize2,
   CloudRain,
-} from "lucide-react";
-import { IconInfoCircleFilled } from "@tabler/icons-react";
-import { LoadingScreen } from "@/components/loading-screen";
-import { useInlets } from "@/hooks/useInlets";
-import { useDrain } from "@/hooks/useDrain";
-import { usePipes } from "@/hooks/usePipes";
-import { toast } from "sonner";
-import type { Inlet, Outlet, Pipe, Drain } from "../../types";
+} from 'lucide-react';
+import { IconInfoCircleFilled } from '@tabler/icons-react';
+import { LoadingScreen } from '@/components/loading-screen';
+import { useInlets } from '@/hooks/useInlets';
+import { useDrain } from '@/hooks/useDrain';
+import { usePipes } from '@/hooks/usePipes';
+import { toast } from 'sonner';
+import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 
 export interface NodeParams {
   inv_elev: number;
@@ -231,8 +231,8 @@ export default function Model3({
 
   const handleGenerateTableClick = () => {
     if (selectedComponentIds.length === 0) {
-      setError("Please select at least one component (inlet or drain)");
-      toast.error("Please select at least one component");
+      setError('Please select at least one component (inlet or drain)');
+      toast.error('Please select at least one component');
       return;
     }
 
@@ -255,17 +255,17 @@ export default function Model3({
       <LoadingScreen
         title="Running SWMM Simulation"
         messages={[
-          "Running SWMM simulation...",
-          "Processing node parameters...",
-          "Checking infrastructure health...",
-          "Generating vulnerability results...",
+          'Running SWMM simulation...',
+          'Processing node parameters...',
+          'Checking infrastructure health...',
+          'Generating vulnerability results...',
         ]}
         isLoading={isLoadingTable}
         position="bottom-right"
       />
 
-      <div className="flex flex-col flex-1 pt-3 pb-5 pl-5 pr-4 space-y-4">
-        <CardHeader className="py-0 px-1 mb-6">
+      <div className="flex flex-1 flex-col space-y-4 pt-3 pr-4 pb-5 pl-5">
+        <CardHeader className="mb-6 px-1 py-0">
           <CardTitle>Infrastructure Health Model</CardTitle>
           <CardDescription className="text-xs">
             Assess structural integrity and maintenance requirements using SWMM
@@ -277,14 +277,14 @@ export default function Model3({
           {/* Component Multi-Select with Gear Button */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-base">Component Selection</h1>
+              <h1 className="font-base text-sm">Component Selection</h1>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Select multiple inlets or drains to include in the
                       simulation
                     </p>
@@ -318,7 +318,7 @@ export default function Model3({
                 size="icon"
                 onClick={onToggleNodePanel}
                 disabled={selectedComponentIds.length === 0}
-                className={showNodePanel ? "bg-muted" : ""}
+                className={showNodePanel ? 'bg-muted' : ''}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -326,16 +326,16 @@ export default function Model3({
           </div>
 
           {/* Pipe Multi-Select with Gear Button */}
-          <div className="space-y-2 mb-2">
+          <div className="mb-2 space-y-2">
             <div className="flex items-center gap-1.5">
               <h1 className="text-sm">Pipe Selection (Optional)</h1>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Select pipes to include link parameters in the simulation
                     </p>
                   </TooltipContent>
@@ -362,7 +362,7 @@ export default function Model3({
                 size="icon"
                 onClick={onToggleLinkPanel}
                 disabled={selectedPipeIds.length === 0}
-                className={showLinkPanel ? "bg-muted" : ""}
+                className={showLinkPanel ? 'bg-muted' : ''}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -372,14 +372,14 @@ export default function Model3({
           {/* Rainfall Parameters */}
           <div className="space-y-4 px-1">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm ">Rainfall Parameters</h1>
+              <h1 className="text-sm">Rainfall Parameters</h1>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Configure rainfall event parameters for the simulation
                     </p>
                   </TooltipContent>
@@ -389,11 +389,11 @@ export default function Model3({
 
             {/* Total Precipitation */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="font-normal text-sm">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">
                   Total Precipitation
                 </Label>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   {rainfallParams.total_precip.toFixed(0)} mm
                 </span>
               </div>
@@ -410,7 +410,7 @@ export default function Model3({
                 step={5}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex justify-between text-xs">
                 <span>0 mm</span>
                 <span>300 mm</span>
               </div>
@@ -418,9 +418,9 @@ export default function Model3({
 
             {/* Duration */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <Label className="font-normal text-sm">Duration</Label>
-                <span className="text-xs text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Duration</Label>
+                <span className="text-muted-foreground text-xs">
                   {rainfallParams.duration_hr.toFixed(1)} hr
                 </span>
               </div>
@@ -437,7 +437,7 @@ export default function Model3({
                 step={0.5}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex justify-between text-xs">
                 <span>0.5 hr</span>
                 <span>24 hr</span>
               </div>
@@ -447,16 +447,16 @@ export default function Model3({
           {/* Rain Effect Toggle */}
           {onToggleRain && (
             <div
-              className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 bg-muted/20 ${
-                !hasTable ? "opacity-50" : ""
+              className={`border-border/40 bg-muted/20 flex items-center justify-between rounded-lg border px-3 py-2 ${
+                !hasTable ? 'opacity-50' : ''
               }`}
             >
               <div className="flex items-center gap-2">
-                <CloudRain className="h-4 w-4 text-muted-foreground" />
+                <CloudRain className="text-muted-foreground h-4 w-4" />
                 <Label
                   htmlFor="rain-toggle-model3"
                   className={`text-sm font-normal ${
-                    hasTable ? "cursor-pointer" : "cursor-not-allowed"
+                    hasTable ? 'cursor-pointer' : 'cursor-not-allowed'
                   }`}
                 >
                   Rain Effect
@@ -464,13 +464,13 @@ export default function Model3({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <IconInfoCircleFilled className="w-3.5 h-3.5 text-[#8D8D8D]/50 hover:text-[#8D8D8D] cursor-help" />
+                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs max-w-xs">
+                      <p className="max-w-xs text-xs">
                         {hasTable
-                          ? "Toggle rainfall visualization effect (intensity based on precipitation)"
-                          : "Generate table first to enable rain effect"}
+                          ? 'Toggle rainfall visualization effect (intensity based on precipitation)'
+                          : 'Generate table first to enable rain effect'}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -508,7 +508,7 @@ export default function Model3({
                   Loading Data...
                 </>
               ) : (
-                "Generate Table on Map"
+                'Generate Table on Map'
               )}
             </Button>
 
@@ -528,7 +528,7 @@ export default function Model3({
                 onClick={() => onToggleMinimize()}
                 disabled={isLoadingTable || !hasTable}
                 className="flex-none"
-                aria-label={isTableMinimized ? "Show table" : "Hide table"}
+                aria-label={isTableMinimized ? 'Show table' : 'Hide table'}
               >
                 {isTableMinimized ? (
                   <Maximize2 className="h-4 w-4" />
@@ -539,7 +539,7 @@ export default function Model3({
             )}
           </div>
 
-          <p className="text-[10px] text-muted-foreground mt-3">
+          <p className="text-muted-foreground mt-3 text-[10px]">
             The vulnerability data table will appear on the map and can be
             sorted and dragged to reposition.
           </p>

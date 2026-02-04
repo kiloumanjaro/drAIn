@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { createContext, useState, useEffect, useContext } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import client from "@/app/api/client";
-import { getProfile, Profile } from "@/lib/supabase/profile";
+import { createContext, useState, useEffect, useContext } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import client from '@/app/api/client';
+import { getProfile, Profile } from '@/lib/supabase/profile';
 
 type AuthContextType = {
   user: User | null;
@@ -22,7 +22,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-
   useEffect(() => {
     const fetchAuthData = async () => {
       setLoading(true);
@@ -32,7 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } = await client.auth.getSession();
 
       if (error) {
-        console.error("Error fetching session:", error.message);
+        console.error('Error fetching session:', error.message);
         setLoading(false);
         return;
       }
@@ -82,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

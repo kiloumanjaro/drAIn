@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ChevronsUpDown,
   LogOut,
@@ -11,10 +11,10 @@ import {
   Github,
   LogIn,
   UserPlus,
-} from "lucide-react";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,13 +23,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 
 export function NavUser({
   user,
@@ -44,28 +44,28 @@ export function NavUser({
 }) {
   const router = useRouter();
   const { isMobile, state } = useSidebar();
-  const isGuest = user.name === "Guest" || user.email === "Not logged in";
+  const isGuest = user.name === 'Guest' || user.email === 'Not logged in';
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const handleNotificationToggle = () => {
     const newState = !notificationsEnabled;
     setNotificationsEnabled(newState);
     if (newState) {
-      toast.success("Notifications turned on");
+      toast.success('Notifications turned on');
     } else {
-      toast.info("Notifications turned off");
+      toast.info('Notifications turned off');
     }
   };
 
   return (
-    <SidebarMenu className="bg-[#fafafa] border border-[#dbdbdb] rounded-md p-1">
+    <SidebarMenu className="rounded-md border border-[#dbdbdb] bg-[#fafafa] p-1">
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
-              tooltip={state === "collapsed" ? user.name : undefined}
+              tooltip={state === 'collapsed' ? user.name : undefined}
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
@@ -82,7 +82,7 @@ export function NavUser({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
@@ -106,11 +106,11 @@ export function NavUser({
               // Guest user menu items
               <>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => router.push("/login")}>
+                  <DropdownMenuItem onClick={() => router.push('/login')}>
                     <LogIn />
                     Log in
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/signup")}>
+                  <DropdownMenuItem onClick={() => router.push('/signup')}>
                     <UserPlus />
                     Sign up
                   </DropdownMenuItem>
@@ -120,8 +120,8 @@ export function NavUser({
                   <DropdownMenuItem
                     onClick={() =>
                       window.open(
-                        "https://github.com/eliseoalcaraz/pjdsc",
-                        "_blank"
+                        'https://github.com/eliseoalcaraz/pjdsc',
+                        '_blank'
                       )
                     }
                   >
@@ -135,7 +135,7 @@ export function NavUser({
               <>
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onClick={() => router.push("/map?activetab=profile")}
+                    onClick={() => router.push('/map?activetab=profile')}
                   >
                     <User />
                     Account

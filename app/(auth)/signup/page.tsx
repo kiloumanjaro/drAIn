@@ -1,18 +1,19 @@
-import SignUpForm from "@/components/auth/sign-up-form";
-import Link from "next/link";
-
+import SignUpForm from '@/components/auth/sign-up-form';
+import Link from 'next/link';
 
 export default function SignUpPage() {
   return (
-    <main className="flex w-screen h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-6 bg-white rounded-2xl shadow">
-        <h1 className="text-2xl font-bold mb-4 text-center">Create an Account</h1>
+    <main className="flex h-screen w-screen items-center justify-center bg-gray-100">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow">
+        <h1 className="mb-4 text-center text-2xl font-bold">
+          Create an Account
+        </h1>
         <SignUpForm />
         <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link
             href="/login"
-            className="text-blue-600 hover:underline font-medium"
+            className="font-medium text-blue-600 hover:underline"
           >
             Log in
           </Link>

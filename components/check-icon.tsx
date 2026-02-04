@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface CheckIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
@@ -12,7 +12,7 @@ export function CheckIcon({ className, ...props }: CheckIconProps) {
       viewBox="0 0 24 24"
       strokeWidth={1.5}
       stroke="currentColor"
-      className={cn("size-6", className)}
+      className={cn('size-6', className)}
       {...props}
     >
       <path

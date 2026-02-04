@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import ImageUploader from "./image-uploader";
-import { Button } from "./ui/button";
+import { useState } from 'react';
+import ImageUploader from './image-uploader';
+import { Button } from './ui/button';
 import {
   Dialog,
   DialogContent,
@@ -10,21 +10,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
-import { Checkbox } from "./ui/checkbox";
-import { uploadReport } from "@/lib/supabase/report";
-import { extractExifLocation } from "@/lib/report/extractEXIF";
-import { getClosestPipes } from "@/lib/report/getClosestPipe";
-import { useAuth } from "@/components/context/AuthProvider";
-import { ComboboxForm } from "./combobox-form";
-import type { ComboboxOption } from "./combobox-form";
-import { Field, FieldContent } from "./ui/field";
-import { Textarea } from "./ui/textarea";
-import { CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { SpinnerEmpty } from "./spinner-empty";
-import { AlertCircle, CheckCircle2Icon } from "lucide-react";
-import { AlertTitle } from "@/components/ui/alert";
-import client from "@/app/api/client";
+} from './ui/dialog';
+import { Checkbox } from './ui/checkbox';
+import { uploadReport } from '@/lib/supabase/report';
+import { extractExifLocation } from '@/lib/report/extractEXIF';
+import { getClosestPipes } from '@/lib/report/getClosestPipe';
+import { useAuth } from '@/components/context/AuthProvider';
+import { ComboboxForm } from './combobox-form';
+import type { ComboboxOption } from './combobox-form';
+import { Field, FieldContent } from './ui/field';
+import { Textarea } from './ui/textarea';
+import { CardDescription, CardHeader, CardTitle } from './ui/card';
+import { SpinnerEmpty } from './spinner-empty';
+import { AlertCircle, CheckCircle2Icon } from 'lucide-react';
+import { AlertTitle } from '@/components/ui/alert';
+import client from '@/app/api/client';
 
 interface CategoryData {
   name: string;
@@ -35,17 +35,18 @@ interface CategoryData {
 
 export default function SubmitTab() {
   const { user, profile } = useAuth();
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
+  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('low');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [manualAccepted, setManualAccepted] = useState(false);
-  const [categoryLabel, setCategoryLabel] = useState("");
+  const [categoryLabel, setCategoryLabel] = useState('');
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [comboOption, setComboOptions] = useState<ComboboxOption[]>([]);
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState('');
   const [categoryIndex, setCategoryIndex] = useState(-1);
-  const [errorCode, setErrorCode] = useState("");
+  const [errorCode, setErrorCode] = useState('');
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -58,24 +59,25 @@ export default function SubmitTab() {
   const handleCategory = (value: string) => {
     setCategory(value);
 
-    if (value === "inlets") {
-      setCategoryLabel("Inlet");
-    } else if (value === "storm_drains") {
-      setCategoryLabel("Storm Drain");
-    } else if (value === "man_pipes") {
-      setCategoryLabel("Manduae Pipe");
-    } else if (value === "outlets") {
-      setCategoryLabel("Outlet");
+    if (value === 'inlets') {
+      setCategoryLabel('Inlet');
+    } else if (value === 'storm_drains') {
+      setCategoryLabel('Storm Drain');
+    } else if (value === 'man_pipes') {
+      setCategoryLabel('Manduae Pipe');
+    } else if (value === 'outlets') {
+      setCategoryLabel('Outlet');
     }
   };
 
   const clearInputs = () => {
-    setDescription("");
+    setDescription('');
     setImage(null);
-    setCategory("");
-    setCategoryLabel("");
+    setCategory('');
+    setCategoryLabel('');
     setCategoryData([]);
     setCategoryIndex(0);
+    setSeverity('low');
   };
 
   const handlePreSubmit = async (e: React.FormEvent) => {
@@ -86,7 +88,7 @@ export default function SubmitTab() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsSubmitting(false);
       setIsErrorModalOpen(true);
-      setErrorCode("Not a valid image");
+      setErrorCode('Not a valid image');
     } else {
       const location = await extractExifLocation(image);
       // const location = {
@@ -99,7 +101,7 @@ export default function SubmitTab() {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setIsSubmitting(false);
         setIsErrorModalOpen(true);
-        setErrorCode("No GPS data found in image");
+        setErrorCode('No GPS data found in image');
         return;
       }
 
@@ -116,7 +118,7 @@ export default function SubmitTab() {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           setIsSubmitting(false);
           setIsErrorModalOpen(true);
-          setErrorCode("No component found within your location!");
+          setErrorCode('No component found within your location!');
           return;
         }
 
@@ -125,10 +127,10 @@ export default function SubmitTab() {
           label:
             index === 0
               ? item.name +
-                "    - " +
+                '    - ' +
                 item.distance.toFixed(0) +
-                "m away (BEST MATCH)"
-              : item.name + "    - " + item.distance.toFixed(0) + "m away",
+                'm away (BEST MATCH)'
+              : item.name + '    - ' + item.distance.toFixed(0) + 'm away',
         }));
         setComboOptions(options);
 
@@ -151,7 +153,7 @@ export default function SubmitTab() {
 
     try {
       const userID = user?.id ?? null;
-      const profileName = profile?.full_name ?? "Anonymous";
+      const profileName = profile?.full_name ?? 'Anonymous';
 
       const long = categoryData[categoryIndex].long;
       const lat = categoryData[categoryIndex].lat;
@@ -165,7 +167,8 @@ export default function SubmitTab() {
         long,
         lat,
         userID,
-        profileName
+        profileName,
+        severity
       );
 
       // Show alert
@@ -185,12 +188,12 @@ export default function SubmitTab() {
     } catch (error) {
       // Handle error
       setIsConfirming(false);
-      console.error("Upload failed:", error);
+      console.error('Upload failed:', error);
     }
   };
 
   const handleManual = async () => {
-    const { data, error } = await client.rpc("get_component_by_category", {
+    const { data, error } = await client.rpc('get_component_by_category', {
       category_name: category,
     });
 
@@ -227,7 +230,7 @@ export default function SubmitTab() {
 
   if (isSubmitting) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
+      <div className="flex h-full w-full items-center justify-center">
         <SpinnerEmpty
           onCancel={() => {
             setIsSubmitting(false);
@@ -242,9 +245,9 @@ export default function SubmitTab() {
     <>
       <form
         onSubmit={handlePreSubmit}
-        className="w-full h-full pb-5 pl-5 pr-2 pt-3 rounded-xl flex flex-col space-y-4"
+        className="flex h-full w-full flex-col space-y-4 rounded-xl pt-3 pr-2 pb-5 pl-5"
       >
-        <CardHeader className="py-0 px-1 mb-3">
+        <CardHeader className="mb-3 px-1 py-0">
           <CardTitle>Report an issue</CardTitle>
           <CardDescription className="text-xs">
             Pick which category to submit a report in
@@ -252,14 +255,29 @@ export default function SubmitTab() {
         </CardHeader>
 
         {/* Category Combobox */}
-        <div className="flex flex-col w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1"></label>
+        <div className="flex w-full flex-col">
+          <label className="mb-1 block text-sm font-medium text-gray-700"></label>
           <ComboboxForm onSelect={handleCategory} value={category} />
         </div>
 
         {/* Image Uploader */}
         <div className="w-full">
           <ImageUploader onImageChange={setImage} image={image} />
+        </div>
+
+        {/* Severity Selector */}
+        <div className="flex w-full flex-col">
+          <label className="mb-2 block text-sm font-medium text-gray-700">Severity Level</label>
+          <select
+            value={severity}
+            onChange={(e) => setSeverity(e.target.value as 'low' | 'medium' | 'high' | 'critical')}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="low">🟡 Low - Minor issue</option>
+            <option value="medium">🟠 Medium - Moderate concern</option>
+            <option value="high">🔴 High - Urgent</option>
+            <option value="critical">⚠️ Critical - Immediate attention needed</option>
+          </select>
         </div>
 
         {/* Description Input */}
@@ -275,7 +293,7 @@ export default function SubmitTab() {
         </Field>
 
         {/* Buttons pinned at the bottom */}
-        <div className="flex gap-3 min-w-0 mt-auto">
+        <div className="mt-auto flex min-w-0 gap-3">
           <Button
             type="button"
             onClick={handleCancel}
@@ -289,7 +307,7 @@ export default function SubmitTab() {
             disabled={!category.trim() || !description.trim() || !image}
             className="flex-1"
           >
-            {isSubmitting ? "Submitting..." : "Submit"}
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </Button>
         </div>
       </form>
@@ -306,17 +324,17 @@ export default function SubmitTab() {
           <div className="space-y-4">
             {/* Category Display */}
             <div>
-              <label className="block text-sm mb-2">Category</label>
-              <div className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50">
+              <label className="mb-2 block text-sm">Category</label>
+              <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 {categoryLabel}
               </div>
             </div>
 
             {/*  Category ID  Display */}
             <div className="w-full">
-              <label className="block text-sm mb-2">Category ID</label>
+              <label className="mb-2 block text-sm">Category ID</label>
               <ComboboxForm
-                value={categoryIndex >= 0 ? categoryIndex.toString() : ""}
+                value={categoryIndex >= 0 ? categoryIndex.toString() : ''}
                 options={comboOption}
                 onSelect={(value) => setCategoryIndex(parseInt(value))}
                 placeholder="Please select the correct ID"
@@ -343,8 +361,8 @@ export default function SubmitTab() {
 
             {/* Description Display */}
             <div>
-              <label className="block text-sm mb-2">Description</label>
-              <div className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 min-h-[100px]">
+              <label className="mb-2 block text-sm">Description</label>
+              <div className="min-h-[100px] w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 {description || (
                   <span className="text-gray-400">No description entered</span>
                 )}
@@ -353,12 +371,25 @@ export default function SubmitTab() {
 
             {/* Image Display */}
 
-            <div className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50">
+            <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
               {image ? (
                 <span className="text-green-600">Image attached</span>
               ) : (
                 <span className="text-gray-400">No image uploaded</span>
               )}
+            </div>
+
+            {/* Severity Display */}
+            <div>
+              <label className="mb-2 block text-sm">Severity Level</label>
+              <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
+                <span>
+                  {severity === 'low' && '🟡 Low - Minor issue'}
+                  {severity === 'medium' && '🟠 Medium - Moderate concern'}
+                  {severity === 'high' && '🔴 High - Urgent'}
+                  {severity === 'critical' && '⚠️ Critical - Immediate attention needed'}
+                </span>
+              </div>
             </div>
 
             {/* Manual Acceptance Checkbox */}
@@ -392,10 +423,7 @@ export default function SubmitTab() {
                 }
                 className="mt-1 cursor-pointer"
               />
-              <label
-                htmlFor="terms"
-                className="text-sm leading-relaxed"
-              >
+              <label htmlFor="terms" className="text-sm leading-relaxed">
                 I accept the terms and conditions and confirm that the
                 information provided is accurate
               </label>
@@ -415,9 +443,9 @@ export default function SubmitTab() {
               type="button"
               onClick={handleConfirmSubmit}
               disabled={isDisabled || isConfirming}
-              className="w-full sm:w-auto bg-[#4b72f3] border border-[#2b3ea7] text-white hover:bg-blue-600"
+              className="w-full border border-[#2b3ea7] bg-[#4b72f3] text-white hover:bg-blue-600 sm:w-auto"
             >
-              {isConfirming ? "Confirming..." : "Confirm"}
+              {isConfirming ? 'Confirming...' : 'Confirm'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -426,8 +454,8 @@ export default function SubmitTab() {
       <Dialog open={isErrorModalOpen} onOpenChange={setIsErrorModalOpen}>
         <DialogContent className="flex flex-col gap-2">
           <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
+            <div className="mb-2 flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500" />
               <DialogTitle className="text-lg">{errorCode}</DialogTitle>
             </div>
             <DialogDescription className="text-muted-foreground">
@@ -437,18 +465,18 @@ export default function SubmitTab() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
               <ul className="space-y-2.5">
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#4b72f3] mt-2"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
                   <span>Enable location services on your device</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#4b72f3] mt-2"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
                   <span>Capture the photo directly from your camera app</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[#4b72f3] mt-2"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
                   <span>Ensure your device embeds location data in images</span>
                 </li>
               </ul>
@@ -461,7 +489,7 @@ export default function SubmitTab() {
         </DialogContent>
       </Dialog>
       {alertNow && (
-        <div className="flex items-start gap-2 fixed top-4 right-4 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg z-[9999]">
+        <div className="fixed top-4 right-4 z-[9999] flex items-start gap-2 rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg">
           <CheckCircle2Icon />
           <AlertTitle>Success! Your report has been submitted.</AlertTitle>
         </div>

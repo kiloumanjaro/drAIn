@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { useContext } from "react";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useContext } from 'react';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@/components/ui/tabs-modified";
-import { Pencil, Link2, FileText } from "lucide-react";
-import { AuthContext } from "@/components/context/AuthProvider";
-import client from "@/app/api/client";
+} from '@/components/ui/tabs-modified';
+import { Pencil, Link2, FileText } from 'lucide-react';
+import { AuthContext } from '@/components/context/AuthProvider';
+import client from '@/app/api/client';
 import {
   updateUserProfile,
   linkAgencyToProfile,
   unlinkAgencyFromProfile,
-} from "@/lib/supabase/profile";
-import EditProfile from "@/components/edit-profile";
-import UserLinks from "@/components/user-links";
-import UserReportsList from "@/components/user-reports-list";
-import type { ProfileView } from "../hooks/use-control-panel-state";
-import Image from "next/image";
+} from '@/lib/supabase/profile';
+import EditProfile from '@/components/edit-profile';
+import UserLinks from '@/components/user-links';
+import UserReportsList from '@/components/user-reports-list';
+import type { ProfileView } from '../hooks/use-control-panel-state';
+import Image from 'next/image';
 
 interface ProfileContentProps {
   profileView: ProfileView;
@@ -58,7 +58,7 @@ export default function ProfileContent({
     let newPublicAvatarUrl = null;
     if (updatedProfile.avatar_url) {
       const { data: urlData } = supabase.storage
-        .from("Avatars")
+        .from('Avatars')
         .getPublicUrl(updatedProfile.avatar_url);
       newPublicAvatarUrl = urlData.publicUrl;
     }
@@ -114,21 +114,21 @@ export default function ProfileContent({
   };
 
   return (
-    <div className="flex flex-col pl-5 pr-2.5 h-full overflow-y-auto">
+    <div className="flex h-full flex-col overflow-y-auto pr-2.5 pl-5">
       {loading ? (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex h-full items-center justify-center">
           <p className="text-muted-foreground">Loading profile...</p>
         </div>
       ) : (
         <>
           {/* Profile Card */}
-          <div className="flex flex-col gap-2 mb-4 justify-center flex-shrink-0">
-            <div className="w-full max-w-xl rounded-2xl bg-[#f7f7f7] border border-[#e2e2e2] overflow-hidden">
+          <div className="mb-4 flex flex-shrink-0 flex-col justify-center gap-2">
+            <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-[#e2e2e2] bg-[#f7f7f7]">
               {/* Header Section */}
               <div className="relative p-1">
-                <Card className="flex flex-row p-1 gap-4">
+                <Card className="flex flex-row gap-4 p-1">
                   {/* Avatar */}
-                  <Avatar className="w-20 h-20 rounded-lg overflow-hidden bg-[#f2f2f2] flex-shrink-0">
+                  <Avatar className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-[#f2f2f2]">
                     <AvatarImage
                       src={publicAvatarUrl || undefined}
                       alt="User Avatar"
@@ -145,14 +145,14 @@ export default function ProfileContent({
                   </Avatar>
 
                   {/* Profile Info */}
-                  <div className="flex-1 flex-col self-center min-w-0">
-                    <h1 className="text-base font-semibold text-black truncate">
-                      {(profile?.full_name as string) || "No name set"}
+                  <div className="min-w-0 flex-1 flex-col self-center">
+                    <h1 className="truncate text-base font-semibold text-black">
+                      {(profile?.full_name as string) || 'No name set'}
                     </h1>
 
                     <div className="flex flex-col">
-                      <p className="text-zinc-400 text-xs truncate">
-                        {session?.user?.email || "No email"}
+                      <p className="truncate text-xs text-zinc-400">
+                        {session?.user?.email || 'No email'}
                       </p>
                     </div>
                   </div>
@@ -163,40 +163,40 @@ export default function ProfileContent({
 
           {/* Tab Navigation */}
           <Tabs
-            value={profileView === "main" ? "reports" : profileView}
+            value={profileView === 'main' ? 'links' : profileView}
             onValueChange={(value) => onProfileViewChange(value as ProfileView)}
-            className="flex-1 flex flex-col min-h-0 space-y-0 gap-0"
+            className="flex min-h-0 flex-1 flex-col gap-0 space-y-0"
           >
-            <TabsList className="flex-shrink-0 border-x-1 border-b-0 pb-0.5 border-[#ced1cd]">
+            <TabsList className="flex-shrink-0 border-x-1 border-b-0 border-[#ced1cd] pb-0.5">
               <TabsTrigger value="edit">
                 <Pencil className="h-4 w-4" />
-                <span className="font-normal text-xs">Edit</span>
+                <span className="text-xs font-normal">Edit</span>
               </TabsTrigger>
               <TabsTrigger value="links">
                 <Link2 className="h-4 w-4" />
-                <span className="font-normal text-xs">Links</span>
+                <span className="text-xs font-normal">Links</span>
               </TabsTrigger>
               <TabsTrigger value="reports">
                 <FileText className="h-4 w-4" />
-                <span className="font-normal text-xs">Reports</span>
+                <span className="text-xs font-normal">Reports</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent
               value="edit"
-              className="flex-1 mb-5 rounded-b-xl border border-[#ced1cd] border-t-0 overflow-y-auto"
+              className="mb-5 flex-1 overflow-y-auto rounded-b-xl border border-t-0 border-[#ced1cd]"
             >
               <EditProfile
                 profile={profile}
                 session={session}
                 onSave={handleSave}
-                onCancel={() => onProfileViewChange("reports")}
+                onCancel={() => onProfileViewChange('reports')}
               />
             </TabsContent>
 
             <TabsContent
               value="links"
-              className="flex-1 mb-5 rounded-b-xl border border-[#ced1cd] border-t-0 overflow-y-auto"
+              className="mb-5 flex-1 overflow-y-auto rounded-b-xl border border-t-0 border-[#ced1cd]"
             >
               <UserLinks
                 isGuest={isGuest}
@@ -208,7 +208,7 @@ export default function ProfileContent({
 
             <TabsContent
               value="reports"
-              className="flex-1 mb-5 rounded-b-xl border border-[#ced1cd] border-t-0 overflow-y-auto"
+              className="mb-5 flex-1 overflow-y-auto rounded-b-xl border border-t-0 border-[#ced1cd]"
             >
               <UserReportsList userId={session?.user?.id} isGuest={isGuest} />
             </TabsContent>

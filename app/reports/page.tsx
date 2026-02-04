@@ -1,5 +1,5 @@
-import { Suspense } from "react";
-import FloodReportClient from "./FloodReportClient";
+import { Suspense } from 'react';
+import FloodReportClient from './FloodReportClient';
 
 export default function Page() {
   return (

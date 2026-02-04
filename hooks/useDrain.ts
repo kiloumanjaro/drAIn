@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import type {
   FeatureCollection,
   Feature,
   GeoJsonProperties,
   Point,
-} from "geojson";
+} from 'geojson';
 
-import type { Drain } from "@/components/control-panel/types";
+import type { Drain } from '@/components/control-panel/types';
 
 export function transformGeoJSON(geojson: FeatureCollection): Drain[] {
   return geojson.features.map((f: Feature) => {
@@ -25,7 +25,7 @@ export function transformGeoJSON(geojson: FeatureCollection): Drain[] {
     };
 
     const coords =
-      f.geometry && f.geometry.type === "Point"
+      f.geometry && f.geometry.type === 'Point'
         ? (f.geometry as Point).coordinates
         : [0, 0];
 
@@ -54,12 +54,12 @@ export function useDrain() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/drainage/storm_drains.geojson");
+        const res = await fetch('/drainage/storm_drains.geojson');
         const geojson = await res.json();
         const data = transformGeoJSON(geojson);
         setDrains(data);
       } catch (err) {
-        console.error("Failed to load storm_drains.geojson", err);
+        console.error('Failed to load storm_drains.geojson', err);
       } finally {
         setLoading(false);
       }

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { contributors } from "@/lib/contributors-list";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { contributors } from '@/lib/contributors-list';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 export function ContributorsButton() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -23,11 +23,11 @@ export function ContributorsButton() {
     <div className="relative flex w-[270px] items-end">
       <button
         onClick={handleClick}
-        className={`p-1 pr-3 flex flex-1 flex-row items-center border-gray-300 gap-2 rounded-full border transition-all duration-200 cursor-pointer ${
-          isExpanded ? "bg-white " : "bg-white"
+        className={`flex flex-1 cursor-pointer flex-row items-center gap-2 rounded-full border border-gray-300 p-1 pr-3 transition-all duration-200 ${
+          isExpanded ? 'bg-white' : 'bg-white'
         }`}
       >
-        <div className="relative w-full h-14">
+        <div className="relative h-14 w-full">
           {contributors.map((member, index) => (
             <div
               key={member.id}
@@ -37,12 +37,12 @@ export function ContributorsButton() {
                 zIndex: contributors.length - index,
               }}
             >
-              <div className="relative w-14 h-14">
+              <div className="relative h-14 w-14">
                 <Image
-                  src={member.image || "/placeholder.svg"}
+                  src={member.image || '/placeholder.svg'}
                   alt={`${member.name} - ${member.role}`}
                   fill
-                  className="rounded-full object-cover border-4 border-white hover:scale-105 transition-transform duration-300"
+                  className="rounded-full border-4 border-white object-cover transition-transform duration-300 hover:scale-105"
                 />
               </div>
             </div>
@@ -59,15 +59,15 @@ export function ContributorsButton() {
 
       {/* Dropdown Panel */}
       {isExpanded && (
-        <div className="absolute top-full mt-2 left-0 bg-white rounded-2xl border border-gray-300 w-xs z-50 overflow-hidden">
+        <div className="absolute top-full left-0 z-50 mt-2 w-xs overflow-hidden rounded-2xl border border-gray-300 bg-white">
           {/* Header with close button */}
-          <div className="relative flex items-center justify-end p-2 bg-gray-100 border-b border-gray-300 ">
-            <h3 className="absolute left-1/2 transform -translate-x-1/2 text-md font-medium self-center text-gray-600">
+          <div className="relative flex items-center justify-end border-b border-gray-300 bg-gray-100 p-2">
+            <h3 className="text-md absolute left-1/2 -translate-x-1/2 transform self-center font-medium text-gray-600">
               Contributors
             </h3>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              className="p-1 text-gray-400 transition-colors hover:text-gray-600"
               aria-label="Close panel"
             >
               <X size={18} />
@@ -76,24 +76,24 @@ export function ContributorsButton() {
 
           {/* Contributors Grid */}
           <div className="px-4 py-4">
-            <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="mb-4 grid grid-cols-4 gap-4">
               {contributors.map((member) => (
                 <Link
                   key={member.id}
                   href={member.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-1 hover:scale-105 transition-transform duration-200 cursor-pointer"
+                  className="flex cursor-pointer flex-col items-center gap-1 transition-transform duration-200 hover:scale-105"
                 >
-                  <div className="relative w-14 h-14">
+                  <div className="relative h-14 w-14">
                     <Image
-                      src={member.image || "/placeholder.svg"}
+                      src={member.image || '/placeholder.svg'}
                       alt={member.name}
                       fill
                       className="rounded-full object-cover transition-all duration-200"
                     />
                   </div>
-                  <span className="text-xs text-gray-600 text-center truncate w-full hover:text-blue-600 transition-colors">
+                  <span className="w-full truncate text-center text-xs text-gray-600 transition-colors hover:text-blue-600">
                     {member.name}
                   </span>
                 </Link>
@@ -103,7 +103,7 @@ export function ContributorsButton() {
             {/* Join Button */}
             <Button
               asChild
-              className="w-full bg-[#4b72f3] border border-[#2b3ea7] text-white py-6 rounded-xl font-medium text-base hover:bg-gray-800 transition-colors mb-3"
+              className="mb-3 w-full rounded-xl border border-[#2b3ea7] bg-[#4b72f3] py-6 text-base font-medium text-white transition-colors hover:bg-gray-800"
             >
               <Link
                 href="https://github.com/eliseoalcaraz/pjdsc"
@@ -114,7 +114,7 @@ export function ContributorsButton() {
               </Link>
             </Button>
             {/* Footer Text */}
-            <p className="text-xs text-gray-500 text-center">
+            <p className="text-center text-xs text-gray-500">
               Source code available on GitHub
             </p>
           </div>

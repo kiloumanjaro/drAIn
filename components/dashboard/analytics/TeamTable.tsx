@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatDays } from "@/lib/dashboard/calculations";
-import type { TeamPerformanceData } from "@/lib/dashboard/queries";
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDays } from '@/lib/dashboard/calculations';
+import type { TeamPerformanceData } from '@/lib/dashboard/queries';
 
 interface TeamTableProps {
   data: TeamPerformanceData[];
@@ -10,8 +10,8 @@ interface TeamTableProps {
 export default function TeamTable({ data, loading = false }: TeamTableProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <h3 className="text-lg font-semibold mb-4">Team Performance</h3>
+      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold">Team Performance</h3>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-10 w-full" />
@@ -23,9 +23,9 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[#ced1cd] p-6">
-        <h3 className="text-lg font-semibold mb-4">Team Performance</h3>
-        <div className="text-center py-8 text-gray-500">
+      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold">Team Performance</h3>
+        <div className="py-8 text-center text-gray-500">
           <p>No team performance data available</p>
         </div>
       </div>
@@ -37,21 +37,21 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-[#ced1cd] p-6 overflow-x-auto">
-      <h3 className="text-lg font-semibold mb-4">Team Performance</h3>
+    <div className="overflow-x-auto rounded-lg border border-[#ced1cd] bg-white p-6">
+      <h3 className="mb-4 text-lg font-semibold">Team Performance</h3>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#ced1cd]">
-            <th className="text-left py-3 px-4 font-semibold text-gray-700">
+            <th className="px-4 py-3 text-left font-semibold text-gray-700">
               Agency
             </th>
-            <th className="text-center py-3 px-4 font-semibold text-gray-700">
+            <th className="px-4 py-3 text-center font-semibold text-gray-700">
               Total Issues
             </th>
-            <th className="text-center py-3 px-4 font-semibold text-gray-700">
+            <th className="px-4 py-3 text-center font-semibold text-gray-700">
               Resolved
             </th>
-            <th className="text-center py-3 px-4 font-semibold text-gray-700">
+            <th className="px-4 py-3 text-center font-semibold text-gray-700">
               Avg Days
             </th>
           </tr>
@@ -60,25 +60,26 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
           {data.map((team, index) => (
             <tr
               key={team.agencyName}
-              className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+              className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
             >
-              <td className="py-3 px-4 text-gray-900 font-medium">
+              <td className="px-4 py-3 font-medium text-gray-900">
                 {team.agencyName}
               </td>
-              <td className="text-center py-3 px-4 text-gray-700">
+              <td className="px-4 py-3 text-center text-gray-700">
                 {team.totalIssues}
               </td>
-              <td className="text-center py-3 px-4">
+              <td className="px-4 py-3 text-center">
                 <div className="flex items-center justify-center">
-                  <span className="text-green-600 font-semibold">
+                  <span className="font-semibold text-green-600">
                     {team.resolvedIssues}
                   </span>
-                  <span className="text-gray-500 text-xs ml-1">
-                    ({resolvedPercentage(team.resolvedIssues, team.totalIssues)}%)
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({resolvedPercentage(team.resolvedIssues, team.totalIssues)}
+                    %)
                   </span>
                 </div>
               </td>
-              <td className="text-center py-3 px-4 text-blue-600 font-semibold">
+              <td className="px-4 py-3 text-center font-semibold text-blue-600">
                 {formatDays(team.averageDays)}
               </td>
             </tr>

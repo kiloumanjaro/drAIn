@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import type { FeatureCollection, Feature, GeoJsonProperties } from "geojson";
+import { useEffect, useState } from 'react';
+import type { FeatureCollection, Feature, GeoJsonProperties } from 'geojson';
 
-import { Inlet } from "@/components/control-panel/types";
+import { Inlet } from '@/components/control-panel/types';
 
 export function transformInlets(geojson: FeatureCollection): Inlet[] {
   return geojson.features.map((f: Feature) => {
@@ -30,7 +30,7 @@ export function transformInlets(geojson: FeatureCollection): Inlet[] {
       ClogTime: props.ClogTime,
       FPLAIN_080: props.FPLAIN_080,
       coordinates:
-        f.geometry?.type === "Point"
+        f.geometry?.type === 'Point'
           ? (f.geometry.coordinates as [number, number])
           : [0, 0],
     };
@@ -44,12 +44,12 @@ export function useInlets() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/drainage/inlets.geojson");
+        const res = await fetch('/drainage/inlets.geojson');
         const geojson = await res.json();
         const data = transformInlets(geojson);
         setInlets(data);
       } catch (err) {
-        console.error("Failed to load inlets.geojson", err);
+        console.error('Failed to load inlets.geojson', err);
       } finally {
         setLoading(false);
       }
@@ -60,5 +60,3 @@ export function useInlets() {
 
   return { inlets, loading };
 }
-
-

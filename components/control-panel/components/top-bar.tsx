@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   ChevronLeft,
   MoreHorizontal,
@@ -11,21 +11,21 @@ import {
   Bell,
   BellRing,
   ArrowLeft,
-} from "lucide-react";
-import { Toggle } from "@/components/ui/toggle";
-import { SearchBar } from "../../search-bar";
-import { ComboboxForm } from "../../combobox-form";
-import { OverlayToggle } from "../../overlay-toggle";
+} from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
+import { SearchBar } from '../../search-bar';
+import { ComboboxForm } from '../../combobox-form';
+import { OverlayToggle } from '../../overlay-toggle';
 import {
   ProfileProgress,
   type ProfileStep,
-} from "@/components/ui/profile-progress";
+} from '@/components/ui/profile-progress';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +35,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import type { DatasetType } from "../types";
-import { LinkBar } from "@/components/link-bar";
-import { ReportsTabControl } from "../../reports-tab-control";
-import { DateSort, type DateFilterValue } from "../../date-sort";
-import { AdminTabControl } from "@/components/admin-tab-control";
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import type { DatasetType } from '../types';
+import { LinkBar } from '@/components/link-bar';
+import { ReportsTabControl } from '../../reports-tab-control';
+import { DateSort, type DateFilterValue } from '../../date-sort';
+import { AdminTabControl } from '@/components/admin-tab-control';
 
 interface TopBarProps {
   activeTab: string;
@@ -56,10 +56,10 @@ interface TopBarProps {
   isDragEnabled?: boolean;
   onToggleDrag?: (enabled: boolean) => void;
   onSignOut?: () => void;
-  activeReportTab?: "submission" | "reports";
-  activeAdminTab?: "maintenance" | "reports";
-  onReportTabChange?: (tab: "submission" | "reports") => void;
-  onAdminTabChange?: (tab: "maintenance" | "reports") => void;
+  activeReportTab?: 'submission' | 'reports';
+  activeAdminTab?: 'maintenance' | 'reports';
+  onReportTabChange?: (tab: 'submission' | 'reports') => void;
+  onAdminTabChange?: (tab: 'maintenance' | 'reports') => void;
   dateFilter?: DateFilterValue;
   onDateFilterChange?: (value: DateFilterValue) => void;
   onClosePopUps?: () => void;
@@ -78,11 +78,11 @@ export function TopBar({
   isDragEnabled = true,
   onToggleDrag,
   onSignOut,
-  activeReportTab = "submission",
+  activeReportTab = 'submission',
   onReportTabChange,
   onAdminTabChange,
-  activeAdminTab = "maintenance",
-  dateFilter = "all",
+  activeAdminTab = 'maintenance',
+  dateFilter = 'all',
   onDateFilterChange,
   onClosePopUps,
 }: TopBarProps) {
@@ -91,61 +91,61 @@ export function TopBar({
 
   // map simModel query param to specific links
   const searchParams = useSearchParams();
-  const simModel = searchParams?.get("simModel") || null;
+  const simModel = searchParams?.get('simModel') || null;
   const modelLinkMap: Record<string, string> = {
-    model2: "project-drain.vercel.app/simulation/model2",
-    model3: "project-drain.vercel.app/simulation/model3",
+    model2: 'project-drain.vercel.app/simulation/model2',
+    model3: 'project-drain.vercel.app/simulation/model3',
   };
   const simulationLink = simModel
-    ? modelLinkMap[simModel] ?? "project-drain.vercel.app/simulation"
-    : "project-drain.vercel.app/simulation";
+    ? (modelLinkMap[simModel] ?? 'project-drain.vercel.app/simulation')
+    : 'project-drain.vercel.app/simulation';
 
   // Example profile setup steps - replace with actual data
   const profileSteps: ProfileStep[] = [
     {
-      title: "Basic Information",
-      description: "Complete your name",
+      title: 'Basic Information',
+      description: 'Complete your name',
       completed: true,
     },
     {
-      title: "Profile Picture",
-      description: "Upload a profile picture",
+      title: 'Profile Picture',
+      description: 'Upload a profile picture',
       completed: true,
     },
     {
-      title: "Verification",
-      description: "Verify your email address",
+      title: 'Verification',
+      description: 'Verify your email address',
       completed: false,
     },
     {
-      title: "Link",
-      description: "Link your account to an agency for admin features",
+      title: 'Link',
+      description: 'Link your account to an agency for admin features',
       completed: false,
     },
   ];
 
   const showSearchBar =
-    (activeTab === "stats" && !hasSelectedItem) ||
-    activeTab === "thread" ||
-    activeTab === "overlays";
-  const showSettings = activeTab === "overlays";
-  const showToggle = activeTab === "overlays";
-  const showCombobox = activeTab === "stats" && !hasSelectedItem;
-  const showBackButton = hasSelectedItem && activeTab === "stats";
-  const showSignOut = activeTab === "profile";
-  const showNotification = activeTab === "profile";
-  const showProfileProgress = activeTab === "profile";
-  const showLinkBar = activeTab === "simulations" || activeTab === "chatbot";
-  const showReportTabs = activeTab === "report";
-  const showAdminTab = activeTab === "admin";
-  const showDateSort = activeTab === "report" || activeTab === "admin";
+    (activeTab === 'stats' && !hasSelectedItem) ||
+    activeTab === 'thread' ||
+    activeTab === 'overlays';
+  const showSettings = activeTab === 'overlays';
+  const showToggle = activeTab === 'overlays';
+  const showCombobox = activeTab === 'stats' && !hasSelectedItem;
+  const showBackButton = hasSelectedItem && activeTab === 'stats';
+  const showSignOut = activeTab === 'profile';
+  const showNotification = activeTab === 'profile';
+  const showProfileProgress = activeTab === 'profile';
+  const showLinkBar = activeTab === 'simulations' || activeTab === 'chatbot';
+  const showReportTabs = activeTab === 'report';
+  const showAdminTab = activeTab === 'admin';
+  const showDateSort = activeTab === 'report' || activeTab === 'admin';
 
   const handleNotificationToggle = (pressed: boolean) => {
     setNotificationsEnabled(pressed);
     if (pressed) {
-      toast.success("Notifications turned on");
+      toast.success('Notifications turned on');
     } else {
-      toast.info("Notifications turned off");
+      toast.info('Notifications turned off');
     }
   };
 
@@ -154,13 +154,13 @@ export function TopBar({
 
   // new: remove simModel param handler used by the topbar button
   const clearSimModelParam = () => {
-    const params = new URLSearchParams(searchParams?.toString() || "");
-    params.delete("simModel");
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.delete('simModel');
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
 
-  const showChangeModelButton = activeTab === "simulations" && !!simModel;
+  const showChangeModelButton = activeTab === 'simulations' && !!simModel;
 
   return (
     <div className="flex items-center gap-2 p-3 px-4">
@@ -171,21 +171,21 @@ export function TopBar({
       {showSettings && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-8.5 h-8.5 bg-[#EBEBEB] border border-[#DCDCDC] cursor-pointer rounded-full flex items-center justify-center transition-colors hover:bg-[#E0E0E0]">
-              <MoreHorizontal className="w-5 h-5 text-[#8D8D8D]" />
+            <button className="flex h-8.5 w-8.5 cursor-pointer items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0]">
+              <MoreHorizontal className="h-5 w-5 text-[#8D8D8D]" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuItem
               onClick={() => onToggleDrag?.(!isDragEnabled)}
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
             >
               {isDragEnabled ? (
                 <Lock className="h-4 w-4" />
               ) : (
                 <LockOpen className="h-4 w-4" />
               )}
-              <span>{isDragEnabled ? "Lock Layout" : "Unlock Layout"}</span>
+              <span>{isDragEnabled ? 'Lock Layout' : 'Unlock Layout'}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -210,12 +210,12 @@ export function TopBar({
 
       {/* Dataset Selector */}
       {showCombobox && (
-        <div className="w-24 h-8.5">
+        <div className="h-8.5 w-24">
           <ComboboxForm
             value={dataset}
             onSelect={(value) =>
               onDatasetChange(
-                value as "inlets" | "man_pipes" | "outlets" | "storm_drains"
+                value as 'inlets' | 'man_pipes' | 'outlets' | 'storm_drains'
               )
             }
             showSearch={false}
@@ -226,16 +226,16 @@ export function TopBar({
       {/* Back Button */}
       {showBackButton && (
         <button
-          className="w-8.5 h-8.5 bg-[#EBEBEB] border border-[#DCDCDC] rounded-full flex items-center justify-center transition-colors cursor-pointer"
+          className="flex h-8.5 w-8.5 cursor-pointer items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors"
           onClick={onBack}
         >
-          <ChevronLeft className="w-5 h-5 text-[#8D8D8D] hover:text-black pointer-events-none" />
+          <ChevronLeft className="pointer-events-none h-5 w-5 text-[#8D8D8D] hover:text-black" />
         </button>
       )}
 
       {/* Selected Item Title */}
       {showBackButton && (
-        <div className="flex relative w-9/12 h-5 cursor-pointer">
+        <div className="relative flex h-5 w-9/12 cursor-pointer">
           <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             {selectedItemTitle}
           </span>
@@ -247,12 +247,12 @@ export function TopBar({
         <Toggle
           pressed={notificationsEnabled}
           onPressedChange={handleNotificationToggle}
-          className="w-8.5 h-8.5 bg-[#EBEBEB] border border-[#DCDCDC] rounded-full flex items-center justify-center transition-colors hover:bg-[#E0E0E0] data-[state=on]:bg-[#D0D0D0]"
+          className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0] data-[state=on]:bg-[#D0D0D0]"
         >
           {notificationsEnabled ? (
-            <BellRing className="w-4 h-4 text-[#8D8D8D]" />
+            <BellRing className="h-4 w-4 text-[#8D8D8D]" />
           ) : (
-            <Bell className="w-4 h-4 text-[#8D8D8D]" />
+            <Bell className="h-4 w-4 text-[#8D8D8D]" />
           )}
         </Toggle>
       )}
@@ -262,9 +262,9 @@ export function TopBar({
         <>
           <button
             onClick={() => setShowSignOutDialog(true)}
-            className="w-8.5 h-8.5 bg-[#EBEBEB] border border-[#DCDCDC] rounded-full flex items-center justify-center transition-colors hover:bg-[#E0E0E0]"
+            className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0]"
           >
-            <LogOut className="w-4 h-4 text-[#8D8D8D]" />
+            <LogOut className="h-4 w-4 text-[#8D8D8D]" />
           </button>
 
           <AlertDialog
@@ -320,12 +320,12 @@ export function TopBar({
         <button
           onClick={() => {
             clearSimModelParam();
-            onClosePopUps?.();       
+            onClosePopUps?.();
           }}
-          className="w-8.5 h-8.5 bg-[#EBEBEB] border border-[#DCDCDC] rounded-full flex items-center justify-center transition-colors hover:bg-[#E0E0E0]"
+          className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0]"
           aria-label="Change Model"
         >
-          <ArrowLeft className="h-4 w-4 text-[#8D8D8D] cursor-pointer" />
+          <ArrowLeft className="h-4 w-4 cursor-pointer text-[#8D8D8D]" />
         </button>
       )}
 
@@ -343,8 +343,8 @@ export function TopBar({
             value={dateFilter}
             onValueChange={onDateFilterChange}
             disabled={
-              (activeReportTab === "submission" && activeTab === "report") ||
-              (activeAdminTab === "maintenance" && activeTab === "admin")
+              (activeReportTab === 'submission' && activeTab === 'report') ||
+              (activeAdminTab === 'maintenance' && activeTab === 'admin')
             }
           />
         </div>

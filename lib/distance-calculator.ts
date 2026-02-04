@@ -1,9 +1,9 @@
-import distance from "@turf/distance";
-import { point } from "@turf/helpers";
-import type { Inlet } from "@/components/control-panel/types";
-import type { Outlet } from "@/components/control-panel/types";
-import type { Pipe } from "@/components/control-panel/types";
-import type { Drain } from "@/components/control-panel/types";
+import distance from '@turf/distance';
+import { point } from '@turf/helpers';
+import type { Inlet } from '@/components/control-panel/types';
+import type { Outlet } from '@/components/control-panel/types';
+import type { Pipe } from '@/components/control-panel/types';
+import type { Drain } from '@/components/control-panel/types';
 
 interface DistanceResult {
   inletId: string;
@@ -139,7 +139,7 @@ function buildPipeGraph(pipes: Pipe[]): Graph {
 
       // Calculate distance between points
       const dist = distance(point(fromCoord), point(toCoord), {
-        units: "meters",
+        units: 'meters',
       });
 
       // Add bidirectional edges (pipes can be traversed both ways)
@@ -158,7 +158,7 @@ function findNearestNode(coord: [number, number], graph: Graph): string | null {
   let nearestNodeId: string | null = null;
 
   for (const node of graph.getAllNodes()) {
-    const dist = distance(targetPoint, point(node.coord), { units: "meters" });
+    const dist = distance(targetPoint, point(node.coord), { units: 'meters' });
     if (dist < minDist) {
       minDist = dist;
       nearestNodeId = node.id;

@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { ChevronsUpDown } from "lucide-react";
+import * as React from 'react';
+import { ChevronsUpDown } from 'lucide-react';
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "@/components/ui/command";
-import { cn } from "@/lib/utils";
-import { Button } from "./button";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { Button } from './button';
+import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 export interface Option {
   label: string;
@@ -33,9 +33,9 @@ export function MultiSelect({
   options,
   selected,
   onChange,
-  placeholder = "Select items...",
-  searchPlaceholder = "Search...",
-  emptyText = "No items found.",
+  placeholder = 'Select items...',
+  searchPlaceholder = 'Search...',
+  emptyText = 'No items found.',
   disabled = false,
   className,
 }: MultiSelectProps) {
@@ -54,7 +54,7 @@ export function MultiSelect({
   };
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn('w-full', className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -67,8 +67,8 @@ export function MultiSelect({
             <span
               className={
                 selected.length > 0
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                  ? 'text-foreground'
+                  : 'text-muted-foreground'
               }
             >
               {selected.length > 0
@@ -80,7 +80,7 @@ export function MultiSelect({
         </PopoverTrigger>
         <PopoverContent
           className="p-0"
-          style={{ width: "var(--radix-popover-trigger-width)" }}
+          style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
@@ -93,10 +93,10 @@ export function MultiSelect({
                 >
                   <div
                     className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary/40",
+                      'border-primary/40 mr-2 flex h-4 w-4 items-center justify-center rounded-sm border',
                       selected.includes(option.value)
-                        ? "bg-[#4b72f3] text-white"
-                        : "[&_svg]:invisible"
+                        ? 'bg-[#4b72f3] text-white'
+                        : '[&_svg]:invisible'
                     )}
                   ></div>
                   {option.label}

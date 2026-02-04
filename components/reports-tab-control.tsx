@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface ReportsTabControlProps {
-  activeTab: "submission" | "reports";
-  onTabChange: (tab: "submission" | "reports") => void;
+  activeTab: 'submission' | 'reports';
+  onTabChange: (tab: 'submission' | 'reports') => void;
 }
 
 export function ReportsTabControl({
@@ -12,25 +12,25 @@ export function ReportsTabControl({
   onTabChange,
 }: ReportsTabControlProps) {
   return (
-    <div className="flex w-full items-center gap-0 bg-[#f7f7f7] rounded-full p-0.5 border border-[#DCDCDC] h-8.5">
+    <div className="flex h-8.5 w-full items-center gap-0 rounded-full border border-[#DCDCDC] bg-[#f7f7f7] p-0.5">
       <button
-        onClick={() => onTabChange("submission")}
+        onClick={() => onTabChange('submission')}
         className={cn(
-          "px-5 py-1 text-xs transition-all border rounded-full flex-1 whitespace-nowrap h-full flex items-center justify-center cursor-pointer",
-          activeTab === "submission"
-            ? "bg-white text-gray-900 border-[#DCDCDC]"
-            : "bg-transparent text-gray-500 hover:text-gray-700 border-transparent"
+          'flex h-full flex-1 cursor-pointer items-center justify-center rounded-full border px-5 py-1 text-xs whitespace-nowrap transition-all',
+          activeTab === 'submission'
+            ? 'border-[#DCDCDC] bg-white text-gray-900'
+            : 'border-transparent bg-transparent text-gray-500 hover:text-gray-700'
         )}
       >
         Submit
       </button>
       <button
-        onClick={() => onTabChange("reports")}
+        onClick={() => onTabChange('reports')}
         className={cn(
-          "px-5 py-1 text-xs transition-all border rounded-full flex-1 whitespace-nowrap h-full flex items-center justify-center cursor-pointer",
-          activeTab === "reports"
-            ? "bg-white text-gray-900 border-[#DCDCDC]"
-            : "bg-transparent text-gray-500 hover:text-gray-700 border-transparent"
+          'flex h-full flex-1 cursor-pointer items-center justify-center rounded-full border px-5 py-1 text-xs whitespace-nowrap transition-all',
+          activeTab === 'reports'
+            ? 'border-[#DCDCDC] bg-white text-gray-900'
+            : 'border-transparent bg-transparent text-gray-500 hover:text-gray-700'
         )}
       >
         View

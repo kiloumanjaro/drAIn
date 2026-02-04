@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import AgencyLink from "@/components/agency-link";
-import { toast } from "sonner";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import AgencyLink from '@/components/agency-link';
+import { toast } from 'sonner';
 
 interface UserLinksProps {
   isGuest?: boolean;
@@ -21,7 +21,7 @@ export default function UserLinks({
   const handleUnlink = async () => {
     if (onUnlink) {
       await onUnlink();
-      toast.success("Agency unlinked successfully");
+      toast.success('Agency unlinked successfully');
     }
   };
 
@@ -33,13 +33,13 @@ export default function UserLinks({
   };
 
   return (
-    <Card className="rounded-none h-full border-none flex flex-col pb-12">
-      <CardContent className="flex-1 flex  justify-center">
+    <Card className="flex h-full flex-col rounded-none border-none pb-12">
+      <CardContent className="flex flex-1 justify-center">
         {profile?.agency_id ? (
-          <div className="space-y-6 flex flex-col justify-center text-center">
-            <div className="text-sm text-muted-foreground">
-              You are linked to {(profile.agency_name as string) || "an agency"}. You can now respond to
-              reports.
+          <div className="flex flex-col justify-center space-y-6 text-center">
+            <div className="text-muted-foreground text-sm">
+              You are linked to {(profile.agency_name as string) || 'an agency'}
+              . You can now respond to reports.
             </div>
             <Button
               className="self-center"
@@ -50,7 +50,7 @@ export default function UserLinks({
             </Button>
           </div>
         ) : (
-          <div className="space-y-2 flex flex-col justify-center w-full">
+          <div className="flex w-full flex-col justify-center space-y-2">
             <AgencyLink onLink={handleLink} disabled={isGuest} />
           </div>
         )}

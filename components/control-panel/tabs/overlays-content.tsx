@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import type { Report } from "@/lib/supabase/report";
+import { useState, useMemo } from 'react';
+import type { Report } from '@/lib/supabase/report';
 import {
   DndContext,
   closestCenter,
@@ -10,21 +10,21 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { OverlayLegend } from "../../overlay-legend";
-import { ChartPieDonutText } from "../../chart-pie";
-import { ReportsToggle } from "../../reports-toggle";
-import { FloodScenarioCard } from "../../flood-scenario-card";
-import { PopulationToggle } from "../../population-toggle";
-import { FloodProneToggle } from "../../flood-prone-toggle";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { OverlayLegend } from '../../overlay-legend';
+import { ChartPieDonutText } from '../../chart-pie';
+import { ReportsToggle } from '../../reports-toggle';
+import { FloodScenarioCard } from '../../flood-scenario-card';
+import { PopulationToggle } from '../../population-toggle';
+import { FloodProneToggle } from '../../flood-prone-toggle';
 
 interface OverlayContentProps {
   overlays: {
@@ -34,10 +34,10 @@ interface OverlayContentProps {
     visible: boolean;
   }[];
   onToggleOverlay: (id: string) => void;
-  selectedFloodScenario?: string,
+  selectedFloodScenario?: string;
   onChangeFloodScenario?: (id: string) => void;
   onNavigateToTable?: (
-    dataset: "inlets" | "outlets" | "storm_drains" | "man_pipes"
+    dataset: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
   ) => void;
   onNavigateToReportForm?: () => void;
   onNavigateToDataSource?: () => void;
@@ -56,7 +56,13 @@ interface OverlayContentProps {
   onToggleFloodProneArea?: (id: string) => void;
 }
 
-type ComponentId = "chart" | "layers" | "reports" | "flood" | "population" | "floodprone";
+type ComponentId =
+  | 'chart'
+  | 'layers'
+  | 'reports'
+  | 'flood'
+  | 'population'
+  | 'floodprone';
 
 interface ComponentMetadata {
   id: ComponentId;
@@ -87,15 +93,15 @@ function SortableItem({ id, children, isDragEnabled }: SortableItemProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group">
+    <div ref={setNodeRef} style={style} className="group relative">
       {isDragEnabled ? (
         <>
           {/* Gray overlay when unlocked (drag mode active) */}
-          <div className="absolute inset-0 bg-gray-100/50 dark:bg-gray-900/20 rounded-xl z-10 pointer-events-none" />
+          <div className="pointer-events-none absolute inset-0 z-10 rounded-xl bg-gray-100/50 dark:bg-gray-900/20" />
 
           {/* Centered grip when unlocked - always visible and draggable */}
           <div
-            className="absolute inset-0 flex items-center justify-center z-20 cursor-grab active:cursor-grabbing"
+            className="absolute inset-0 z-20 flex cursor-grab items-center justify-center active:cursor-grabbing"
             {...attributes}
             {...listeners}
           ></div>
@@ -121,7 +127,7 @@ export default function OverlaysContent({
   onChangeFloodScenario,
   onNavigateToReportForm,
   onNavigateToDataSource,
-  searchTerm = "",
+  searchTerm = '',
   isDragEnabled = true,
   reports,
   isSimulationMode = false,
@@ -130,12 +136,12 @@ export default function OverlaysContent({
   onToggleFloodProneArea,
 }: OverlayContentProps) {
   const [componentOrder, setComponentOrder] = useState<ComponentId[]>([
-    "chart",
-    "layers",
-    "flood",
-    "floodprone",
-    "population",
-    "reports",
+    'chart',
+    'layers',
+    'flood',
+    'floodprone',
+    'population',
+    'reports',
   ]);
 
   const sensors = useSensors(
@@ -150,40 +156,40 @@ export default function OverlaysContent({
   const componentsMetadata: ComponentMetadata[] = useMemo(
     () => [
       {
-        id: "chart" as ComponentId,
+        id: 'chart' as ComponentId,
         keywords: [
-          "drainage",
-          "infrastructure",
-          "statistics",
-          "chart",
-          "pipes",
-          "inlets",
-          "outlets",
-          "drains",
-          "donut",
-          "pie",
-          "graph",
-          "visualization",
-          "data",
-          "count",
-          "total",
-          "distribution",
+          'drainage',
+          'infrastructure',
+          'statistics',
+          'chart',
+          'pipes',
+          'inlets',
+          'outlets',
+          'drains',
+          'donut',
+          'pie',
+          'graph',
+          'visualization',
+          'data',
+          'count',
+          'total',
+          'distribution',
         ],
         component: <ChartPieDonutText onNavigate={onNavigateToTable} />,
       },
       {
-        id: "layers" as ComponentId,
+        id: 'layers' as ComponentId,
         keywords: [
-          "layers",
-          "map",
-          "toggle",
-          "visibility",
-          "overlays",
-          "show",
-          "hide",
-          "legend",
-          "controls",
-          "switch",
+          'layers',
+          'map',
+          'toggle',
+          'visibility',
+          'overlays',
+          'show',
+          'hide',
+          'legend',
+          'controls',
+          'switch',
         ],
         component: (
           <OverlayLegend
@@ -193,38 +199,38 @@ export default function OverlaysContent({
         ),
       },
       {
-        id: "flood" as ComponentId,
+        id: 'flood' as ComponentId,
         keywords: [
-          "flood",
-          "hazard",
-          "scenario",
-          "risk",
-          "return",
-          "period",
-          "water",
-          "inundation",
-          "5yr",
-          "15yr",
-          "25yr",
-          "50yr",
-          "100yr",
-          "year",
-          "storm",
-          "rainfall",
-          "probability",
-          "annual",
-          "chance",
-          "high",
-          "medium",
-          "low",
+          'flood',
+          'hazard',
+          'scenario',
+          'risk',
+          'return',
+          'period',
+          'water',
+          'inundation',
+          '5yr',
+          '15yr',
+          '25yr',
+          '50yr',
+          '100yr',
+          'year',
+          'storm',
+          'rainfall',
+          'probability',
+          'annual',
+          'chance',
+          'high',
+          'medium',
+          'low',
         ],
         component: (
           <FloodScenarioCard
             isVisible={
-              overlays.find((o) => o.id === "flood_hazard-layer")?.visible ??
+              overlays.find((o) => o.id === 'flood_hazard-layer')?.visible ??
               true
             }
-            onToggle={() => onToggleOverlay("flood_hazard-layer")}
+            onToggle={() => onToggleOverlay('flood_hazard-layer')}
             selectedScenario={selectedFloodScenario}
             onScenarioChange={onChangeFloodScenario}
             isLoading={isFloodScenarioLoading}
@@ -232,56 +238,57 @@ export default function OverlaysContent({
         ),
       },
       {
-        id: "population" as ComponentId,
+        id: 'population' as ComponentId,
         keywords: [
-          "population",
-          "barangay",
-          "barangays",
-          "density",
-          "residents",
-          "people",
-          "demographics",
-          "mandaue",
-          "city",
-          "area",
-          "land",
+          'population',
+          'barangay',
+          'barangays',
+          'density',
+          'residents',
+          'people',
+          'demographics',
+          'mandaue',
+          'city',
+          'area',
+          'land',
         ],
         component: (
           <PopulationToggle
             isVisible={
-              overlays.find((o) => o.id === "mandaue_population-layer")?.visible ?? true
+              overlays.find((o) => o.id === 'mandaue_population-layer')
+                ?.visible ?? true
             }
-            onToggle={() => onToggleOverlay("mandaue_population-layer")}
+            onToggle={() => onToggleOverlay('mandaue_population-layer')}
             onNavigateToDataSource={onNavigateToDataSource}
           />
         ),
       },
       {
-        id: "floodprone" as ComponentId,
+        id: 'floodprone' as ComponentId,
         keywords: [
-          "flood",
-          "prone",
-          "area",
-          "downstream",
-          "south",
-          "mc",
-          "briones",
-          "highway",
-          "lh",
-          "prime",
-          "rolling",
-          "hills",
-          "east",
-          "maguikay",
-          "cabancalan",
-          "tabok",
-          "tingub",
-          "butuanon",
-          "paknaan",
-          "basak",
-          "pagsabungan",
-          "barangay",
-          "road",
+          'flood',
+          'prone',
+          'area',
+          'downstream',
+          'south',
+          'mc',
+          'briones',
+          'highway',
+          'lh',
+          'prime',
+          'rolling',
+          'hills',
+          'east',
+          'maguikay',
+          'cabancalan',
+          'tabok',
+          'tingub',
+          'butuanon',
+          'paknaan',
+          'basak',
+          'pagsabungan',
+          'barangay',
+          'road',
         ],
         component: onToggleFloodProneArea ? (
           <FloodProneToggle
@@ -291,26 +298,26 @@ export default function OverlaysContent({
         ) : null,
       },
       {
-        id: "reports" as ComponentId,
+        id: 'reports' as ComponentId,
         keywords: [
-          "reports",
-          "issues",
-          "user",
-          "submissions",
-          "problems",
-          "complaints",
-          "feedback",
-          "form",
-          "clogged",
-          "damage",
-          "overflow",
+          'reports',
+          'issues',
+          'user',
+          'submissions',
+          'problems',
+          'complaints',
+          'feedback',
+          'form',
+          'clogged',
+          'damage',
+          'overflow',
         ],
         component: (
           <ReportsToggle
             isVisible={
-              overlays.find((o) => o.id === "reports-layer")?.visible ?? true
+              overlays.find((o) => o.id === 'reports-layer')?.visible ?? true
             }
-            onToggle={() => onToggleOverlay("reports-layer")}
+            onToggle={() => onToggleOverlay('reports-layer')}
             onNavigateToReportForm={onNavigateToReportForm}
             reports={reports}
             isSimulationMode={isSimulationMode}
@@ -373,7 +380,7 @@ export default function OverlaysContent({
   };
 
   return (
-    <div className="flex flex-col gap-4 pl-5 pb-5 pr-3 overflow-hidden">
+    <div className="flex flex-col gap-4 overflow-hidden pr-3 pb-5 pl-5">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

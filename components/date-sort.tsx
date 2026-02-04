@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { Calendar } from "lucide-react";
+import { Calendar } from 'lucide-react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
 export type DateFilterValue =
-  | "all"
-  | "today"
-  | "week"
-  | "2weeks"
-  | "3weeks"
-  | "month";
+  | 'all'
+  | 'today'
+  | 'week'
+  | '2weeks'
+  | '3weeks'
+  | 'month';
 
 interface DateSortProps {
   value?: DateFilterValue;
@@ -24,15 +24,15 @@ interface DateSortProps {
 }
 
 export function DateSort({
-  value = "all",
+  value = 'all',
   onValueChange,
   disabled = false,
 }: DateSortProps) {
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className="w-36 h-8.5 bg-[#EBEBEB] border-[#DCDCDC] text-xs text-[#8D8D8D] cursor-pointer">
+      <SelectTrigger className="h-8.5 w-36 cursor-pointer border-[#DCDCDC] bg-[#EBEBEB] text-xs text-[#8D8D8D]">
         <div className="flex items-center gap-2">
-          <Calendar className="w-3.5 h-3.5 text-[#8D8D8D]" />
+          <Calendar className="h-3.5 w-3.5 text-[#8D8D8D]" />
           <SelectValue placeholder="All time" />
         </div>
       </SelectTrigger>

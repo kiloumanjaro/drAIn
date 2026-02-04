@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useState,
@@ -6,12 +6,12 @@ import {
   useRef,
   useImperativeHandle,
   forwardRef,
-} from "react";
-import { getInitials } from "@/lib/user-initials";
-import { X, History, Link } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import type mapboxgl from "mapbox-gl";
-import { ImageViewer } from "@/components/image-viewer";
+} from 'react';
+import { getInitials } from '@/lib/user-initials';
+import { X, History, Link } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import type mapboxgl from 'mapbox-gl';
+import { ImageViewer } from '@/components/image-viewer';
 
 interface Report {
   reporterName: string;
@@ -73,7 +73,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
           essential: true,
         });
 
-        map.once("moveend", () => {
+        map.once('moveend', () => {
           isAnimatingRef.current = false;
           previousZoomRef.current = map.getZoom();
         });
@@ -94,10 +94,10 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
 
     useEffect(() => {
       if (!containerRef.current) return;
-      const mapboxPopup = containerRef.current.closest(".mapboxgl-popup");
+      const mapboxPopup = containerRef.current.closest('.mapboxgl-popup');
 
       if (mapboxPopup) {
-        mapboxPopup.classList.toggle("active-popup", isOpen);
+        mapboxPopup.classList.toggle('active-popup', isOpen);
       }
     }, [isOpen]);
 
@@ -118,37 +118,37 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
         previousZoomRef.current = currentZoom;
       };
 
-      map.on("zoom", handleZoom);
+      map.on('zoom', handleZoom);
       return () => {
-        map.off("zoom", handleZoom);
+        map.off('zoom', handleZoom);
       };
     }, [map, isOpen]);
 
     const getStatusStyle = (status: string) => {
       switch (status) {
-        case "resolved":
-          return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
-        case "unresolved":
-          return "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20";
-        case "pending":
-          return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20";
+        case 'resolved':
+          return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
+        case 'unresolved':
+          return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20';
+        case 'pending':
+          return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20';
         default:
-          return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
+          return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
       }
     };
 
     const getComponentColor = (type: string) => {
       switch (type) {
-        case "man_pipes":
-          return "bg-[#8B008B]";
-        case "storm_drains":
-          return "bg-[#0088ff]";
-        case "inlets":
-          return "bg-[#00cc44]";
-        case "outlets":
-          return "bg-[#cc0000]";
+        case 'man_pipes':
+          return 'bg-[#8B008B]';
+        case 'storm_drains':
+          return 'bg-[#0088ff]';
+        case 'inlets':
+          return 'bg-[#00cc44]';
+        case 'outlets':
+          return 'bg-[#cc0000]';
         default:
-          return "bg-gray-400";
+          return 'bg-gray-400';
       }
     };
 
@@ -160,7 +160,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
             e.stopPropagation();
             handleOpen();
           }}
-          className={`relative w-6 h-6 rounded-full pt-0.5 flex items-center justify-center text-white text-xs font-bold transition-all duration-200 hover:scale-110 hover:shadow-lg active:scale-95 ${getComponentColor(
+          className={`relative flex h-6 w-6 items-center justify-center rounded-full pt-0.5 text-xs font-bold text-white transition-all duration-200 hover:scale-110 hover:shadow-lg active:scale-95 ${getComponentColor(
             report.category
           )}`}
         >
@@ -170,41 +170,41 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
         {/* Popup */}
         {isOpen && (
           <div
-            className={`absolute left-10 top-0 w-2xs p-4 bg-white rounded-lg shadow-lg border border-gray-200 ${
+            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg ${
               isClosing
-                ? "animate-out fade-out duration-300"
-                : "animate-in fade-in slide-in-from-left-2"
+                ? 'animate-out fade-out duration-300'
+                : 'animate-in fade-in slide-in-from-left-2'
             }`}
           >
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute top-3 right-3 w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              className="absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 transition-colors hover:bg-gray-200"
             >
-              <X className="w-4 h-4 text-gray-600 cursor-pointer" />
+              <X className="h-4 w-4 cursor-pointer text-gray-600" />
             </button>
 
             {/* Header */}
-            <div className="flex items-center gap-3 mb-2">
+            <div className="mb-2 flex items-center gap-3">
               <div
-                className={`w-9 h-9 pt-0.5 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm ${getComponentColor(
+                className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full pt-0.5 text-sm font-bold text-white ${getComponentColor(
                   report.category
                 )}`}
               >
                 {initials}
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 ">
+                <h3 className="font-semibold text-gray-900">
                   {report.reporterName}
                 </h3>
-                <div className="flex flex-row gap-2  items-end">
-                  <p className="text-2xs  pb-1 text-gray-500">
+                <div className="flex flex-row items-end gap-2">
+                  <p className="text-2xs pb-1 text-gray-500">
                     {formatDistanceToNow(new Date(report.date), {
                       addSuffix: true,
                     })}
                   </p>
                   <div
-                    className={`text-[10px] px-3 mb-1 h-5 rounded-md border flex items-center justify-center ${getStatusStyle(
+                    className={`mb-1 flex h-5 items-center justify-center rounded-md border px-3 text-[10px] ${getStatusStyle(
                       report.status
                     )}`}
                   >
@@ -215,17 +215,17 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
             </div>
 
             {/* Description */}
-            <div className="ml-[48px] mb-4">
-              <p className="text-xs text-gray-800 flex flex-col gap-2">
-                {report.description}{" "}
+            <div className="mb-4 ml-[48px]">
+              <p className="flex flex-col gap-2 text-xs text-gray-800">
+                {report.description}{' '}
                 {report.image && (
                   <button
                     onClick={() => setShowImageViewer(true)}
-                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors"
+                    className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
                   >
-                    <span className="flex flex-row gap-1 items-center ml-[-1px] cursor-pointer">
+                    <span className="ml-[-1px] flex cursor-pointer flex-row items-center gap-1">
                       Image Attached
-                      <Link className="w-3 h-3 mb-0.5" />
+                      <Link className="mb-0.5 h-3 w-3" />
                     </span>
                   </button>
                 )}
@@ -239,8 +239,8 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                   {report.componentId}
                 </span>
                 <span className="text-[#7e7e7e]">
-                  has {resolvedReportSize}{" "}
-                  {resolvedReportSize > 1 ? "reports" : "report"}
+                  has {resolvedReportSize}{' '}
+                  {resolvedReportSize > 1 ? 'reports' : 'report'}
                 </span>
               </div>
               <button
@@ -248,9 +248,9 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                   e.stopPropagation();
                   onHistoryClick?.();
                 }}
-                className="p-1 bg-[#EBEBEB] border border-[#bcbcbc] rounded-full flex items-center justify-center transition-colors hover:bg-[#E0E0E0] disabled:opacity-50 cursor-pointer"
+                className="flex cursor-pointer items-center justify-center rounded-full border border-[#bcbcbc] bg-[#EBEBEB] p-1 transition-colors hover:bg-[#E0E0E0] disabled:opacity-50"
               >
-                <History className="w-4 h-4 text-[#8D8D8D]" />
+                <History className="h-4 w-4 text-[#8D8D8D]" />
               </button>
             </div>
           </div>

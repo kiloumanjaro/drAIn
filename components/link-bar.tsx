@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { IconInfoCircle, IconStar } from "@tabler/icons-react";
+import * as React from 'react';
+import { IconInfoCircle, IconStar } from '@tabler/icons-react';
 
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-} from "@/components/ui/input-group";
+} from '@/components/ui/input-group';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from '@/components/ui/popover';
 
 interface LinkBarProps {
   link?: string;
 }
 
-export function LinkBar({ link = "" }: LinkBarProps) {
+export function LinkBar({ link = '' }: LinkBarProps) {
   const [isFavorite, setIsFavorite] = React.useState(false);
 
   return (
     <div className="grid w-full max-w-sm gap-6">
-      <InputGroup className="px-1 [--radius:9999px] min-w-0 bg-white">
+      <InputGroup className="min-w-0 bg-white px-1 [--radius:9999px]">
         {/* ensure children can shrink/truncate */}
         <Popover>
           <PopoverTrigger asChild>
@@ -35,20 +35,20 @@ export function LinkBar({ link = "" }: LinkBarProps) {
           </PopoverTrigger>
           <PopoverContent
             align="start"
-            className="flex flex-col gap-1 py-4 px-5 rounded-xl text-sm"
+            className="flex flex-col gap-1 rounded-xl px-5 py-4 text-sm"
           >
-            <p className="font-medium mb-1">Jupyter Notebook</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="mb-1 font-medium">Jupyter Notebook</p>
+            <p className="text-muted-foreground text-xs">
               Refer to the official documentation for details on the machine
               learning model development process
             </p>
           </PopoverContent>
         </Popover>
-        <InputGroupAddon className="text-[#666666] font-normal pl-1.5">
+        <InputGroupAddon className="pl-1.5 font-normal text-[#666666]">
           https://
         </InputGroupAddon>
-        <span className="flex-1 min-w-0 py-2 text-sm text-[#666666] truncate">
-          {link || "your-link-here.com"}
+        <span className="min-w-0 flex-1 truncate py-2 text-sm text-[#666666]">
+          {link || 'your-link-here.com'}
         </span>
         <InputGroupAddon align="inline-end" className="flex-shrink-0">
           <InputGroupButton

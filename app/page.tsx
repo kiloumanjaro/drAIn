@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useAuth } from "@/components/context/AuthProvider";
-import { useState, useEffect } from "react";
-import client from "@/app/api/client";
-import DataFlowPipeline from "@/components/data-flow";
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import { usePageTransition } from "@/hooks/usePageTransition";
+import { useAuth } from '@/components/context/AuthProvider';
+import { useState, useEffect } from 'react';
+import client from '@/app/api/client';
+import DataFlowPipeline from '@/components/data-flow';
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+import { usePageTransition } from '@/hooks/usePageTransition';
 
 export default function WelcomePage() {
   const { user } = useAuth();
@@ -31,13 +31,13 @@ export default function WelcomePage() {
         const fetchProfile = async () => {
           setProfileLoading(true);
           const { data, error } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
             .single();
 
-          if (error && error.code !== "PGRST116") {
-            console.error("Error fetching profile:", error);
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
           } else if (data) {
             const avatarUrl = data.avatar_url;
             setProfile(data);
@@ -57,9 +57,8 @@ export default function WelcomePage() {
   }, [user, supabase]);
 
   const handleNavigateToMap = () => {
-    navigateTo("/map");
+    navigateTo('/map');
   };
-
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
@@ -78,11 +77,11 @@ export default function WelcomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#e8e8e8]/50">
-      <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+      <div className="pointer-events-auto absolute top-4 right-4 z-20">
         <Button
           variant="outline"
           size="icon"
-          className="bg-white/80 hover:bg-white transition-colors border-gray-300 shadow-lg"
+          className="border-gray-300 bg-white/80 shadow-lg transition-colors hover:bg-white"
           onClick={toggleFullScreen}
           aria-label="Toggle Fullscreen"
         >
@@ -126,16 +125,16 @@ export default function WelcomePage() {
       />
 
       {/* Foreground Content  */}
-      <div className="relative z-10 flex flex-1 h-full flex-col items-center justify-center text-center px-4 pointer-events-none">
-        <div className="flex flex-col max-w-3xl gap-20">
-          <h1 className="text-5xl font-bold text-[#34332e] leading-2 flex flex-wrap items-center justify-center gap-4 font-[family-name:var(--font-century-gothic)]">
+      <div className="pointer-events-none relative z-10 flex h-full flex-1 flex-col items-center justify-center px-4 text-center">
+        <div className="flex max-w-3xl flex-col gap-20">
+          <h1 className="flex flex-wrap items-center justify-center gap-4 font-[family-name:var(--font-century-gothic)] text-5xl leading-2 font-bold text-[#34332e]">
             <span>a blueprint</span>
             <Image
               src="/images/logo.png"
               alt="Logo"
               width={80}
               height={60}
-              className="pointer-events-auto rotate-0 mb-1 transition-transform duration-300 hover:rotate-12 animate-rotate-in"
+              className="animate-rotate-in pointer-events-auto mb-1 rotate-0 transition-transform duration-300 hover:rotate-12"
             />
             <span>for efficient</span>
             <span className="text-shine">drainage management system</span>
@@ -144,7 +143,7 @@ export default function WelcomePage() {
           <div>
             <Button
               size="lg"
-              className="text-md bg-[#3B82F6] hover:bg-[#2563EB] pointer-events-auto"
+              className="text-md pointer-events-auto bg-[#3B82F6] hover:bg-[#2563EB]"
               onClick={handleNavigateToMap}
               disabled={isNavigating}
             >

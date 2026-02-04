@@ -12,31 +12,35 @@ This implementation uses **PostGIS point-in-polygon matching** to automatically 
 
 ## Why This Approach?
 
-| Aspect | Address-Based | Coordinate-Based (PostGIS) |
-|--------|---------------|----------------------------|
-| **Data available** | ❌ 0% (no addresses) | ✅ 100% (all have coordinates) |
-| **Accuracy** | Text matching (~70%) | Geographic precision (99%) |
-| **Setup** | Requires geocoding API | Just load GeoJSON |
-| **Cost** | API fees ($7-50/month) | Free |
-| **Implementation time** | 2-4 hours | 30 minutes |
-| **Zone coverage NOW** | 0% | 95-100% |
+| Aspect                  | Address-Based          | Coordinate-Based (PostGIS)     |
+| ----------------------- | ---------------------- | ------------------------------ |
+| **Data available**      | ❌ 0% (no addresses)   | ✅ 100% (all have coordinates) |
+| **Accuracy**            | Text matching (~70%)   | Geographic precision (99%)     |
+| **Setup**               | Requires geocoding API | Just load GeoJSON              |
+| **Cost**                | API fees ($7-50/month) | Free                           |
+| **Implementation time** | 2-4 hours              | 30 minutes                     |
+| **Zone coverage NOW**   | 0%                     | 95-100%                        |
 
 ---
 
 ## What Was Created
 
 ### 1. GeoJSON Parser Script
+
 **File:** `scripts/generate-barangay-sql.ts`
 
 Automatically parses the `mandaue_population.geojson` file and generates SQL INSERT statements for all 28 barangays (excluding city boundary).
 
 **How it works:**
+
 ```typescript
 // Reads GeoJSON
 const geojsonData = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
 
 // Filters out "Mandaue City" (outer boundary, not a barangay)
-const barangays = geojsonData.features.filter(f => f.properties.name !== 'Mandaue City');
+const barangays = geojsonData.features.filter(
+  (f) => f.properties.name !== 'Mandaue City'
+);
 
 // For each barangay:
 // 1. Extract polygon coordinates
@@ -48,6 +52,7 @@ const barangays = geojsonData.features.filter(f => f.properties.name !== 'Mandau
 ```
 
 **Barangays Extracted (28 total):**
+
 1. Bakilid
 2. Centro
 3. Casuntingan
@@ -78,9 +83,11 @@ const barangays = geojsonData.features.filter(f => f.properties.name !== 'Mandau
 28. Umapad
 
 ### 2. Barangay Boundaries Table Migration
+
 **File:** `supabase/migrations/20251121_barangay_boundaries.sql`
 
 Generated migration that:
+
 - ✅ Enables PostGIS extension
 - ✅ Creates `barangay_boundaries` table with GEOGRAPHY column
 - ✅ Creates GIST spatial index for fast queries
@@ -88,6 +95,7 @@ Generated migration that:
 - ✅ Stores population metadata (optional)
 
 **Table Schema:**
+
 ```sql
 CREATE TABLE barangay_boundaries (
   id SERIAL PRIMARY KEY,
@@ -105,11 +113,13 @@ ON barangay_boundaries USING GIST(boundary);
 ```
 
 ### 3. Coordinate-Based Zone Extraction Migration
+
 **File:** `supabase/migrations/20251121_zone_extraction_from_coordinates.sql`
 
 Implements PostGIS point-in-polygon matching:
 
 **Function:**
+
 ```sql
 CREATE FUNCTION extract_barangay_from_coordinates(
   longitude NUMERIC,
@@ -135,6 +145,7 @@ $$ LANGUAGE plpgsql STABLE;
 ```
 
 **Trigger:**
+
 ```sql
 CREATE TRIGGER trigger_update_report_zone
 BEFORE INSERT OR UPDATE OF long, lat ON reports
@@ -147,6 +158,7 @@ EXECUTE FUNCTION update_report_zone();
 ## How It Works
 
 ### Step 1: Report Submitted
+
 ```
 User submits drainage report with:
 - Image
@@ -156,12 +168,14 @@ User submits drainage report with:
 ```
 
 ### Step 2: Database Trigger Fires
+
 ```
 ON INSERT or UPDATE of (long, lat):
   CALL extract_barangay_from_coordinates(123.9324, 10.3375)
 ```
 
 ### Step 3: Point-in-Polygon Query
+
 ```sql
 SELECT name FROM barangay_boundaries
 WHERE ST_Contains(
@@ -173,6 +187,7 @@ WHERE ST_Contains(
 ```
 
 ### Step 4: Zone Assigned
+
 ```
 Report updated:
   zone = "Bakilid"
@@ -183,10 +198,12 @@ Report updated:
 ## Deployment Instructions
 
 ### Prerequisites
+
 - Supabase project with PostGIS support (most plans include it)
 - GeoJSON file at: `public/additional-overlays/mandaue_population.geojson` ✅
 
 ### Step 1: Generate SQL Migration
+
 ```bash
 # Parse GeoJSON and generate SQL
 npm run generate:barangay-sql
@@ -195,6 +212,7 @@ npx tsx scripts/generate-barangay-sql.ts
 ```
 
 **Output:**
+
 ```
 📖 Reading GeoJSON...
 🏘️  Found 28 barangays
@@ -203,6 +221,7 @@ npx tsx scripts/generate-barangay-sql.ts
 ```
 
 ### Step 2: Apply Migrations to Supabase
+
 ```bash
 # Push both migrations to Supabase
 npx supabase db push
@@ -218,6 +237,7 @@ npx supabase db push
 ```
 
 ### Step 3: Verify Installation
+
 ```bash
 # Connect to Supabase
 npx supabase db psql
@@ -256,6 +276,7 @@ SELECT extract_barangay_from_coordinates(NULL, 10.310);
 ```
 
 ### View Zone Distribution
+
 ```sql
 SELECT
   zone,
@@ -279,16 +300,19 @@ ORDER BY report_count DESC;
 ## Performance Characteristics
 
 ### Query Speed
+
 - **Point-in-polygon lookup:** ~1-5 milliseconds per report
 - **Backfill 85 reports:** <1 second total
 - **Index type:** GIST (Generalized Search Tree) - optimal for spatial queries
 
 ### Database Usage
+
 - **PostGIS extension:** ~2-5 MB
 - **barangay_boundaries table:** <1 MB
 - **Spatial index:** <100 KB
 
 ### Scalability
+
 - Handles thousands of reports efficiently
 - O(log n) lookup time with GIST index
 - Can handle millions of point queries
@@ -298,7 +322,9 @@ ORDER BY report_count DESC;
 ## Migration Details
 
 ### Migration 1: `20251121_barangay_boundaries.sql`
+
 **What it does:**
+
 1. `CREATE EXTENSION postgis` - Enables spatial functions
 2. `CREATE TABLE barangay_boundaries` - Table for boundary polygons
 3. `CREATE INDEX GIST` - Spatial index for performance
@@ -308,7 +334,9 @@ ORDER BY report_count DESC;
 **Runtime:** ~1-2 seconds
 
 ### Migration 2: `20251121_zone_extraction_from_coordinates.sql`
+
 **What it does:**
+
 1. `CREATE FUNCTION extract_barangay_from_coordinates()` - Performs point-in-polygon
 2. `CREATE FUNCTION update_report_zone()` - Handles the trigger logic
 3. `DROP/CREATE TRIGGER trigger_update_report_zone` - Auto-assigns zones
@@ -322,6 +350,7 @@ ORDER BY report_count DESC;
 ## Key Technologies
 
 ### PostGIS Functions Used
+
 - `ST_Contains(polygon, point)` - Check if point is in polygon
 - `ST_MakePoint(lon, lat)` - Create point from coordinates
 - `ST_SetSRID(geometry, 4326)` - Set spatial reference (WGS84 lat/long)
@@ -329,6 +358,7 @@ ORDER BY report_count DESC;
 - `GIST index` - Generalized Search Tree for fast spatial indexing
 
 ### GeoJSON Processing
+
 - `Polygon` geometry type (multipart boundaries)
 - `[longitude, latitude, altitude]` coordinate format
 - Feature properties (name, population, etc.)
@@ -351,15 +381,18 @@ ORDER BY report_count DESC;
 ## Troubleshooting
 
 ### Issue: PostGIS extension not available
+
 ```
 ERROR: could not open extension control file
 ```
 
 **Solution:**
+
 - Check Supabase plan (PostGIS available on most plans)
 - Contact Supabase support if extension not available
 
 ### Issue: Zones not being assigned
+
 ```sql
 -- Check if trigger is active
 SELECT * FROM pg_trigger WHERE tgname = 'trigger_update_report_zone';
@@ -373,6 +406,7 @@ SELECT extract_barangay_from_coordinates(123.9324, 10.3375);
 ```
 
 ### Issue: Some reports have NULL zone
+
 ```sql
 -- Find reports with NULL coordinates
 SELECT id, long, lat FROM reports WHERE long IS NULL OR lat IS NULL;
@@ -385,33 +419,37 @@ SELECT id, long, lat FROM reports WHERE long IS NULL OR lat IS NULL;
 
 ## Files Created/Modified
 
-| File | Type | Purpose |
-|------|------|---------|
-| `scripts/generate-barangay-sql.ts` | Script | Parse GeoJSON and generate SQL |
-| `supabase/migrations/20251121_barangay_boundaries.sql` | Migration | Create table and load barangay polygons |
-| `supabase/migrations/20251121_zone_extraction_from_coordinates.sql` | Migration | Create functions and trigger for zone assignment |
-| `POSTGIS_BARANGAY_ZONES.md` | Documentation | This file |
+| File                                                                | Type          | Purpose                                          |
+| ------------------------------------------------------------------- | ------------- | ------------------------------------------------ |
+| `scripts/generate-barangay-sql.ts`                                  | Script        | Parse GeoJSON and generate SQL                   |
+| `supabase/migrations/20251121_barangay_boundaries.sql`              | Migration     | Create table and load barangay polygons          |
+| `supabase/migrations/20251121_zone_extraction_from_coordinates.sql` | Migration     | Create functions and trigger for zone assignment |
+| `POSTGIS_BARANGAY_ZONES.md`                                         | Documentation | This file                                        |
 
 ---
 
 ## Next Steps (Optional)
 
 ### 1. Visualization
+
 - Add interactive map in Dashboard showing zones
 - Use Mapbox GL with GeoJSON overlay
 - Color-code zones by report density
 
 ### 2. Zone Statistics
+
 - Add zone breakdown to Analytics tab
 - Show issues per zone over time
 - Analyze zone performance metrics
 
 ### 3. Alerts
+
 - Create geofence-based alerts
 - Notify when new report in critical zone
 - Auto-assign to zone-based teams
 
 ### 4. Reverse Geocoding
+
 - Once zones are working, optionally add address geocoding
 - Use Mapbox/Google Maps to convert coordinates to addresses
 - Would provide human-readable location descriptions
@@ -421,6 +459,7 @@ SELECT id, long, lat FROM reports WHERE long IS NULL OR lat IS NULL;
 ## Summary
 
 The PostGIS implementation provides:
+
 - ✅ **95-100% zone coverage** (vs 0% with address-based approach)
 - ✅ **Real-time automatic assignment** via database trigger
 - ✅ **Geographic accuracy** using boundary polygons

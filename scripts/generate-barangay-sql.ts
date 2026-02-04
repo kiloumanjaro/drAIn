@@ -21,7 +21,10 @@ interface GeoJSON {
 }
 
 // Read the GeoJSON file
-const geojsonPath = path.join(process.cwd(), 'public/additional-overlays/mandaue_population.geojson');
+const geojsonPath = path.join(
+  process.cwd(),
+  'public/additional-overlays/mandaue_population.geojson'
+);
 
 if (!fs.existsSync(geojsonPath)) {
   console.error(`❌ GeoJSON file not found at: ${geojsonPath}`);
@@ -67,12 +70,14 @@ sql += `-- =====================================================================
 
 // Filter out "Mandaue City" (it's the outer boundary, not a barangay)
 const barangays = geojsonData.features.filter(
-  f => f.properties.name !== 'Mandaue City' && f.geometry.type === 'Polygon'
+  (f) => f.properties.name !== 'Mandaue City' && f.geometry.type === 'Polygon'
 );
 
-console.log(`🏘️  Found ${barangays.length} barangays (excluding city boundary)`);
+console.log(
+  `🏘️  Found ${barangays.length} barangays (excluding city boundary)`
+);
 
-barangays.forEach((feature, index) => {
+barangays.forEach((feature, _index) => {
   const name = feature.properties.name.replace(/'/g, "''"); // Escape single quotes
   const popCount = feature.properties['population-count'] || null;
   const popDensity = feature.properties['population-density'] || null;
@@ -80,10 +85,12 @@ barangays.forEach((feature, index) => {
 
   // Extract coordinates (remove altitude/z-coordinate if present)
   // GeoJSON format: [longitude, latitude, altitude]
-  const coords = feature.geometry.coordinates[0].map(coord => {
-    // Take only lon, lat (first two values)
-    return `${coord[0]} ${coord[1]}`;
-  }).join(', ');
+  const coords = feature.geometry.coordinates[0]
+    .map((coord) => {
+      // Take only lon, lat (first two values)
+      return `${coord[0]} ${coord[1]}`;
+    })
+    .join(', ');
 
   // Create WKT POLYGON
   const wkt = `POLYGON((${coords}))`;
@@ -109,7 +116,10 @@ sql += `-- List all barangay names\n`;
 sql += `SELECT name FROM barangay_boundaries ORDER BY name;\n`;
 
 // Write to migration file
-const migrationPath = path.join(process.cwd(), 'supabase/migrations/20251121_barangay_boundaries.sql');
+const migrationPath = path.join(
+  process.cwd(),
+  'supabase/migrations/20251121_barangay_boundaries.sql'
+);
 fs.writeFileSync(migrationPath, sql);
 
 console.log(`\n✅ Successfully generated SQL migration!`);

@@ -1,10 +1,15 @@
-import client from "@/app/api/client";
-import type { Report } from "@/lib/supabase/report";
+import client from '@/app/api/client';
+import type { Report } from '@/lib/supabase/report';
 
 export interface OverviewMetrics {
   fixedThisMonth: number;
   pendingIssues: number;
   averageRepairDays: number;
+  totalAdmins: number;
+  fixedTrend?: number[];
+  pendingTrend?: number[];
+  repairTimeTrend?: number[];
+  adminTrend?: number[];
 }
 
 export interface RepairTrendData {
@@ -18,13 +23,14 @@ export interface ZoneIssueData {
 }
 
 export interface ComponentTypeData {
-  type: "inlets" | "outlets" | "storm_drains" | "man_pipes";
+  type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
   count: number;
 }
 
 export interface RepairTimeByComponentData {
-  type: "inlets" | "outlets" | "storm_drains" | "man_pipes";
+  type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
   averageDays: number;
+  resolvedCount?: number;
 }
 
 export interface TeamPerformanceData {
@@ -35,8 +41,44 @@ export interface TeamPerformanceData {
 }
 
 export interface ReportWithMetadata extends Report {
-  priority: "low" | "medium" | "high" | "critical";
+  priority: 'low' | 'medium' | 'high' | 'critical';
   zone?: string;
+}
+
+interface MaintenanceRecord {
+  in_name?: string;
+  out_name?: string;
+  name?: string;
+  last_cleaned_at: string;
+}
+
+interface ReportRecord {
+  id: string;
+  created_at: string;
+  component_id: string;
+  status: string;
+  category?: string;
+  zone?: string;
+  image?: string;
+  description?: string;
+  reporter_name?: string;
+  long?: string;
+  lat?: string;
+  geocoded_status?: string;
+  address?: string;
+  priority?: string;
+}
+
+interface Profile {
+  id: string;
+}
+
+interface ZoneReport {
+  zone: string | null;
+}
+
+interface CategoryReport {
+  category: string | null;
 }
 
 /**
@@ -50,23 +92,29 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     startOfMonth.setHours(0, 0, 0, 0);
 
     const { data: fixedData } = await client
-      .from("reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "resolved")
-      .gte("created_at", startOfMonth.toISOString());
+      .from('reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'resolved')
+      .gte('created_at', startOfMonth.toISOString());
 
     // Get pending count
     const { data: pendingData } = await client
-      .from("reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending");
+      .from('reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    // Get admin count (users with agency_id)
+    const { data: adminData } = await client
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .not('agency_id', 'is', null);
 
     // Get average repair time (join with maintenance records)
     // This is a simplified approach - in production, use a database function
     const { data: allReports } = await client
-      .from("reports")
-      .select("id, created_at, component_id, status")
-      .eq("status", "resolved")
+      .from('reports')
+      .select('id, created_at, component_id, status')
+      .eq('status', 'resolved')
       .limit(1000); // Limit for performance
 
     // For now, we'll fetch maintenance data separately
@@ -77,29 +125,28 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     if (allReports) {
       // Get maintenance records for repair time calculation
       const { data: inletMaintenance } = await client
-        .from("inlets_maintenance")
-        .select("in_name, last_cleaned_at");
+        .from('inlets_maintenance')
+        .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
       const { data: outletMaintenance } = await client
-        .from("outlets_maintenance")
-        .select("out_name, last_cleaned_at");
+        .from('outlets_maintenance')
+        .select('out_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
       const { data: drainMaintenance } = await client
-        .from("storm_drains_maintenance")
-        .select("name, last_cleaned_at");
+        .from('storm_drains_maintenance')
+        .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
       const { data: pipeMaintenance } = await client
-        .from("man_pipes_maintenance")
-        .select("name, last_cleaned_at");
+        .from('man_pipes_maintenance')
+        .select('name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
       // Build maintenance map
       const maintenanceMap = new Map<string, string>();
       [inletMaintenance, outletMaintenance, drainMaintenance, pipeMaintenance]
         .filter(Boolean)
         .forEach((records) => {
-          records?.forEach((record: any) => {
-            const key =
-              record.in_name || record.out_name || record.name || "";
+          records?.forEach((record: MaintenanceRecord) => {
+            const key = record.in_name || record.out_name || record.name || '';
             if (key) {
               maintenanceMap.set(key, record.last_cleaned_at);
             }
@@ -107,7 +154,7 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
         });
 
       // Calculate repair days
-      allReports.forEach((report: any) => {
+      allReports.forEach((report: ReportRecord) => {
         const maintenanceDate = maintenanceMap.get(report.component_id);
         if (maintenanceDate) {
           const days =
@@ -129,13 +176,15 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
       fixedThisMonth: fixedData?.length ?? 0,
       pendingIssues: pendingData?.length ?? 0,
       averageRepairDays,
+      totalAdmins: adminData?.length ?? 0,
     };
   } catch (error) {
-    console.error("Error fetching overview metrics:", error);
+    console.error('Error fetching overview metrics:', error);
     return {
       fixedThisMonth: 0,
       pendingIssues: 0,
       averageRepairDays: 0,
+      totalAdmins: 0,
     };
   }
 }
@@ -149,10 +198,10 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const { data: reports } = await client
-      .from("reports")
-      .select("id, created_at, component_id, status")
-      .eq("status", "resolved")
-      .gte("created_at", thirtyDaysAgo.toISOString());
+      .from('reports')
+      .select('id, created_at, component_id, status')
+      .eq('status', 'resolved')
+      .gte('created_at', thirtyDaysAgo.toISOString()) as { data: ReportRecord[] | null };
 
     if (!reports || reports.length === 0) {
       return [];
@@ -160,28 +209,28 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
 
     // Fetch maintenance records
     const { data: inletMaintenance } = await client
-      .from("inlets_maintenance")
-      .select("in_name, last_cleaned_at");
+      .from('inlets_maintenance')
+      .select('in_name, last_cleaned_at');
 
     const { data: outletMaintenance } = await client
-      .from("outlets_maintenance")
-      .select("out_name, last_cleaned_at");
+      .from('outlets_maintenance')
+      .select('out_name, last_cleaned_at');
 
     const { data: drainMaintenance } = await client
-      .from("storm_drains_maintenance")
-      .select("name, last_cleaned_at");
+      .from('storm_drains_maintenance')
+      .select('in_name, last_cleaned_at');
 
     const { data: pipeMaintenance } = await client
-      .from("man_pipes_maintenance")
-      .select("name, last_cleaned_at");
+      .from('man_pipes_maintenance')
+      .select('name, last_cleaned_at');
 
     // Build maintenance map
     const maintenanceMap = new Map<string, string>();
     [inletMaintenance, outletMaintenance, drainMaintenance, pipeMaintenance]
       .filter(Boolean)
       .forEach((records) => {
-        records?.forEach((record: any) => {
-          const key = record.in_name || record.out_name || record.name || "";
+        records?.forEach((record: MaintenanceRecord) => {
+          const key = record.in_name || record.out_name || record.name || '';
           if (key) {
             maintenanceMap.set(key, record.last_cleaned_at);
           }
@@ -189,16 +238,13 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
       });
 
     // Group by date and calculate average
-    const dateMap = new Map<
-      string,
-      { totalDays: number; count: number }
-    >();
+    const dateMap = new Map<string, { totalDays: number; count: number }>();
 
-    reports.forEach((report: any) => {
+    reports.forEach((report: ReportRecord) => {
       const maintenanceDate = maintenanceMap.get(report.component_id);
       if (maintenanceDate) {
         const createdDate = new Date(report.created_at);
-        const dateKey = createdDate.toISOString().split("T")[0];
+        const dateKey = createdDate.toISOString().split('T')[0];
 
         const days =
           (new Date(maintenanceDate).getTime() -
@@ -222,14 +268,13 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
     const trend = Array.from(dateMap.entries())
       .map(([date, data]) => ({
         date,
-        averageDays:
-          Math.round((data.totalDays / data.count) * 10) / 10,
+        averageDays: Math.round((data.totalDays / data.count) * 10) / 10,
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return trend;
   } catch (error) {
-    console.error("Error fetching repair trend data:", error);
+    console.error('Error fetching repair trend data:', error);
     return [];
   }
 }
@@ -242,9 +287,9 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
 export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
   try {
     const { data: reports } = await client
-      .from("reports")
-      .select("zone")
-      .not("zone", "is", null); // Exclude reports with no zone match
+      .from('reports')
+      .select('zone')
+      .not('zone', 'is', null) as { data: ZoneReport[] | null }; // Exclude reports with no zone match
 
     if (!reports || reports.length === 0) {
       return [];
@@ -253,7 +298,7 @@ export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
     // Group by zone
     const zoneMap = new Map<string, number>();
 
-    reports.forEach((report: any) => {
+    reports.forEach((report: ZoneReport) => {
       if (report.zone) {
         zoneMap.set(report.zone, (zoneMap.get(report.zone) ?? 0) + 1);
       }
@@ -267,7 +312,7 @@ export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
       }))
       .sort((a, b) => b.count - a.count);
   } catch (error) {
-    console.error("Error fetching issues per zone:", error);
+    console.error('Error fetching issues per zone:', error);
     return [];
   }
 }
@@ -277,9 +322,7 @@ export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
  */
 export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
   try {
-    const { data: reports } = await client
-      .from("reports")
-      .select("category");
+    const { data: reports } = await client.from('reports').select('category') as { data: CategoryReport[] | null };
 
     if (!reports) {
       return [];
@@ -287,7 +330,7 @@ export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
 
     const componentMap = new Map<string, number>();
 
-    reports.forEach((report: any) => {
+    reports.forEach((report: CategoryReport) => {
       const type = report.category;
       if (type) {
         componentMap.set(type, (componentMap.get(type) ?? 0) + 1);
@@ -295,11 +338,11 @@ export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
     });
 
     return Array.from(componentMap.entries()).map(([type, count]) => ({
-      type: type as "inlets" | "outlets" | "storm_drains" | "man_pipes",
+      type: type as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes',
       count,
     }));
   } catch (error) {
-    console.error("Error fetching component type data:", error);
+    console.error('Error fetching component type data:', error);
     return [];
   }
 }
@@ -312,8 +355,8 @@ export async function getRepairTimeByComponent(): Promise<
 > {
   try {
     const { data: reports } = await client
-      .from("reports")
-      .select("category, component_id, created_at, status");
+      .from('reports')
+      .select('category, component_id, created_at, status') as { data: ReportRecord[] | null };
 
     if (!reports) {
       return [];
@@ -321,28 +364,28 @@ export async function getRepairTimeByComponent(): Promise<
 
     // Fetch maintenance records
     const { data: inletMaintenance } = await client
-      .from("inlets_maintenance")
-      .select("in_name, last_cleaned_at");
+      .from('inlets_maintenance')
+      .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
     const { data: outletMaintenance } = await client
-      .from("outlets_maintenance")
-      .select("out_name, last_cleaned_at");
+      .from('outlets_maintenance')
+      .select('out_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
     const { data: drainMaintenance } = await client
-      .from("storm_drains_maintenance")
-      .select("name, last_cleaned_at");
+      .from('storm_drains_maintenance')
+      .select('in_name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
     const { data: pipeMaintenance } = await client
-      .from("man_pipes_maintenance")
-      .select("name, last_cleaned_at");
+      .from('man_pipes_maintenance')
+      .select('name, last_cleaned_at') as { data: MaintenanceRecord[] | null };
 
     // Build maintenance map
     const maintenanceMap = new Map<string, string>();
     [inletMaintenance, outletMaintenance, drainMaintenance, pipeMaintenance]
       .filter(Boolean)
       .forEach((records) => {
-        records?.forEach((record: any) => {
-          const key = record.in_name || record.out_name || record.name || "";
+        records?.forEach((record: MaintenanceRecord) => {
+          const key = record.in_name || record.out_name || record.name || '';
           if (key) {
             maintenanceMap.set(key, record.last_cleaned_at);
           }
@@ -355,8 +398,8 @@ export async function getRepairTimeByComponent(): Promise<
       { totalDays: number; count: number }
     >();
 
-    reports.forEach((report: any) => {
-      const type = report.category || "inlets"; // Use category column directly
+    reports.forEach((report: ReportRecord) => {
+      const type = report.category || 'inlets'; // Use category column directly
       const maintenanceDate = maintenanceMap.get(report.component_id);
 
       if (maintenanceDate) {
@@ -379,11 +422,12 @@ export async function getRepairTimeByComponent(): Promise<
     });
 
     return Array.from(componentMap.entries()).map(([type, data]) => ({
-      type: type as "inlets" | "outlets" | "storm_drains" | "man_pipes",
+      type: type as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes',
       averageDays: Math.round((data.totalDays / data.count) * 10) / 10,
+      resolvedCount: data.count,
     }));
   } catch (error) {
-    console.error("Error fetching repair time by component:", error);
+    console.error('Error fetching repair time by component:', error);
     return [];
   }
 }
@@ -394,9 +438,7 @@ export async function getRepairTimeByComponent(): Promise<
 export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
   try {
     // Get all agencies
-    const { data: agencies } = await client
-      .from("agencies")
-      .select("id, name");
+    const { data: agencies } = await client.from('agencies').select('id, name') as { data: Array<{ id: string; name: string }> | null };
 
     if (!agencies) {
       return [];
@@ -407,23 +449,24 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
     for (const agency of agencies) {
       // Get all users (profiles) for this agency
       const { data: profiles } = await client
-        .from("profiles")
-        .select("id")
-        .eq("agency_id", agency.id);
+        .from('profiles')
+        .select('id')
+        .eq('agency_id', agency.id) as { data: Profile[] | null };
 
       if (!profiles || profiles.length === 0) {
         continue; // Skip agencies with no users
       }
 
       // Get all reports submitted by users in this agency
-      const userIds = profiles.map((p: any) => p.id);
+      const userIds = profiles.map((p: Profile) => p.id);
       const { data: agencyReports } = await client
-        .from("reports")
-        .select("id, status")
-        .in("user_id", userIds);
+        .from('reports')
+        .select('id, status')
+        .in('user_id', userIds) as { data: ReportRecord[] | null };
 
       const totalIssues = agencyReports?.length ?? 0;
-      const resolvedIssues = agencyReports?.filter((r: any) => r.status === "resolved").length ?? 0;
+      const resolvedIssues =
+        agencyReports?.filter((r: ReportRecord) => r.status === 'resolved').length ?? 0;
 
       if (totalIssues > 0) {
         performance.push({
@@ -437,7 +480,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
     return performance.sort((a, b) => b.totalIssues - a.totalIssues);
   } catch (error) {
-    console.error("Error fetching team performance:", error);
+    console.error('Error fetching team performance:', error);
     return [];
   }
 }
@@ -448,31 +491,43 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 export async function getAllReports(): Promise<ReportWithMetadata[]> {
   try {
     const { data: reports } = await client
-      .from("reports")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from('reports')
+      .select('*')
+      .order('created_at', { ascending: false }) as { data: ReportRecord[] | null };
 
     if (!reports) return [];
 
     // Transform database records to match Report interface
-    // Map created_at to date field
-    return reports.map((report: any) => ({
-      id: report.id,
-      date: report.created_at || new Date().toISOString(),
-      category: report.category || "Uncategorized",
-      description: report.description || "No description",
-      image: report.image || "",
-      reporterName: report.reporter_name || "Anonymous",
-      status: report.status || "pending",
-      componentId: report.component_id || "",
-      coordinates: [parseFloat(report.long) || 0, parseFloat(report.lat) || 0] as [number, number],
-      geocoded_status: report.geocoded_status || "pending",
-      address: report.address || "Unknown",
-      priority: report.priority || "low",
-      zone: report.zone,
-    } as ReportWithMetadata));
+    // Map created_at to date field and convert image paths to public URLs
+    return reports.map(
+      (report: ReportRecord) => {
+        // Get public URL for image if it exists
+        const { data: img } = report.image 
+          ? client.storage.from('ReportImage').getPublicUrl(report.image)
+          : { data: { publicUrl: '' } };
+
+        return {
+          id: report.id,
+          date: report.created_at || new Date().toISOString(),
+          category: report.category || 'Uncategorized',
+          description: report.description || 'No description',
+          image: img?.publicUrl || '',
+          reporterName: report.reporter_name || 'Anonymous',
+          status: report.status || 'pending',
+          componentId: report.component_id || '',
+          coordinates: [
+            parseFloat(report.long || '0') || 0,
+            parseFloat(report.lat || '0') || 0,
+          ] as [number, number],
+          geocoded_status: report.geocoded_status || 'pending',
+          address: report.address || 'Unknown',
+          priority: report.priority || 'low',
+          zone: report.zone,
+        } as ReportWithMetadata;
+      }
+    );
   } catch (error) {
-    console.error("Error fetching all reports:", error);
+    console.error('Error fetching all reports:', error);
     return [];
   }
 }

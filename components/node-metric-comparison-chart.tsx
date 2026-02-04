@@ -1,8 +1,15 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { ChartContainer } from "@/components/ui/chart";
+import React, { useEffect, useState } from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
+import { ChartContainer } from '@/components/ui/chart';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
@@ -21,11 +28,11 @@ interface NodeDetails {
 }
 
 type MetricKey =
-  | "Time_Before_Overflow"
-  | "Hours_Flooded"
-  | "Maximum_Rate"
-  | "Time_Of_Max_Occurence"
-  | "Total_Flood_Volume";
+  | 'Time_Before_Overflow'
+  | 'Hours_Flooded'
+  | 'Maximum_Rate'
+  | 'Time_Of_Max_Occurence'
+  | 'Total_Flood_Volume';
 
 interface NodeMetricComparisonChartProps {
   nodeId: string;
@@ -52,7 +59,8 @@ export function NodeMetricComparisonChart({
   allNodesData,
 }: NodeMetricComparisonChartProps) {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [selectedNodeData, setSelectedNodeData] = useState<ChartDataPoint | null>(null);
+  const [selectedNodeData, setSelectedNodeData] =
+    useState<ChartDataPoint | null>(null);
   const [totalNodes, setTotalNodes] = useState(0);
 
   useEffect(() => {
@@ -66,7 +74,9 @@ export function NodeMetricComparisonChart({
         );
 
         // Find the selected node
-        const selectedNode = sortedNodes.find((node) => node.Node_ID === nodeId);
+        const selectedNode = sortedNodes.find(
+          (node) => node.Node_ID === nodeId
+        );
         const selectedNodeIndex = sortedNodes.findIndex(
           (node) => node.Node_ID === nodeId
         );
@@ -101,7 +111,7 @@ export function NodeMetricComparisonChart({
           });
         }
       } catch (error) {
-        console.error("Error processing chart data:", error);
+        console.error('Error processing chart data:', error);
       }
     };
 
@@ -118,12 +128,12 @@ export function NodeMetricComparisonChart({
     <div className="w-full pt-2">
       {selectedNodeData && (
         <div className="flex justify-center">
-          <div className="w-48 text-xs h-6 rounded-xl border flex items-center justify-center bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20">
+          <div className="flex h-6 w-48 items-center justify-center rounded-xl border border-gray-500/20 bg-gray-500/10 text-xs text-gray-700 dark:text-gray-400">
             Ranked #{selectedNodeData.rank} out of {totalNodes} nodes
           </div>
         </div>
       )}
-      <ChartContainer config={chartConfig} className="h-[200px] pb-2 w-full">
+      <ChartContainer config={chartConfig} className="h-[200px] w-full pb-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
@@ -133,8 +143,8 @@ export function NodeMetricComparisonChart({
               dataKey="rank"
               tick={{ fontSize: 10 }}
               label={{
-                value: "Node Rank",
-                position: "insideBottom",
+                value: 'Node Rank',
+                position: 'insideBottom',
                 offset: -5,
                 fontSize: 10,
               }}
@@ -146,12 +156,12 @@ export function NodeMetricComparisonChart({
 
                 const data = payload[0].payload as ChartDataPoint;
                 return (
-                  <div className="bg-background border border-border rounded-lg px-3 py-2 shadow-lg">
-                    <div className="text-xs space-y-1">
+                  <div className="bg-background border-border rounded-lg border px-3 py-2 shadow-lg">
+                    <div className="space-y-1 text-xs">
                       <div className="font-semibold">
                         Node: {data.nodeId}
                         {data.isSelected && (
-                          <span className="ml-2 text-primary">(Selected)</span>
+                          <span className="text-primary ml-2">(Selected)</span>
                         )}
                       </div>
                       <div className="text-muted-foreground">

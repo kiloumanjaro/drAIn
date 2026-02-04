@@ -1,52 +1,34 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
-import ReportCard from "./ReportCard";
-import ReportFilters from "./ReportFilters";
-import { getAllReports } from "@/lib/dashboard/queries";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { ReportWithMetadata } from "@/lib/dashboard/queries";
+import { useMemo, useState } from 'react';
+import ReportCard from './ReportCard';
+import ReportFilters from './ReportFilters';
+import { useAllReports } from '@/lib/query/hooks/useReportsData';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ReportsTab() {
-  const [reports, setReports] = useState<ReportWithMetadata[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Filter states
-  const [priority, setPriority] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [componentType, setComponentType] = useState("all");
+  const [priority, setPriority] = useState('all');
+  const [status, setStatus] = useState('all');
+  const [componentType, setComponentType] = useState('all');
 
-  // Fetch reports
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setLoading(true);
-        const allReports = await getAllReports();
-        setReports(allReports);
-      } catch (err) {
-        console.error("Error fetching reports:", err);
-        setError("Failed to load reports. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
-  }, []);
+  // Fetch reports using React Query
+  const { data: reports = [], isLoading: loading, error } = useAllReports();
 
   // Filter and sort reports
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
-      if (priority !== "all" && report.priority !== priority) return false;
-      if (status !== "all" && report.status !== status) return false;
+      // Priority filter
+      if (priority !== 'all' && report.priority !== priority) return false;
 
-      if (componentType !== "all" && report.componentId) {
-        const lower = report.componentId.toLowerCase();
-        if (componentType === "inlets" && !lower.includes("inlet")) return false;
-        if (componentType === "outlets" && !lower.includes("outlet")) return false;
-        if (componentType === "storm_drains" && !lower.includes("drain")) return false;
-        if (componentType === "man_pipes" && !lower.includes("pipe")) return false;
+      // Status filter
+      if (status !== 'all' && report.status !== status) return false;
+
+      // Component type filter - use category field
+      if (componentType !== 'all') {
+        if (!report.category || componentType !== report.category) {
+          return false;
+        }
       }
 
       return true;
@@ -56,21 +38,20 @@ export default function ReportsTab() {
   // Sort by date (newest first)
   const sortedReports = useMemo(() => {
     return [...filteredReports].sort(
-      (a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }, [filteredReports]);
 
   const handleClear = () => {
-    setPriority("all");
-    setStatus("all");
-    setComponentType("all");
+    setPriority('all');
+    setStatus('all');
+    setComponentType('all');
   };
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-600">
-        <p>{error}</p>
+      <div className="py-8 text-center text-red-600">
+        <p>Failed to load reports. Please refresh the page.</p>
       </div>
     );
   }
@@ -86,29 +67,20 @@ export default function ReportsTab() {
         onStatusChange={setStatus}
         onComponentTypeChange={setComponentType}
         onClear={handleClear}
+        filteredCount={sortedReports.length}
+        totalCount={reports.length}
       />
-
-      {/* Results Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-700">
-          Showing{" "}
-          <span className="font-bold text-gray-900">{sortedReports.length}</span>{" "}
-          of{" "}
-          <span className="font-bold text-gray-900">{reports.length}</span>{" "}
-          reports
-        </p>
-      </div>
 
       {/* Loading State */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="bg-white rounded-lg border border-[#ced1cd] overflow-hidden"
+              className="overflow-hidden rounded-lg border border-[#ced1cd] bg-white"
             >
-              <Skeleton className="w-full h-40 mb-4" />
-              <div className="p-4 space-y-2">
+              <Skeleton className="mb-4 h-40 w-full" />
+              <div className="space-y-2 p-4">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
               </div>
@@ -116,28 +88,34 @@ export default function ReportsTab() {
           ))}
         </div>
       ) : sortedReports.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No reports found</p>
-          <p className="text-gray-400 text-sm mt-2">
+        <div className="py-12 text-center">
+          <p className="text-lg text-gray-500">No reports found</p>
+          <p className="mt-2 text-sm text-gray-400">
             Try adjusting your filters
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sortedReports.map((report) => (
-            <ReportCard key={report.id} report={report} />
+            <ReportCard
+              key={report.id}
+              report={report}
+              onPriorityFilter={setPriority}
+              onStatusFilter={setStatus}
+              onComponentTypeFilter={setComponentType}
+            />
           ))}
         </div>
       )}
 
       {/* Footer Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-        <h4 className="font-semibold text-blue-900 mb-2">About Reports</h4>
+      <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <h4 className="mb-2 font-semibold text-blue-900">About Reports</h4>
         <p className="text-sm text-blue-800">
-          All drainage issues reported by the community are tracked here. Priority levels
-          are assigned based on the severity and number of reports for the same location.
-          Reports progress from pending → in-progress → resolved as maintenance teams
-          address them.
+          All drainage issues reported by the community are tracked here.
+          Priority levels are assigned based on the severity and number of
+          reports for the same location. Reports progress from pending →
+          in-progress → resolved as maintenance teams address them.
         </p>
       </div>
     </div>

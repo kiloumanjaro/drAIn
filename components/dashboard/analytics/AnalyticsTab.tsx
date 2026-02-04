@@ -1,62 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import ZoneMap from "./ZoneMap";
-import ComponentTypeChart from "./ComponentTypeChart";
-import RepairTimeCards from "./RepairTimeCards";
-import TeamTable from "./TeamTable";
-import {
-  getIssuesPerZone,
-  getComponentTypeData,
-  getRepairTimeByComponent,
-  getTeamPerformance,
-} from "@/lib/dashboard/queries";
-import type {
-  ZoneIssueData,
-  ComponentTypeData,
-  RepairTimeByComponentData,
-  TeamPerformanceData,
-} from "@/lib/dashboard/queries";
+import ZoneMap from './ZoneMap';
+import ComponentTypeChart from './ComponentTypeChart';
+import RepairTimeCards from './RepairTimeCards';
+import { useAnalytics } from '@/lib/query/hooks/useAnalytics';
 
 export default function AnalyticsTab() {
-  const [zoneData, setZoneData] = useState<ZoneIssueData[]>([]);
-  const [componentData, setComponentData] = useState<ComponentTypeData[]>([]);
-  const [repairTimeData, setRepairTimeData] = useState<
-    RepairTimeByComponentData[]
-  >([]);
-  const [teamData, setTeamData] = useState<TeamPerformanceData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [zones, components, times, teams] = await Promise.all([
-          getIssuesPerZone(),
-          getComponentTypeData(),
-          getRepairTimeByComponent(),
-          getTeamPerformance(),
-        ]);
-        setZoneData(zones);
-        setComponentData(components);
-        setRepairTimeData(times);
-        setTeamData(teams);
-      } catch (err) {
-        console.error("Error fetching analytics data:", err);
-        setError("Failed to load analytics data. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const { zoneData, componentData, repairTimeData, isLoading, error } =
+    useAnalytics();
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-600">
-        <p>{error}</p>
+      <div className="py-8 text-center text-red-600">
+        <p>Failed to load analytics data. Please refresh the page.</p>
       </div>
     );
   }
@@ -64,18 +20,21 @@ export default function AnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Zone Map */}
-      <ZoneMap data={zoneData} loading={loading} />
+      <ZoneMap data={zoneData} loading={isLoading} />
 
-      {/* Repair Time Cards */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">
-          Average Repair Time by Component
-        </h3>
-        <RepairTimeCards data={repairTimeData} loading={loading} />
+      {/* Component Type Chart (left - 2/3) and Repair Time Cards (right - 1/3) */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <section className="md:col-span-2">
+          <ComponentTypeChart data={componentData} loading={isLoading} />
+        </section>
+
+        <aside className="md:col-span-1">
+          <h3 className="mb-4 text-lg font-semibold">
+            Average Repair Time by Component
+          </h3>
+          <RepairTimeCards data={repairTimeData} loading={isLoading} />
+        </aside>
       </div>
-
-      {/* Component Type Chart */}
-      <ComponentTypeChart data={componentData} loading={loading} />
     </div>
   );
 }

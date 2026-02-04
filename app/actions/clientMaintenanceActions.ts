@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import client from "@/app/api/client";
-import { updateReportsStatusForComponent } from "@/lib/supabase/report";
+import client from '@/app/api/client';
+import { updateReportsStatusForComponent } from '@/lib/supabase/report';
 
 // Helper function to normalize Supabase joined data to arrays for TypeScript
 // Supabase's select syntax for related tables (e.g., `agencies ( name )`) often
@@ -11,95 +11,105 @@ import { updateReportsStatusForComponent } from "@/lib/supabase/report";
 const normalizeJoinedData = (data: unknown) => {
   if (!data) return data;
 
-  return (data as Array<Record<string, unknown>>).map((record: Record<string, unknown>) => {
-    const newRecord = { ...record };
-    if (newRecord.agencies && !Array.isArray(newRecord.agencies)) {
-      newRecord.agencies = [newRecord.agencies];
+  return (data as Array<Record<string, unknown>>).map(
+    (record: Record<string, unknown>) => {
+      const newRecord = { ...record };
+      if (newRecord.agencies && !Array.isArray(newRecord.agencies)) {
+        newRecord.agencies = [newRecord.agencies];
+      }
+      if (newRecord.profiles && !Array.isArray(newRecord.profiles)) {
+        newRecord.profiles = [newRecord.profiles];
+      }
+      return newRecord;
     }
-    if (newRecord.profiles && !Array.isArray(newRecord.profiles)) {
-      newRecord.profiles = [newRecord.profiles];
-    }
-    return newRecord;
-  });
+  );
 };
 
 // Inlet Maintenance Functions
 export async function recordInletMaintenance(
   inletId: string,
-  status?: "in-progress" | "resolved",
+  status?: 'in-progress' | 'resolved',
   description?: string,
+  imagePath?: string
 ) {
   return recordMaintenance(
-    "inlets_maintenance",
-    "in_name",
+    'inlets_maintenance',
+    'in_name',
     inletId,
     status,
     description,
+    imagePath
   );
 }
 
 export async function getInletMaintenanceHistory(inletId: string) {
-  return getMaintenanceHistory("inlets_maintenance", "in_name", inletId);
+  return getMaintenanceHistory('inlets_maintenance', 'in_name', inletId);
 }
 
 // Man Pipe Maintenance Functions
 export async function recordManPipeMaintenance(
   manPipeId: string,
-  status?: "in-progress" | "resolved",
+  status?: 'in-progress' | 'resolved',
   description?: string,
+  imagePath?: string
 ) {
   return recordMaintenance(
-    "man_pipes_maintenance",
-    "name",
+    'man_pipes_maintenance',
+    'name',
     manPipeId,
     status,
     description,
+    imagePath
   );
 }
 
 export async function getManPipeMaintenanceHistory(manPipeId: string) {
-  return getMaintenanceHistory("man_pipes_maintenance", "name", manPipeId);
+  return getMaintenanceHistory('man_pipes_maintenance', 'name', manPipeId);
 }
 
 // Outlet Maintenance Functions
 export async function recordOutletMaintenance(
   outletId: string,
-  status?: "in-progress" | "resolved",
+  status?: 'in-progress' | 'resolved',
   description?: string,
+  imagePath?: string
 ) {
   return recordMaintenance(
-    "outlets_maintenance",
-    "out_name",
+    'outlets_maintenance',
+    'out_name',
     outletId,
     status,
     description,
+    imagePath
   );
 }
 
 export async function getOutletMaintenanceHistory(outletId: string) {
-  return getMaintenanceHistory("outlets_maintenance", "out_name", outletId);
+  return getMaintenanceHistory('outlets_maintenance', 'out_name', outletId);
 }
 
 // Storm Drain Maintenance Functions
 export async function recordStormDrainMaintenance(
   stormDrainId: string,
-  status?: "in-progress" | "resolved",
+  status?: 'in-progress' | 'resolved',
   description?: string,
+  imagePath?: string
 ) {
   return recordMaintenance(
-    "storm_drains_maintenance",
-    "in_name",
+    'storm_drains_maintenance',
+    'in_name',
     stormDrainId,
     status,
-description,
+    description,
+    imagePath
   );
 }
 
 export async function getStormDrainMaintenanceHistory(stormDrainId: string) {
   return getMaintenanceHistory(
-    "storm_drains_maintenance",
-    "in_name",
-    stormDrainId,
+    'storm_drains_maintenance',
+    'in_name',
+    stormDrainId
   );
 }
 
@@ -107,40 +117,45 @@ async function recordMaintenance(
   tableName: string,
   idColumn: string,
   assetId: string,
-  status?: "in-progress" | "resolved",
+  status?: 'in-progress' | 'resolved',
   description?: string,
+  imagePath?: string
 ) {
   const {
     data: { user },
   } = await client.auth.getUser();
 
   if (!user) {
-    return { error: "You must be logged in to record maintenance." };
+    return { error: 'You must be logged in to record maintenance.' };
   }
 
   const { data: profile } = await client
-    .from("profiles")
-    .select("agency_id")
-    .eq("id", user.id)
+    .from('profiles')
+    .select('agency_id')
+    .eq('id', user.id)
     .single();
 
   if (!profile || !profile.agency_id) {
     return {
-      error: "You must be associated with an agency to record maintenance.",
+      error: 'You must be associated with an agency to record maintenance.',
     };
+  }
+
+  const payload: Record<string, unknown> = {
+    [idColumn]: assetId,
+    agency_id: profile.agency_id,
+    represented_by: user.id,
+    status: status,
+    description: description,
+  };
+
+  if (imagePath) {
+    payload.evidence_image = imagePath;
   }
 
   const { data, error } = await client
     .from(tableName)
-    .insert([
-      {
-        [idColumn]: assetId,
-        agency_id: profile.agency_id,
-        represented_by: user.id,
-        status: status,
-        description: description,
-      },
-    ])
+    .insert([payload])
     .select();
 
   if (error) {
@@ -153,6 +168,9 @@ async function recordMaintenance(
       assetId,
       status,
       new Date().toISOString(),
+      data[0].id,
+      tableName,
+      imagePath
     );
   }
 
@@ -162,7 +180,7 @@ async function recordMaintenance(
 async function getMaintenanceHistory(
   tableName: string,
   idColumn: string,
-  assetId: string,
+  assetId: string
 ) {
   const { data, error } = await client
     .from(tableName)
@@ -173,11 +191,12 @@ async function getMaintenanceHistory(
       profiles ( full_name ),
       status,
       addressed_report_id,
-      description
-    `,
+      description,
+      evidence_image
+    `
     )
     .eq(idColumn, assetId)
-    .order("last_cleaned_at", { ascending: false });
+    .order('last_cleaned_at', { ascending: false });
 
   if (error) {
     console.error(`Error fetching history for ${tableName}:`, error.message);
