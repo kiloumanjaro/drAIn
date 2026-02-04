@@ -220,7 +220,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
 
   // City information
   const cityName = 'Mandaue City, Philippines';
-  const landArea = '34.87 km²';
+  // const landArea = '34.87 km²';
 
   // Helper function to get contribution box colors
   const getContributionColor = (percentage: number) => {

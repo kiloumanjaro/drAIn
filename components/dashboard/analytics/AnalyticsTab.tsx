@@ -1,20 +1,13 @@
 'use client';
 
-import RepairTrendChart from './RepairTrendChart';
 import ZoneMap from './ZoneMap';
 import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
 import { useAnalytics } from '@/lib/query/hooks/useAnalytics';
 
 export default function AnalyticsTab() {
-  const {
-    trendData,
-    zoneData,
-    componentData,
-    repairTimeData,
-    isLoading,
-    error,
-  } = useAnalytics();
+  const { zoneData, componentData, repairTimeData, isLoading, error } =
+    useAnalytics();
 
   if (error) {
     return (

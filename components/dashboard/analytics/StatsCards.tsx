@@ -74,7 +74,6 @@ export default function StatsCards({
   repairTimeTrend = [7.2, 6.8, 7.5, 6.9, averageRepairDays], // Mock data
   adminTrend = [8, 10, 9, 11, totalAdmins], // Mock data
 }: StatsCardsProps) {
-  const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
   const router = useRouter();
 
   const handleAddAdmin = () => {
