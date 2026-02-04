@@ -37,7 +37,9 @@ export default function SubmitTab() {
   const { user, profile } = useAuth();
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
-  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('low');
+  const [severity, setSeverity] = useState<
+    'low' | 'medium' | 'high' | 'critical'
+  >('low');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [manualAccepted, setManualAccepted] = useState(false);
@@ -267,16 +269,24 @@ export default function SubmitTab() {
 
         {/* Severity Selector */}
         <div className="flex w-full flex-col">
-          <label className="mb-2 block text-sm font-medium text-gray-700">Severity Level</label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Severity Level
+          </label>
           <select
             value={severity}
-            onChange={(e) => setSeverity(e.target.value as 'low' | 'medium' | 'high' | 'critical')}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) =>
+              setSeverity(
+                e.target.value as 'low' | 'medium' | 'high' | 'critical'
+              )
+            }
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             <option value="low">🟡 Low - Minor issue</option>
             <option value="medium">🟠 Medium - Moderate concern</option>
             <option value="high">🔴 High - Urgent</option>
-            <option value="critical">⚠️ Critical - Immediate attention needed</option>
+            <option value="critical">
+              ⚠️ Critical - Immediate attention needed
+            </option>
           </select>
         </div>
 
@@ -387,7 +397,8 @@ export default function SubmitTab() {
                   {severity === 'low' && '🟡 Low - Minor issue'}
                   {severity === 'medium' && '🟠 Medium - Moderate concern'}
                   {severity === 'high' && '🔴 High - Urgent'}
-                  {severity === 'critical' && '⚠️ Critical - Immediate attention needed'}
+                  {severity === 'critical' &&
+                    '⚠️ Critical - Immediate attention needed'}
                 </span>
               </div>
             </div>

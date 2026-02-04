@@ -68,8 +68,8 @@ export function useAnalytics(): AnalyticsData {
     ],
   });
 
-  const isLoading = results.some(result => result.isLoading);
-  const error = results.find(result => result.error)?.error || null;
+  const isLoading = results.some((result) => result.isLoading);
+  const error = results.find((result) => result.error)?.error || null;
 
   return {
     trendData: (results[0].data as RepairTrendData[]) || [],

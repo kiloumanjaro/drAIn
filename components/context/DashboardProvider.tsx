@@ -14,7 +14,9 @@ interface DashboardContextType {
   isRefreshing: boolean;
 }
 
-const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+const DashboardContext = createContext<DashboardContextType | undefined>(
+  undefined
+);
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();

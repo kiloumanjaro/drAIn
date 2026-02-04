@@ -132,7 +132,9 @@ export default function DashboardPage() {
               <div className="mb-5 border-t border-[#dfdfdf] bg-[#fcfcfc] px-10 py-5">
                 <TabsContent value="analytics" className="m-0" forceMount>
                   <div className={activeTab !== 'analytics' ? 'hidden' : ''}>
-                    <AnalyticsTab onViewReports={() => setActiveTab('reports')} />
+                    <AnalyticsTab
+                      onViewReports={() => setActiveTab('reports')}
+                    />
                   </div>
                 </TabsContent>
                 <TabsContent value="reports" className="m-0" forceMount>

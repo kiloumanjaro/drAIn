@@ -10,8 +10,14 @@ interface AnalyticsTabProps {
 }
 
 export default function AnalyticsTab({ onViewReports }: AnalyticsTabProps) {
-  const { zoneData, componentData, repairTimeData, allReports, isLoading, error } =
-    useAnalytics();
+  const {
+    zoneData,
+    componentData,
+    repairTimeData,
+    allReports,
+    isLoading,
+    error,
+  } = useAnalytics();
 
   if (error) {
     return (

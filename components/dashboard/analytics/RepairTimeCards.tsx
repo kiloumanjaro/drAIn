@@ -74,7 +74,7 @@ function SortableItem({ item }: SortableItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-[#ced1cd] bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] hover:from-[#f9f9f9] hover:to-[#eaeaea] px-3 py-3 pr-6 transition-shadow hover:border-blue-400"
+      className="rounded-lg border border-[#ced1cd] bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] px-3 py-3 pr-6 transition-shadow hover:border-blue-400 hover:from-[#f9f9f9] hover:to-[#eaeaea]"
     >
       <div className="flex items-center justify-between gap-3">
         {/* Drag handle - Left */}

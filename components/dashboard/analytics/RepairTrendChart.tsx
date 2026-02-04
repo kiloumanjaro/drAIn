@@ -1,6 +1,15 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RepairTrendData } from '@/lib/dashboard/queries';
 
@@ -25,7 +34,9 @@ export default function RepairTrendChart({
   if (!data || data.length === 0) {
     return (
       <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold">No repair data available for the last 30 days</h3>
+        <h3 className="mb-4 text-lg font-semibold">
+          No repair data available for the last 30 days
+        </h3>
         <div className="py-8 text-center text-gray-500">
           <p>No repair data available</p>
         </div>
@@ -35,7 +46,9 @@ export default function RepairTrendChart({
 
   return (
     <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold">Repair Time Trend (Last 30 Days)</h3>
+      <h3 className="mb-4 text-lg font-semibold">
+        Repair Time Trend (Last 30 Days)
+      </h3>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -48,7 +61,11 @@ export default function RepairTrendChart({
             }}
           />
           <YAxis
-            label={{ value: 'Average Days', angle: -90, position: 'insideLeft' }}
+            label={{
+              value: 'Average Days',
+              angle: -90,
+              position: 'insideLeft',
+            }}
           />
           <Tooltip
             labelFormatter={(date: string) => {
@@ -58,7 +75,11 @@ export default function RepairTrendChart({
             formatter={(value: number) => `${value.toFixed(1)} days`}
           />
           <Legend />
-          <Bar dataKey="averageDays" fill="#3b82f6" name="Average Repair Time" />
+          <Bar
+            dataKey="averageDays"
+            fill="#3b82f6"
+            name="Average Repair Time"
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

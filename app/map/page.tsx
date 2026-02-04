@@ -146,7 +146,7 @@ function MapPageContent() {
   useEffect(() => {
     const componentId = searchParams.get('component');
     const componentType = searchParams.get('type');
-    
+
     if (!componentId || !componentType) return;
     if (!mapRef.current) return;
 
@@ -1508,14 +1508,17 @@ function MapPageContent() {
   const currentTabRef = useRef(initialTab);
 
   // Update the tab change handler
-  const handleTabChange = useCallback((tab: string) => {
-    //console.log("Tab changing from:", currentTabRef.current, "to:", tab);
-    setControlPanelTab(tab);
-    currentTabRef.current = tab;
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set('activetab', tab);
-    router.replace(`?${newParams.toString()}`);
-  }, [searchParams, router]);
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      //console.log("Tab changing from:", currentTabRef.current, "to:", tab);
+      setControlPanelTab(tab);
+      currentTabRef.current = tab;
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.set('activetab', tab);
+      router.replace(`?${newParams.toString()}`);
+    },
+    [searchParams, router]
+  );
 
   // Update the useEffect for URL sync
   useEffect(() => {

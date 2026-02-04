@@ -12,7 +12,7 @@ export const queryClient = new QueryClient({
       // Retry failed requests once
       retry: 1,
       // Don't retry on error responses, only network errors
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
       // Retry mutations once on failure
