@@ -1,47 +1,27 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import ReportCard from './ReportCard';
 import ReportFilters from './ReportFilters';
-import { getAllReports } from '@/lib/dashboard/queries';
+import { useAllReports } from '@/lib/query/hooks/useReportsData';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { ReportWithMetadata } from '@/lib/dashboard/queries';
 
 export default function ReportsTab() {
-  const [reports, setReports] = useState<ReportWithMetadata[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Filter states
   const [priority, setPriority] = useState('all');
   const [status, setStatus] = useState('all');
   const [componentType, setComponentType] = useState('all');
 
-  // Fetch reports
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setLoading(true);
-        const allReports = await getAllReports();
-        setReports(allReports);
-      } catch (err) {
-        console.error('Error fetching reports:', err);
-        setError('Failed to load reports. Please refresh the page.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
-  }, []);
+  // Fetch reports using React Query
+  const { data: reports = [], isLoading: loading, error } = useAllReports();
 
   // Filter and sort reports
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
       // Priority filter
       if (priority !== 'all' && report.priority !== priority) return false;
-      
-      // Status filter  
+
+      // Status filter
       if (status !== 'all' && report.status !== status) return false;
 
       // Component type filter - use category field
@@ -71,7 +51,7 @@ export default function ReportsTab() {
   if (error) {
     return (
       <div className="py-8 text-center text-red-600">
-        <p>{error}</p>
+        <p>Failed to load reports. Please refresh the page.</p>
       </div>
     );
   }
@@ -117,8 +97,8 @@ export default function ReportsTab() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sortedReports.map((report) => (
-            <ReportCard 
-              key={report.id} 
+            <ReportCard
+              key={report.id}
               report={report}
               onPriorityFilter={setPriority}
               onStatusFilter={setStatus}

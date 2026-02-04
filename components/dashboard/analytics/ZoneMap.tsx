@@ -172,9 +172,6 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
   if (loading) {
     return (
       <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold">
-          Issues Per Zone (Barangay Breakdown)
-        </h3>
         <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
           <div className="md:col-span-2">
             <Skeleton className="h-[28rem] w-full rounded-lg md:h-[36rem]" />
@@ -192,10 +189,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold">
-          Issues Per Zone (Barangay Breakdown)
-        </h3>
+      <div>
         <div className="flex h-48 items-center justify-center text-gray-500">
           <p>No zone data available</p>
         </div>
@@ -208,11 +202,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
   const totalIssues = sortedData.reduce((sum, z) => sum + z.count, 0) || 0;
 
   return (
-    <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-      <h3 className="mb-4 text-lg font-semibold">
-        Issues Per Zone (Barangay Breakdown)
-      </h3>
-
+    <div>
       <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
         {/* Map: left 2/3 */}
         <div className="md:col-span-2">
@@ -236,11 +226,6 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
 
         {/* Top zones: right 1/3 */}
         <aside className="flex h-[28rem] flex-col space-y-4 md:h-[36rem]">
-          <div className="rounded-md border bg-gray-50 p-3">
-            <p className="text-sm text-gray-600">Total Issues</p>
-            <p className="text-2xl font-bold">{totalIssues}</p>
-          </div>
-
           <div className="h-full overflow-auto rounded-md border bg-gray-50 p-3">
             <h4 className="mb-3 font-semibold text-gray-900">Top Zones</h4>
             <ul className="space-y-2">

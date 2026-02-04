@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Tabs,
   TabsContent,
@@ -10,52 +10,25 @@ import {
 import { BarChart3, FileText, Clock, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
-// Import tab components (will create these)
+// Import tab components
 import AnalyticsTab from '@/components/dashboard/analytics/AnalyticsTab';
 import ReportsTab from '@/components/dashboard/reports/ReportsTab';
 import StatsCards from '@/components/dashboard/analytics/StatsCards';
-import { getOverviewMetrics } from '@/lib/dashboard/queries';
-import type { OverviewMetrics } from '@/lib/dashboard/queries';
+import { useDashboard } from '@/components/context/DashboardProvider';
 
 export default function DashboardPage() {
+  const { metrics, isLoading: metricsLoading, refresh, isRefreshing } = useDashboard();
   const [activeTab, setActiveTab] = useState('analytics');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
-  const [metricsLoading, setMetricsLoading] = useState(true);
   const refreshTimerRef = React.useRef<number | null>(null);
 
   const handleRefresh = async () => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      const data = await getOverviewMetrics();
-      setMetrics(data);
-    } catch (err) {
-      console.error('Error refreshing metrics:', err);
-    } finally {
-      setLastUpdated(new Date());
-      refreshTimerRef.current = window.setTimeout(() => {
-        setIsRefreshing(false);
-        refreshTimerRef.current = null;
-      }, 800);
-    }
+    await refresh();
+    setLastUpdated(new Date());
+    refreshTimerRef.current = window.setTimeout(() => {
+      refreshTimerRef.current = null;
+    }, 800);
   };
-
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const data = await getOverviewMetrics();
-        setMetrics(data);
-      } catch (err) {
-        console.error('Error fetching metrics:', err);
-      } finally {
-        setMetricsLoading(false);
-      }
-    };
-
-    fetchMetrics();
-  }, []);
 
   React.useEffect(() => {
     return () => {
