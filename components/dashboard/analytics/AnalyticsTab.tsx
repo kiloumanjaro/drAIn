@@ -17,13 +17,6 @@ import type {
   ComponentTypeData,
   RepairTimeByComponentData,
 } from '@/lib/dashboard/queries';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 
 export default function AnalyticsTab() {
   const [trendData, setTrendData] = useState<RepairTrendData[]>([]);
@@ -39,13 +32,12 @@ export default function AnalyticsTab() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [trendDataResult, zones, components, times] =
-          await Promise.all([
-            getRepairTrendData(),
-            getIssuesPerZone(),
-            getComponentTypeData(),
-            getRepairTimeByComponent(),
-          ]);
+        const [trendDataResult, zones, components, times] = await Promise.all([
+          getRepairTrendData(),
+          getIssuesPerZone(),
+          getComponentTypeData(),
+          getRepairTimeByComponent(),
+        ]);
         setTrendData(trendDataResult);
         setZoneData(zones);
         setComponentData(components);

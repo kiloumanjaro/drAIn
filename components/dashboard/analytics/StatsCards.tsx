@@ -5,13 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Info, Plus } from 'lucide-react';
 import { formatDays } from '@/lib/dashboard/calculations';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Tooltip,
   TooltipContent,
