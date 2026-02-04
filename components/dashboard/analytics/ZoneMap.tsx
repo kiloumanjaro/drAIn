@@ -268,7 +268,7 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
           ) : (
             <div
               ref={mapContainer}
-              className="h-[28rem] overflow-hidden rounded-lg md:h-[36rem]"
+              className="h-[28rem] overflow-hidden rounded-lg border border-[#ced1cd] md:h-[36rem]"
             />
           )}
         </div>

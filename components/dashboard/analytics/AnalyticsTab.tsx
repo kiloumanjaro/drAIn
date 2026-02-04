@@ -5,7 +5,11 @@ import ComponentTypeChart from './ComponentTypeChart';
 import RepairTimeCards from './RepairTimeCards';
 import { useAnalytics } from '@/lib/query/hooks/useAnalytics';
 
-export default function AnalyticsTab() {
+interface AnalyticsTabProps {
+  onViewReports?: () => void;
+}
+
+export default function AnalyticsTab({ onViewReports }: AnalyticsTabProps) {
   const { zoneData, componentData, repairTimeData, isLoading, error } =
     useAnalytics();
 
@@ -25,7 +29,7 @@ export default function AnalyticsTab() {
       {/* Component Type Chart (left - 2/3) and Repair Time Cards (right - 1/3) */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <section className="md:col-span-2">
-          <ComponentTypeChart data={componentData} loading={isLoading} />
+          <ComponentTypeChart data={componentData} loading={isLoading} onViewReports={onViewReports} />
         </section>
 
         <aside className="md:col-span-1">

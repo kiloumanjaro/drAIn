@@ -126,7 +126,7 @@ export default function DashboardPage() {
               {/* Tab Content */}
               <div className="border-y border-[#dfdfdf] bg-[#fcfcfc] px-10 py-5">
                 <TabsContent value="analytics" className="m-0">
-                  <AnalyticsTab />
+                  <AnalyticsTab onViewReports={() => setActiveTab('reports')} />
                 </TabsContent>
                 <TabsContent value="reports" className="m-0">
                   <ReportsTab />
