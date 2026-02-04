@@ -67,7 +67,7 @@ export default function ComponentTypeChart({
               <tr className="rounded-2xl border-b border-[#ced1cd]">
                 <th className="w-[250px] px-4 py-3 text-center font-normal text-gray-700">
                   <div className="flex items-center justify-center gap-2">
-                    <span>Chart</span>
+                    <span>Pie Chart</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3.5 w-3.5 cursor-help opacity-70" />
@@ -97,7 +97,7 @@ export default function ComponentTypeChart({
               <tr>
                 <td
                   rowSpan={chartData.length}
-                  className="bg-white px-3 py-2 align-middle"
+                  className="bg-white px-3 py-0 align-middle"
                 >
                   <div className="h-[220px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -108,8 +108,8 @@ export default function ComponentTypeChart({
                           cy="50%"
                           labelLine={false}
                           label={false}
-                          innerRadius={45}
-                          outerRadius={75}
+                          innerRadius={55}
+                          outerRadius={85}
                           paddingAngle={2}
                           cornerRadius={4}
                           dataKey="value"
@@ -126,7 +126,7 @@ export default function ComponentTypeChart({
                   </div>
                 </td>
                 {/* First data row */}
-                <td className="bg-white px-3 py-2">
+                <td className="bg-white px-3 py-0 leading-none">
                   <div className="flex items-center gap-3 pl-12 whitespace-nowrap">
                     <div
                       className="ml-2 h-3 w-3 flex-shrink-0 rounded-full"
@@ -137,18 +137,18 @@ export default function ComponentTypeChart({
                     </span>
                   </div>
                 </td>
-                <td className="bg-white px-3 py-2 text-center text-sm text-gray-700">
+                <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
                   {chartData[0]?.value} issue
                   {chartData[0]?.value !== 1 ? 's' : ''}
                 </td>
-                <td className="bg-white px-3 py-2 text-center text-sm text-gray-700">
+                <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
                   {((chartData[0]?.value / total) * 100).toFixed(1)}%
                 </td>
               </tr>
               {/* Remaining data rows */}
               {chartData.slice(1).map((item, index) => (
                 <tr key={item.name} className="bg-white">
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-0 leading-none">
                     <div className="flex items-center gap-3 pl-12 whitespace-nowrap">
                       <div
                         className="ml-2 h-3 w-3 flex-shrink-0 rounded-full"
@@ -159,10 +159,10 @@ export default function ComponentTypeChart({
                       <span className="text-sm text-gray-700">{item.name}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-center text-sm text-gray-700">
+                  <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
                     {item.value} issue{item.value !== 1 ? 's' : ''}
                   </td>
-                  <td className="px-3 py-2 text-center text-sm text-gray-700">
+                  <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
                     {((item.value / total) * 100).toFixed(1)}%
                   </td>
                 </tr>
