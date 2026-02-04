@@ -2,7 +2,6 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  getZoneColorByCount,
   loadMandaueGeoJSON,
   type GeoJSONFeatureCollection,
 } from '@/lib/dashboard/geojson';
@@ -52,9 +51,9 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: 'mapbox://styles/mapbox/outdoors-v12',
         center: [123.93, 10.35],
-        zoom: 11.5,
+        zoom: 13,
         pitch: 0,
         scrollZoom: false,
         dragPan: true,
@@ -62,6 +61,10 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
         doubleClickZoom: false,
         touchZoomRotate: false,
         attributionControl: false,
+        maxBounds: [
+          [123.75, 10.2],
+          [124.15, 10.5],
+        ],
       });
 
       map.current.on('load', () => {
@@ -86,27 +89,27 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
               ['linear'],
               ['coalesce', ['feature-state', 'issueCount'], 0],
               0,
-              'rgba(240, 240, 240, 0.3)',
+              'rgba(240, 240, 240, 0.15)',
               1,
-              'rgba(191, 219, 254, 0.7)',
+              'rgba(191, 219, 254, 0.35)',
               3,
-              'rgba(147, 197, 253, 0.75)',
+              'rgba(147, 197, 253, 0.4)',
               5,
-              'rgba(96, 165, 250, 0.8)',
+              'rgba(96, 165, 250, 0.45)',
               10,
-              'rgba(251, 146, 60, 0.85)',
+              'rgba(251, 146, 60, 0.5)',
               15,
-              'rgba(249, 115, 22, 0.9)',
+              'rgba(249, 115, 22, 0.5)',
               20,
-              'rgba(220, 38, 38, 0.95)',
+              'rgba(220, 38, 38, 0.5)',
             ],
             'fill-opacity': [
               'case',
               ['==', ['feature-state', 'issueCount'], 0],
-              0.15,
+              0.1,
               ['>=', ['feature-state', 'issueCount'], 1],
-              0.85,
-              0.15,
+              0.5,
+              0.1,
             ],
           },
         });
@@ -120,24 +123,24 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
             'line-color': [
               'case',
               ['>=', ['feature-state', 'issueCount'], 10],
-              'rgba(220, 38, 38, 0.9)',
+              'rgba(220, 38, 38, 0.5)',
               ['>=', ['feature-state', 'issueCount'], 5],
-              'rgba(249, 115, 22, 0.8)',
+              'rgba(249, 115, 22, 0.4)',
               ['>=', ['feature-state', 'issueCount'], 1],
-              'rgba(59, 130, 246, 0.7)',
-              'rgba(100, 100, 100, 0.3)',
+              'rgba(59, 130, 246, 0.35)',
+              'rgba(100, 100, 100, 0.2)',
             ],
             'line-width': [
               'case',
               ['>=', ['feature-state', 'issueCount'], 10],
-              3,
+              1.5,
               ['>=', ['feature-state', 'issueCount'], 5],
-              2.5,
+              1.2,
               ['>=', ['feature-state', 'issueCount'], 1],
-              2,
               1,
+              0.5,
             ],
-            'line-opacity': 1,
+            'line-opacity': 0.7,
           },
         });
 
@@ -160,7 +163,9 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
       });
     } catch (error) {
       console.error('Map error:', error);
-      setMapError('Failed to initialize map');
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      setMapError(`Failed to initialize map: ${errorMessage}`);
     }
 
     return () => {
@@ -171,16 +176,16 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
   // Loading state
   if (loading) {
     return (
-      <div className="rounded-lg border border-[#ced1cd] bg-white p-6">
-        <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <Skeleton className="h-[28rem] w-full rounded-lg md:h-[36rem]" />
-          </div>
-          <div className="h-[28rem] space-y-3 md:h-[36rem]">
-            <Skeleton className="h-8 w-1/2" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
+      <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-6">
+        <div className="md:col-span-4">
+          <Skeleton className="h-[28rem] w-full rounded-lg md:h-[36rem]" />
+        </div>
+        <div className="h-[28rem] space-y-3 md:col-span-2 md:h-[36rem]">
+          <Skeleton className="h-12 w-full rounded-lg" />
+          <div className="flex-1 space-y-3 overflow-hidden">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            ))}
           </div>
         </div>
       </div>
@@ -189,10 +194,22 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
 
   if (!data || data.length === 0) {
     return (
-      <div>
-        <div className="flex h-48 items-center justify-center text-gray-500">
-          <p>No zone data available</p>
+      <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-6">
+        <div className="md:col-span-4">
+          <div className="flex h-[28rem] items-center justify-center rounded-lg border border-yellow-200 bg-yellow-50 md:h-[36rem]">
+            <div className="text-center">
+              <AlertCircle className="mx-auto mb-2 h-12 w-12 text-yellow-600" />
+              <p className="font-medium text-yellow-800">
+                No zone data available
+              </p>
+            </div>
+          </div>
         </div>
+        <aside className="flex h-[28rem] flex-col md:col-span-2 md:h-[36rem]">
+          <div className="rounded-lg border bg-gray-50 p-4">
+            <p className="text-sm text-gray-600">No zones to display</p>
+          </div>
+        </aside>
       </div>
     );
   }
@@ -201,11 +218,43 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
   const sortedData = [...data].sort((a, b) => b.count - a.count);
   const totalIssues = sortedData.reduce((sum, z) => sum + z.count, 0) || 0;
 
+  // City information
+  const cityName = 'Mandaue City, Philippines';
+  const landArea = '34.87 km²';
+
+  // Helper function to get contribution box colors
+  const getContributionColor = (percentage: number) => {
+    if (percentage >= 80) return 'bg-red-600';
+    if (percentage >= 30) return 'bg-blue-500';
+    return 'bg-green-500';
+  };
+
+  // Helper function to create contribution boxes (like GitHub commits)
+  const renderContributionBoxes = (percentage: number) => {
+    const boxCount = 20; // Number of boxes in the bar
+    const filledBoxes = Math.round((percentage / 100) * boxCount);
+
+    return (
+      <div className="flex w-full gap-1">
+        {Array.from({ length: boxCount }).map((_, index) => (
+          <div
+            key={index}
+            className={`aspect-square flex-1 border ${
+              index < filledBoxes
+                ? `${getContributionColor(percentage)} border-transparent`
+                : 'border-gray-300 bg-gray-200'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div>
-      <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
-        {/* Map: left 2/3 */}
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-6">
+        {/* Map: left 4/6 */}
+        <div className="md:col-span-4">
           {mapError ? (
             <div className="flex h-[28rem] items-center justify-center rounded-lg border border-red-200 bg-red-50 md:h-[36rem]">
               <div className="text-center">
@@ -219,18 +268,34 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
           ) : (
             <div
               ref={mapContainer}
-              className="h-[28rem] overflow-hidden rounded-lg border md:h-[36rem]"
+              className="h-[28rem] overflow-hidden rounded-lg md:h-[36rem]"
             />
           )}
         </div>
 
-        {/* Top zones: right 1/3 */}
-        <aside className="flex h-[28rem] flex-col space-y-4 md:h-[36rem]">
-          <div className="h-full overflow-auto rounded-md border bg-gray-50 p-3">
-            <h4 className="mb-3 font-semibold text-gray-900">Top Zones</h4>
+        {/* Barangays: right 2/6 */}
+        <aside className="flex h-[28rem] flex-col md:col-span-2 md:h-[36rem]">
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-10 rounded-t-lg border border-[#dddbdc] bg-[#f9f7f8] px-5 py-3">
+            {/* City Info and Total Issues in same row */}
+            <div className="flex items-start justify-between gap-3">
+              {/* City Info */}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-row justify-between">
+                  <h3 className="truncate text-sm text-gray-900">{cityName}</h3>
+                  <p className="text-muted-foreground text-sm">{totalIssues}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable Zone List */}
+          <div className="flex-1 overflow-auto rounded-b-lg border-x border-b bg-white px-4 pt-3 pb-5">
             <ul className="space-y-2">
               {sortedData.slice(0, 12).map((zone) => {
-                const { bgColor, color } = getZoneColorByCount(zone.count);
+                const percentage = totalIssues
+                  ? (zone.count / totalIssues) * 100
+                  : 0;
                 const isSelected = zone.zone === selectedZone;
                 return (
                   <li key={zone.zone}>
@@ -240,27 +305,20 @@ export default function ZoneMap({ data, loading = false }: ZoneMapProps) {
                           zone.zone === selectedZone ? null : zone.zone
                         )
                       }
-                      className={`flex w-full items-center justify-between gap-3 rounded-md p-2 text-left transition-colors hover:bg-gray-100 ${
-                        isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                      className={`flex w-full flex-col gap-2.5 rounded-md px-4 pt-2 pb-4 text-left transition-colors hover:bg-gray-100 ${
+                        isSelected ? 'ring-1 ring-blue-500' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`inline-block h-3 w-3 rounded-full ${bgColor}`}
-                        />
+                      <div className="flex min-w-0 items-center justify-between">
                         <span className="truncate text-sm font-medium">
                           {zone.zone}
                         </span>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-lg font-semibold ${color}`}>
+                        <span className="ml-2 flex-shrink-0 text-xs font-semibold text-gray-700">
                           {zone.count}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {totalIssues
-                            ? `${((zone.count / totalIssues) * 100).toFixed(0)}%`
-                            : '0%'}
-                        </div>
+                        </span>
+                      </div>
+                      <div className="w-full">
+                        {renderContributionBoxes(percentage)}
                       </div>
                     </button>
                   </li>
