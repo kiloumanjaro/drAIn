@@ -159,6 +159,7 @@ interface ContentRendererProps {
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
+  isHeatmapLoading?: boolean;
 }
 
 export function ContentRenderer({
@@ -241,6 +242,7 @@ export function ContentRenderer({
   isRainActive = false,
   onToggleRain,
   isFloodScenarioLoading = false,
+  isHeatmapLoading = false,
 }: ContentRendererProps) {
   // Check for loading states first
   if (loadingInlets)
@@ -271,6 +273,7 @@ export function ContentRenderer({
           floodProneAreas={floodProneAreas}
           onToggleFloodProneArea={onToggleFloodProneArea}
           isFloodScenarioLoading={isFloodScenarioLoading}
+          isHeatmapLoading={isHeatmapLoading}
         />
       );
 

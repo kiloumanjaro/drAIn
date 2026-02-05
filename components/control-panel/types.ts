@@ -155,4 +155,5 @@ export interface ControlPanelProps {
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
+  isHeatmapLoading?: boolean;
 }

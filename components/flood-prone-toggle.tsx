@@ -81,11 +81,7 @@ export function FloodProneToggle({
             >
               <div className="flex flex-1 items-center gap-2.5">
                 <div
-                  className={`h-3 w-3 rounded-full border-2 transition-all duration-200 ${
-                    area.visible
-                      ? 'scale-110 border-white shadow-md'
-                      : 'border-gray-300'
-                  } `}
+                  className="h-3 w-3 rounded-full border-2 border-white shadow-2xl transition-all duration-200"
                   style={{
                     backgroundColor: area.color,
                     boxShadow: area.visible
