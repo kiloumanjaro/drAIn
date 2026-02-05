@@ -35,6 +35,8 @@ export default function ZoneMap({
   const [geoJsonData, setGeoJsonData] =
     useState<GeoJSONFeatureCollection | null>(null);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const layersAdded = useRef(false);
 
   // Load GeoJSON on mount
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function ZoneMap({
     loadGeoJson();
   }, []);
 
-  // Initialize map
+  // Initialize map immediately (no data dependency)
   useEffect(() => {
     if (!mapContainer.current || !MAPBOX_TOKEN) {
       if (!MAPBOX_TOKEN) {
@@ -54,7 +56,6 @@ export default function ZoneMap({
       return;
     }
 
-    if (!geoJsonData) return;
     if (map.current) return; // Prevent re-initialization
 
     try {
@@ -79,292 +80,19 @@ export default function ZoneMap({
       });
 
       map.current.on('load', () => {
-        if (!map.current) return;
-
-        // Add GeoJSON source for barangay boundaries
-        map.current.addSource('barangay-source', {
-          type: 'geojson',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: geoJsonData as any,
-          generateId: true,
-        });
-
-        // Use actual report coordinates if available, otherwise use aggregated barangay counts
-        const heatmapPoints =
-          reports && reports.length > 0
-            ? createHeatmapFromReports(reports)
-            : createHeatmapPoints(geoJsonData.features, data);
-
-        // For report-based heatmap, each point represents one report (weight = 1)
-        // For barangay-based heatmap, calculate percentage-based weights
-        if (!reports || reports.length === 0) {
-          const totalIssues = data.reduce((sum, z) => sum + z.count, 0);
-          const maxCount = Math.max(...data.map((z) => z.count), 1);
-
-          heatmapPoints.features.forEach((feature) => {
-            if (!feature.properties) return;
-            const issueCount = feature.properties.issueCount || 0;
-            const percentage =
-              totalIssues > 0 ? (issueCount / totalIssues) * 100 : 0;
-            feature.properties.percentage = Math.round(percentage * 10) / 10;
-            feature.properties.normalizedWeight = issueCount / maxCount;
-          });
-        } else {
-          // For report-based heatmap, each point has equal weight
-          heatmapPoints.features.forEach((feature) => {
-            if (!feature.properties) return;
-            feature.properties.percentage = 1; // Each report contributes equally
-            feature.properties.normalizedWeight = 1;
-          });
+        setMapReady(true);
+        if (map.current) {
+          map.current.resize();
         }
+      });
 
-        // Add heatmap source
-        map.current.addSource('heatmap-source', {
-          type: 'geojson',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: heatmapPoints as any,
-        });
-
-        // Add heatmap layer (official Mapbox approach)
-        map.current.addLayer(
-          {
-            id: 'issues-heatmap',
-            type: 'heatmap',
-            source: 'heatmap-source',
-            maxzoom: 15,
-            paint: {
-              // Weight: For report-based (each = 1), use constant. For barangay-based, use percentage
-              'heatmap-weight':
-                reports && reports.length > 0
-                  ? 1 // Each report point has equal weight
-                  : [
-                      'interpolate',
-                      ['linear'],
-                      ['get', 'percentage'],
-                      0,
-                      0,
-                      2,
-                      0.5,
-                      5,
-                      0.7,
-                      10,
-                      0.9,
-                      15,
-                      1,
-                      100,
-                      1.5,
-                    ],
-              // Lower intensity for more organic, wobbly shapes
-              'heatmap-intensity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                0,
-                0.8,
-                13,
-                2,
-                15,
-                3,
-              ],
-              // Refined color gradient: red appears earlier for tighter hotspots
-              'heatmap-color': [
-                'interpolate',
-                ['linear'],
-                ['heatmap-density'],
-                0,
-                'rgba(0, 0, 0, 0)',
-                0.15,
-                'rgba(65, 105, 225, 0.7)', // Blue - low density
-                0.35,
-                'rgba(0, 191, 255, 0.85)', // Cyan - moderate
-                0.55,
-                'rgba(255, 255, 0, 0.9)', // Yellow - higher
-                0.7,
-                'rgba(255, 140, 0, 0.95)', // Orange - concentrated
-                0.85,
-                'rgba(255, 69, 0, 1)', // Red-orange - very concentrated
-                1,
-                'rgba(220, 20, 60, 1)', // Deep red - peak
-              ],
-              // Larger, more varied radius for organic, wobbly shapes
-              'heatmap-radius': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                0,
-                25,
-                12,
-                60,
-                13,
-                90,
-                15,
-                120,
-              ],
-              // Keep opacity high until very high zoom
-              'heatmap-opacity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                7,
-                1,
-                14,
-                0.8,
-                15,
-                0,
-              ],
-            },
-          },
-          'waterway-label'
-        );
-
-        // Add circle layer for individual points at high zoom
-        map.current.addLayer(
-          {
-            id: 'issues-circle',
-            type: 'circle',
-            source: 'heatmap-source',
-            minzoom: 14,
-            paint: {
-              // Size circle radius by percentage for consistency
-              'circle-radius': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                14,
-                [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'percentage'],
-                  0,
-                  3,
-                  10,
-                  15,
-                  30,
-                  30,
-                ],
-                16,
-                [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'percentage'],
-                  0,
-                  8,
-                  10,
-                  25,
-                  30,
-                  40,
-                ],
-              ],
-              // Vibrant colors matching heatmap palette
-              'circle-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'percentage'],
-                0,
-                'rgba(65, 105, 225, 0.9)',
-                5,
-                'rgba(0, 191, 255, 0.95)',
-                10,
-                'rgba(255, 255, 0, 0.95)',
-                15,
-                'rgba(255, 140, 0, 1)',
-                20,
-                'rgba(255, 69, 0, 1)',
-                30,
-                'rgba(220, 20, 60, 1)',
-              ],
-              'circle-stroke-color': 'white',
-              'circle-stroke-width': 2,
-              // Transition from heatmap to circle layer
-              'circle-opacity': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                7,
-                0,
-                15,
-                1,
-              ],
-            },
-          },
-          'waterway-label'
-        );
-
-        // Add outline layer - only visible when zone is selected
-        map.current.addLayer({
-          id: 'barangay-outline',
-          type: 'line',
-          source: 'barangay-source',
-          paint: {
-            'line-color': '#3b82f6',
-            'line-width': 2.5,
-            'line-opacity': 0, // Hidden by default
-          },
-        });
-
-        // Add labels for barangay names
-        map.current.addLayer({
-          id: 'barangay-labels',
-          type: 'symbol',
-          source: 'heatmap-source',
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-            'text-size': 11,
-            'text-anchor': 'center',
-            'text-offset': [0, 0],
-          },
-          paint: {
-            'text-color': '#1f2937',
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 2,
-            'text-halo-blur': 1,
-          },
-        });
-
-        // Click handler for heatmap circles
-        map.current.on('click', 'issues-circle', (e) => {
-          if (e.features && e.features[0]) {
-            const clickedName = e.features[0].properties?.name;
-            const matchedZone = data.find(
-              (z) => z.zone.toLowerCase() === clickedName?.toLowerCase()
-            );
-            if (matchedZone) {
-              setSelectedZone((prev) =>
-                matchedZone.zone === prev ? null : matchedZone.zone
-              );
-            }
+      // Resize on style load as backup
+      map.current.on('style.load', () => {
+        setTimeout(() => {
+          if (map.current) {
+            map.current.resize();
           }
-        });
-
-        // Click handler for heatmap layer (at lower zoom levels)
-        map.current.on('click', 'issues-heatmap', (e) => {
-          if (e.features && e.features[0]) {
-            const clickedName = e.features[0].properties?.name;
-            const matchedZone = data.find(
-              (z) => z.zone.toLowerCase() === clickedName?.toLowerCase()
-            );
-            if (matchedZone) {
-              setSelectedZone((prev) =>
-                matchedZone.zone === prev ? null : matchedZone.zone
-              );
-            }
-          }
-        });
-
-        // Change cursor on hover
-        map.current.on('mouseenter', 'issues-circle', () => {
-          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-        });
-        map.current.on('mouseleave', 'issues-circle', () => {
-          if (map.current) map.current.getCanvas().style.cursor = '';
-        });
-        map.current.on('mouseenter', 'issues-heatmap', () => {
-          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-        });
-        map.current.on('mouseleave', 'issues-heatmap', () => {
-          if (map.current) map.current.getCanvas().style.cursor = '';
-        });
+        }, 100);
       });
     } catch (error) {
       console.error('Map error:', error);
@@ -376,8 +104,363 @@ export default function ZoneMap({
     return () => {
       map.current?.remove();
       map.current = null;
+      layersAdded.current = false;
+      setMapReady(false);
     };
-  }, [geoJsonData, data, reports]);
+  }, []);
+
+  // Handle container resize
+  useEffect(() => {
+    if (!mapContainer.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (map.current) {
+        map.current.resize();
+      }
+    });
+
+    resizeObserver.observe(mapContainer.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Add layers once map is ready and data is available
+  useEffect(() => {
+    if (!map.current || !mapReady || !geoJsonData || layersAdded.current) return;
+
+    // Mark layers as added to prevent duplicate additions
+    layersAdded.current = true;
+
+    // Add GeoJSON source for barangay boundaries
+    map.current.addSource('barangay-source', {
+      type: 'geojson',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: geoJsonData as any,
+      generateId: true,
+    });
+
+    // Use actual report coordinates if available, otherwise use aggregated barangay counts
+    const heatmapPoints =
+      reports && reports.length > 0
+        ? createHeatmapFromReports(reports)
+        : createHeatmapPoints(geoJsonData.features, data);
+
+    // For report-based heatmap, each point represents one report (weight = 1)
+    // For barangay-based heatmap, calculate percentage-based weights
+    if (!reports || reports.length === 0) {
+      const totalIssues = data.reduce((sum, z) => sum + z.count, 0);
+      const maxCount = Math.max(...data.map((z) => z.count), 1);
+
+      heatmapPoints.features.forEach((feature) => {
+        if (!feature.properties) return;
+        const issueCount = feature.properties.issueCount || 0;
+        const percentage =
+          totalIssues > 0 ? (issueCount / totalIssues) * 100 : 0;
+        feature.properties.percentage = Math.round(percentage * 10) / 10;
+        feature.properties.normalizedWeight = issueCount / maxCount;
+      });
+    } else {
+      // For report-based heatmap, each point has equal weight
+      heatmapPoints.features.forEach((feature) => {
+        if (!feature.properties) return;
+        feature.properties.percentage = 1; // Each report contributes equally
+        feature.properties.normalizedWeight = 1;
+      });
+    }
+
+    // Add heatmap source
+    map.current.addSource('heatmap-source', {
+      type: 'geojson',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: heatmapPoints as any,
+    });
+
+    // Add heatmap layer (official Mapbox approach)
+    map.current.addLayer(
+      {
+        id: 'issues-heatmap',
+        type: 'heatmap',
+        source: 'heatmap-source',
+        maxzoom: 15,
+        paint: {
+          // Weight: For report-based (each = 1), use constant. For barangay-based, use percentage
+          'heatmap-weight':
+            reports && reports.length > 0
+              ? 1 // Each report point has equal weight
+              : [
+                  'interpolate',
+                  ['linear'],
+                  ['get', 'percentage'],
+                  0,
+                  0,
+                  2,
+                  0.5,
+                  5,
+                  0.7,
+                  10,
+                  0.9,
+                  15,
+                  1,
+                  100,
+                  1.5,
+                ],
+          // Lower intensity for more organic, wobbly shapes
+          'heatmap-intensity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0,
+            0.8,
+            13,
+            2,
+            15,
+            3,
+          ],
+          // Refined color gradient: red appears earlier for tighter hotspots
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0,
+            'rgba(0, 0, 0, 0)',
+            0.15,
+            'rgba(65, 105, 225, 0.7)', // Blue - low density
+            0.35,
+            'rgba(0, 191, 255, 0.85)', // Cyan - moderate
+            0.55,
+            'rgba(255, 255, 0, 0.9)', // Yellow - higher
+            0.7,
+            'rgba(255, 140, 0, 0.95)', // Orange - concentrated
+            0.85,
+            'rgba(255, 69, 0, 1)', // Red-orange - very concentrated
+            1,
+            'rgba(220, 20, 60, 1)', // Deep red - peak
+          ],
+          // Larger, more varied radius for organic, wobbly shapes
+          'heatmap-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0,
+            25,
+            12,
+            60,
+            13,
+            90,
+            15,
+            120,
+          ],
+          // Keep opacity high until very high zoom
+          'heatmap-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            7,
+            1,
+            14,
+            0.8,
+            15,
+            0,
+          ],
+        },
+      },
+      'waterway-label'
+    );
+
+    // Add circle layer for individual points at high zoom
+    map.current.addLayer(
+      {
+        id: 'issues-circle',
+        type: 'circle',
+        source: 'heatmap-source',
+        minzoom: 14,
+        paint: {
+          // Size circle radius by percentage for consistency
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            14,
+            [
+              'interpolate',
+              ['linear'],
+              ['get', 'percentage'],
+              0,
+              3,
+              10,
+              15,
+              30,
+              30,
+            ],
+            16,
+            [
+              'interpolate',
+              ['linear'],
+              ['get', 'percentage'],
+              0,
+              8,
+              10,
+              25,
+              30,
+              40,
+            ],
+          ],
+          // Vibrant colors matching heatmap palette
+          'circle-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'percentage'],
+            0,
+            'rgba(65, 105, 225, 0.9)',
+            5,
+            'rgba(0, 191, 255, 0.95)',
+            10,
+            'rgba(255, 255, 0, 0.95)',
+            15,
+            'rgba(255, 140, 0, 1)',
+            20,
+            'rgba(255, 69, 0, 1)',
+            30,
+            'rgba(220, 20, 60, 1)',
+          ],
+          'circle-stroke-color': 'white',
+          'circle-stroke-width': 2,
+          // Transition from heatmap to circle layer
+          'circle-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            7,
+            0,
+            15,
+            1,
+          ],
+        },
+      },
+      'waterway-label'
+    );
+
+    // Add outline layer - only visible when zone is selected
+    map.current.addLayer({
+      id: 'barangay-outline',
+      type: 'line',
+      source: 'barangay-source',
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 2.5,
+        'line-opacity': 0, // Hidden by default
+      },
+    });
+
+    // Add labels for barangay names
+    map.current.addLayer({
+      id: 'barangay-labels',
+      type: 'symbol',
+      source: 'heatmap-source',
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': 11,
+        'text-anchor': 'center',
+        'text-offset': [0, 0],
+      },
+      paint: {
+        'text-color': '#1f2937',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 2,
+        'text-halo-blur': 1,
+      },
+    });
+
+    // Click handler for heatmap circles
+    map.current.on('click', 'issues-circle', (e) => {
+      if (e.features && e.features[0]) {
+        const clickedName = e.features[0].properties?.name;
+        const matchedZone = data.find(
+          (z) => z.zone.toLowerCase() === clickedName?.toLowerCase()
+        );
+        if (matchedZone) {
+          setSelectedZone((prev) =>
+            matchedZone.zone === prev ? null : matchedZone.zone
+          );
+        }
+      }
+    });
+
+    // Click handler for heatmap layer (at lower zoom levels)
+    map.current.on('click', 'issues-heatmap', (e) => {
+      if (e.features && e.features[0]) {
+        const clickedName = e.features[0].properties?.name;
+        const matchedZone = data.find(
+          (z) => z.zone.toLowerCase() === clickedName?.toLowerCase()
+        );
+        if (matchedZone) {
+          setSelectedZone((prev) =>
+            matchedZone.zone === prev ? null : matchedZone.zone
+          );
+        }
+      }
+    });
+
+    // Change cursor on hover
+    map.current.on('mouseenter', 'issues-circle', () => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+    });
+    map.current.on('mouseleave', 'issues-circle', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+    });
+    map.current.on('mouseenter', 'issues-heatmap', () => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+    });
+    map.current.on('mouseleave', 'issues-heatmap', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, geoJsonData, data]);
+
+  // Update heatmap source when reports change (without reinitializing layers)
+  useEffect(() => {
+    if (!map.current || !geoJsonData || !layersAdded.current) return;
+
+    // Check if map and source are ready
+    if (!map.current.isStyleLoaded() || !map.current.getSource('heatmap-source')) {
+      return;
+    }
+
+    const heatmapPoints =
+      reports && reports.length > 0
+        ? createHeatmapFromReports(reports)
+        : createHeatmapPoints(geoJsonData.features, data);
+
+    // Update weights based on data type
+    if (!reports || reports.length === 0) {
+      const totalIssues = data.reduce((sum, z) => sum + z.count, 0);
+      const maxCount = Math.max(...data.map((z) => z.count), 1);
+
+      heatmapPoints.features.forEach((feature) => {
+        if (!feature.properties) return;
+        const issueCount = feature.properties.issueCount || 0;
+        const percentage =
+          totalIssues > 0 ? (issueCount / totalIssues) * 100 : 0;
+        feature.properties.percentage = Math.round(percentage * 10) / 10;
+        feature.properties.normalizedWeight = issueCount / maxCount;
+      });
+    } else {
+      heatmapPoints.features.forEach((feature) => {
+        if (!feature.properties) return;
+        feature.properties.percentage = 1;
+        feature.properties.normalizedWeight = 1;
+      });
+    }
+
+    // Update the source data
+    (map.current.getSource('heatmap-source') as mapboxgl.GeoJSONSource).setData(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      heatmapPoints as any
+    );
+  }, [reports, data, geoJsonData]);
 
   // Update outline visibility when selectedZone changes
   useEffect(() => {

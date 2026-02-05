@@ -69,7 +69,7 @@ function MapPageContent() {
     'reports-layer': true,
     'flood_hazard-layer': true,
     'mandaue_population-layer': false,
-    'report_heatmap-layer': false,
+    'report_heatmap-layer': true,
   });
 
   const [floodProneVisibility, setFloodProneVisibility] = useState({
@@ -608,7 +608,9 @@ function MapPageContent() {
               type: 'heatmap',
               source: 'report_heatmap',
               layout: {
-                visibility: 'none',
+                visibility: overlayVisibility['report_heatmap-layer']
+                  ? 'visible'
+                  : 'none',
               },
               paint: {
                 // Weight each point equally
