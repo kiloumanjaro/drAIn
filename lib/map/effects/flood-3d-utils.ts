@@ -45,7 +45,11 @@ function getFloodColorRGB(category: string): string {
 /**
  * Interpolate between two RGB colors
  */
-function interpolateColor(color1: string, color2: string, factor: number): string {
+function interpolateColor(
+  color1: string,
+  color2: string,
+  factor: number
+): string {
   // Extract RGB values from "rgb(r, g, b)" format
   const rgb1Match = color1.match(/\d+/g);
   const rgb2Match = color2.match(/\d+/g);
@@ -83,20 +87,22 @@ function createGradientSegments(
 
   // If same color at both ends, just create one feature
   if (startColor === endColor) {
-    return [{
-      type: 'Feature',
-      properties: {
-        pipeName,
-        floodVolume,
-        color: startColor,
-        startNodeId,
-        endNodeId,
+    return [
+      {
+        type: 'Feature',
+        properties: {
+          pipeName,
+          floodVolume,
+          color: startColor,
+          startNodeId,
+          endNodeId,
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: coords,
+        },
       },
-      geometry: {
-        type: 'LineString',
-        coordinates: coords,
-      },
-    }];
+    ];
   }
 
   // Create segments with interpolated colors
@@ -136,7 +142,7 @@ function findNearestFloodedNode(
   let minDistance = Infinity;
 
   floodedNodes.forEach((node, nodeId) => {
-    const nodeCoord = nodeCoordinates.find(n => n.id === nodeId);
+    const nodeCoord = nodeCoordinates.find((n) => n.id === nodeId);
     if (!nodeCoord) return;
 
     const dx = coord[0] - nodeCoord.coordinates[0];
@@ -165,13 +171,15 @@ function createFloodAlongPipes(
 
   // Create a map of flooded nodes for quick lookup
   const floodedNodes = new Map<string, NodeDetails>();
-  floodData.forEach(node => {
+  floodData.forEach((node) => {
     if (node.Total_Flood_Volume > 0) {
       floodedNodes.set(node.Node_ID, node);
     }
   });
 
-  console.log(`[3D Flood] Processing ${pipes.length} pipes for gradient flood visualization`);
+  console.log(
+    `[3D Flood] Processing ${pipes.length} pipes for gradient flood visualization`
+  );
   console.log(`[3D Flood] Found ${floodedNodes.size} flooded nodes`);
 
   // Process each pipe
@@ -180,8 +188,16 @@ function createFloodAlongPipes(
     if (coords.length < 2) return;
 
     // Check if pipe endpoints are near flooded nodes
-    const startNode = findNearestFloodedNode(coords[0], floodedNodes, nodeCoordinates);
-    const endNode = findNearestFloodedNode(coords[coords.length - 1], floodedNodes, nodeCoordinates);
+    const startNode = findNearestFloodedNode(
+      coords[0],
+      floodedNodes,
+      nodeCoordinates
+    );
+    const endNode = findNearestFloodedNode(
+      coords[coords.length - 1],
+      floodedNodes,
+      nodeCoordinates
+    );
 
     // STRICT MATCHING: Only show flood if BOTH endpoints have flooded nodes
     // This prevents a single red node from affecting all pipes within 100m
@@ -189,7 +205,8 @@ function createFloodAlongPipes(
 
     // Calculate average flood properties for width calculation
     // Both nodes are guaranteed to exist due to the check above
-    const avgFloodVolume = (startNode.Total_Flood_Volume + endNode.Total_Flood_Volume) / 2;
+    const avgFloodVolume =
+      (startNode.Total_Flood_Volume + endNode.Total_Flood_Volume) / 2;
 
     // Get individual node colors (NO AVERAGING!)
     const startColor = getFloodColorRGB(startNode.Vulnerability_Category);
@@ -234,10 +251,7 @@ export async function enableFlood3D(
 ): Promise<void> {
   if (!map) return;
 
-  const {
-    animate = true,
-    animationDuration = 3000,
-  } = options;
+  const { animate = true, animationDuration = 3000 } = options;
 
   // Combine inlet and drain coordinates
   const allCoordinates = [...inlets, ...drains];
@@ -249,7 +263,7 @@ export async function enableFlood3D(
 
   try {
     const response = await fetch('/drainage/man_pipes.geojson');
-    const pipesData = await response.json() as GeoJSON.FeatureCollection;
+    const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
     pipes = (pipesData.features || []) as PipeFeature[];
     console.log(`[3D Flood] Loaded ${pipes.length} pipes from GeoJSON`);
   } catch (error) {
@@ -266,7 +280,9 @@ export async function enableFlood3D(
   const floodGeoJSON = createFloodAlongPipes(floodData, allCoordinates, pipes);
 
   if (floodGeoJSON.features.length === 0) {
-    console.warn('[3D Flood] No flood segments created - pipes may not be near flooded nodes');
+    console.warn(
+      '[3D Flood] No flood segments created - pipes may not be near flooded nodes'
+    );
     return;
   }
 
@@ -289,7 +305,8 @@ export async function enableFlood3D(
   map.addSource('flood-3d', {
     type: 'geojson',
     data: floodGeoJSON,
-    lineMetrics: true,  // Required for line-gradient to work
+    lineMetrics: true, // Required for line-gradient to work
+    tolerance: 1, // Simplify geometry for smoother curves (reduces sharp angles)
   });
 
   // Add line layer with gradient colors
@@ -305,20 +322,41 @@ export async function enableFlood3D(
         'interpolate',
         ['linear'],
         ['get', 'floodVolume'],
-        0,   4,    // 0 volume = 4px width
-        10,  8,    // 10 cubic meters = 8px
-        25,  14,   // 25 cubic meters = 14px
-        50,  20,   // 50+ cubic meters = 20px
+        0,
+        4, // 0 volume = 4px width
+        10,
+        8, // 10 cubic meters = 8px
+        25,
+        14, // 25 cubic meters = 14px
+        50,
+        20, // 50+ cubic meters = 20px
       ],
       // Opacity based on average flood volume
-      'line-opacity': animate ? 0 : [
-        'interpolate',
-        ['linear'],
-        ['get', 'floodVolume'],
-        0,   0.4,   // Low volume = semi-transparent
-        5,   0.6,   // Medium volume
-        15,  0.8,   // High volume = more opaque
-      ],
+      'line-opacity': animate
+        ? 0
+        : [
+            'interpolate',
+            ['linear'],
+            ['get', 'floodVolume'],
+            0,
+            0.2, // Low volume = semi-transparent
+            5,
+            0.6, // Medium volume
+            15,
+            0.8, // High volume = more opaque
+          ],
+      // Blur to soften edges and make sharp turns appear smoother
+      // 'line-blur': [
+      //   'interpolate',
+      //   ['linear'],
+      //   ['get', 'floodVolume'],
+      //   0,
+      //   1, // Light blur for small floods
+      //   10,
+      //   2, // Medium blur
+      //   25,
+      //   3, // Heavier blur for larger floods
+      // ],
     },
     layout: {
       'line-cap': 'round',
@@ -357,9 +395,12 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
       'interpolate',
       ['linear'],
       ['get', 'floodVolume'],
-      0,   0.4 * eased,   // Low volume fades to 0.4
-      5,   0.6 * eased,   // Medium volume fades to 0.6
-      15,  0.8 * eased,   // High volume fades to 0.8
+      0,
+      0.4 * eased, // Low volume fades to 0.4
+      5,
+      0.6 * eased, // Medium volume fades to 0.6
+      15,
+      0.8 * eased, // High volume fades to 0.8
     ]);
 
     if (progress < 1) {
