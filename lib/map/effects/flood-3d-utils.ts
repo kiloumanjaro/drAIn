@@ -36,7 +36,7 @@ function getFloodColorRGB(category: string): string {
 
   if (normalized.includes('high')) return 'rgb(211, 47, 47)';
   if (normalized.includes('medium')) return 'rgb(255, 160, 0)';
-  if (normalized.includes('low')) return 'rgb(253, 216, 53)';
+  if (normalized.includes('low')) return 'rgb(255, 235, 100)';
   if (normalized.includes('no')) return 'rgb(56, 142, 60)';
 
   return 'rgb(33, 150, 243)'; // Default water blue
@@ -50,7 +50,6 @@ function interpolateColor(
   color2: string,
   factor: number
 ): string {
-  // Extract RGB values from "rgb(r, g, b)" format
   const rgb1Match = color1.match(/\d+/g);
   const rgb2Match = color2.match(/\d+/g);
 
@@ -59,7 +58,6 @@ function interpolateColor(
   const rgb1 = rgb1Match.map(Number);
   const rgb2 = rgb2Match.map(Number);
 
-  // Interpolate each channel
   const r = Math.round(rgb1[0] + (rgb2[0] - rgb1[0]) * factor);
   const g = Math.round(rgb1[1] + (rgb2[1] - rgb1[1]) * factor);
   const b = Math.round(rgb1[2] + (rgb2[2] - rgb1[2]) * factor);
@@ -82,9 +80,6 @@ function createGradientSegments(
 ): GeoJSON.Feature[] {
   if (coords.length < 2) return [];
 
-  const segments: GeoJSON.Feature[] = [];
-  const numSegments = Math.max(coords.length - 1, 3); // At least 3 segments for smooth gradient
-
   // If same color at both ends, just create one feature
   if (startColor === endColor) {
     return [
@@ -105,9 +100,25 @@ function createGradientSegments(
     ];
   }
 
+  // If only 2 coords (direct line), subdivide into multiple points for gradient
+  let workingCoords = coords;
+  if (coords.length === 2) {
+    const numSubdivisions = 10; // Create 10 segments for smooth gradient
+    workingCoords = [];
+    for (let i = 0; i <= numSubdivisions; i++) {
+      const t = i / numSubdivisions;
+      const lng = coords[0][0] + (coords[1][0] - coords[0][0]) * t;
+      const lat = coords[0][1] + (coords[1][1] - coords[0][1]) * t;
+      workingCoords.push([lng, lat]);
+    }
+  }
+
+  const segments: GeoJSON.Feature[] = [];
+
   // Create segments with interpolated colors
-  for (let i = 0; i < coords.length - 1; i++) {
-    const progress = i / (coords.length - 1);
+  for (let i = 0; i < workingCoords.length - 1; i++) {
+    // Use midpoint of segment for color calculation
+    const progress = (i + 0.5) / (workingCoords.length - 1);
     const segmentColor = interpolateColor(startColor, endColor, progress);
 
     segments.push({
@@ -122,12 +133,26 @@ function createGradientSegments(
       },
       geometry: {
         type: 'LineString',
-        coordinates: [coords[i], coords[i + 1]],
+        coordinates: [workingCoords[i], workingCoords[i + 1]],
       },
     });
   }
 
   return segments;
+}
+
+/**
+ * Check if a node is high risk (red)
+ */
+function isHighRisk(category: string): boolean {
+  return category.toLowerCase().trim().includes('high');
+}
+
+/**
+ * Check if a node is "no risk" (green)
+ */
+function isNoRisk(category: string): boolean {
+  return category.toLowerCase().trim().includes('no');
 }
 
 /**
@@ -155,8 +180,48 @@ function findNearestFloodedNode(
     }
   });
 
-  // Only return if within reasonable distance (0.001 degrees ≈ 100m)
-  return minDistance < 0.001 ? nearestNode : null;
+  // Only return if within reasonable distance (0.003 degrees ≈ 300m)
+  return minDistance < 0.0008 ? nearestNode : null;
+}
+
+/**
+ * Find the nearest non-green (not "no risk") flooded node to a given node
+ * Used for connecting high risk nodes to other at-risk nodes
+ */
+function findNearestNonGreenNode(
+  sourceNodeId: string,
+  floodedNodes: Map<string, NodeDetails>,
+  nodeCoordinates: NodeCoordinates[]
+): { node: NodeDetails; coordinates: [number, number] } | null {
+  const sourceCoord = nodeCoordinates.find((n) => n.id === sourceNodeId);
+  if (!sourceCoord) return null;
+
+  let nearestNode: NodeDetails | null = null;
+  let nearestCoord: [number, number] | null = null;
+  let minDistance = Infinity;
+
+  floodedNodes.forEach((node, nodeId) => {
+    // Skip self and skip "no risk" (green) nodes
+    if (nodeId === sourceNodeId || isNoRisk(node.Vulnerability_Category))
+      return;
+
+    const nodeCoord = nodeCoordinates.find((n) => n.id === nodeId);
+    if (!nodeCoord) return;
+
+    const dx = sourceCoord.coordinates[0] - nodeCoord.coordinates[0];
+    const dy = sourceCoord.coordinates[1] - nodeCoord.coordinates[1];
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestNode = node;
+      nearestCoord = nodeCoord.coordinates;
+    }
+  });
+
+  if (!nearestNode || !nearestCoord) return null;
+
+  return { node: nearestNode, coordinates: nearestCoord };
 }
 
 /**
@@ -182,6 +247,9 @@ function createFloodAlongPipes(
   );
   console.log(`[3D Flood] Found ${floodedNodes.size} flooded nodes`);
 
+  // Track which high risk nodes have been connected
+  const connectedHighRiskNodes = new Set<string>();
+
   // Process each pipe
   pipes.forEach((pipe) => {
     const coords = pipe.geometry.coordinates;
@@ -203,6 +271,14 @@ function createFloodAlongPipes(
     // This prevents a single red node from affecting all pipes within 100m
     if (!startNode || !endNode) return;
 
+    // Mark high risk nodes as connected via pipes
+    if (isHighRisk(startNode.Vulnerability_Category)) {
+      connectedHighRiskNodes.add(startNode.Node_ID);
+    }
+    if (isHighRisk(endNode.Vulnerability_Category)) {
+      connectedHighRiskNodes.add(endNode.Node_ID);
+    }
+
     // Calculate average flood properties for width calculation
     // Both nodes are guaranteed to exist due to the check above
     const avgFloodVolume =
@@ -219,11 +295,51 @@ function createFloodAlongPipes(
       endColor,
       avgFloodVolume,
       pipe.properties.Name,
-      startNode?.Node_ID,
-      endNode?.Node_ID
+      startNode.Node_ID,
+      endNode.Node_ID
     );
 
-    // Add all gradient segments
+    features.push(...gradientSegments);
+  });
+
+  // Connect high risk (red) nodes that weren't connected via pipes
+  // to their nearest non-green node with a direct line
+  floodedNodes.forEach((node, nodeId) => {
+    if (!isHighRisk(node.Vulnerability_Category)) return;
+    if (connectedHighRiskNodes.has(nodeId)) return; // Already connected via pipe
+
+    const sourceCoord = nodeCoordinates.find((n) => n.id === nodeId);
+    if (!sourceCoord) return;
+
+    const nearest = findNearestNonGreenNode(
+      nodeId,
+      floodedNodes,
+      nodeCoordinates
+    );
+    if (!nearest) return;
+
+    // Create a direct line between the high risk node and nearest non-green node
+    const coords: [number, number][] = [
+      sourceCoord.coordinates,
+      nearest.coordinates,
+    ];
+
+    const startColor = getFloodColorRGB(node.Vulnerability_Category); // Red
+    const endColor = getFloodColorRGB(nearest.node.Vulnerability_Category); // Yellow or Orange
+
+    const avgFloodVolume =
+      (node.Total_Flood_Volume + nearest.node.Total_Flood_Volume) / 2;
+
+    const gradientSegments = createGradientSegments(
+      coords,
+      startColor,
+      endColor,
+      avgFloodVolume,
+      `high-risk-connection-${nodeId}`,
+      nodeId,
+      nearest.node.Node_ID
+    );
+
     features.push(...gradientSegments);
   });
 
@@ -359,7 +475,7 @@ export async function enableFlood3D(
       // ],
     },
     layout: {
-      'line-cap': 'round',
+      'line-cap': 'round', // Use butt caps to avoid visible circles at segment boundaries
       'line-join': 'round',
     },
   });
