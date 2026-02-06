@@ -18,6 +18,11 @@ import {
   transformToNodeDetails,
 } from '@/lib/simulation-api/simulation';
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
+import {
+  enableFlood3D,
+  disableFlood3D,
+  toggleFlood3D,
+} from '@/lib/map/effects/flood-3d-utils';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -184,6 +189,7 @@ export default function SimulationPage() {
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false);
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
+  const [isFlood3DActive, setIsFlood3DActive] = useState(false);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -988,6 +994,12 @@ export default function SimulationPage() {
     setTableData(null);
     setTableData3(null);
     setActivePanel(null);
+
+    // Disable 3D flood effect
+    if (mapRef.current && isFlood3DActive) {
+      disableFlood3D(mapRef.current);
+      setIsFlood3DActive(false);
+    }
   };
   // Vulnerability table handlers
   const handleGenerateTable = async () => {
@@ -1018,6 +1030,19 @@ export default function SimulationPage() {
       if (mapRef.current) {
         enableRain(mapRef.current, 1.0);
         setIsRainActive(true);
+      }
+
+      // Enable 3D flood visualization
+      if (mapRef.current) {
+        enableFlood3D(mapRef.current, data, inletsRef.current, drainsRef.current, {
+          opacity: 0.7,
+          animate: true,
+          animationDuration: 3000,
+        }).then(() => {
+          setIsFlood3DActive(true);
+        }).catch((error) => {
+          console.error('Error enabling 3D flood:', error);
+        });
       }
 
       toast.success(
@@ -1095,6 +1120,19 @@ export default function SimulationPage() {
         setIsRainActive(true);
       }
 
+      // Enable 3D flood visualization
+      if (mapRef.current) {
+        enableFlood3D(mapRef.current, transformedData, inletsRef.current, drainsRef.current, {
+          opacity: 0.7,
+          animate: true,
+          animationDuration: 3000,
+        }).then(() => {
+          setIsFlood3DActive(true);
+        }).catch((error) => {
+          console.error('Error enabling 3D flood:', error);
+        });
+      }
+
       toast.success(
         `Successfully generated vulnerability data for ${transformedData.length} nodes`
       );
@@ -1114,6 +1152,12 @@ export default function SimulationPage() {
   const handleCloseTable = () => {
     setTableData(null);
     setIsTableMinimized(false);
+
+    // Disable 3D flood effect
+    if (mapRef.current && isFlood3DActive) {
+      disableFlood3D(mapRef.current);
+      setIsFlood3DActive(false);
+    }
   };
 
   const handleYearChange = (year: number | null) => {
@@ -1128,6 +1172,12 @@ export default function SimulationPage() {
   const handleCloseTable3 = () => {
     setTableData3(null);
     setIsTable3Minimized(false);
+
+    // Disable 3D flood effect
+    if (mapRef.current && isFlood3DActive) {
+      disableFlood3D(mapRef.current);
+      setIsFlood3DActive(false);
+    }
   };
 
   // Rain toggle handler
@@ -1154,6 +1204,22 @@ export default function SimulationPage() {
       }
     },
     [tableData3, rainfallParams]
+  );
+
+  // 3D Flood toggle handler
+  const handleToggleFlood3D = useCallback(
+    (enabled: boolean) => {
+      if (!mapRef.current) return;
+
+      if (enabled) {
+        toggleFlood3D(mapRef.current, true);
+        setIsFlood3DActive(true);
+      } else {
+        toggleFlood3D(mapRef.current, false);
+        setIsFlood3DActive(false);
+      }
+    },
+    []
   );
 
   // Helper function to parse Node_ID and determine source and feature ID
@@ -1307,14 +1373,19 @@ export default function SimulationPage() {
     setIsTable3Minimized(false);
   };
 
-  // Cleanup rain effect when component unmounts
+  // Cleanup rain and flood effects when component unmounts
   useEffect(() => {
     return () => {
-      if (mapRef.current && isRainActive) {
-        disableRain(mapRef.current);
+      if (mapRef.current) {
+        if (isRainActive) {
+          disableRain(mapRef.current);
+        }
+        if (isFlood3DActive) {
+          disableFlood3D(mapRef.current);
+        }
       }
     };
-  }, [isRainActive]);
+  }, [isRainActive, isFlood3DActive]);
 
   return (
     <>
@@ -1392,6 +1463,8 @@ export default function SimulationPage() {
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
+          isFlood3DActive={isFlood3DActive}
+          onToggleFlood3D={handleToggleFlood3D}
           isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls

@@ -158,6 +158,9 @@ interface ContentRendererProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  // 3D Flood effect control
+  isFlood3DActive?: boolean;
+  onToggleFlood3D?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
   isHeatmapLoading?: boolean;
 }
@@ -241,6 +244,8 @@ export function ContentRenderer({
   allReportsData, // Destructure allReportsData
   isRainActive = false,
   onToggleRain,
+  isFlood3DActive = false,
+  onToggleFlood3D,
   isFloodScenarioLoading = false,
   isHeatmapLoading = false,
 }: ContentRendererProps) {
@@ -320,6 +325,8 @@ export function ContentRenderer({
           onOpenNodeSimulation={onOpenNodeSimulation}
           isRainActive={isRainActive}
           onToggleRain={onToggleRain}
+          isFlood3DActive={isFlood3DActive}
+          onToggleFlood3D={onToggleFlood3D}
         />
       );
 

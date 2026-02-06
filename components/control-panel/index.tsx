@@ -84,6 +84,8 @@ export function ControlPanel({
   onClosePopUps = () => {},
   isRainActive = false,
   onToggleRain,
+  isFlood3DActive = false,
+  onToggleFlood3D,
   isFloodScenarioLoading = false,
   isHeatmapLoading = false,
 }: ControlPanelProps & { reports: Report[] }) {

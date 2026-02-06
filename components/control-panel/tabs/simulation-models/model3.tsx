@@ -22,6 +22,7 @@ import {
   Minimize2,
   Maximize2,
   CloudRain,
+  Waves,
 } from 'lucide-react';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -81,6 +82,8 @@ interface Model3Props {
   onOpenNodeSimulation?: (nodeId: string) => void;
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  isFlood3DActive?: boolean;
+  onToggleFlood3D?: (enabled: boolean) => void;
 }
 
 export const DEFAULT_NODE_PARAMS: NodeParams = {
@@ -130,6 +133,8 @@ export default function Model3({
   onToggleMinimize,
   isRainActive = false,
   onToggleRain,
+  isFlood3DActive = false,
+  onToggleFlood3D,
 }: Model3Props) {
   //const [rainfallParams, setRainfallParams] = useState<RainfallParams>(
   //  DEFAULT_RAINFALL_PARAMS
@@ -480,6 +485,47 @@ export default function Model3({
                 id="rain-toggle-model3"
                 checked={isRainActive}
                 onCheckedChange={onToggleRain}
+                disabled={!hasTable}
+              />
+            </div>
+          )}
+
+          {/* 3D Flood Effect Toggle */}
+          {onToggleFlood3D && (
+            <div
+              className={`border-border/40 bg-muted/20 flex items-center justify-between rounded-lg border px-3 py-2 ${
+                !hasTable ? 'opacity-50' : ''
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Waves className="text-muted-foreground h-4 w-4" />
+                <Label
+                  htmlFor="flood-3d-toggle-model3"
+                  className={`text-sm font-normal ${
+                    hasTable ? 'cursor-pointer' : 'cursor-not-allowed'
+                  }`}
+                >
+                  3D Flood Effect
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs text-xs">
+                        {hasTable
+                          ? 'Toggle 3D rising water visualization based on flood volume'
+                          : 'Generate table first to enable 3D flood effect'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Switch
+                id="flood-3d-toggle-model3"
+                checked={isFlood3DActive}
+                onCheckedChange={onToggleFlood3D}
                 disabled={!hasTable}
               />
             </div>

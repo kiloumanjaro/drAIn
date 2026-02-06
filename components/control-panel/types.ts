@@ -154,6 +154,9 @@ export interface ControlPanelProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  // 3D Flood effect control
+  isFlood3DActive?: boolean;
+  onToggleFlood3D?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
   isHeatmapLoading?: boolean;
 }

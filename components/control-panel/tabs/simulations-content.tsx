@@ -64,6 +64,9 @@ interface SimulationsContentProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  // 3D Flood effect control
+  isFlood3DActive?: boolean;
+  onToggleFlood3D?: (enabled: boolean) => void;
 }
 
 export default function SimulationsContent({
@@ -104,6 +107,8 @@ export default function SimulationsContent({
   onOpenNodeSimulation,
   isRainActive = false,
   onToggleRain,
+  isFlood3DActive = false,
+  onToggleFlood3D,
 }: SimulationsContentProps) {
   const [selectedModel, setSelectedModel] = useState<ModelType | null>(null);
   const router = useRouter();
@@ -180,6 +185,8 @@ export default function SimulationsContent({
       onToggleMinimize: onToggleTableMinimize,
       isRainActive,
       onToggleRain,
+      isFlood3DActive,
+      onToggleFlood3D,
     };
 
     const model3Props = {
@@ -207,6 +214,8 @@ export default function SimulationsContent({
       onOpenNodeSimulation,
       isRainActive,
       onToggleRain,
+      isFlood3DActive,
+      onToggleFlood3D,
     };
 
     switch (selectedModel) {
