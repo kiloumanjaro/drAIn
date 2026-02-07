@@ -1,7 +1,7 @@
 'use client';
 
-import { X } from 'lucide-react';
-import { useEffect } from 'react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 
@@ -28,17 +28,23 @@ export function ImageViewer({
   address,
   onClose,
 }: ImageViewerProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          onClose();
+        }
       }
     };
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [onClose, isFullscreen]);
 
   // Prevent body scroll when viewer is open
   useEffect(() => {
@@ -54,26 +60,52 @@ export function ImageViewer({
       {/* Backdrop - clicking closes viewer */}
       <div
         className="absolute inset-0"
-        onClick={onClose}
+        onClick={isFullscreen ? () => setIsFullscreen(false) : onClose}
         aria-label="Close image viewer"
       />
 
-      {/* Main viewer container */}
-      <div className="animate-in zoom-in-95 relative z-10 flex max-h-[90vh] max-w-[90vw] gap-4 duration-300">
-        {/* Image section */}
-        <div className="relative flex h-[600px] w-[400px] items-center justify-center overflow-hidden rounded-lg bg-black">
+      {/* Fullscreen image view */}
+      {isFullscreen ? (
+        <div className="animate-in zoom-in-95 relative z-10 flex h-[95vh] w-[95vw] items-center justify-center duration-300">
           <Image
             src={imageUrl}
             alt="Report evidence"
             fill
             className="object-contain"
-            sizes="(max-width: 1024px) 80vw, 60vw"
+            sizes="95vw"
             priority
           />
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-4 right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 transition-colors hover:bg-black/70"
+          >
+            <Minimize2 className="h-5 w-5 cursor-pointer text-white" />
+          </button>
         </div>
+      ) : (
+        /* Main viewer container */
+        <div className="animate-in zoom-in-95 relative z-10 flex max-h-[90vh] max-w-[90vw] gap-4 duration-300">
+          {/* Image section */}
+          <div className="relative flex h-[600px] w-[400px] items-center justify-center overflow-hidden rounded-lg bg-black group">
+            <Image
+              src={imageUrl}
+              alt="Report evidence"
+              fill
+              className="object-contain"
+              sizes="(max-width: 1024px) 80vw, 60vw"
+              priority
+            />
+            {/* Expand button */}
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 opacity-0 transition-all hover:bg-black/70 group-hover:opacity-100"
+            >
+              <Maximize2 className="h-4 w-4 cursor-pointer text-white" />
+            </button>
+          </div>
 
-        {/* Metadata sidebar */}
-        <div className="w-80 overflow-y-auto rounded-lg bg-white p-6 shadow-2xl">
+          {/* Metadata sidebar */}
+          <div className="w-80 overflow-y-auto rounded-lg bg-white p-6 shadow-2xl">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -157,17 +189,9 @@ export function ImageViewer({
               {description}
             </p>
           </div>
-
-          {/* Divider */}
-          <div className="my-4 border-t border-gray-200" />
-
-          {/* Tips */}
-          <div className="text-xs text-gray-500">
-            <p className="mb-1">• Press ESC to close</p>
-            <p>• Click outside to close</p>
-          </div>
         </div>
       </div>
+      )}
     </div>,
     document.body
   );
