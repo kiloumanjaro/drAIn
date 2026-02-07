@@ -4,6 +4,9 @@ import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
+import StatusBadge from '@/components/dashboard/reports/StatusBadge';
+import PriorityBadge from '@/components/dashboard/reports/PriorityBadge';
+import ComponentTypeBadge from '@/components/dashboard/reports/ComponentTypeBadge';
 
 interface ImageViewerProps {
   imageUrl: string;
@@ -14,6 +17,9 @@ interface ImageViewerProps {
   coordinates: [number, number];
   componentId: string;
   address: string;
+  status: 'pending' | 'in-progress' | 'resolved';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  resolvedAt?: string;
   onClose: () => void;
 }
 
@@ -26,6 +32,9 @@ export function ImageViewer({
   coordinates,
   componentId,
   address,
+  status,
+  priority,
+  resolvedAt,
   onClose,
 }: ImageViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -118,6 +127,31 @@ export function ImageViewer({
             Report Details
           </h2>
 
+          {/* Tags */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <StatusBadge status={status} />
+            <PriorityBadge priority={priority} size="sm" />
+            <ComponentTypeBadge componentType={category as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'} />
+          </div>
+
+          {/* Resolved Date */}
+          {status === 'resolved' && resolvedAt && (
+            <div className="mb-4">
+              <h3 className="mb-1 text-xs font-semibold text-gray-500 uppercase">
+                Resolved On
+              </h3>
+              <p className="text-sm text-gray-900">
+                {new Date(resolvedAt).toLocaleString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+          )}
+
           {/* Reporter Info */}
           <div className="mb-4">
             <h3 className="mb-1 text-xs font-semibold text-gray-500 uppercase">
@@ -142,21 +176,12 @@ export function ImageViewer({
             </p>
           </div>
 
-          {/* Category */}
-          <div className="mb-4">
-            <h3 className="mb-1 text-xs font-semibold text-gray-500 uppercase">
-              Category
-            </h3>
-            <p className="text-sm text-gray-900">{category}</p>
-          </div>
-
           {/* Component Info */}
           <div className="mb-4">
             <h3 className="mb-1 text-xs font-semibold text-gray-500 uppercase">
-              Component
+              Component ID
             </h3>
             <p className="text-sm text-gray-900">
-              {category.charAt(0).toUpperCase() + category.slice(1)} -{' '}
               {componentId}
             </p>
           </div>
