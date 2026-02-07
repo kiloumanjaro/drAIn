@@ -84,14 +84,14 @@ export function ImageViewer({
         </div>
       ) : (
         /* Main viewer container */
-        <div className="animate-in zoom-in-95 relative z-10 flex max-h-[90vh] max-w-[90vw] gap-4 duration-300">
+        <div className="animate-in zoom-in-95 relative z-10 flex max-h-[90vh] max-w-[90vw] gap-4 duration-300 items-stretch">
           {/* Image section */}
-          <div className="relative flex h-[600px] w-[400px] items-center justify-center overflow-hidden rounded-lg bg-black group">
+          <div className="relative w-[450px] overflow-hidden rounded-lg group">
             <Image
               src={imageUrl}
               alt="Report evidence"
               fill
-              className="object-contain"
+              className="object-cover rounded-lg"
               sizes="(max-width: 1024px) 80vw, 60vw"
               priority
             />
