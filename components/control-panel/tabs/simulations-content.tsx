@@ -64,9 +64,6 @@ interface SimulationsContentProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
-  // 3D Flood effect control
-  isFlood3DActive?: boolean;
-  onToggleFlood3D?: (enabled: boolean) => void;
   // Heatmap control
   isHeatmapActive?: boolean;
   onToggleHeatmap?: (enabled: boolean) => void;
@@ -110,8 +107,6 @@ export default function SimulationsContent({
   onOpenNodeSimulation,
   isRainActive = false,
   onToggleRain,
-  isFlood3DActive = false,
-  onToggleFlood3D,
   isHeatmapActive = false,
   onToggleHeatmap,
 }: SimulationsContentProps) {
@@ -190,8 +185,6 @@ export default function SimulationsContent({
       onToggleMinimize: onToggleTableMinimize,
       isRainActive,
       onToggleRain,
-      isFlood3DActive,
-      onToggleFlood3D,
       isHeatmapActive,
       onToggleHeatmap,
     };
@@ -221,8 +214,6 @@ export default function SimulationsContent({
       onOpenNodeSimulation,
       isRainActive,
       onToggleRain,
-      isFlood3DActive,
-      onToggleFlood3D,
       isHeatmapActive,
       onToggleHeatmap,
     };

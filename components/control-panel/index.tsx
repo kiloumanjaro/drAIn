@@ -84,8 +84,6 @@ export function ControlPanel({
   onClosePopUps = () => {},
   isRainActive = false,
   onToggleRain,
-  isFlood3DActive = false,
-  onToggleFlood3D,
   isHeatmapActive = false,
   onToggleHeatmap,
   isFloodScenarioLoading = false,
@@ -372,8 +370,6 @@ export function ControlPanel({
             onOpenNodeSimulation={onOpenNodeSimulation}
             isRainActive={isRainActive}
             onToggleRain={onToggleRain}
-            isFlood3DActive={isFlood3DActive}
-            onToggleFlood3D={onToggleFlood3D}
             isHeatmapActive={isHeatmapActive}
             onToggleHeatmap={onToggleHeatmap}
             isFloodScenarioLoading={isFloodScenarioLoading}

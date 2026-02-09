@@ -21,7 +21,6 @@ import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
 import {
   enableFlood3D,
   disableFlood3D,
-  toggleFlood3D,
 } from '@/lib/map/effects/flood-3d-utils';
 
 import {
@@ -187,7 +186,7 @@ export default function SimulationPage() {
     useState<RainfallParams>(rainfallVal);
 
   // Rain effect state
-  const [isRainActive, setIsRainActive] = useState(false);
+  const [isRainActive, setIsRainActive] = useState(true); // Enabled by default
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFlood3DActive, setIsFlood3DActive] = useState(false);
   const [isHeatmapActive, setIsHeatmapActive] = useState(true); // Enabled by default
@@ -1719,18 +1718,6 @@ export default function SimulationPage() {
     [tableData3, rainfallParams]
   );
 
-  // 3D Flood toggle handler
-  const handleToggleFlood3D = useCallback((enabled: boolean) => {
-    if (!mapRef.current) return;
-
-    if (enabled) {
-      toggleFlood3D(mapRef.current, true);
-      setIsFlood3DActive(true);
-    } else {
-      toggleFlood3D(mapRef.current, false);
-      setIsFlood3DActive(false);
-    }
-  }, []);
 
   // Heatmap animation - per-point varied pulsing + position wobbling
   const animateHeatmapIntensity = useCallback(() => {
@@ -2133,8 +2120,6 @@ export default function SimulationPage() {
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
-          isFlood3DActive={isFlood3DActive}
-          onToggleFlood3D={handleToggleFlood3D}
           isHeatmapActive={isHeatmapActive}
           onToggleHeatmap={handleToggleHeatmap}
           isFloodScenarioLoading={isFloodScenarioLoading}
