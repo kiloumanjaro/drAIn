@@ -191,6 +191,11 @@ export default function SimulationPage() {
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFlood3DActive, setIsFlood3DActive] = useState(false);
   const [isHeatmapActive, setIsHeatmapActive] = useState(true); // Enabled by default
+  const [isHeatmapAnimating, setIsHeatmapAnimating] = useState(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const nodeHeatmapFeaturesRef = useRef<GeoJSON.Feature[]>([]);
+  const lineHeatmapFeaturesRef = useRef<GeoJSON.Feature[]>([]);
+  const lastAnimationTimeRef = useRef<number>(0);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -414,19 +419,23 @@ export default function SimulationPage() {
               visibility: 'visible',
             },
             paint: {
-              'heatmap-weight': 0.12,
+              'heatmap-weight': [
+                '*',
+                ['coalesce', ['get', 'pulseMultiplier'], 1],
+                0.15,
+              ],
               'heatmap-intensity': [
                 'interpolate',
                 ['linear'],
                 ['zoom'],
                 0,
-                0.15,
+                0.2,
                 12,
-                0.45,
+                0.6,
                 13,
-                0.95,
+                1.2,
                 15,
-                1.6,
+                2.0,
               ],
               'heatmap-color': heatmapColor as any,
               'heatmap-radius': [
@@ -436,28 +445,28 @@ export default function SimulationPage() {
                 0,
                 1,
                 12,
-                5,
+                6,
                 13,
-                17,
+                20,
                 15,
-                50,
+                60,
               ],
               'heatmap-opacity': [
                 'interpolate',
                 ['linear'],
                 ['zoom'],
                 0,
-                0.04,
+                0.05,
                 7,
-                0.075,
+                0.1,
                 10,
-                0.15,
+                0.2,
                 12,
-                0.25,
+                0.3,
                 14,
-                0.4,
+                0.45,
                 16,
-                0.5,
+                0.55,
               ],
             },
           });
@@ -477,14 +486,18 @@ export default function SimulationPage() {
             },
             paint: {
               'heatmap-weight': [
-                'case',
-                ['==', ['get', 'vulnerability'], 'High Risk'],
-                5.0,
-                ['==', ['get', 'vulnerability'], 'Medium Risk'],
-                1.5,
-                ['==', ['get', 'vulnerability'], 'Low Risk'],
-                0.6,
-                0.2,
+                '*',
+                ['coalesce', ['get', 'pulseMultiplier'], 1],
+                [
+                  'case',
+                  ['==', ['get', 'vulnerability'], 'High Risk'],
+                  5.0,
+                  ['==', ['get', 'vulnerability'], 'Medium Risk'],
+                  1.5,
+                  ['==', ['get', 'vulnerability'], 'Low Risk'],
+                  0.6,
+                  0.2,
+                ],
               ],
               'heatmap-intensity': [
                 'interpolate',
@@ -1231,6 +1244,7 @@ export default function SimulationPage() {
               vulnerability: vulnerability,
               floodVolume: props.floodVolume || 0,
               pipeName: props.pipeName || '',
+              phase: Math.random() * Math.PI * 2,  // Random phase for animation
             },
             geometry: {
               type: 'Point',
@@ -1301,6 +1315,7 @@ export default function SimulationPage() {
             floodVolume: node.Total_Flood_Volume,
             maximumRate: node.Maximum_Rate,
             hoursFlooded: node.Hours_Flooded,
+            phase: Math.random() * Math.PI * 2,  // Random phase for animation
           },
           geometry: {
             type: 'Point' as const,
@@ -1337,7 +1352,7 @@ export default function SimulationPage() {
 
       // Convert line segments to sampled points
       const allLineSamplePoints = floodLines.features.flatMap(lineFeature =>
-        samplePointsFromLine(lineFeature as GeoJSON.Feature<GeoJSON.LineString>, 3)  // 3 points per segment
+        samplePointsFromLine(lineFeature as GeoJSON.Feature<GeoJSON.LineString>, 1)  // 1 point per segment (midpoint only)
       );
 
       console.log(`[Heatmap] Sampled ${allLineSamplePoints.length} points from lines`);
@@ -1362,6 +1377,10 @@ export default function SimulationPage() {
       `[Heatmap] Total heatmap points: ${nodeHeatmapFeatures.length + lineHeatmapFeatures.length} ` +
       `(${nodeHeatmapFeatures.length} nodes + ${lineHeatmapFeatures.length} lines)`
     );
+
+    // Store features in refs for animation
+    nodeHeatmapFeaturesRef.current = nodeHeatmapFeatures;
+    lineHeatmapFeaturesRef.current = lineHeatmapFeatures;
 
     const nodeData: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
@@ -1394,6 +1413,13 @@ export default function SimulationPage() {
         lineSource.setData(lineData);
 
         setIsHeatmapActive(true);
+
+        // Start animation if not already running
+        if (!isHeatmapAnimating) {
+          setIsHeatmapAnimating(true);
+          animateHeatmapIntensity();
+        }
+
         console.log('[Heatmap] Heatmap data set successfully (nodes + lines)');
       } else {
         retryCount++;
@@ -1702,6 +1728,77 @@ export default function SimulationPage() {
     }
   }, []);
 
+  // Heatmap animation - per-point varied pulsing
+  const animateHeatmapIntensity = useCallback(() => {
+    if (!mapRef.current || !isHeatmapActive) {
+      setIsHeatmapAnimating(false);
+      return;
+    }
+
+    // Throttle to ~20fps to avoid excessive source updates
+    const now = Date.now();
+    if (now - lastAnimationTimeRef.current < 50) {
+      animationFrameRef.current = requestAnimationFrame(animateHeatmapIntensity);
+      return;
+    }
+    lastAnimationTimeRef.current = now;
+
+    const nodeSource = mapRef.current.getSource('vulnerability_heatmap_nodes') as mapboxgl.GeoJSONSource;
+    const lineSource = mapRef.current.getSource('vulnerability_heatmap_lines') as mapboxgl.GeoJSONSource;
+
+    if (!nodeSource && !lineSource) {
+      setIsHeatmapAnimating(false);
+      return;
+    }
+
+    const time = now / 1000;
+    const pulseSpeed = 0.4; // Cycles per second
+    const pulseAmount = 0.15; // ±15% weight variation
+
+    // Update node features with per-point pulsed multipliers
+    if (nodeSource && nodeHeatmapFeaturesRef.current.length > 0) {
+      const pulsedNodes = nodeHeatmapFeaturesRef.current.map(feature => {
+        const phase = feature.properties?.phase || 0;
+        const pulse = 1 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+        return {
+          ...feature,
+          properties: {
+            ...feature.properties,
+            pulseMultiplier: pulse,
+          },
+        };
+      });
+
+      nodeSource.setData({
+        type: 'FeatureCollection',
+        features: pulsedNodes,
+      });
+    }
+
+    // Update line features with per-point pulsed multipliers
+    if (lineSource && lineHeatmapFeaturesRef.current.length > 0) {
+      const pulsedLines = lineHeatmapFeaturesRef.current.map(feature => {
+        const phase = feature.properties?.phase || 0;
+        const pulse = 1 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+        return {
+          ...feature,
+          properties: {
+            ...feature.properties,
+            pulseMultiplier: pulse,
+          },
+        };
+      });
+
+      lineSource.setData({
+        type: 'FeatureCollection',
+        features: pulsedLines,
+      });
+    }
+
+    // Continue animation
+    animationFrameRef.current = requestAnimationFrame(animateHeatmapIntensity);
+  }, [isHeatmapActive]);
+
   // Heatmap toggle handler
   const handleToggleHeatmap = useCallback((enabled: boolean) => {
     if (!mapRef.current) return;
@@ -1728,10 +1825,31 @@ export default function SimulationPage() {
 
     setIsHeatmapActive(enabled);
 
+    // Start or stop animation
+    if (enabled) {
+      setIsHeatmapAnimating(true);
+      animateHeatmapIntensity();
+    } else {
+      setIsHeatmapAnimating(false);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    }
+
     // Force map to repaint
     mapRef.current.triggerRepaint();
 
     console.log(`[Heatmap] Visibility after toggle: ${visibility}`);
+  }, [animateHeatmapIntensity]);
+
+  // Cleanup animation on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   // Helper function to parse Node_ID and determine source and feature ID
