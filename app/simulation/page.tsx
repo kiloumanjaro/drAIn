@@ -1245,6 +1245,8 @@ export default function SimulationPage() {
               floodVolume: props.floodVolume || 0,
               pipeName: props.pipeName || '',
               phase: Math.random() * Math.PI * 2,  // Random phase for animation
+              offsetAngle: Math.random() * Math.PI * 2,  // Random wobble direction
+              offsetDistance: Math.random() * 0.00009,  // ~9 meters max wobble
             },
             geometry: {
               type: 'Point',
@@ -1316,6 +1318,8 @@ export default function SimulationPage() {
             maximumRate: node.Maximum_Rate,
             hoursFlooded: node.Hours_Flooded,
             phase: Math.random() * Math.PI * 2,  // Random phase for animation
+            offsetAngle: Math.random() * Math.PI * 2,  // Random wobble direction
+            offsetDistance: Math.random() * 0.00009,  // ~9 meters max wobble
           },
           geometry: {
             type: 'Point' as const,
@@ -1728,7 +1732,7 @@ export default function SimulationPage() {
     }
   }, []);
 
-  // Heatmap animation - per-point varied pulsing
+  // Heatmap animation - per-point varied pulsing + position wobbling
   const animateHeatmapIntensity = useCallback(() => {
     if (!mapRef.current || !isHeatmapActive) {
       setIsHeatmapAnimating(false);
@@ -1752,16 +1756,34 @@ export default function SimulationPage() {
     }
 
     const time = now / 1000;
-    const pulseSpeed = 0.4; // Cycles per second
-    const pulseAmount = 0.15; // ±15% weight variation
+    const pulseSpeed = 0.3; // Cycles per second (slower)
+    const pulseAmount = 0.35; // 35% depth - oscillates from 0.65 to 1.0
 
-    // Update node features with per-point pulsed multipliers
+    // Update node features with per-point pulsed multipliers + coordinate wobbling
     if (nodeSource && nodeHeatmapFeaturesRef.current.length > 0) {
-      const pulsedNodes = nodeHeatmapFeaturesRef.current.map(feature => {
+      const wobbledNodes = nodeHeatmapFeaturesRef.current.map(feature => {
         const phase = feature.properties?.phase || 0;
-        const pulse = 1 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+        const offsetAngle = feature.properties?.offsetAngle || 0;
+        const offsetDistance = feature.properties?.offsetDistance || 0;
+
+        // Calculate pulse multiplier
+        const pulse = 1 - pulseAmount / 2 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+
+        // Calculate wobble offset (oscillates based on phase)
+        const wobbleAmount = Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
+
+        // Apply wobble to coordinates
+        const pointGeometry = feature.geometry as GeoJSON.Point;
+        const [lng, lat] = pointGeometry.coordinates as [number, number];
+        const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
+        const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
+
         return {
           ...feature,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [wobbledLng, wobbledLat],
+          },
           properties: {
             ...feature.properties,
             pulseMultiplier: pulse,
@@ -1771,17 +1793,35 @@ export default function SimulationPage() {
 
       nodeSource.setData({
         type: 'FeatureCollection',
-        features: pulsedNodes,
+        features: wobbledNodes,
       });
     }
 
-    // Update line features with per-point pulsed multipliers
+    // Update line features with per-point pulsed multipliers + coordinate wobbling
     if (lineSource && lineHeatmapFeaturesRef.current.length > 0) {
-      const pulsedLines = lineHeatmapFeaturesRef.current.map(feature => {
+      const wobbledLines = lineHeatmapFeaturesRef.current.map(feature => {
         const phase = feature.properties?.phase || 0;
-        const pulse = 1 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+        const offsetAngle = feature.properties?.offsetAngle || 0;
+        const offsetDistance = feature.properties?.offsetDistance || 0;
+
+        // Calculate pulse multiplier
+        const pulse = 1 - pulseAmount / 2 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+
+        // Calculate wobble offset (oscillates based on phase)
+        const wobbleAmount = Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
+
+        // Apply wobble to coordinates
+        const pointGeometry = feature.geometry as GeoJSON.Point;
+        const [lng, lat] = pointGeometry.coordinates as [number, number];
+        const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
+        const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
+
         return {
           ...feature,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [wobbledLng, wobbledLat],
+          },
           properties: {
             ...feature.properties,
             pulseMultiplier: pulse,
@@ -1791,7 +1831,7 @@ export default function SimulationPage() {
 
       lineSource.setData({
         type: 'FeatureCollection',
-        features: pulsedLines,
+        features: wobbledLines,
       });
     }
 
