@@ -370,113 +370,169 @@ export default function SimulationPage() {
           console.warn('Could not enable 3D buildings:', error);
         }
 
-        // Add vulnerability heatmap layer FIRST so it appears below drainage layers
-        if (!map.getSource('vulnerability_heatmap')) {
-          console.log('[Heatmap] Creating heatmap layer...');
-          // Create empty GeoJSON initially
-          const vulnerabilityHeatmapData: GeoJSON.FeatureCollection = {
+        // Add vulnerability heatmap layers FIRST so they appear below drainage layers
+        // Two separate layers: one for nodes, one for lines (allows independent radius/opacity control)
+        if (!map.getSource('vulnerability_heatmap_nodes')) {
+          console.log('[Heatmap] Creating heatmap layers...');
+          const emptyGeoJSON: GeoJSON.FeatureCollection = {
             type: 'FeatureCollection',
             features: [],
           };
 
-          map.addSource('vulnerability_heatmap', {
+          // Shared heatmap color gradient
+          const heatmapColor = [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0,
+            'rgba(0, 0, 0, 0)',
+            0.15,
+            'rgba(30, 144, 255, 0.7)', // Dodger blue - low density
+            0.3,
+            'rgba(0, 102, 204, 0.8)', // Strong blue - low-moderate
+            0.5,
+            'rgba(0, 71, 171, 0.85)', // Blue - moderate flood
+            0.7,
+            'rgba(0, 47, 167, 0.9)', // Dark blue - high flood
+            0.85,
+            'rgba(0, 20, 124, 0.95)', // Very dark blue - very high flood
+            1,
+            'rgba(0, 0, 100, 1.0)', // Navy blue - peak flood (fully opaque)
+          ];
+
+          // --- Lines heatmap (added first = rendered below nodes) ---
+          map.addSource('vulnerability_heatmap_lines', {
             type: 'geojson',
-            data: vulnerabilityHeatmapData,
+            data: emptyGeoJSON,
           });
 
           map.addLayer({
-            id: 'vulnerability_heatmap-layer',
+            id: 'vulnerability_heatmap-lines-layer',
             type: 'heatmap',
-            source: 'vulnerability_heatmap',
+            source: 'vulnerability_heatmap_lines',
             layout: {
-              visibility: 'visible', // Visible by default
+              visibility: 'visible',
             },
             paint: {
-              // Weight based on vulnerability (High Risk amplified to force visibility)
-              // Also reduced for line points to prevent overwhelming heatmap
-              'heatmap-weight': [
-                'case',
-                // Line points get uniform weight - enough to cross heatmap-density visibility threshold (0.15)
-                ['==', ['get', 'source'], 'line'],
-                0.15,
-                // Node points get full weight
-                ['==', ['get', 'vulnerability'], 'High Risk'],
-                5.0, // Amplified to ensure isolated nodes show darker blues
-                ['==', ['get', 'vulnerability'], 'Medium Risk'],
-                1.5,
-                ['==', ['get', 'vulnerability'], 'Low Risk'],
-                0.6,
-                0.2, // No Risk or default
-              ],
-              // Intensity - boosted to compensate for smaller radius
+              'heatmap-weight': 0.12,
               'heatmap-intensity': [
                 'interpolate',
                 ['linear'],
                 ['zoom'],
                 0,
-                0.4, // Stronger base (was 0.2)
-                12,
-                1.0, // Increased (was 0.6)
-                13,
-                1.8, // Increased (was 1.2)
-                15,
-                3.0, // Boosted (was 2.0)
-              ],
-              // Harsh flood-like color gradient (strong blues with sharp edges)
-              'heatmap-color': [
-                'interpolate',
-                ['linear'],
-                ['heatmap-density'],
-                0,
-                'rgba(0, 0, 0, 0)',
                 0.15,
-                'rgba(30, 144, 255, 0.7)', // Dodger blue - low density
-                0.3,
-                'rgba(0, 102, 204, 0.8)', // Strong blue - low-moderate
-                0.5,
-                'rgba(0, 71, 171, 0.85)', // Blue - moderate flood
-                0.7,
-                'rgba(0, 47, 167, 0.9)', // Dark blue - high flood
-                0.85,
-                'rgba(0, 20, 124, 0.95)', // Very dark blue - very high flood
-                1,
-                'rgba(0, 0, 100, 1.0)', // Navy blue - peak flood (fully opaque)
+                12,
+                0.45,
+                13,
+                0.95,
+                15,
+                1.6,
               ],
-              // Radius - sharp at distance, larger at close zoom to show connected flood zones
+              'heatmap-color': heatmapColor as any,
               'heatmap-radius': [
                 'interpolate',
                 ['linear'],
                 ['zoom'],
                 0,
-                3, // Small when zoomed out (sharp)
+                1,
                 12,
-                12, // Keep small at mid zoom (sharp)
+                5,
                 13,
-                35, // Increase at zoom 13 for connectivity
+                17,
                 15,
-                80, // Larger at zoom 15 to show flood zones
+                50,
               ],
-              // Opacity - very subtle at distance, more visible up close to avoid overwhelming
               'heatmap-opacity': [
                 'interpolate',
                 ['linear'],
                 ['zoom'],
                 0,
-                0.15, // Very faint at max zoom out
+                0.04,
                 7,
-                0.2, // Still subtle when zoomed out
+                0.075,
                 10,
-                0.3, // Gradual increase
+                0.15,
                 12,
-                0.4, // Moderate visibility
+                0.25,
                 14,
-                0.5, // More visible
+                0.4,
                 16,
-                0.6, // Full visibility at close zoom
+                0.5,
               ],
             },
           });
-          console.log('[Heatmap] Heatmap layer created successfully');
+
+          // --- Nodes heatmap (added second = rendered above lines) ---
+          map.addSource('vulnerability_heatmap_nodes', {
+            type: 'geojson',
+            data: emptyGeoJSON,
+          });
+
+          map.addLayer({
+            id: 'vulnerability_heatmap-nodes-layer',
+            type: 'heatmap',
+            source: 'vulnerability_heatmap_nodes',
+            layout: {
+              visibility: 'visible',
+            },
+            paint: {
+              'heatmap-weight': [
+                'case',
+                ['==', ['get', 'vulnerability'], 'High Risk'],
+                5.0,
+                ['==', ['get', 'vulnerability'], 'Medium Risk'],
+                1.5,
+                ['==', ['get', 'vulnerability'], 'Low Risk'],
+                0.6,
+                0.2,
+              ],
+              'heatmap-intensity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.4,
+                12,
+                1.0,
+                13,
+                1.8,
+                15,
+                3.0,
+              ],
+              'heatmap-color': heatmapColor as any,
+              'heatmap-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                3,
+                12,
+                12,
+                13,
+                35,
+                15,
+                80,
+              ],
+              'heatmap-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.15,
+                7,
+                0.2,
+                10,
+                0.3,
+                12,
+                0.4,
+                14,
+                0.5,
+                16,
+                0.6,
+              ],
+            },
+          });
+          console.log('[Heatmap] Heatmap layers created successfully (nodes + lines)');
         }
 
         if (!map.getSource('man_pipes')) {
@@ -1302,50 +1358,49 @@ export default function SimulationPage() {
       // Continue with just node points if pipe loading fails
     }
 
-    // Combine both sources
-    const combinedFeatures = [...nodeHeatmapFeatures, ...lineHeatmapFeatures];
-
     console.log(
-      `[Heatmap] Total heatmap points: ${combinedFeatures.length} ` +
+      `[Heatmap] Total heatmap points: ${nodeHeatmapFeatures.length + lineHeatmapFeatures.length} ` +
       `(${nodeHeatmapFeatures.length} nodes + ${lineHeatmapFeatures.length} lines)`
     );
 
-    const heatmapData: GeoJSON.FeatureCollection = {
+    const nodeData: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: combinedFeatures,
+      features: nodeHeatmapFeatures,
     };
 
-    // Update the heatmap source with retry logic
+    const lineData: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: lineHeatmapFeatures,
+    };
+
+    // Update both heatmap sources with retry logic
     let retryCount = 0;
     const maxRetries = 10;
 
     const updateHeatmap = () => {
-      const source = map.getSource(
-        'vulnerability_heatmap'
+      const nodeSource = map.getSource(
+        'vulnerability_heatmap_nodes'
       ) as mapboxgl.GeoJSONSource;
-      const layer = map.getLayer('vulnerability_heatmap-layer');
+      const lineSource = map.getSource(
+        'vulnerability_heatmap_lines'
+      ) as mapboxgl.GeoJSONSource;
+      const nodeLayer = map.getLayer('vulnerability_heatmap-nodes-layer');
+      const lineLayer = map.getLayer('vulnerability_heatmap-lines-layer');
 
-      if (source && layer) {
-        console.log('[Heatmap] Source and layer found, setting data...');
+      if (nodeSource && nodeLayer && lineSource && lineLayer) {
+        console.log('[Heatmap] Sources and layers found, setting data...');
 
-        // Set the data
-        source.setData(heatmapData);
-        console.log('[Heatmap] Data set successfully');
+        nodeSource.setData(nodeData);
+        lineSource.setData(lineData);
 
-        // Since layer is visible by default, just ensure state is correct
         setIsHeatmapActive(true);
-
-        // Data has been set, no need to force repaint (it disrupts rain animation)
-        console.log('[Heatmap] Heatmap data set successfully');
+        console.log('[Heatmap] Heatmap data set successfully (nodes + lines)');
       } else {
         retryCount++;
         if (retryCount < maxRetries) {
           console.warn(
-            `[Heatmap] Source or layer not ready (attempt ${retryCount}/${maxRetries}), retrying...`
+            `[Heatmap] Sources or layers not ready (attempt ${retryCount}/${maxRetries}), retrying...`
           );
-          console.warn('[Heatmap] Source exists:', !!source);
-          console.warn('[Heatmap] Layer exists:', !!layer);
-          // Retry after delay
           setTimeout(updateHeatmap, 300);
         } else {
           console.error('[Heatmap] Failed to update after max retries');
@@ -1358,7 +1413,7 @@ export default function SimulationPage() {
     setTimeout(() => {
       console.log('[Heatmap] Starting heatmap update');
       updateHeatmap();
-    }, 500); // 500ms delay to ensure map layers are fully initialized
+    }, 500);
   };
 
   const handleClosePopUps = () => {
@@ -1374,14 +1429,13 @@ export default function SimulationPage() {
       setIsFlood3DActive(false);
     }
 
-    // Disable heatmap
+    // Disable heatmap (both layers)
     if (mapRef.current && isHeatmapActive) {
-      if (mapRef.current.getLayer('vulnerability_heatmap-layer')) {
-        mapRef.current.setLayoutProperty(
-          'vulnerability_heatmap-layer',
-          'visibility',
-          'none'
-        );
+      if (mapRef.current.getLayer('vulnerability_heatmap-nodes-layer')) {
+        mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', 'none');
+      }
+      if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
+        mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
       }
       setIsHeatmapActive(false);
     }
@@ -1566,14 +1620,13 @@ export default function SimulationPage() {
       setIsFlood3DActive(false);
     }
 
-    // Disable heatmap
+    // Disable heatmap (both layers)
     if (mapRef.current && isHeatmapActive) {
-      if (mapRef.current.getLayer('vulnerability_heatmap-layer')) {
-        mapRef.current.setLayoutProperty(
-          'vulnerability_heatmap-layer',
-          'visibility',
-          'none'
-        );
+      if (mapRef.current.getLayer('vulnerability_heatmap-nodes-layer')) {
+        mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', 'none');
+      }
+      if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
+        mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
       }
       setIsHeatmapActive(false);
     }
@@ -1598,14 +1651,13 @@ export default function SimulationPage() {
       setIsFlood3DActive(false);
     }
 
-    // Disable heatmap
+    // Disable heatmap (both layers)
     if (mapRef.current && isHeatmapActive) {
-      if (mapRef.current.getLayer('vulnerability_heatmap-layer')) {
-        mapRef.current.setLayoutProperty(
-          'vulnerability_heatmap-layer',
-          'visibility',
-          'none'
-        );
+      if (mapRef.current.getLayer('vulnerability_heatmap-nodes-layer')) {
+        mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', 'none');
+      }
+      if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
+        mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
       }
       setIsHeatmapActive(false);
     }
@@ -1654,10 +1706,11 @@ export default function SimulationPage() {
   const handleToggleHeatmap = useCallback((enabled: boolean) => {
     if (!mapRef.current) return;
 
-    const heatmapLayer = mapRef.current.getLayer('vulnerability_heatmap-layer');
+    const nodesLayer = mapRef.current.getLayer('vulnerability_heatmap-nodes-layer');
+    const linesLayer = mapRef.current.getLayer('vulnerability_heatmap-lines-layer');
 
-    if (!heatmapLayer) {
-      console.warn('[Heatmap] Toggle failed - heatmap layer not found');
+    if (!nodesLayer && !linesLayer) {
+      console.warn('[Heatmap] Toggle failed - heatmap layers not found');
       return;
     }
 
@@ -1665,37 +1718,20 @@ export default function SimulationPage() {
 
     const visibility = enabled ? 'visible' : 'none';
 
-    // Toggle heatmap layer
-    mapRef.current.setLayoutProperty(
-      'vulnerability_heatmap-layer',
-      'visibility',
-      visibility
-    );
+    // Toggle both heatmap layers
+    if (nodesLayer) {
+      mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', visibility);
+    }
+    if (linesLayer) {
+      mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', visibility);
+    }
 
     setIsHeatmapActive(enabled);
 
     // Force map to repaint
     mapRef.current.triggerRepaint();
 
-    // Verify the change
-    const newVisibility = mapRef.current.getLayoutProperty(
-      'vulnerability_heatmap-layer',
-      'visibility'
-    );
-    console.log(`[Heatmap] Visibility after toggle: ${newVisibility}`);
-
-    // Check if there's data in the source
-    const source = mapRef.current.getSource(
-      'vulnerability_heatmap'
-    ) as mapboxgl.GeoJSONSource;
-    if (source && source._data) {
-      const data = source._data as GeoJSON.FeatureCollection;
-      console.log(
-        `[Heatmap] Source has ${data.features?.length || 0} features`
-      );
-    } else {
-      console.warn('[Heatmap] No data in source!');
-    }
+    console.log(`[Heatmap] Visibility after toggle: ${visibility}`);
   }, []);
 
   // Helper function to parse Node_ID and determine source and feature ID
