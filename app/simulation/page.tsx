@@ -396,18 +396,9 @@ export default function SimulationPage() {
               // Also reduced for line points to prevent overwhelming heatmap
               'heatmap-weight': [
                 'case',
-                // Line points get 3% weight (97% reduction) for negligible contribution
+                // Line points get uniform weight - enough to cross heatmap-density visibility threshold (0.15)
                 ['==', ['get', 'source'], 'line'],
-                [
-                  'case',
-                  ['==', ['get', 'vulnerability'], 'High Risk'],
-                  0.15, // 5.0 * 0.03 = 0.15
-                  ['==', ['get', 'vulnerability'], 'Medium Risk'],
-                  0.045, // 1.5 * 0.03 = 0.045
-                  ['==', ['get', 'vulnerability'], 'Low Risk'],
-                  0.018, // 0.6 * 0.03 = 0.018
-                  0.006, // 0.2 * 0.03 = 0.006
-                ],
+                0.15,
                 // Node points get full weight
                 ['==', ['get', 'vulnerability'], 'High Risk'],
                 5.0, // Amplified to ensure isolated nodes show darker blues
@@ -1128,10 +1119,10 @@ export default function SimulationPage() {
     return 'Medium Risk';
   };
 
-  // Helper function to sample multiple points along a line segment
+  // Helper function to sample points along a line, scaled by length
   const samplePointsFromLine = (
     lineFeature: GeoJSON.Feature<GeoJSON.LineString>,
-    numSamples: number = 4  // Default to 4 points per segment
+    samplesPerSegment: number = 3  // Points per ~0.0005 degree segment (~55m)
   ): GeoJSON.Feature[] => {
     const coords = lineFeature.geometry.coordinates as [number, number][];
     if (coords.length < 2) return [];
@@ -1140,27 +1131,60 @@ export default function SimulationPage() {
     const vulnerability = getVulnerabilityFromColor(props.color || '');
     const points: GeoJSON.Feature[] = [];
 
-    // Sample evenly along the line (skip first and last to avoid node overlap)
+    // Calculate total line length and cumulative distances
+    const segLengths: number[] = [];
+    let totalLength = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const dx = coords[i + 1][0] - coords[i][0];
+      const dy = coords[i + 1][1] - coords[i][1];
+      const len = Math.sqrt(dx * dx + dy * dy);
+      segLengths.push(len);
+      totalLength += len;
+    }
+    if (totalLength === 0) return [];
+
+    // Vulnerability multiplier - higher risk = more points = denser heatmap
+    const vulnerabilityMultiplier =
+      vulnerability === 'High Risk' ? 3 :
+      vulnerability === 'Medium Risk' ? 2 :
+      vulnerability === 'Low Risk' ? 1.5 : 1;
+
+    // Scale number of samples based on line length and vulnerability
+    // Use ~0.0005 degrees (~55m) as the reference segment length
+    const referenceSegLength = 0.0005;
+    const numSegments = Math.max(1, Math.round(totalLength / referenceSegLength));
+    const numSamples = Math.max(samplesPerSegment, Math.round(numSegments * samplesPerSegment * vulnerabilityMultiplier));
+
+    // Sample evenly along the full line length (skip first and last to avoid node overlap)
     for (let i = 1; i <= numSamples; i++) {
-      const t = i / (numSamples + 1);  // t from 0.2 to 0.8 (for 4 samples)
+      const t = i / (numSamples + 1);
+      const targetDist = t * totalLength;
 
-      // Linear interpolation between start and end
-      const lng = coords[0][0] + (coords[1][0] - coords[0][0]) * t;
-      const lat = coords[0][1] + (coords[1][1] - coords[0][1]) * t;
+      // Walk along segments to find the point at targetDist
+      let walked = 0;
+      for (let s = 0; s < segLengths.length; s++) {
+        if (walked + segLengths[s] >= targetDist) {
+          const segT = (targetDist - walked) / segLengths[s];
+          const lng = coords[s][0] + (coords[s + 1][0] - coords[s][0]) * segT;
+          const lat = coords[s][1] + (coords[s + 1][1] - coords[s][1]) * segT;
 
-      points.push({
-        type: 'Feature',
-        properties: {
-          source: 'line',  // Mark as coming from line segment
-          vulnerability: vulnerability,
-          floodVolume: props.floodVolume || 0,
-          pipeName: props.pipeName || '',
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [lng, lat],
-        },
-      } as GeoJSON.Feature);
+          points.push({
+            type: 'Feature',
+            properties: {
+              source: 'line',
+              vulnerability: vulnerability,
+              floodVolume: props.floodVolume || 0,
+              pipeName: props.pipeName || '',
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [lng, lat],
+            },
+          } as GeoJSON.Feature);
+          break;
+        }
+        walked += segLengths[s];
+      }
     }
 
     return points;
@@ -1257,7 +1281,7 @@ export default function SimulationPage() {
 
       // Convert line segments to sampled points
       const allLineSamplePoints = floodLines.features.flatMap(lineFeature =>
-        samplePointsFromLine(lineFeature as GeoJSON.Feature<GeoJSON.LineString>, 1)  // 1 point per segment (midpoint only)
+        samplePointsFromLine(lineFeature as GeoJSON.Feature<GeoJSON.LineString>, 3)  // 3 points per segment
       );
 
       console.log(`[Heatmap] Sampled ${allLineSamplePoints.length} points from lines`);
