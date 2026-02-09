@@ -227,7 +227,7 @@ function findNearestNonGreenNode(
 /**
  * Create flood lines along pipes with gradient colors - 2D surface tiles
  */
-function createFloodAlongPipes(
+export function createFloodAlongPipes(
   floodData: NodeDetails[],
   nodeCoordinates: NodeCoordinates[],
   pipes: PipeFeature[]
@@ -426,61 +426,124 @@ export async function enableFlood3D(
   });
 
   // Add line layer with gradient colors
-  map.addLayer({
-    id: 'flood-gradient-layer',
-    type: 'line',
-    source: 'flood-3d',
-    paint: {
-      // Use interpolated color per segment
-      'line-color': ['get', 'color'],
-      // Width based on flood volume - data-driven styling
-      'line-width': [
-        'interpolate',
-        ['linear'],
-        ['get', 'floodVolume'],
-        0,
-        4, // 0 volume = 4px width
-        10,
-        8, // 10 cubic meters = 8px
-        25,
-        14, // 25 cubic meters = 14px
-        50,
-        20, // 50+ cubic meters = 20px
-      ],
-      // Opacity based on average flood volume
-      'line-opacity': animate
-        ? 0
-        : [
-            'interpolate',
-            ['linear'],
-            ['get', 'floodVolume'],
-            0,
-            0.2, // Low volume = semi-transparent
-            5,
-            0.6, // Medium volume
-            15,
-            0.8, // High volume = more opaque
-          ],
-      // Blur to soften edges and make sharp turns appear smoother
-      // 'line-blur': [
-      //   'interpolate',
-      //   ['linear'],
-      //   ['get', 'floodVolume'],
-      //   0,
-      //   1, // Light blur for small floods
-      //   10,
-      //   2, // Medium blur
-      //   25,
-      //   3, // Heavier blur for larger floods
-      // ],
-    },
-    layout: {
-      'line-cap': 'round', // Use butt caps to avoid visible circles at segment boundaries
-      'line-join': 'round',
-    },
-  });
+  // We'll add it first, then explicitly move it above the heatmap
+  map.addLayer(
+    {
+      id: 'flood-gradient-layer',
+      type: 'line',
+      source: 'flood-3d',
+      paint: {
+        // Use interpolated color per segment
+        'line-color': ['get', 'color'],
+        // Width based on flood volume - data-driven styling
+        'line-width': [
+          'interpolate',
+          ['linear'],
+          ['get', 'floodVolume'],
+          0,
+          4, // 0 volume = 4px width
+          10,
+          8, // 10 cubic meters = 8px
+          25,
+          14, // 25 cubic meters = 14px
+          50,
+          20, // 50+ cubic meters = 20px
+        ],
+        // Opacity based on average flood volume
+        'line-opacity': animate
+          ? 0
+          : [
+              'interpolate',
+              ['linear'],
+              ['get', 'floodVolume'],
+              0,
+              0.2, // Low volume = semi-transparent
+              5,
+              0.6, // Medium volume
+              15,
+              0.8, // High volume = more opaque
+            ],
+        // Blur to soften edges and make sharp turns appear smoother
+        // 'line-blur': [
+        //   'interpolate',
+        //   ['linear'],
+        //   ['get', 'floodVolume'],
+        //   0,
+        //   1, // Light blur for small floods
+        //   10,
+        //   2, // Medium blur
+        //   25,
+        //   3, // Heavier blur for larger floods
+        // ],
+      },
+      layout: {
+        'line-cap': 'round', // Use butt caps to avoid visible circles at segment boundaries
+        'line-join': 'round',
+        'visibility': 'visible', // Ensure layer is visible when created
+      },
+    }
+  );
+
+  // Explicitly move the flood gradient layer above the heatmap but below infrastructure
+  // This ensures proper rendering order: heatmap < flood gradient < pipes/nodes
+  try {
+    if (map.getLayer('vulnerability_heatmap-layer')) {
+      // Find the first infrastructure layer to insert before
+      const layers = map.getStyle().layers;
+      let beforeLayerId: string | undefined = undefined;
+
+      if (layers) {
+        console.log('[3D Flood] Current layers:', layers.map(l => l.id).join(', '));
+
+        // Look for the first drainage infrastructure layer
+        const infrastructureLayer = layers.find(
+          (layer) => layer.id === 'man_pipes-layer' ||
+                     layer.id === 'inlets-layer' ||
+                     layer.id === 'outlets-layer' ||
+                     layer.id === 'storm_drains-layer'
+        );
+
+        if (infrastructureLayer) {
+          beforeLayerId = infrastructureLayer.id;
+        }
+      }
+
+      // Move flood gradient to be right above heatmap but below infrastructure
+      if (beforeLayerId) {
+        map.moveLayer('flood-gradient-layer', beforeLayerId);
+        console.log(`[3D Flood] Moved flood gradient above heatmap, before ${beforeLayerId}`);
+
+        // Verify the move
+        const updatedLayers = map.getStyle().layers;
+        const gradientIndex = updatedLayers?.findIndex(l => l.id === 'flood-gradient-layer');
+        const heatmapIndex = updatedLayers?.findIndex(l => l.id === 'vulnerability_heatmap-layer');
+        console.log(`[3D Flood] Layer order - Heatmap: ${heatmapIndex}, Gradient: ${gradientIndex}`);
+      } else {
+        console.log('[3D Flood] No infrastructure layer found, flood gradient at default position');
+      }
+    } else {
+      console.log('[3D Flood] Heatmap layer not found, flood gradient at default position');
+    }
+  } catch (error) {
+    console.error('[3D Flood] Error moving layer:', error);
+  }
 
   console.log('[3D Flood] Gradient layer added successfully');
+  console.log(`[3D Flood] Layer has ${floodGeoJSON.features.length} features`);
+
+  // Log a sample feature for debugging
+  if (floodGeoJSON.features.length > 0) {
+    const sample = floodGeoJSON.features[0];
+    console.log('[3D Flood] Sample feature:', {
+      color: sample.properties?.color,
+      floodVolume: sample.properties?.floodVolume,
+      coordinates: sample.geometry.type === 'LineString' ? sample.geometry.coordinates.length : 0
+    });
+  }
+
+  // Verify layer visibility
+  const visibility = map.getLayoutProperty('flood-gradient-layer', 'visibility');
+  console.log(`[3D Flood] Layer visibility after creation: ${visibility}`);
 
   // Animate the flood appearing if enabled
   if (animate) {

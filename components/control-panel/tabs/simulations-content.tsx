@@ -67,6 +67,9 @@ interface SimulationsContentProps {
   // 3D Flood effect control
   isFlood3DActive?: boolean;
   onToggleFlood3D?: (enabled: boolean) => void;
+  // Heatmap control
+  isHeatmapActive?: boolean;
+  onToggleHeatmap?: (enabled: boolean) => void;
 }
 
 export default function SimulationsContent({
@@ -109,6 +112,8 @@ export default function SimulationsContent({
   onToggleRain,
   isFlood3DActive = false,
   onToggleFlood3D,
+  isHeatmapActive = false,
+  onToggleHeatmap,
 }: SimulationsContentProps) {
   const [selectedModel, setSelectedModel] = useState<ModelType | null>(null);
   const router = useRouter();
@@ -187,6 +192,8 @@ export default function SimulationsContent({
       onToggleRain,
       isFlood3DActive,
       onToggleFlood3D,
+      isHeatmapActive,
+      onToggleHeatmap,
     };
 
     const model3Props = {
@@ -216,6 +223,8 @@ export default function SimulationsContent({
       onToggleRain,
       isFlood3DActive,
       onToggleFlood3D,
+      isHeatmapActive,
+      onToggleHeatmap,
     };
 
     switch (selectedModel) {

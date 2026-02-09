@@ -157,6 +157,9 @@ export interface ControlPanelProps {
   // 3D Flood effect control
   isFlood3DActive?: boolean;
   onToggleFlood3D?: (enabled: boolean) => void;
+  // Heatmap control
+  isHeatmapActive?: boolean;
+  onToggleHeatmap?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
   isHeatmapLoading?: boolean;
 }

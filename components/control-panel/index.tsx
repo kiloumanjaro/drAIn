@@ -86,6 +86,8 @@ export function ControlPanel({
   onToggleRain,
   isFlood3DActive = false,
   onToggleFlood3D,
+  isHeatmapActive = false,
+  onToggleHeatmap,
   isFloodScenarioLoading = false,
   isHeatmapLoading = false,
 }: ControlPanelProps & { reports: Report[] }) {
@@ -370,6 +372,10 @@ export function ControlPanel({
             onOpenNodeSimulation={onOpenNodeSimulation}
             isRainActive={isRainActive}
             onToggleRain={onToggleRain}
+            isFlood3DActive={isFlood3DActive}
+            onToggleFlood3D={onToggleFlood3D}
+            isHeatmapActive={isHeatmapActive}
+            onToggleHeatmap={onToggleHeatmap}
             isFloodScenarioLoading={isFloodScenarioLoading}
             isHeatmapLoading={isHeatmapLoading}
           />

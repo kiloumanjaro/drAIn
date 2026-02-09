@@ -161,6 +161,9 @@ interface ContentRendererProps {
   // 3D Flood effect control
   isFlood3DActive?: boolean;
   onToggleFlood3D?: (enabled: boolean) => void;
+  // Heatmap control
+  isHeatmapActive?: boolean;
+  onToggleHeatmap?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
   isHeatmapLoading?: boolean;
 }
@@ -246,6 +249,8 @@ export function ContentRenderer({
   onToggleRain,
   isFlood3DActive = false,
   onToggleFlood3D,
+  isHeatmapActive = false,
+  onToggleHeatmap,
   isFloodScenarioLoading = false,
   isHeatmapLoading = false,
 }: ContentRendererProps) {
@@ -327,6 +332,8 @@ export function ContentRenderer({
           onToggleRain={onToggleRain}
           isFlood3DActive={isFlood3DActive}
           onToggleFlood3D={onToggleFlood3D}
+          isHeatmapActive={isHeatmapActive}
+          onToggleHeatmap={onToggleHeatmap}
         />
       );
 

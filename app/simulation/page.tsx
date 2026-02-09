@@ -190,6 +190,7 @@ export default function SimulationPage() {
   const [isRainActive, setIsRainActive] = useState(false);
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFlood3DActive, setIsFlood3DActive] = useState(false);
+  const [isHeatmapActive, setIsHeatmapActive] = useState(true); // Enabled by default
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -367,6 +368,124 @@ export default function SimulationPage() {
           }
         } catch (error) {
           console.warn('Could not enable 3D buildings:', error);
+        }
+
+        // Add vulnerability heatmap layer FIRST so it appears below drainage layers
+        if (!map.getSource('vulnerability_heatmap')) {
+          console.log('[Heatmap] Creating heatmap layer...');
+          // Create empty GeoJSON initially
+          const vulnerabilityHeatmapData: GeoJSON.FeatureCollection = {
+            type: 'FeatureCollection',
+            features: [],
+          };
+
+          map.addSource('vulnerability_heatmap', {
+            type: 'geojson',
+            data: vulnerabilityHeatmapData,
+          });
+
+          map.addLayer({
+            id: 'vulnerability_heatmap-layer',
+            type: 'heatmap',
+            source: 'vulnerability_heatmap',
+            layout: {
+              visibility: 'visible', // Visible by default
+            },
+            paint: {
+              // Weight based on vulnerability (High Risk amplified to force visibility)
+              // Also reduced for line points to prevent overwhelming heatmap
+              'heatmap-weight': [
+                'case',
+                // Line points get 3% weight (97% reduction) for negligible contribution
+                ['==', ['get', 'source'], 'line'],
+                [
+                  'case',
+                  ['==', ['get', 'vulnerability'], 'High Risk'],
+                  0.15, // 5.0 * 0.03 = 0.15
+                  ['==', ['get', 'vulnerability'], 'Medium Risk'],
+                  0.045, // 1.5 * 0.03 = 0.045
+                  ['==', ['get', 'vulnerability'], 'Low Risk'],
+                  0.018, // 0.6 * 0.03 = 0.018
+                  0.006, // 0.2 * 0.03 = 0.006
+                ],
+                // Node points get full weight
+                ['==', ['get', 'vulnerability'], 'High Risk'],
+                5.0, // Amplified to ensure isolated nodes show darker blues
+                ['==', ['get', 'vulnerability'], 'Medium Risk'],
+                1.5,
+                ['==', ['get', 'vulnerability'], 'Low Risk'],
+                0.6,
+                0.2, // No Risk or default
+              ],
+              // Intensity - boosted to compensate for smaller radius
+              'heatmap-intensity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.4, // Stronger base (was 0.2)
+                12,
+                1.0, // Increased (was 0.6)
+                13,
+                1.8, // Increased (was 1.2)
+                15,
+                3.0, // Boosted (was 2.0)
+              ],
+              // Harsh flood-like color gradient (strong blues with sharp edges)
+              'heatmap-color': [
+                'interpolate',
+                ['linear'],
+                ['heatmap-density'],
+                0,
+                'rgba(0, 0, 0, 0)',
+                0.15,
+                'rgba(30, 144, 255, 0.7)', // Dodger blue - low density
+                0.3,
+                'rgba(0, 102, 204, 0.8)', // Strong blue - low-moderate
+                0.5,
+                'rgba(0, 71, 171, 0.85)', // Blue - moderate flood
+                0.7,
+                'rgba(0, 47, 167, 0.9)', // Dark blue - high flood
+                0.85,
+                'rgba(0, 20, 124, 0.95)', // Very dark blue - very high flood
+                1,
+                'rgba(0, 0, 100, 1.0)', // Navy blue - peak flood (fully opaque)
+              ],
+              // Radius - sharp at distance, larger at close zoom to show connected flood zones
+              'heatmap-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                3, // Small when zoomed out (sharp)
+                12,
+                12, // Keep small at mid zoom (sharp)
+                13,
+                35, // Increase at zoom 13 for connectivity
+                15,
+                80, // Larger at zoom 15 to show flood zones
+              ],
+              // Opacity - very subtle at distance, more visible up close to avoid overwhelming
+              'heatmap-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.15, // Very faint at max zoom out
+                7,
+                0.2, // Still subtle when zoomed out
+                10,
+                0.3, // Gradual increase
+                12,
+                0.4, // Moderate visibility
+                14,
+                0.5, // More visible
+                16,
+                0.6, // Full visibility at close zoom
+              ],
+            },
+          });
+          console.log('[Heatmap] Heatmap layer created successfully');
         }
 
         if (!map.getSource('man_pipes')) {
@@ -988,6 +1107,236 @@ export default function SimulationPage() {
     }
   };
 
+  // Helper function to convert RGB color from flood line to vulnerability category
+  const getVulnerabilityFromColor = (color: string): string => {
+    if (color.includes('211, 47, 47')) return 'High Risk';      // Red
+    if (color.includes('255, 160, 0')) return 'Medium Risk';    // Orange
+    if (color.includes('255, 235, 100')) return 'Low Risk';     // Yellow
+    if (color.includes('56, 142, 60')) return 'No Risk';        // Green
+
+    // For interpolated colors, determine based on RGB values
+    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (!match) return 'Medium Risk'; // Fallback
+
+    const [, r, g] = match.map(Number);
+
+    // Red-dominant → High Risk
+    if (r > 200 && g < 100) return 'High Risk';
+    // Yellow-dominant → Low Risk
+    if (r > 200 && g > 200) return 'Low Risk';
+    // Orange or intermediate → Medium Risk
+    return 'Medium Risk';
+  };
+
+  // Helper function to sample multiple points along a line segment
+  const samplePointsFromLine = (
+    lineFeature: GeoJSON.Feature<GeoJSON.LineString>,
+    numSamples: number = 4  // Default to 4 points per segment
+  ): GeoJSON.Feature[] => {
+    const coords = lineFeature.geometry.coordinates as [number, number][];
+    if (coords.length < 2) return [];
+
+    const props = lineFeature.properties || {};
+    const vulnerability = getVulnerabilityFromColor(props.color || '');
+    const points: GeoJSON.Feature[] = [];
+
+    // Sample evenly along the line (skip first and last to avoid node overlap)
+    for (let i = 1; i <= numSamples; i++) {
+      const t = i / (numSamples + 1);  // t from 0.2 to 0.8 (for 4 samples)
+
+      // Linear interpolation between start and end
+      const lng = coords[0][0] + (coords[1][0] - coords[0][0]) * t;
+      const lat = coords[0][1] + (coords[1][1] - coords[0][1]) * t;
+
+      points.push({
+        type: 'Feature',
+        properties: {
+          source: 'line',  // Mark as coming from line segment
+          vulnerability: vulnerability,
+          floodVolume: props.floodVolume || 0,
+          pipeName: props.pipeName || '',
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat],
+        },
+      } as GeoJSON.Feature);
+    }
+
+    return points;
+  };
+
+  // Helper function to check if a point is too close to any existing node point
+  const isPointTooCloseToNodes = (
+    linePoint: [number, number],
+    nodeFeatures: GeoJSON.Feature[],
+    minDistance: number = 0.00008  // ~9 meters (tuned for pipe spacing)
+  ): boolean => {
+    return nodeFeatures.some(nodeFeature => {
+      const nodeCoord = (nodeFeature.geometry as GeoJSON.Point).coordinates as [number, number];
+      const dx = linePoint[0] - nodeCoord[0];
+      const dy = linePoint[1] - nodeCoord[1];
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < minDistance;
+    });
+  };
+
+  // Helper function to update vulnerability heatmap
+  const updateVulnerabilityHeatmap = async (vulnerabilityData: NodeDetails[]) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Combine inlet and drain coordinates
+    const allCoordinates = [...inletsRef.current, ...drainsRef.current];
+
+    console.log(
+      '[Heatmap] Total vulnerability data:',
+      vulnerabilityData.length
+    );
+    console.log('[Heatmap] Available coordinates:', allCoordinates.length);
+    console.log(
+      '[Heatmap] Flooded nodes:',
+      vulnerabilityData.filter((n) => n.Total_Flood_Volume > 0).length
+    );
+
+    // Create GeoJSON features from NODE vulnerability data
+    const nodeHeatmapFeatures: GeoJSON.Feature[] = vulnerabilityData
+      .filter((node) => node.Total_Flood_Volume > 0) // Only include flooded nodes
+      .map((node) => {
+        // Find coordinates for this node
+        const nodeCoord = allCoordinates.find((n) => n.id === node.Node_ID);
+        if (!nodeCoord) {
+          console.warn(
+            `[Heatmap] No coordinates found for node: ${node.Node_ID}`
+          );
+          return null;
+        }
+
+        return {
+          type: 'Feature' as const,
+          properties: {
+            source: 'node',  // Mark as coming from node
+            nodeId: node.Node_ID,
+            vulnerability: node.Vulnerability_Category,
+            floodVolume: node.Total_Flood_Volume,
+            maximumRate: node.Maximum_Rate,
+            hoursFlooded: node.Hours_Flooded,
+          },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: nodeCoord.coordinates,
+          },
+        } as GeoJSON.Feature;
+      })
+      .filter((f): f is GeoJSON.Feature => f !== null);
+
+    console.log(`[Heatmap] Created ${nodeHeatmapFeatures.length} node points`);
+
+    // NEW: Load pipes and create LINE points for heatmap
+    let lineHeatmapFeatures: GeoJSON.Feature[] = [];
+
+    try {
+      console.log('[Heatmap] Loading pipe data for line sampling...');
+      const response = await fetch('/drainage/man_pipes.geojson');
+      const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
+      const pipes = pipesData.features || [];
+
+      console.log(`[Heatmap] Loaded ${pipes.length} pipes from GeoJSON`);
+
+      // Generate flood line features (same logic as 3D flood)
+      // Import createFloodAlongPipes from flood-3d-utils.ts
+      const { createFloodAlongPipes } = await import('@/lib/map/effects/flood-3d-utils');
+
+      const floodLines = createFloodAlongPipes(
+        vulnerabilityData,
+        allCoordinates,
+        pipes as any
+      );
+
+      console.log(`[Heatmap] Generated ${floodLines.features.length} flood line segments`);
+
+      // Convert line segments to sampled points
+      const allLineSamplePoints = floodLines.features.flatMap(lineFeature =>
+        samplePointsFromLine(lineFeature as GeoJSON.Feature<GeoJSON.LineString>, 1)  // 1 point per segment (midpoint only)
+      );
+
+      console.log(`[Heatmap] Sampled ${allLineSamplePoints.length} points from lines`);
+
+      // Filter out points too close to nodes
+      lineHeatmapFeatures = allLineSamplePoints.filter(point => {
+        const coords = (point.geometry as GeoJSON.Point).coordinates as [number, number];
+        return !isPointTooCloseToNodes(coords, nodeHeatmapFeatures, 0.00008);
+      });
+
+      console.log(
+        `[Heatmap] After filtering: ${lineHeatmapFeatures.length} line points ` +
+        `(removed ${allLineSamplePoints.length - lineHeatmapFeatures.length} overlaps)`
+      );
+
+    } catch (error) {
+      console.error('[Heatmap] Error loading/processing pipe data:', error);
+      // Continue with just node points if pipe loading fails
+    }
+
+    // Combine both sources
+    const combinedFeatures = [...nodeHeatmapFeatures, ...lineHeatmapFeatures];
+
+    console.log(
+      `[Heatmap] Total heatmap points: ${combinedFeatures.length} ` +
+      `(${nodeHeatmapFeatures.length} nodes + ${lineHeatmapFeatures.length} lines)`
+    );
+
+    const heatmapData: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: combinedFeatures,
+    };
+
+    // Update the heatmap source with retry logic
+    let retryCount = 0;
+    const maxRetries = 10;
+
+    const updateHeatmap = () => {
+      const source = map.getSource(
+        'vulnerability_heatmap'
+      ) as mapboxgl.GeoJSONSource;
+      const layer = map.getLayer('vulnerability_heatmap-layer');
+
+      if (source && layer) {
+        console.log('[Heatmap] Source and layer found, setting data...');
+
+        // Set the data
+        source.setData(heatmapData);
+        console.log('[Heatmap] Data set successfully');
+
+        // Since layer is visible by default, just ensure state is correct
+        setIsHeatmapActive(true);
+
+        // Data has been set, no need to force repaint (it disrupts rain animation)
+        console.log('[Heatmap] Heatmap data set successfully');
+      } else {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          console.warn(
+            `[Heatmap] Source or layer not ready (attempt ${retryCount}/${maxRetries}), retrying...`
+          );
+          console.warn('[Heatmap] Source exists:', !!source);
+          console.warn('[Heatmap] Layer exists:', !!layer);
+          // Retry after delay
+          setTimeout(updateHeatmap, 300);
+        } else {
+          console.error('[Heatmap] Failed to update after max retries');
+        }
+      }
+    };
+
+    // Always use a slight delay to ensure map is fully ready
+    console.log('[Heatmap] Scheduling heatmap update...');
+    setTimeout(() => {
+      console.log('[Heatmap] Starting heatmap update');
+      updateHeatmap();
+    }, 500); // 500ms delay to ensure map layers are fully initialized
+  };
+
   const handleClosePopUps = () => {
     setIsTableMinimized(true);
     setIsTable3Minimized(true);
@@ -999,6 +1348,18 @@ export default function SimulationPage() {
     if (mapRef.current && isFlood3DActive) {
       disableFlood3D(mapRef.current);
       setIsFlood3DActive(false);
+    }
+
+    // Disable heatmap
+    if (mapRef.current && isHeatmapActive) {
+      if (mapRef.current.getLayer('vulnerability_heatmap-layer')) {
+        mapRef.current.setLayoutProperty(
+          'vulnerability_heatmap-layer',
+          'visibility',
+          'none'
+        );
+      }
+      setIsHeatmapActive(false);
     }
   };
   // Vulnerability table handlers
@@ -1026,6 +1387,9 @@ export default function SimulationPage() {
       // Apply vulnerability colors to inlets and storm drains
       applyVulnerabilityColors(data);
 
+      // Update vulnerability heatmap
+      updateVulnerabilityHeatmap(data);
+
       // Enable rain effect
       if (mapRef.current) {
         enableRain(mapRef.current, 1.0);
@@ -1034,15 +1398,23 @@ export default function SimulationPage() {
 
       // Enable 3D flood visualization
       if (mapRef.current) {
-        enableFlood3D(mapRef.current, data, inletsRef.current, drainsRef.current, {
-          opacity: 0.7,
-          animate: true,
-          animationDuration: 3000,
-        }).then(() => {
-          setIsFlood3DActive(true);
-        }).catch((error) => {
-          console.error('Error enabling 3D flood:', error);
-        });
+        enableFlood3D(
+          mapRef.current,
+          data,
+          inletsRef.current,
+          drainsRef.current,
+          {
+            opacity: 0.7,
+            animate: true,
+            animationDuration: 3000,
+          }
+        )
+          .then(() => {
+            setIsFlood3DActive(true);
+          })
+          .catch((error) => {
+            console.error('Error enabling 3D flood:', error);
+          });
       }
 
       toast.success(
@@ -1111,6 +1483,9 @@ export default function SimulationPage() {
       // Apply vulnerability colors to inlets and storm drains
       applyVulnerabilityColors(transformedData);
 
+      // Update vulnerability heatmap
+      updateVulnerabilityHeatmap(transformedData);
+
       // Enable rain effect with dynamic intensity based on precipitation
       if (mapRef.current) {
         // Map 0-300mm precipitation to 0.3-1.0 intensity range
@@ -1122,15 +1497,23 @@ export default function SimulationPage() {
 
       // Enable 3D flood visualization
       if (mapRef.current) {
-        enableFlood3D(mapRef.current, transformedData, inletsRef.current, drainsRef.current, {
-          opacity: 0.7,
-          animate: true,
-          animationDuration: 3000,
-        }).then(() => {
-          setIsFlood3DActive(true);
-        }).catch((error) => {
-          console.error('Error enabling 3D flood:', error);
-        });
+        enableFlood3D(
+          mapRef.current,
+          transformedData,
+          inletsRef.current,
+          drainsRef.current,
+          {
+            opacity: 0.7,
+            animate: true,
+            animationDuration: 3000,
+          }
+        )
+          .then(() => {
+            setIsFlood3DActive(true);
+          })
+          .catch((error) => {
+            console.error('Error enabling 3D flood:', error);
+          });
       }
 
       toast.success(
@@ -1158,6 +1541,18 @@ export default function SimulationPage() {
       disableFlood3D(mapRef.current);
       setIsFlood3DActive(false);
     }
+
+    // Disable heatmap
+    if (mapRef.current && isHeatmapActive) {
+      if (mapRef.current.getLayer('vulnerability_heatmap-layer')) {
+        mapRef.current.setLayoutProperty(
+          'vulnerability_heatmap-layer',
+          'visibility',
+          'none'
+        );
+      }
+      setIsHeatmapActive(false);
+    }
   };
 
   const handleYearChange = (year: number | null) => {
@@ -1177,6 +1572,18 @@ export default function SimulationPage() {
     if (mapRef.current && isFlood3DActive) {
       disableFlood3D(mapRef.current);
       setIsFlood3DActive(false);
+    }
+
+    // Disable heatmap
+    if (mapRef.current && isHeatmapActive) {
+      if (mapRef.current.getLayer('vulnerability_heatmap-layer')) {
+        mapRef.current.setLayoutProperty(
+          'vulnerability_heatmap-layer',
+          'visibility',
+          'none'
+        );
+      }
+      setIsHeatmapActive(false);
     }
   };
 
@@ -1207,20 +1614,65 @@ export default function SimulationPage() {
   );
 
   // 3D Flood toggle handler
-  const handleToggleFlood3D = useCallback(
-    (enabled: boolean) => {
-      if (!mapRef.current) return;
+  const handleToggleFlood3D = useCallback((enabled: boolean) => {
+    if (!mapRef.current) return;
 
-      if (enabled) {
-        toggleFlood3D(mapRef.current, true);
-        setIsFlood3DActive(true);
-      } else {
-        toggleFlood3D(mapRef.current, false);
-        setIsFlood3DActive(false);
-      }
-    },
-    []
-  );
+    if (enabled) {
+      toggleFlood3D(mapRef.current, true);
+      setIsFlood3DActive(true);
+    } else {
+      toggleFlood3D(mapRef.current, false);
+      setIsFlood3DActive(false);
+    }
+  }, []);
+
+  // Heatmap toggle handler
+  const handleToggleHeatmap = useCallback((enabled: boolean) => {
+    if (!mapRef.current) return;
+
+    const heatmapLayer = mapRef.current.getLayer('vulnerability_heatmap-layer');
+
+    if (!heatmapLayer) {
+      console.warn('[Heatmap] Toggle failed - heatmap layer not found');
+      return;
+    }
+
+    console.log(`[Heatmap] Toggling visibility: ${enabled}`);
+
+    const visibility = enabled ? 'visible' : 'none';
+
+    // Toggle heatmap layer
+    mapRef.current.setLayoutProperty(
+      'vulnerability_heatmap-layer',
+      'visibility',
+      visibility
+    );
+
+    setIsHeatmapActive(enabled);
+
+    // Force map to repaint
+    mapRef.current.triggerRepaint();
+
+    // Verify the change
+    const newVisibility = mapRef.current.getLayoutProperty(
+      'vulnerability_heatmap-layer',
+      'visibility'
+    );
+    console.log(`[Heatmap] Visibility after toggle: ${newVisibility}`);
+
+    // Check if there's data in the source
+    const source = mapRef.current.getSource(
+      'vulnerability_heatmap'
+    ) as mapboxgl.GeoJSONSource;
+    if (source && source._data) {
+      const data = source._data as GeoJSON.FeatureCollection;
+      console.log(
+        `[Heatmap] Source has ${data.features?.length || 0} features`
+      );
+    } else {
+      console.warn('[Heatmap] No data in source!');
+    }
+  }, []);
 
   // Helper function to parse Node_ID and determine source and feature ID
   const parseNodeId = (
@@ -1465,6 +1917,8 @@ export default function SimulationPage() {
           onToggleRain={handleToggleRain}
           isFlood3DActive={isFlood3DActive}
           onToggleFlood3D={handleToggleFlood3D}
+          isHeatmapActive={isHeatmapActive}
+          onToggleHeatmap={handleToggleHeatmap}
           isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls
