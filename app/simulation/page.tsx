@@ -186,7 +186,8 @@ export default function SimulationPage() {
     useState<RainfallParams>(rainfallVal);
 
   // Rain effect state
-  const [isRainActive, setIsRainActive] = useState(true); // Enabled by default
+  const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
+  const rainIntensityRef = useRef<number>(1.0); // Track desired rain intensity
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFlood3DActive, setIsFlood3DActive] = useState(false);
   const [isHeatmapActive, setIsHeatmapActive] = useState(true); // Enabled by default
@@ -195,6 +196,7 @@ export default function SimulationPage() {
   const nodeHeatmapFeaturesRef = useRef<GeoJSON.Feature[]>([]);
   const lineHeatmapFeaturesRef = useRef<GeoJSON.Feature[]>([]);
   const lastAnimationTimeRef = useRef<number>(0);
+  const shouldAnimateHeatmapRef = useRef<boolean>(true);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -1416,6 +1418,7 @@ export default function SimulationPage() {
         lineSource.setData(lineData);
 
         setIsHeatmapActive(true);
+        shouldAnimateHeatmapRef.current = true;
 
         // Start animation if not already running
         if (!isHeatmapAnimating) {
@@ -1466,6 +1469,7 @@ export default function SimulationPage() {
       if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
         mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
       }
+      shouldAnimateHeatmapRef.current = false;
       setIsHeatmapActive(false);
     }
   };
@@ -1497,11 +1501,9 @@ export default function SimulationPage() {
       // Update vulnerability heatmap
       updateVulnerabilityHeatmap(data);
 
-      // Enable rain effect
-      if (mapRef.current) {
-        enableRain(mapRef.current, 1.0);
-        setIsRainActive(true);
-      }
+      // Enable rain effect - useEffect will handle the actual application
+      rainIntensityRef.current = 1.0;
+      setIsRainActive(true);
 
       // Enable 3D flood visualization
       if (mapRef.current) {
@@ -1598,7 +1600,7 @@ export default function SimulationPage() {
         // Map 0-300mm precipitation to 0.3-1.0 intensity range
         const normalized = rainfallParams.total_precip / 300; // 0-1 range
         const intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
-        enableRain(mapRef.current, intensity);
+        rainIntensityRef.current = intensity;
         setIsRainActive(true);
       }
 
@@ -1657,6 +1659,7 @@ export default function SimulationPage() {
       if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
         mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
       }
+      shouldAnimateHeatmapRef.current = false;
       setIsHeatmapActive(false);
     }
   };
@@ -1688,6 +1691,7 @@ export default function SimulationPage() {
       if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
         mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
       }
+      shouldAnimateHeatmapRef.current = false;
       setIsHeatmapActive(false);
     }
   };
@@ -1695,25 +1699,19 @@ export default function SimulationPage() {
   // Rain toggle handler
   const handleToggleRain = useCallback(
     (enabled: boolean) => {
-      if (!mapRef.current) return;
+      // Determine intensity based on which model is active
+      let intensity = 1.0; // Default for Model2
 
-      if (enabled) {
-        // Determine intensity based on which model is active
-        let intensity = 1.0; // Default for Model2
-
-        // If Model3 is active and has rainfall params, use dynamic intensity
-        // Map 0-300mm precipitation to 0.3-1.0 intensity range
-        if (tableData3 && rainfallParams) {
-          const normalized = rainfallParams.total_precip / 300; // 0-1 range
-          intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
-        }
-
-        enableRain(mapRef.current, intensity);
-        setIsRainActive(true);
-      } else {
-        disableRain(mapRef.current);
-        setIsRainActive(false);
+      // If Model3 is active and has rainfall params, use dynamic intensity
+      // Map 0-300mm precipitation to 0.3-1.0 intensity range
+      if (tableData3 && rainfallParams) {
+        const normalized = rainfallParams.total_precip / 300; // 0-1 range
+        intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
       }
+
+      // Update ref and state - useEffect will handle the actual rain application
+      rainIntensityRef.current = intensity;
+      setIsRainActive(enabled);
     },
     [tableData3, rainfallParams]
   );
@@ -1721,7 +1719,12 @@ export default function SimulationPage() {
 
   // Heatmap animation - per-point varied pulsing + position wobbling
   const animateHeatmapIntensity = useCallback(() => {
-    if (!mapRef.current || !isHeatmapActive) {
+    if (!mapRef.current || !shouldAnimateHeatmapRef.current) {
+      // Cancel any pending frame before exiting
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
       setIsHeatmapAnimating(false);
       return;
     }
@@ -1824,7 +1827,7 @@ export default function SimulationPage() {
 
     // Continue animation
     animationFrameRef.current = requestAnimationFrame(animateHeatmapIntensity);
-  }, [isHeatmapActive]);
+  }, []);
 
   // Heatmap toggle handler
   const handleToggleHeatmap = useCallback((enabled: boolean) => {
@@ -1851,6 +1854,7 @@ export default function SimulationPage() {
     }
 
     setIsHeatmapActive(enabled);
+    shouldAnimateHeatmapRef.current = enabled;
 
     // Start or stop animation
     if (enabled) {
@@ -1878,6 +1882,17 @@ export default function SimulationPage() {
       }
     };
   }, []);
+
+  // Synchronize rain effect with state
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (isRainActive) {
+      enableRain(mapRef.current, rainIntensityRef.current);
+    } else {
+      disableRain(mapRef.current);
+    }
+  }, [isRainActive]);
 
   // Helper function to parse Node_ID and determine source and feature ID
   const parseNodeId = (

@@ -44,6 +44,7 @@ export function enableRain(map: mapboxgl.Map, intensity: number = 1.0): void {
       'distortion-strength': 0.7,
       'center-thinning': 0, // Rain displayed on the whole screen area
     });
+    console.log('[Rain] Rain effect enabled with intensity:', clampedIntensity);
   } catch (error) {
     console.error('Error enabling rain effect:', error);
   }
@@ -59,19 +60,15 @@ export function disableRain(map: mapboxgl.Map): void {
     return;
   }
 
+  // Only disable if style is loaded, otherwise silently ignore
+  if (!map.isStyleLoaded()) {
+    return;
+  }
+
   try {
-    map.setRain({
-      density: 0,
-      intensity: 0,
-      color: '#a8adbc',
-      opacity: 0,
-      vignette: 0,
-      'vignette-color': '#464646',
-      direction: [0, 80],
-      'droplet-size': [2.6, 18.2],
-      'distortion-strength': 0,
-      'center-thinning': 0,
-    });
+    // According to Mapbox docs, setting intensity to 0 should disable rain
+    map.setRain({ intensity: 0 });
+    console.log('[Rain] Rain effect disabled');
   } catch (error) {
     console.error('Error disabling rain effect:', error);
   }

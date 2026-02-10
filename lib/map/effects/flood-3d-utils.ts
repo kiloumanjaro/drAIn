@@ -563,6 +563,12 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
   const startTime = Date.now();
 
   const animate = () => {
+    // Check if layer still exists before trying to animate
+    if (!map.getLayer('flood-gradient-layer')) {
+      console.log('[3D Flood] Animation cancelled - layer removed');
+      return;
+    }
+
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
 
