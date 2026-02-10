@@ -485,9 +485,9 @@ export async function enableFlood3D(
   );
 
   // Explicitly move the flood gradient layer above the heatmap but below infrastructure
-  // Rendering order: heatmap-lines < heatmap-nodes < flood gradient < pipes/nodes
+  // Rendering order: flood-propagation-lines < flood-propagation-nodes < flood gradient < pipes/nodes
   try {
-    if (map.getLayer('vulnerability_heatmap-nodes-layer')) {
+    if (map.getLayer('flood_propagation-nodes-layer')) {
       // Find the first infrastructure layer to insert before
       const layers = map.getStyle().layers;
       let beforeLayerId: string | undefined = undefined;
@@ -508,21 +508,21 @@ export async function enableFlood3D(
         }
       }
 
-      // Move flood gradient to be right above heatmap but below infrastructure
+      // Move flood gradient to be right above Flood Propagation but below infrastructure
       if (beforeLayerId) {
         map.moveLayer('flood-gradient-layer', beforeLayerId);
-        console.log(`[3D Flood] Moved flood gradient above heatmap, before ${beforeLayerId}`);
+        console.log(`[3D Flood] Moved flood gradient above Flood Propagation, before ${beforeLayerId}`);
 
         // Verify the move
         const updatedLayers = map.getStyle().layers;
         const gradientIndex = updatedLayers?.findIndex(l => l.id === 'flood-gradient-layer');
-        const heatmapIndex = updatedLayers?.findIndex(l => l.id === 'vulnerability_heatmap-nodes-layer');
-        console.log(`[3D Flood] Layer order - Heatmap: ${heatmapIndex}, Gradient: ${gradientIndex}`);
+        const floodPropagationIndex = updatedLayers?.findIndex(l => l.id === 'flood_propagation-nodes-layer');
+        console.log(`[3D Flood] Layer order - Flood Propagation: ${floodPropagationIndex}, Gradient: ${gradientIndex}`);
       } else {
         console.log('[3D Flood] No infrastructure layer found, flood gradient at default position');
       }
     } else {
-      console.log('[3D Flood] Heatmap layers not found, flood gradient at default position');
+      console.log('[3D Flood] Flood Propagation layers not found, flood gradient at default position');
     }
   } catch (error) {
     console.error('[3D Flood] Error moving layer:', error);

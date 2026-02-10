@@ -20,13 +20,13 @@ interface OverlayLegendProps {
     visible: boolean;
   }[];
   onToggleOverlay: (id: string) => void;
-  isHeatmapLoading?: boolean;
+  isFloodPropagationLoading?: boolean;
 }
 
 export function OverlayLegend({
   overlays,
   onToggleOverlay,
-  isHeatmapLoading = false,
+  isFloodPropagationLoading = false,
 }: OverlayLegendProps) {
   // Filter out reports-layer and mandaue_population-layer from the legend
   const drainageOverlays = overlays.filter(
@@ -84,7 +84,7 @@ export function OverlayLegend({
       <CardContent className="flex-1 pb-0">
         {drainageOverlays.map((overlay, _index) => {
           const isHeatmapItem = overlay.id === 'report_heatmap-layer';
-          const showLoading = isHeatmapItem && isHeatmapLoading;
+          const showLoading = isHeatmapItem && isFloodPropagationLoading;
 
           return (
             <div key={overlay.id}>

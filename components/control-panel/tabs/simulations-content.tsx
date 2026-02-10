@@ -65,8 +65,8 @@ interface SimulationsContentProps {
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
   // Heatmap control
-  isHeatmapActive?: boolean;
-  onToggleHeatmap?: (enabled: boolean) => void;
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
 }
 
 export default function SimulationsContent({
@@ -107,8 +107,8 @@ export default function SimulationsContent({
   onOpenNodeSimulation,
   isRainActive = false,
   onToggleRain,
-  isHeatmapActive = false,
-  onToggleHeatmap,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
 }: SimulationsContentProps) {
   const [selectedModel, setSelectedModel] = useState<ModelType | null>(null);
   const router = useRouter();
@@ -185,8 +185,8 @@ export default function SimulationsContent({
       onToggleMinimize: onToggleTableMinimize,
       isRainActive,
       onToggleRain,
-      isHeatmapActive,
-      onToggleHeatmap,
+      isFloodPropagationActive,
+      onToggleFloodPropagation,
     };
 
     const model3Props = {
@@ -214,8 +214,8 @@ export default function SimulationsContent({
       onOpenNodeSimulation,
       isRainActive,
       onToggleRain,
-      isHeatmapActive,
-      onToggleHeatmap,
+      isFloodPropagationActive,
+      onToggleFloodPropagation,
     };
 
     switch (selectedModel) {

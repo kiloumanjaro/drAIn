@@ -190,13 +190,15 @@ export default function SimulationPage() {
   const rainIntensityRef = useRef<number>(1.0); // Track desired rain intensity
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFlood3DActive, setIsFlood3DActive] = useState(false);
-  const [isHeatmapActive, setIsHeatmapActive] = useState(true); // Enabled by default
-  const [isHeatmapAnimating, setIsHeatmapAnimating] = useState(false);
+  const [isFloodPropagationActive, setIsFloodPropagationActive] =
+    useState(true); // Enabled by default
+  const [isFloodPropagationAnimating, setIsFloodPropagationAnimating] =
+    useState(false);
   const animationFrameRef = useRef<number | null>(null);
-  const nodeHeatmapFeaturesRef = useRef<GeoJSON.Feature[]>([]);
-  const lineHeatmapFeaturesRef = useRef<GeoJSON.Feature[]>([]);
+  const nodeFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
+  const lineFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
   const lastAnimationTimeRef = useRef<number>(0);
-  const shouldAnimateHeatmapRef = useRef<boolean>(true);
+  const shouldAnimateFloodPropagationRef = useRef<boolean>(true);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -376,10 +378,12 @@ export default function SimulationPage() {
           console.warn('Could not enable 3D buildings:', error);
         }
 
-        // Add vulnerability heatmap layers FIRST so they appear below drainage layers
+        // Add Flood Propagation layers FIRST so they appear below drainage layers
         // Two separate layers: one for nodes, one for lines (allows independent radius/opacity control)
-        if (!map.getSource('vulnerability_heatmap_nodes')) {
-          console.log('[Heatmap] Creating heatmap layers...');
+        if (!map.getSource('flood_propagation_nodes')) {
+          console.log(
+            '[Flood Propagation] Creating Flood Propagation layers...'
+          );
           const emptyGeoJSON: GeoJSON.FeatureCollection = {
             type: 'FeatureCollection',
             features: [],
@@ -406,16 +410,16 @@ export default function SimulationPage() {
             'rgba(0, 0, 100, 1.0)', // Navy blue - peak flood (fully opaque)
           ];
 
-          // --- Lines heatmap (added first = rendered below nodes) ---
-          map.addSource('vulnerability_heatmap_lines', {
+          // --- Lines Flood Propagation (added first = rendered below nodes) ---
+          map.addSource('flood_propagation_lines', {
             type: 'geojson',
             data: emptyGeoJSON,
           });
 
           map.addLayer({
-            id: 'vulnerability_heatmap-lines-layer',
+            id: 'flood_propagation-lines-layer',
             type: 'heatmap',
-            source: 'vulnerability_heatmap_lines',
+            source: 'flood_propagation_lines',
             layout: {
               visibility: 'visible',
             },
@@ -472,16 +476,16 @@ export default function SimulationPage() {
             },
           });
 
-          // --- Nodes heatmap (added second = rendered above lines) ---
-          map.addSource('vulnerability_heatmap_nodes', {
+          // --- Nodes Flood Propagation (added second = rendered above lines) ---
+          map.addSource('flood_propagation_nodes', {
             type: 'geojson',
             data: emptyGeoJSON,
           });
 
           map.addLayer({
-            id: 'vulnerability_heatmap-nodes-layer',
+            id: 'flood_propagation-nodes-layer',
             type: 'heatmap',
-            source: 'vulnerability_heatmap_nodes',
+            source: 'flood_propagation_nodes',
             layout: {
               visibility: 'visible',
             },
@@ -546,7 +550,9 @@ export default function SimulationPage() {
               ],
             },
           });
-          console.log('[Heatmap] Heatmap layers created successfully (nodes + lines)');
+          console.log(
+            '[Flood Propagation] Flood Propagation layers created successfully (nodes + lines)'
+          );
         }
 
         if (!map.getSource('man_pipes')) {
@@ -1170,10 +1176,10 @@ export default function SimulationPage() {
 
   // Helper function to convert RGB color from flood line to vulnerability category
   const getVulnerabilityFromColor = (color: string): string => {
-    if (color.includes('211, 47, 47')) return 'High Risk';      // Red
-    if (color.includes('255, 160, 0')) return 'Medium Risk';    // Orange
-    if (color.includes('255, 235, 100')) return 'Low Risk';     // Yellow
-    if (color.includes('56, 142, 60')) return 'No Risk';        // Green
+    if (color.includes('211, 47, 47')) return 'High Risk'; // Red
+    if (color.includes('255, 160, 0')) return 'Medium Risk'; // Orange
+    if (color.includes('255, 235, 100')) return 'Low Risk'; // Yellow
+    if (color.includes('56, 142, 60')) return 'No Risk'; // Green
 
     // For interpolated colors, determine based on RGB values
     const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
@@ -1192,7 +1198,7 @@ export default function SimulationPage() {
   // Helper function to sample points along a line, scaled by length
   const samplePointsFromLine = (
     lineFeature: GeoJSON.Feature<GeoJSON.LineString>,
-    samplesPerSegment: number = 3  // Points per ~0.0005 degree segment (~55m)
+    samplesPerSegment: number = 3 // Points per ~0.0005 degree segment (~55m)
   ): GeoJSON.Feature[] => {
     const coords = lineFeature.geometry.coordinates as [number, number][];
     if (coords.length < 2) return [];
@@ -1215,15 +1221,25 @@ export default function SimulationPage() {
 
     // Vulnerability multiplier - higher risk = more points = denser heatmap
     const vulnerabilityMultiplier =
-      vulnerability === 'High Risk' ? 3 :
-      vulnerability === 'Medium Risk' ? 2 :
-      vulnerability === 'Low Risk' ? 1.5 : 1;
+      vulnerability === 'High Risk'
+        ? 3
+        : vulnerability === 'Medium Risk'
+          ? 2
+          : vulnerability === 'Low Risk'
+            ? 1.5
+            : 1;
 
     // Scale number of samples based on line length and vulnerability
     // Use ~0.0005 degrees (~55m) as the reference segment length
     const referenceSegLength = 0.0005;
-    const numSegments = Math.max(1, Math.round(totalLength / referenceSegLength));
-    const numSamples = Math.max(samplesPerSegment, Math.round(numSegments * samplesPerSegment * vulnerabilityMultiplier));
+    const numSegments = Math.max(
+      1,
+      Math.round(totalLength / referenceSegLength)
+    );
+    const numSamples = Math.max(
+      samplesPerSegment,
+      Math.round(numSegments * samplesPerSegment * vulnerabilityMultiplier)
+    );
 
     // Sample evenly along the full line length (skip first and last to avoid node overlap)
     for (let i = 1; i <= numSamples; i++) {
@@ -1245,9 +1261,9 @@ export default function SimulationPage() {
               vulnerability: vulnerability,
               floodVolume: props.floodVolume || 0,
               pipeName: props.pipeName || '',
-              phase: Math.random() * Math.PI * 2,  // Random phase for animation
-              offsetAngle: Math.random() * Math.PI * 2,  // Random wobble direction
-              offsetDistance: Math.random() * 0.00009,  // ~9 meters max wobble
+              phase: Math.random() * Math.PI * 2, // Random phase for animation
+              offsetAngle: Math.random() * Math.PI * 2, // Random wobble direction
+              offsetDistance: Math.random() * 0.00009, // ~9 meters max wobble
             },
             geometry: {
               type: 'Point',
@@ -1267,10 +1283,13 @@ export default function SimulationPage() {
   const isPointTooCloseToNodes = (
     linePoint: [number, number],
     nodeFeatures: GeoJSON.Feature[],
-    minDistance: number = 0.00008  // ~9 meters (tuned for pipe spacing)
+    minDistance: number = 0.00008 // ~9 meters (tuned for pipe spacing)
   ): boolean => {
-    return nodeFeatures.some(nodeFeature => {
-      const nodeCoord = (nodeFeature.geometry as GeoJSON.Point).coordinates as [number, number];
+    return nodeFeatures.some((nodeFeature) => {
+      const nodeCoord = (nodeFeature.geometry as GeoJSON.Point).coordinates as [
+        number,
+        number,
+      ];
       const dx = linePoint[0] - nodeCoord[0];
       const dy = linePoint[1] - nodeCoord[1];
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1278,8 +1297,8 @@ export default function SimulationPage() {
     });
   };
 
-  // Helper function to update vulnerability heatmap
-  const updateVulnerabilityHeatmap = async (vulnerabilityData: NodeDetails[]) => {
+  // Helper function to update Flood Propagation heatmap
+  const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
     const map = mapRef.current;
     if (!map) return;
 
@@ -1287,24 +1306,27 @@ export default function SimulationPage() {
     const allCoordinates = [...inletsRef.current, ...drainsRef.current];
 
     console.log(
-      '[Heatmap] Total vulnerability data:',
+      '[Flood Propagation] Total vulnerability data:',
       vulnerabilityData.length
     );
-    console.log('[Heatmap] Available coordinates:', allCoordinates.length);
     console.log(
-      '[Heatmap] Flooded nodes:',
+      '[Flood Propagation] Available coordinates:',
+      allCoordinates.length
+    );
+    console.log(
+      '[Flood Propagation] Flooded nodes:',
       vulnerabilityData.filter((n) => n.Total_Flood_Volume > 0).length
     );
 
     // Create GeoJSON features from NODE vulnerability data
-    const nodeHeatmapFeatures: GeoJSON.Feature[] = vulnerabilityData
+    const nodeFloodPropagationFeatures: GeoJSON.Feature[] = vulnerabilityData
       .filter((node) => node.Total_Flood_Volume > 0) // Only include flooded nodes
       .map((node) => {
         // Find coordinates for this node
         const nodeCoord = allCoordinates.find((n) => n.id === node.Node_ID);
         if (!nodeCoord) {
           console.warn(
-            `[Heatmap] No coordinates found for node: ${node.Node_ID}`
+            `[Flood Propagation] No coordinates found for node: ${node.Node_ID}`
           );
           return null;
         }
@@ -1312,15 +1334,15 @@ export default function SimulationPage() {
         return {
           type: 'Feature' as const,
           properties: {
-            source: 'node',  // Mark as coming from node
+            source: 'node', // Mark as coming from node
             nodeId: node.Node_ID,
             vulnerability: node.Vulnerability_Category,
             floodVolume: node.Total_Flood_Volume,
             maximumRate: node.Maximum_Rate,
             hoursFlooded: node.Hours_Flooded,
-            phase: Math.random() * Math.PI * 2,  // Random phase for animation
-            offsetAngle: Math.random() * Math.PI * 2,  // Random wobble direction
-            offsetDistance: Math.random() * 0.00009,  // ~9 meters max wobble
+            phase: Math.random() * Math.PI * 2, // Random phase for animation
+            offsetAngle: Math.random() * Math.PI * 2, // Random wobble direction
+            offsetDistance: Math.random() * 0.00009, // ~9 meters max wobble
           },
           geometry: {
             type: 'Point' as const,
@@ -1330,22 +1352,27 @@ export default function SimulationPage() {
       })
       .filter((f): f is GeoJSON.Feature => f !== null);
 
-    console.log(`[Heatmap] Created ${nodeHeatmapFeatures.length} node points`);
+    console.log(
+      `[Flood Propagation] Created ${nodeFloodPropagationFeatures.length} node points`
+    );
 
-    // NEW: Load pipes and create LINE points for heatmap
-    let lineHeatmapFeatures: GeoJSON.Feature[] = [];
+    // NEW: Load pipes and create LINE points for Flood Propagation
+    let lineFloodPropagationFeatures: GeoJSON.Feature[] = [];
 
     try {
-      console.log('[Heatmap] Loading pipe data for line sampling...');
+      console.log('[Flood Propagation] Loading pipe data for line sampling...');
       const response = await fetch('/drainage/man_pipes.geojson');
       const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
       const pipes = pipesData.features || [];
 
-      console.log(`[Heatmap] Loaded ${pipes.length} pipes from GeoJSON`);
+      console.log(
+        `[Flood Propagation] Loaded ${pipes.length} pipes from GeoJSON`
+      );
 
       // Generate flood line features (same logic as 3D flood)
       // Import createFloodAlongPipes from flood-3d-utils.ts
-      const { createFloodAlongPipes } = await import('@/lib/map/effects/flood-3d-utils');
+      const { createFloodAlongPipes } =
+        await import('@/lib/map/effects/flood-3d-utils');
 
       const floodLines = createFloodAlongPipes(
         vulnerabilityData,
@@ -1353,98 +1380,121 @@ export default function SimulationPage() {
         pipes as any
       );
 
-      console.log(`[Heatmap] Generated ${floodLines.features.length} flood line segments`);
-
-      // Convert line segments to sampled points
-      const allLineSamplePoints = floodLines.features.flatMap(lineFeature =>
-        samplePointsFromLine(lineFeature as GeoJSON.Feature<GeoJSON.LineString>, 1)  // 1 point per segment (midpoint only)
+      console.log(
+        `[Flood Propagation] Generated ${floodLines.features.length} flood line segments`
       );
 
-      console.log(`[Heatmap] Sampled ${allLineSamplePoints.length} points from lines`);
+      // Convert line segments to sampled points
+      const allLineSamplePoints = floodLines.features.flatMap(
+        (lineFeature) =>
+          samplePointsFromLine(
+            lineFeature as GeoJSON.Feature<GeoJSON.LineString>,
+            1
+          ) // 1 point per segment (midpoint only)
+      );
+
+      console.log(
+        `[Flood Propagation] Sampled ${allLineSamplePoints.length} points from lines`
+      );
 
       // Filter out points too close to nodes
-      lineHeatmapFeatures = allLineSamplePoints.filter(point => {
-        const coords = (point.geometry as GeoJSON.Point).coordinates as [number, number];
-        return !isPointTooCloseToNodes(coords, nodeHeatmapFeatures, 0.00008);
+      lineFloodPropagationFeatures = allLineSamplePoints.filter((point) => {
+        const coords = (point.geometry as GeoJSON.Point).coordinates as [
+          number,
+          number,
+        ];
+        return !isPointTooCloseToNodes(
+          coords,
+          nodeFloodPropagationFeatures,
+          0.00008
+        );
       });
 
       console.log(
-        `[Heatmap] After filtering: ${lineHeatmapFeatures.length} line points ` +
-        `(removed ${allLineSamplePoints.length - lineHeatmapFeatures.length} overlaps)`
+        `[Flood Propagation] After filtering: ${lineFloodPropagationFeatures.length} line points ` +
+          `(removed ${allLineSamplePoints.length - lineFloodPropagationFeatures.length} overlaps)`
       );
-
     } catch (error) {
-      console.error('[Heatmap] Error loading/processing pipe data:', error);
+      console.error(
+        '[Flood Propagation] Error loading/processing pipe data:',
+        error
+      );
       // Continue with just node points if pipe loading fails
     }
 
     console.log(
-      `[Heatmap] Total heatmap points: ${nodeHeatmapFeatures.length + lineHeatmapFeatures.length} ` +
-      `(${nodeHeatmapFeatures.length} nodes + ${lineHeatmapFeatures.length} lines)`
+      `[Flood Propagation] Total Flood Propagation points: ${nodeFloodPropagationFeatures.length + lineFloodPropagationFeatures.length} ` +
+        `(${nodeFloodPropagationFeatures.length} nodes + ${lineFloodPropagationFeatures.length} lines)`
     );
 
     // Store features in refs for animation
-    nodeHeatmapFeaturesRef.current = nodeHeatmapFeatures;
-    lineHeatmapFeaturesRef.current = lineHeatmapFeatures;
+    nodeFloodPropagationFeaturesRef.current = nodeFloodPropagationFeatures;
+    lineFloodPropagationFeaturesRef.current = lineFloodPropagationFeatures;
 
     const nodeData: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: nodeHeatmapFeatures,
+      features: nodeFloodPropagationFeatures,
     };
 
     const lineData: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: lineHeatmapFeatures,
+      features: lineFloodPropagationFeatures,
     };
 
-    // Update both heatmap sources with retry logic
+    // Update both Flood Propagation sources with retry logic
     let retryCount = 0;
     const maxRetries = 10;
 
-    const updateHeatmap = () => {
+    const updateFloodPropagationData = () => {
       const nodeSource = map.getSource(
-        'vulnerability_heatmap_nodes'
+        'flood_propagation_nodes'
       ) as mapboxgl.GeoJSONSource;
       const lineSource = map.getSource(
-        'vulnerability_heatmap_lines'
+        'flood_propagation_lines'
       ) as mapboxgl.GeoJSONSource;
-      const nodeLayer = map.getLayer('vulnerability_heatmap-nodes-layer');
-      const lineLayer = map.getLayer('vulnerability_heatmap-lines-layer');
+      const nodeLayer = map.getLayer('flood_propagation-nodes-layer');
+      const lineLayer = map.getLayer('flood_propagation-lines-layer');
 
       if (nodeSource && nodeLayer && lineSource && lineLayer) {
-        console.log('[Heatmap] Sources and layers found, setting data...');
+        console.log(
+          '[Flood Propagation] Sources and layers found, setting data...'
+        );
 
         nodeSource.setData(nodeData);
         lineSource.setData(lineData);
 
-        setIsHeatmapActive(true);
-        shouldAnimateHeatmapRef.current = true;
+        setIsFloodPropagationActive(true);
+        shouldAnimateFloodPropagationRef.current = true;
 
         // Start animation if not already running
-        if (!isHeatmapAnimating) {
-          setIsHeatmapAnimating(true);
-          animateHeatmapIntensity();
+        if (!isFloodPropagationAnimating) {
+          setIsFloodPropagationAnimating(true);
+          animateFloodPropagationIntensity();
         }
 
-        console.log('[Heatmap] Heatmap data set successfully (nodes + lines)');
+        console.log(
+          '[Flood Propagation] Flood Propagation data set successfully (nodes + lines)'
+        );
       } else {
         retryCount++;
         if (retryCount < maxRetries) {
           console.warn(
-            `[Heatmap] Sources or layers not ready (attempt ${retryCount}/${maxRetries}), retrying...`
+            `[Flood Propagation] Sources or layers not ready (attempt ${retryCount}/${maxRetries}), retrying...`
           );
-          setTimeout(updateHeatmap, 300);
+          setTimeout(updateFloodPropagationData, 300);
         } else {
-          console.error('[Heatmap] Failed to update after max retries');
+          console.error(
+            '[Flood Propagation] Failed to update after max retries'
+          );
         }
       }
     };
 
     // Always use a slight delay to ensure map is fully ready
-    console.log('[Heatmap] Scheduling heatmap update...');
+    console.log('[Flood Propagation] Scheduling Flood Propagation update...');
     setTimeout(() => {
-      console.log('[Heatmap] Starting heatmap update');
-      updateHeatmap();
+      console.log('[Flood Propagation] Starting Flood Propagation update');
+      updateFloodPropagationData();
     }, 500);
   };
 
@@ -1462,15 +1512,23 @@ export default function SimulationPage() {
     }
 
     // Disable heatmap (both layers)
-    if (mapRef.current && isHeatmapActive) {
-      if (mapRef.current.getLayer('vulnerability_heatmap-nodes-layer')) {
-        mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', 'none');
+    if (mapRef.current && isFloodPropagationActive) {
+      if (mapRef.current.getLayer('flood_propagation-nodes-layer')) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          'none'
+        );
       }
-      if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
-        mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
+      if (mapRef.current.getLayer('flood_propagation-lines-layer')) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          'none'
+        );
       }
-      shouldAnimateHeatmapRef.current = false;
-      setIsHeatmapActive(false);
+      shouldAnimateFloodPropagationRef.current = false;
+      setIsFloodPropagationActive(false);
     }
   };
   // Vulnerability table handlers
@@ -1498,8 +1556,8 @@ export default function SimulationPage() {
       // Apply vulnerability colors to inlets and storm drains
       applyVulnerabilityColors(data);
 
-      // Update vulnerability heatmap
-      updateVulnerabilityHeatmap(data);
+      // Update Flood Propagation
+      updateFloodPropagation(data);
 
       // Enable rain effect - useEffect will handle the actual application
       rainIntensityRef.current = 1.0;
@@ -1592,8 +1650,8 @@ export default function SimulationPage() {
       // Apply vulnerability colors to inlets and storm drains
       applyVulnerabilityColors(transformedData);
 
-      // Update vulnerability heatmap
-      updateVulnerabilityHeatmap(transformedData);
+      // Update Flood Propagation
+      updateFloodPropagation(transformedData);
 
       // Enable rain effect with dynamic intensity based on precipitation
       if (mapRef.current) {
@@ -1652,15 +1710,23 @@ export default function SimulationPage() {
     }
 
     // Disable heatmap (both layers)
-    if (mapRef.current && isHeatmapActive) {
-      if (mapRef.current.getLayer('vulnerability_heatmap-nodes-layer')) {
-        mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', 'none');
+    if (mapRef.current && isFloodPropagationActive) {
+      if (mapRef.current.getLayer('flood_propagation-nodes-layer')) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          'none'
+        );
       }
-      if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
-        mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
+      if (mapRef.current.getLayer('flood_propagation-lines-layer')) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          'none'
+        );
       }
-      shouldAnimateHeatmapRef.current = false;
-      setIsHeatmapActive(false);
+      shouldAnimateFloodPropagationRef.current = false;
+      setIsFloodPropagationActive(false);
     }
   };
 
@@ -1684,15 +1750,23 @@ export default function SimulationPage() {
     }
 
     // Disable heatmap (both layers)
-    if (mapRef.current && isHeatmapActive) {
-      if (mapRef.current.getLayer('vulnerability_heatmap-nodes-layer')) {
-        mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', 'none');
+    if (mapRef.current && isFloodPropagationActive) {
+      if (mapRef.current.getLayer('flood_propagation-nodes-layer')) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          'none'
+        );
       }
-      if (mapRef.current.getLayer('vulnerability_heatmap-lines-layer')) {
-        mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', 'none');
+      if (mapRef.current.getLayer('flood_propagation-lines-layer')) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          'none'
+        );
       }
-      shouldAnimateHeatmapRef.current = false;
-      setIsHeatmapActive(false);
+      shouldAnimateFloodPropagationRef.current = false;
+      setIsFloodPropagationActive(false);
     }
   };
 
@@ -1716,32 +1790,37 @@ export default function SimulationPage() {
     [tableData3, rainfallParams]
   );
 
-
-  // Heatmap animation - per-point varied pulsing + position wobbling
-  const animateHeatmapIntensity = useCallback(() => {
-    if (!mapRef.current || !shouldAnimateHeatmapRef.current) {
+  // Flood Propagation animation - per-point varied pulsing + position wobbling
+  const animateFloodPropagationIntensity = useCallback(() => {
+    if (!mapRef.current || !shouldAnimateFloodPropagationRef.current) {
       // Cancel any pending frame before exiting
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      setIsHeatmapAnimating(false);
+      setIsFloodPropagationAnimating(false);
       return;
     }
 
     // Throttle to ~20fps to avoid excessive source updates
     const now = Date.now();
     if (now - lastAnimationTimeRef.current < 50) {
-      animationFrameRef.current = requestAnimationFrame(animateHeatmapIntensity);
+      animationFrameRef.current = requestAnimationFrame(
+        animateFloodPropagationIntensity
+      );
       return;
     }
     lastAnimationTimeRef.current = now;
 
-    const nodeSource = mapRef.current.getSource('vulnerability_heatmap_nodes') as mapboxgl.GeoJSONSource;
-    const lineSource = mapRef.current.getSource('vulnerability_heatmap_lines') as mapboxgl.GeoJSONSource;
+    const nodeSource = mapRef.current.getSource(
+      'flood_propagation_nodes'
+    ) as mapboxgl.GeoJSONSource;
+    const lineSource = mapRef.current.getSource(
+      'flood_propagation_lines'
+    ) as mapboxgl.GeoJSONSource;
 
     if (!nodeSource && !lineSource) {
-      setIsHeatmapAnimating(false);
+      setIsFloodPropagationAnimating(false);
       return;
     }
 
@@ -1750,36 +1829,42 @@ export default function SimulationPage() {
     const pulseAmount = 0.35; // 35% depth - oscillates from 0.65 to 1.0
 
     // Update node features with per-point pulsed multipliers + coordinate wobbling
-    if (nodeSource && nodeHeatmapFeaturesRef.current.length > 0) {
-      const wobbledNodes = nodeHeatmapFeaturesRef.current.map(feature => {
-        const phase = feature.properties?.phase || 0;
-        const offsetAngle = feature.properties?.offsetAngle || 0;
-        const offsetDistance = feature.properties?.offsetDistance || 0;
+    if (nodeSource && nodeFloodPropagationFeaturesRef.current.length > 0) {
+      const wobbledNodes = nodeFloodPropagationFeaturesRef.current.map(
+        (feature) => {
+          const phase = feature.properties?.phase || 0;
+          const offsetAngle = feature.properties?.offsetAngle || 0;
+          const offsetDistance = feature.properties?.offsetDistance || 0;
 
-        // Calculate pulse multiplier
-        const pulse = 1 - pulseAmount / 2 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+          // Calculate pulse multiplier
+          const pulse =
+            1 -
+            pulseAmount / 2 +
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
 
-        // Calculate wobble offset (oscillates based on phase)
-        const wobbleAmount = Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
+          // Calculate wobble offset (oscillates based on phase)
+          const wobbleAmount =
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
 
-        // Apply wobble to coordinates
-        const pointGeometry = feature.geometry as GeoJSON.Point;
-        const [lng, lat] = pointGeometry.coordinates as [number, number];
-        const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
-        const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
+          // Apply wobble to coordinates
+          const pointGeometry = feature.geometry as GeoJSON.Point;
+          const [lng, lat] = pointGeometry.coordinates as [number, number];
+          const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
+          const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
 
-        return {
-          ...feature,
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [wobbledLng, wobbledLat],
-          },
-          properties: {
-            ...feature.properties,
-            pulseMultiplier: pulse,
-          },
-        };
-      });
+          return {
+            ...feature,
+            geometry: {
+              type: 'Point' as const,
+              coordinates: [wobbledLng, wobbledLat],
+            },
+            properties: {
+              ...feature.properties,
+              pulseMultiplier: pulse,
+            },
+          };
+        }
+      );
 
       nodeSource.setData({
         type: 'FeatureCollection',
@@ -1788,36 +1873,42 @@ export default function SimulationPage() {
     }
 
     // Update line features with per-point pulsed multipliers + coordinate wobbling
-    if (lineSource && lineHeatmapFeaturesRef.current.length > 0) {
-      const wobbledLines = lineHeatmapFeaturesRef.current.map(feature => {
-        const phase = feature.properties?.phase || 0;
-        const offsetAngle = feature.properties?.offsetAngle || 0;
-        const offsetDistance = feature.properties?.offsetDistance || 0;
+    if (lineSource && lineFloodPropagationFeaturesRef.current.length > 0) {
+      const wobbledLines = lineFloodPropagationFeaturesRef.current.map(
+        (feature) => {
+          const phase = feature.properties?.phase || 0;
+          const offsetAngle = feature.properties?.offsetAngle || 0;
+          const offsetDistance = feature.properties?.offsetDistance || 0;
 
-        // Calculate pulse multiplier
-        const pulse = 1 - pulseAmount / 2 + Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+          // Calculate pulse multiplier
+          const pulse =
+            1 -
+            pulseAmount / 2 +
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
 
-        // Calculate wobble offset (oscillates based on phase)
-        const wobbleAmount = Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
+          // Calculate wobble offset (oscillates based on phase)
+          const wobbleAmount =
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
 
-        // Apply wobble to coordinates
-        const pointGeometry = feature.geometry as GeoJSON.Point;
-        const [lng, lat] = pointGeometry.coordinates as [number, number];
-        const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
-        const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
+          // Apply wobble to coordinates
+          const pointGeometry = feature.geometry as GeoJSON.Point;
+          const [lng, lat] = pointGeometry.coordinates as [number, number];
+          const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
+          const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
 
-        return {
-          ...feature,
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [wobbledLng, wobbledLat],
-          },
-          properties: {
-            ...feature.properties,
-            pulseMultiplier: pulse,
-          },
-        };
-      });
+          return {
+            ...feature,
+            geometry: {
+              type: 'Point' as const,
+              coordinates: [wobbledLng, wobbledLat],
+            },
+            properties: {
+              ...feature.properties,
+              pulseMultiplier: pulse,
+            },
+          };
+        }
+      );
 
       lineSource.setData({
         type: 'FeatureCollection',
@@ -1826,53 +1917,72 @@ export default function SimulationPage() {
     }
 
     // Continue animation
-    animationFrameRef.current = requestAnimationFrame(animateHeatmapIntensity);
+    animationFrameRef.current = requestAnimationFrame(
+      animateFloodPropagationIntensity
+    );
   }, []);
 
-  // Heatmap toggle handler
-  const handleToggleHeatmap = useCallback((enabled: boolean) => {
-    if (!mapRef.current) return;
+  // Flood Propagation toggle handler
+  const handleToggleFloodPropagation = useCallback(
+    (enabled: boolean) => {
+      if (!mapRef.current) return;
 
-    const nodesLayer = mapRef.current.getLayer('vulnerability_heatmap-nodes-layer');
-    const linesLayer = mapRef.current.getLayer('vulnerability_heatmap-lines-layer');
+      const nodesLayer = mapRef.current.getLayer(
+        'flood_propagation-nodes-layer'
+      );
+      const linesLayer = mapRef.current.getLayer(
+        'flood_propagation-lines-layer'
+      );
 
-    if (!nodesLayer && !linesLayer) {
-      console.warn('[Heatmap] Toggle failed - heatmap layers not found');
-      return;
-    }
-
-    console.log(`[Heatmap] Toggling visibility: ${enabled}`);
-
-    const visibility = enabled ? 'visible' : 'none';
-
-    // Toggle both heatmap layers
-    if (nodesLayer) {
-      mapRef.current.setLayoutProperty('vulnerability_heatmap-nodes-layer', 'visibility', visibility);
-    }
-    if (linesLayer) {
-      mapRef.current.setLayoutProperty('vulnerability_heatmap-lines-layer', 'visibility', visibility);
-    }
-
-    setIsHeatmapActive(enabled);
-    shouldAnimateHeatmapRef.current = enabled;
-
-    // Start or stop animation
-    if (enabled) {
-      setIsHeatmapAnimating(true);
-      animateHeatmapIntensity();
-    } else {
-      setIsHeatmapAnimating(false);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+      if (!nodesLayer && !linesLayer) {
+        console.warn(
+          '[Flood Propagation] Toggle failed - Flood Propagation layers not found'
+        );
+        return;
       }
-    }
 
-    // Force map to repaint
-    mapRef.current.triggerRepaint();
+      console.log(`[Flood Propagation] Toggling visibility: ${enabled}`);
 
-    console.log(`[Heatmap] Visibility after toggle: ${visibility}`);
-  }, [animateHeatmapIntensity]);
+      const visibility = enabled ? 'visible' : 'none';
+
+      // Toggle both Flood Propagation layers
+      if (nodesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          visibility
+        );
+      }
+      if (linesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          visibility
+        );
+      }
+
+      setIsFloodPropagationActive(enabled);
+      shouldAnimateFloodPropagationRef.current = enabled;
+
+      // Start or stop animation
+      if (enabled) {
+        setIsFloodPropagationAnimating(true);
+        animateFloodPropagationIntensity();
+      } else {
+        setIsFloodPropagationAnimating(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+      }
+
+      // Force map to repaint
+      mapRef.current.triggerRepaint();
+
+      console.log(`[Flood Propagation] Visibility after toggle: ${visibility}`);
+    },
+    [animateFloodPropagationIntensity]
+  );
 
   // Cleanup animation on unmount
   useEffect(() => {
@@ -2135,8 +2245,8 @@ export default function SimulationPage() {
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
-          isHeatmapActive={isHeatmapActive}
-          onToggleHeatmap={handleToggleHeatmap}
+          isFloodPropagationActive={isFloodPropagationActive}
+          onToggleFloodPropagation={handleToggleFloodPropagation}
           isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls

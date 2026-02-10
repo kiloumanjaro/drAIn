@@ -154,9 +154,9 @@ export interface ControlPanelProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
-  // Heatmap control
-  isHeatmapActive?: boolean;
-  onToggleHeatmap?: (enabled: boolean) => void;
+  // Flood Propagation control
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
-  isHeatmapLoading?: boolean;
+  isFloodPropagationLoading?: boolean;
 }

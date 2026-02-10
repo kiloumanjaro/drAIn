@@ -40,8 +40,8 @@ interface Model2Props {
   onToggleMinimize?: () => void;
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
-  isHeatmapActive?: boolean;
-  onToggleHeatmap?: (enabled: boolean) => void;
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
 }
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
@@ -64,8 +64,8 @@ export default function Model2({
   onToggleMinimize,
   isRainActive = false,
   onToggleRain,
-  isHeatmapActive = false,
-  onToggleHeatmap,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
 }: Model2Props) {
   return (
     <>
@@ -230,9 +230,8 @@ export default function Model2({
             </div>
           )}
 
-
-          {/* Vulnerability Heatmap Toggle */}
-          {onToggleHeatmap && (
+          {/* Flood Propagation Toggle */}
+          {onToggleFloodPropagation && (
             <div
               className={`border-border/40 bg-muted/20 flex items-center justify-between rounded-lg border px-3 py-2 ${!hasTable ? 'opacity-50' : ''}`}
             >
@@ -242,7 +241,7 @@ export default function Model2({
                   htmlFor="heatmap-toggle"
                   className={`text-sm font-normal ${hasTable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                 >
-                  Vulnerability Heatmap
+                  Flood Propagation
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
@@ -261,8 +260,8 @@ export default function Model2({
               </div>
               <Switch
                 id="heatmap-toggle"
-                checked={isHeatmapActive}
-                onCheckedChange={onToggleHeatmap}
+                checked={isFloodPropagationActive}
+                onCheckedChange={onToggleFloodPropagation}
                 disabled={!hasTable}
               />
             </div>

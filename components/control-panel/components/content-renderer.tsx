@@ -158,11 +158,11 @@ interface ContentRendererProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
-  // Heatmap control
-  isHeatmapActive?: boolean;
-  onToggleHeatmap?: (enabled: boolean) => void;
+  // Flood Propagation control
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
-  isHeatmapLoading?: boolean;
+  isFloodPropagationLoading?: boolean;
 }
 
 export function ContentRenderer({
@@ -244,10 +244,10 @@ export function ContentRenderer({
   allReportsData, // Destructure allReportsData
   isRainActive = false,
   onToggleRain,
-  isHeatmapActive = false,
-  onToggleHeatmap,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
   isFloodScenarioLoading = false,
-  isHeatmapLoading = false,
+  isFloodPropagationLoading = false,
 }: ContentRendererProps) {
   // Check for loading states first
   if (loadingInlets)
@@ -278,7 +278,7 @@ export function ContentRenderer({
           floodProneAreas={floodProneAreas}
           onToggleFloodProneArea={onToggleFloodProneArea}
           isFloodScenarioLoading={isFloodScenarioLoading}
-          isHeatmapLoading={isHeatmapLoading}
+          isFloodPropagationLoading={isFloodPropagationLoading}
         />
       );
 
@@ -325,8 +325,8 @@ export function ContentRenderer({
           onOpenNodeSimulation={onOpenNodeSimulation}
           isRainActive={isRainActive}
           onToggleRain={onToggleRain}
-          isHeatmapActive={isHeatmapActive}
-          onToggleHeatmap={onToggleHeatmap}
+          isFloodPropagationActive={isFloodPropagationActive}
+          onToggleFloodPropagation={onToggleFloodPropagation}
         />
       );
 

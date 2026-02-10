@@ -82,8 +82,8 @@ interface Model3Props {
   onOpenNodeSimulation?: (nodeId: string) => void;
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
-  isHeatmapActive?: boolean;
-  onToggleHeatmap?: (enabled: boolean) => void;
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
 }
 
 export const DEFAULT_NODE_PARAMS: NodeParams = {
@@ -133,8 +133,8 @@ export default function Model3({
   onToggleMinimize,
   isRainActive = false,
   onToggleRain,
-  isHeatmapActive = false,
-  onToggleHeatmap,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
 }: Model3Props) {
   //const [rainfallParams, setRainfallParams] = useState<RainfallParams>(
   //  DEFAULT_RAINFALL_PARAMS
@@ -490,9 +490,8 @@ export default function Model3({
             </div>
           )}
 
-
-          {/* Vulnerability Heatmap Toggle */}
-          {onToggleHeatmap && (
+          {/* Flood Propagation Toggle */}
+          {onToggleFloodPropagation && (
             <div
               className={`border-border/40 bg-muted/20 flex items-center justify-between rounded-lg border px-3 py-2 ${
                 !hasTable ? 'opacity-50' : ''
@@ -506,7 +505,7 @@ export default function Model3({
                     hasTable ? 'cursor-pointer' : 'cursor-not-allowed'
                   }`}
                 >
-                  Vulnerability Heatmap
+                  Flood Propagation
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
@@ -525,8 +524,8 @@ export default function Model3({
               </div>
               <Switch
                 id="heatmap-toggle-model3"
-                checked={isHeatmapActive}
-                onCheckedChange={onToggleHeatmap}
+                checked={isFloodPropagationActive}
+                onCheckedChange={onToggleFloodPropagation}
                 disabled={!hasTable}
               />
             </div>
