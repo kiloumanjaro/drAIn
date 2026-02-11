@@ -184,7 +184,6 @@ export default function SimulationPage() {
 
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
-  const rainIntensityRef = useRef<number>(1.0); // Track desired rain intensity
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFlood3DActive, setIsFlood3DActive] = useState(false);
   const [isFloodPropagationActive, setIsFloodPropagationActive] =
@@ -1557,8 +1556,7 @@ export default function SimulationPage() {
       // Update Flood Propagation
       updateFloodPropagation(data);
 
-      // Enable rain effect - useEffect will handle the actual application
-      rainIntensityRef.current = 1.0;
+      // Enable rain effect
       setIsRainActive(true);
 
       // Enable 3D flood visualization
@@ -1651,14 +1649,8 @@ export default function SimulationPage() {
       // Update Flood Propagation
       updateFloodPropagation(transformedData);
 
-      // Enable rain effect with dynamic intensity based on precipitation
-      if (mapRef.current) {
-        // Map 0-300mm precipitation to 0.3-1.0 intensity range
-        const normalized = rainfallParams.total_precip / 300; // 0-1 range
-        const intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
-        rainIntensityRef.current = intensity;
-        setIsRainActive(true);
-      }
+      // Enable rain effect
+      setIsRainActive(true);
 
       // Enable 3D flood visualization
       if (mapRef.current) {
@@ -1725,21 +1717,9 @@ export default function SimulationPage() {
   // Rain toggle handler
   const handleToggleRain = useCallback(
     (enabled: boolean) => {
-      // Determine intensity based on which model is active
-      let intensity = 1.0; // Default for Model1
-
-      // If Model2 is active and has rainfall params, use dynamic intensity
-      // Map 0-300mm precipitation to 0.3-1.0 intensity range
-      if (tableData3 && rainfallParams) {
-        const normalized = rainfallParams.total_precip / 300; // 0-1 range
-        intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
-      }
-
-      // Update ref and state - useEffect will handle the actual rain application
-      rainIntensityRef.current = intensity;
       setIsRainActive(enabled);
     },
-    [tableData3, rainfallParams]
+    []
   );
 
   // Flood Propagation animation - per-point varied pulsing + position wobbling
@@ -1950,7 +1930,7 @@ export default function SimulationPage() {
     if (!mapRef.current) return;
 
     if (isRainActive) {
-      enableRain(mapRef.current, rainIntensityRef.current);
+      enableRain(mapRef.current);
     } else {
       disableRain(mapRef.current);
     }
