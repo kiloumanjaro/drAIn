@@ -242,10 +242,6 @@ export function createFloodAlongPipes(
     }
   });
 
-  console.log(
-    `[3D Flood] Processing ${pipes.length} pipes for gradient flood visualization`
-  );
-  console.log(`[3D Flood] Found ${floodedNodes.size} flooded nodes`);
 
   // Track which high risk nodes have been connected
   const connectedHighRiskNodes = new Set<string>();
@@ -343,7 +339,6 @@ export function createFloodAlongPipes(
     features.push(...gradientSegments);
   });
 
-  console.log(`[3D Flood] Created ${features.length} gradient line segments`);
 
   return {
     type: 'FeatureCollection',
@@ -372,7 +367,6 @@ export async function enableFlood3D(
   // Combine inlet and drain coordinates
   const allCoordinates = [...inlets, ...drains];
 
-  console.log('[3D Flood] Loading pipe data...');
 
   // Load pipes data directly from GeoJSON file
   let pipes: PipeFeature[] = [];
@@ -381,14 +375,11 @@ export async function enableFlood3D(
     const response = await fetch('/drainage/man_pipes.geojson');
     const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
     pipes = (pipesData.features || []) as PipeFeature[];
-    console.log(`[3D Flood] Loaded ${pipes.length} pipes from GeoJSON`);
-  } catch (error) {
-    console.error('[3D Flood] Error loading pipe data:', error);
+  } catch (_error) {
     return;
   }
 
   if (pipes.length === 0) {
-    console.error('[3D Flood] No pipes found in GeoJSON');
     return;
   }
 
@@ -493,7 +484,6 @@ export async function enableFlood3D(
       let beforeLayerId: string | undefined = undefined;
 
       if (layers) {
-        console.log('[3D Flood] Current layers:', layers.map(l => l.id).join(', '));
 
         // Look for the first drainage infrastructure layer
         const infrastructureLayer = layers.find(
@@ -511,25 +501,18 @@ export async function enableFlood3D(
       // Move flood gradient to be right above Flood Propagation but below infrastructure
       if (beforeLayerId) {
         map.moveLayer('flood-gradient-layer', beforeLayerId);
-        console.log(`[3D Flood] Moved flood gradient above Flood Propagation, before ${beforeLayerId}`);
 
         // Verify the move
         const updatedLayers = map.getStyle().layers;
         const gradientIndex = updatedLayers?.findIndex(l => l.id === 'flood-gradient-layer');
         const floodPropagationIndex = updatedLayers?.findIndex(l => l.id === 'flood_propagation-nodes-layer');
-        console.log(`[3D Flood] Layer order - Flood Propagation: ${floodPropagationIndex}, Gradient: ${gradientIndex}`);
       } else {
-        console.log('[3D Flood] No infrastructure layer found, flood gradient at default position');
       }
     } else {
-      console.log('[3D Flood] Flood Propagation layers not found, flood gradient at default position');
     }
-  } catch (error) {
-    console.error('[3D Flood] Error moving layer:', error);
+  } catch (_error) {
   }
 
-  console.log('[3D Flood] Gradient layer added successfully');
-  console.log(`[3D Flood] Layer has ${floodGeoJSON.features.length} features`);
 
   // Log a sample feature for debugging
   if (floodGeoJSON.features.length > 0) {
@@ -541,9 +524,6 @@ export async function enableFlood3D(
     });
   }
 
-  // Verify layer visibility
-  const visibility = map.getLayoutProperty('flood-gradient-layer', 'visibility');
-  console.log(`[3D Flood] Layer visibility after creation: ${visibility}`);
 
   // Animate the flood appearing if enabled
   if (animate) {
@@ -565,7 +545,6 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
   const animate = () => {
     // Check if layer still exists before trying to animate
     if (!map.getLayer('flood-gradient-layer')) {
-      console.log('[3D Flood] Animation cancelled - layer removed');
       return;
     }
 
@@ -591,11 +570,9 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
     if (progress < 1) {
       requestAnimationFrame(animate);
     } else {
-      console.log('[3D Flood] Animation complete');
     }
   };
 
-  console.log('[3D Flood] Starting gradient animation');
   animate();
 }
 
@@ -604,8 +581,6 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
  */
 export function disableFlood3D(map: mapboxgl.Map): void {
   if (!map) return;
-
-  console.log('[3D Flood] Disabling gradient flood effect');
 
   // Hide the gradient layer instead of removing it
   if (map.getLayer('flood-gradient-layer')) {
@@ -627,7 +602,6 @@ export function disableFlood3D(map: mapboxgl.Map): void {
 export function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void {
   if (!map || !map.getLayer('flood-gradient-layer')) return;
 
-  console.log(`[3D Flood] Toggling gradient visibility: ${visible}`);
 
   const visibility = visible ? 'visible' : 'none';
 

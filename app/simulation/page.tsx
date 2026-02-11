@@ -1380,7 +1380,6 @@ export default function SimulationPage() {
     let lineFloodPropagationFeatures: GeoJSON.Feature[] = [];
 
     try {
-      console.log('[Flood Propagation] Loading pipe data for line sampling...');
       const response = await fetch('/drainage/man_pipes.geojson');
       const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
       const pipes = pipesData.features || [];
@@ -1511,9 +1510,7 @@ export default function SimulationPage() {
     };
 
     // Always use a slight delay to ensure map is fully ready
-    console.log('[Flood Propagation] Scheduling Flood Propagation update...');
     setTimeout(() => {
-      console.log('[Flood Propagation] Starting Flood Propagation update');
       updateFloodPropagationData();
     }, 500);
   };
@@ -1873,7 +1870,6 @@ export default function SimulationPage() {
         return;
       }
 
-      console.log(`[Flood Propagation] Toggling visibility: ${enabled}`);
 
       const visibility = enabled ? 'visible' : 'none';
 
@@ -1911,7 +1907,6 @@ export default function SimulationPage() {
       // Force map to repaint
       mapRef.current.triggerRepaint();
 
-      console.log(`[Flood Propagation] Visibility after toggle: ${visibility}`);
     },
     [animateFloodPropagationIntensity]
   );

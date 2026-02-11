@@ -21,9 +21,6 @@ export function zoomBasedReveal(map: mapboxgl.Map, value: number): number {
  */
 export function enableRain(map: mapboxgl.Map): void {
   if (!map || typeof map.setRain !== 'function') {
-    console.warn(
-      "setRain API is not available. Ensure you're using Mapbox Standard style."
-    );
     return;
   }
 
@@ -40,7 +37,6 @@ export function enableRain(map: mapboxgl.Map): void {
       'distortion-strength': 0.7,
       'center-thinning': 0, // Rain displayed on the whole screen area
     });
-    console.log('[Rain] Rain effect enabled');
   } catch (error) {
     console.error('Error enabling rain effect:', error);
   }
@@ -58,7 +54,6 @@ export function disableRain(map: mapboxgl.Map): void {
 
   try {
     map.setRain({ intensity: 0 });
-    console.log('[Rain] Rain effect disabled');
   } catch (error) {
     // Ignore "Style is not done loading" errors - the rain will still disable
     if (error instanceof Error && error.message.includes('Style is not done loading')) {
