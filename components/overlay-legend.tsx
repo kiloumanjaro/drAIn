@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Layers, Loader2 } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 interface OverlayLegendProps {
   overlays: {
@@ -20,13 +20,11 @@ interface OverlayLegendProps {
     visible: boolean;
   }[];
   onToggleOverlay: (id: string) => void;
-  isFloodPropagationLoading?: boolean;
 }
 
 export function OverlayLegend({
   overlays,
   onToggleOverlay,
-  isFloodPropagationLoading = false,
 }: OverlayLegendProps) {
   // Filter out reports-layer and mandaue_population-layer from the legend
   const drainageOverlays = overlays.filter(
@@ -83,16 +81,11 @@ export function OverlayLegend({
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         {drainageOverlays.map((overlay, _index) => {
-          const isHeatmapItem = overlay.id === 'report_heatmap-layer';
-          const showLoading = isHeatmapItem && isFloodPropagationLoading;
-
           return (
             <div key={overlay.id}>
               <div
-                className={`group flex cursor-pointer items-center space-x-3 rounded-lg py-2 transition-all duration-200 ease-in-out ${
-                  showLoading ? 'pointer-events-none opacity-70' : ''
-                }`}
-                onClick={() => !showLoading && onToggleOverlay(overlay.id)}
+                className="group flex cursor-pointer items-center space-x-3 rounded-lg py-2 transition-all duration-200 ease-in-out"
+                onClick={() => onToggleOverlay(overlay.id)}
               >
                 <div className="flex flex-1 items-center gap-2.5">
                   <div
@@ -118,18 +111,14 @@ export function OverlayLegend({
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!showLoading) onToggleOverlay(overlay.id);
+                    onToggleOverlay(overlay.id);
                   }}
                 >
-                  {showLoading ? (
-                    <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
-                  ) : (
-                    <Switch
-                      checked={overlay.visible}
-                      onCheckedChange={() => {}}
-                      className="ml-auto cursor-pointer"
-                    />
-                  )}
+                  <Switch
+                    checked={overlay.visible}
+                    onCheckedChange={() => {}}
+                    className="ml-auto cursor-pointer"
+                  />
                 </div>
               </div>
             </div>
