@@ -18,6 +18,7 @@ import {
   transformToNodeDetails,
 } from '@/lib/simulation-api/simulation';
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
+import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -133,7 +134,7 @@ export default function SimulationPage() {
     string | null
   >(null);
 
-  // Vulnerability table state (Model 2)
+  // Vulnerability table state (Model 1)
   const [selectedYear, setSelectedYear] = useState<YearOption | null>(null);
   const [tableData, setTableData] = useState<NodeDetails[] | null>(null);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
@@ -149,7 +150,7 @@ export default function SimulationPage() {
     new Map()
   );
 
-  // Model 3 table state
+  // model 1 table state
   const [tableData3, setTableData3] = useState<NodeDetails[] | null>(null);
   const [isLoadingTable3, setIsLoadingTable3] = useState(false);
   const [isTable3Minimized, setIsTable3Minimized] = useState(false);
@@ -182,8 +183,18 @@ export default function SimulationPage() {
     useState<RainfallParams>(rainfallVal);
 
   // Rain effect state
-  const [isRainActive, setIsRainActive] = useState(false);
+  const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
+  const [isFlood3DActive, setIsFlood3DActive] = useState(false);
+  const [isFloodPropagationActive, setIsFloodPropagationActive] =
+    useState(true); // Enabled by default
+  const [isFloodPropagationAnimating, setIsFloodPropagationAnimating] =
+    useState(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const nodeFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
+  const lineFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
+  const lastAnimationTimeRef = useRef<number>(0);
+  const shouldAnimateFloodPropagationRef = useRef<boolean>(true);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -249,6 +260,8 @@ export default function SimulationPage() {
       );
       setSelectedFeature(null);
     }
+    // NOTE: We intentionally do NOT disable flood propagation here
+    // to preserve the visualization when navigating back
   };
 
   // Refs for data to avoid stale closures in map click handler
@@ -361,6 +374,183 @@ export default function SimulationPage() {
           }
         } catch (error) {
           console.warn('Could not enable 3D buildings:', error);
+        }
+
+        // Add Flood Propagation layers FIRST so they appear below drainage layers
+        // Two separate layers: one for nodes, one for lines (allows independent radius/opacity control)
+        if (!map.getSource('flood_propagation_nodes')) {
+          console.log(
+            '[Flood Propagation] Creating Flood Propagation layers...'
+          );
+          const emptyGeoJSON: GeoJSON.FeatureCollection = {
+            type: 'FeatureCollection',
+            features: [],
+          };
+
+          // Shared heatmap color gradient
+          const heatmapColor = [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0,
+            'rgba(0, 0, 0, 0)',
+            0.15,
+            'rgba(30, 144, 255, 0.7)', // Dodger blue - low density
+            0.3,
+            'rgba(0, 102, 204, 0.8)', // Strong blue - low-moderate
+            0.5,
+            'rgba(0, 71, 171, 0.85)', // Blue - moderate flood
+            0.7,
+            'rgba(0, 47, 167, 0.9)', // Dark blue - high flood
+            0.85,
+            'rgba(0, 20, 124, 0.95)', // Very dark blue - very high flood
+            1,
+            'rgba(0, 0, 100, 1.0)', // Navy blue - peak flood (fully opaque)
+          ];
+
+          // --- Lines Flood Propagation (added first = rendered below nodes) ---
+          map.addSource('flood_propagation_lines', {
+            type: 'geojson',
+            data: emptyGeoJSON,
+          });
+
+          map.addLayer({
+            id: 'flood_propagation-lines-layer',
+            type: 'heatmap',
+            source: 'flood_propagation_lines',
+            layout: {
+              visibility: 'visible',
+            },
+            paint: {
+              'heatmap-weight': [
+                '*',
+                ['coalesce', ['get', 'pulseMultiplier'], 1],
+                0.15,
+              ],
+              'heatmap-intensity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.2,
+                12,
+                0.6,
+                13,
+                1.2,
+                15,
+                2.0,
+              ],
+              'heatmap-color': heatmapColor as any,
+              'heatmap-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                1,
+                12,
+                6,
+                13,
+                20,
+                15,
+                60,
+              ],
+              'heatmap-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.05,
+                7,
+                0.1,
+                10,
+                0.2,
+                12,
+                0.3,
+                14,
+                0.45,
+                16,
+                0.55,
+              ],
+            },
+          });
+
+          // --- Nodes Flood Propagation (added second = rendered above lines) ---
+          map.addSource('flood_propagation_nodes', {
+            type: 'geojson',
+            data: emptyGeoJSON,
+          });
+
+          map.addLayer({
+            id: 'flood_propagation-nodes-layer',
+            type: 'heatmap',
+            source: 'flood_propagation_nodes',
+            layout: {
+              visibility: 'visible',
+            },
+            paint: {
+              'heatmap-weight': [
+                '*',
+                ['coalesce', ['get', 'pulseMultiplier'], 1],
+                [
+                  'case',
+                  ['==', ['get', 'vulnerability'], 'High Risk'],
+                  5.0,
+                  ['==', ['get', 'vulnerability'], 'Medium Risk'],
+                  1.5,
+                  ['==', ['get', 'vulnerability'], 'Low Risk'],
+                  0.6,
+                  0.2,
+                ],
+              ],
+              'heatmap-intensity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.4,
+                12,
+                1.0,
+                13,
+                1.8,
+                15,
+                3.0,
+              ],
+              'heatmap-color': heatmapColor as any,
+              'heatmap-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                3,
+                12,
+                12,
+                13,
+                35,
+                15,
+                80,
+              ],
+              'heatmap-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.15,
+                7,
+                0.2,
+                10,
+                0.3,
+                12,
+                0.4,
+                14,
+                0.5,
+                16,
+                0.6,
+              ],
+            },
+          });
+          console.log(
+            '[Flood Propagation] Flood Propagation layers created successfully (nodes + lines)'
+          );
         }
 
         if (!map.getSource('man_pipes')) {
@@ -614,6 +804,32 @@ export default function SimulationPage() {
   const handleControlPanelBack = () => {
     clearSelections();
     setControlPanelTab('simulations');
+
+    // Preserve flood propagation visibility when navigating back
+    // This ensures the visualization remains visible after clearing selections
+    if (mapRef.current && isFloodPropagationActive) {
+      const nodesLayer = mapRef.current.getLayer(
+        'flood_propagation-nodes-layer'
+      );
+      const linesLayer = mapRef.current.getLayer(
+        'flood_propagation-lines-layer'
+      );
+
+      if (nodesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          'visible'
+        );
+      }
+      if (linesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          'visible'
+        );
+      }
+    }
   };
 
   const handleSelectInlet = (inlet: Inlet) => {
@@ -982,12 +1198,336 @@ export default function SimulationPage() {
     }
   };
 
+  // Helper function to convert RGB color from flood line to vulnerability category
+  const getVulnerabilityFromColor = (color: string): string => {
+    if (color.includes('211, 47, 47')) return 'High Risk'; // Red
+    if (color.includes('255, 160, 0')) return 'Medium Risk'; // Orange
+    if (color.includes('255, 235, 100')) return 'Low Risk'; // Yellow
+    if (color.includes('56, 142, 60')) return 'No Risk'; // Green
+
+    // For interpolated colors, determine based on RGB values
+    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (!match) return 'Medium Risk'; // Fallback
+
+    const [, r, g] = match.map(Number);
+
+    // Red-dominant → High Risk
+    if (r > 200 && g < 100) return 'High Risk';
+    // Yellow-dominant → Low Risk
+    if (r > 200 && g > 200) return 'Low Risk';
+    // Orange or intermediate → Medium Risk
+    return 'Medium Risk';
+  };
+
+  // Helper function to sample points along a line, scaled by length
+  const samplePointsFromLine = (
+    lineFeature: GeoJSON.Feature<GeoJSON.LineString>,
+    samplesPerSegment: number = 3 // Points per ~0.0005 degree segment (~55m)
+  ): GeoJSON.Feature[] => {
+    const coords = lineFeature.geometry.coordinates as [number, number][];
+    if (coords.length < 2) return [];
+
+    const props = lineFeature.properties || {};
+    const vulnerability = getVulnerabilityFromColor(props.color || '');
+    const points: GeoJSON.Feature[] = [];
+
+    // Calculate total line length and cumulative distances
+    const segLengths: number[] = [];
+    let totalLength = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const dx = coords[i + 1][0] - coords[i][0];
+      const dy = coords[i + 1][1] - coords[i][1];
+      const len = Math.sqrt(dx * dx + dy * dy);
+      segLengths.push(len);
+      totalLength += len;
+    }
+    if (totalLength === 0) return [];
+
+    // Vulnerability multiplier - higher risk = more points = denser heatmap
+    const vulnerabilityMultiplier =
+      vulnerability === 'High Risk'
+        ? 3
+        : vulnerability === 'Medium Risk'
+          ? 2
+          : vulnerability === 'Low Risk'
+            ? 1.5
+            : 1;
+
+    // Scale number of samples based on line length and vulnerability
+    // Use ~0.0005 degrees (~55m) as the reference segment length
+    const referenceSegLength = 0.0005;
+    const numSegments = Math.max(
+      1,
+      Math.round(totalLength / referenceSegLength)
+    );
+    const numSamples = Math.max(
+      samplesPerSegment,
+      Math.round(numSegments * samplesPerSegment * vulnerabilityMultiplier)
+    );
+
+    // Sample evenly along the full line length (skip first and last to avoid node overlap)
+    for (let i = 1; i <= numSamples; i++) {
+      const t = i / (numSamples + 1);
+      const targetDist = t * totalLength;
+
+      // Walk along segments to find the point at targetDist
+      let walked = 0;
+      for (let s = 0; s < segLengths.length; s++) {
+        if (walked + segLengths[s] >= targetDist) {
+          const segT = (targetDist - walked) / segLengths[s];
+          const lng = coords[s][0] + (coords[s + 1][0] - coords[s][0]) * segT;
+          const lat = coords[s][1] + (coords[s + 1][1] - coords[s][1]) * segT;
+
+          points.push({
+            type: 'Feature',
+            properties: {
+              source: 'line',
+              vulnerability: vulnerability,
+              floodVolume: props.floodVolume || 0,
+              pipeName: props.pipeName || '',
+              phase: Math.random() * Math.PI * 2, // Random phase for animation
+              offsetAngle: Math.random() * Math.PI * 2, // Random wobble direction
+              offsetDistance: Math.random() * 0.00009, // ~9 meters max wobble
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [lng, lat],
+            },
+          } as GeoJSON.Feature);
+          break;
+        }
+        walked += segLengths[s];
+      }
+    }
+
+    return points;
+  };
+
+  // Helper function to check if a point is too close to any existing node point
+  const isPointTooCloseToNodes = (
+    linePoint: [number, number],
+    nodeFeatures: GeoJSON.Feature[],
+    minDistance: number = 0.00008 // ~9 meters (tuned for pipe spacing)
+  ): boolean => {
+    return nodeFeatures.some((nodeFeature) => {
+      const nodeCoord = (nodeFeature.geometry as GeoJSON.Point).coordinates as [
+        number,
+        number,
+      ];
+      const dx = linePoint[0] - nodeCoord[0];
+      const dy = linePoint[1] - nodeCoord[1];
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < minDistance;
+    });
+  };
+
+  // Helper function to update Flood Propagation heatmap
+  const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Combine inlet and drain coordinates
+    const allCoordinates = [...inletsRef.current, ...drainsRef.current];
+
+    console.log(
+      '[Flood Propagation] Total vulnerability data:',
+      vulnerabilityData.length
+    );
+    console.log(
+      '[Flood Propagation] Available coordinates:',
+      allCoordinates.length
+    );
+    console.log(
+      '[Flood Propagation] Flooded nodes:',
+      vulnerabilityData.filter((n) => n.Total_Flood_Volume > 0).length
+    );
+
+    // Create GeoJSON features from NODE vulnerability data
+    const nodeFloodPropagationFeatures: GeoJSON.Feature[] = vulnerabilityData
+      .filter((node) => node.Total_Flood_Volume > 0) // Only include flooded nodes
+      .map((node) => {
+        // Find coordinates for this node
+        const nodeCoord = allCoordinates.find((n) => n.id === node.Node_ID);
+        if (!nodeCoord) {
+          console.warn(
+            `[Flood Propagation] No coordinates found for node: ${node.Node_ID}`
+          );
+          return null;
+        }
+
+        return {
+          type: 'Feature' as const,
+          properties: {
+            source: 'node', // Mark as coming from node
+            nodeId: node.Node_ID,
+            vulnerability: node.Vulnerability_Category,
+            floodVolume: node.Total_Flood_Volume,
+            maximumRate: node.Maximum_Rate,
+            hoursFlooded: node.Hours_Flooded,
+            phase: Math.random() * Math.PI * 2, // Random phase for animation
+            offsetAngle: Math.random() * Math.PI * 2, // Random wobble direction
+            offsetDistance: Math.random() * 0.00009, // ~9 meters max wobble
+          },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: nodeCoord.coordinates,
+          },
+        } as GeoJSON.Feature;
+      })
+      .filter((f): f is GeoJSON.Feature => f !== null);
+
+    console.log(
+      `[Flood Propagation] Created ${nodeFloodPropagationFeatures.length} node points`
+    );
+
+    // NEW: Load pipes and create LINE points for Flood Propagation
+    let lineFloodPropagationFeatures: GeoJSON.Feature[] = [];
+
+    try {
+      const response = await fetch('/drainage/man_pipes.geojson');
+      const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
+      const pipes = pipesData.features || [];
+
+      console.log(
+        `[Flood Propagation] Loaded ${pipes.length} pipes from GeoJSON`
+      );
+
+      // Generate flood line features (same logic as 3D flood)
+      // Import createFloodAlongPipes from flood-3d-utils.ts
+      const { createFloodAlongPipes } =
+        await import('@/lib/map/effects/flood-3d-utils');
+
+      const floodLines = createFloodAlongPipes(
+        vulnerabilityData,
+        allCoordinates,
+        pipes as any
+      );
+
+      console.log(
+        `[Flood Propagation] Generated ${floodLines.features.length} flood line segments`
+      );
+
+      // Convert line segments to sampled points
+      const allLineSamplePoints = floodLines.features.flatMap(
+        (lineFeature) =>
+          samplePointsFromLine(
+            lineFeature as GeoJSON.Feature<GeoJSON.LineString>,
+            1
+          ) // 1 point per segment (midpoint only)
+      );
+
+      console.log(
+        `[Flood Propagation] Sampled ${allLineSamplePoints.length} points from lines`
+      );
+
+      // Filter out points too close to nodes
+      lineFloodPropagationFeatures = allLineSamplePoints.filter((point) => {
+        const coords = (point.geometry as GeoJSON.Point).coordinates as [
+          number,
+          number,
+        ];
+        return !isPointTooCloseToNodes(
+          coords,
+          nodeFloodPropagationFeatures,
+          0.00008
+        );
+      });
+
+      console.log(
+        `[Flood Propagation] After filtering: ${lineFloodPropagationFeatures.length} line points ` +
+          `(removed ${allLineSamplePoints.length - lineFloodPropagationFeatures.length} overlaps)`
+      );
+    } catch (error) {
+      console.error(
+        '[Flood Propagation] Error loading/processing pipe data:',
+        error
+      );
+      // Continue with just node points if pipe loading fails
+    }
+
+    console.log(
+      `[Flood Propagation] Total Flood Propagation points: ${nodeFloodPropagationFeatures.length + lineFloodPropagationFeatures.length} ` +
+        `(${nodeFloodPropagationFeatures.length} nodes + ${lineFloodPropagationFeatures.length} lines)`
+    );
+
+    // Store features in refs for animation
+    nodeFloodPropagationFeaturesRef.current = nodeFloodPropagationFeatures;
+    lineFloodPropagationFeaturesRef.current = lineFloodPropagationFeatures;
+
+    const nodeData: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: nodeFloodPropagationFeatures,
+    };
+
+    const lineData: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: lineFloodPropagationFeatures,
+    };
+
+    // Update both Flood Propagation sources with retry logic
+    let retryCount = 0;
+    const maxRetries = 10;
+
+    const updateFloodPropagationData = () => {
+      const nodeSource = map.getSource(
+        'flood_propagation_nodes'
+      ) as mapboxgl.GeoJSONSource;
+      const lineSource = map.getSource(
+        'flood_propagation_lines'
+      ) as mapboxgl.GeoJSONSource;
+      const nodeLayer = map.getLayer('flood_propagation-nodes-layer');
+      const lineLayer = map.getLayer('flood_propagation-lines-layer');
+
+      if (nodeSource && nodeLayer && lineSource && lineLayer) {
+        console.log(
+          '[Flood Propagation] Sources and layers found, setting data...'
+        );
+
+        nodeSource.setData(nodeData);
+        lineSource.setData(lineData);
+
+        setIsFloodPropagationActive(true);
+        shouldAnimateFloodPropagationRef.current = true;
+
+        // Start animation if not already running
+        if (!isFloodPropagationAnimating) {
+          setIsFloodPropagationAnimating(true);
+          animateFloodPropagationIntensity();
+        }
+
+        console.log(
+          '[Flood Propagation] Flood Propagation data set successfully (nodes + lines)'
+        );
+      } else {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          console.warn(
+            `[Flood Propagation] Sources or layers not ready (attempt ${retryCount}/${maxRetries}), retrying...`
+          );
+          setTimeout(updateFloodPropagationData, 300);
+        } else {
+          console.error(
+            '[Flood Propagation] Failed to update after max retries'
+          );
+        }
+      }
+    };
+
+    // Always use a slight delay to ensure map is fully ready
+    setTimeout(() => {
+      updateFloodPropagationData();
+    }, 500);
+  };
+
   const handleClosePopUps = () => {
     setIsTableMinimized(true);
     setIsTable3Minimized(true);
     setTableData(null);
     setTableData3(null);
     setActivePanel(null);
+
+    // Both 3D flood gradient and flood propagation heatmap persist after closing
+    // This allows viewing results without the table open
   };
   // Vulnerability table handlers
   const handleGenerateTable = async () => {
@@ -1014,10 +1554,31 @@ export default function SimulationPage() {
       // Apply vulnerability colors to inlets and storm drains
       applyVulnerabilityColors(data);
 
+      // Update Flood Propagation
+      updateFloodPropagation(data);
+
       // Enable rain effect
+      setIsRainActive(true);
+
+      // Enable 3D flood visualization
       if (mapRef.current) {
-        enableRain(mapRef.current, 1.0);
-        setIsRainActive(true);
+        enableFlood3D(
+          mapRef.current,
+          data,
+          inletsRef.current,
+          drainsRef.current,
+          {
+            opacity: 0.7,
+            animate: true,
+            animationDuration: 3000,
+          }
+        )
+          .then(() => {
+            setIsFlood3DActive(true);
+          })
+          .catch((error) => {
+            console.error('Error enabling 3D flood:', error);
+          });
       }
 
       toast.success(
@@ -1032,7 +1593,7 @@ export default function SimulationPage() {
     }
   };
 
-  // Model 3 table handler
+  // model 1 table handler
   const handleGenerateTable3 = async () => {
     if (selectedComponentIds.length === 0) {
       toast.error('Please select at least one component');
@@ -1086,13 +1647,31 @@ export default function SimulationPage() {
       // Apply vulnerability colors to inlets and storm drains
       applyVulnerabilityColors(transformedData);
 
-      // Enable rain effect with dynamic intensity based on precipitation
+      // Update Flood Propagation
+      updateFloodPropagation(transformedData);
+
+      // Enable rain effect
+      setIsRainActive(true);
+
+      // Enable 3D flood visualization
       if (mapRef.current) {
-        // Map 0-300mm precipitation to 0.3-1.0 intensity range
-        const normalized = rainfallParams.total_precip / 300; // 0-1 range
-        const intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
-        enableRain(mapRef.current, intensity);
-        setIsRainActive(true);
+        enableFlood3D(
+          mapRef.current,
+          transformedData,
+          inletsRef.current,
+          drainsRef.current,
+          {
+            opacity: 0.7,
+            animate: true,
+            animationDuration: 3000,
+          }
+        )
+          .then(() => {
+            setIsFlood3DActive(true);
+          })
+          .catch((error) => {
+            console.error('Error enabling 3D flood:', error);
+          });
       }
 
       toast.success(
@@ -1114,13 +1693,16 @@ export default function SimulationPage() {
   const handleCloseTable = () => {
     setTableData(null);
     setIsTableMinimized(false);
+
+    // Both 3D flood gradient and flood propagation heatmap persist after closing
+    // This allows viewing results without the table open
   };
 
   const handleYearChange = (year: number | null) => {
     setSelectedYear(year as YearOption | null);
   };
 
-  // Model 3 table handlers
+  // model 1 table handlers
   const handleToggleTable3Minimize = () => {
     setIsTable3Minimized(!isTable3Minimized);
   };
@@ -1128,33 +1710,225 @@ export default function SimulationPage() {
   const handleCloseTable3 = () => {
     setTableData3(null);
     setIsTable3Minimized(false);
+
+    // Both 3D flood gradient and flood propagation heatmap persist after closing
+    // This allows viewing results without the table open
   };
 
   // Rain toggle handler
-  const handleToggleRain = useCallback(
+  const handleToggleRain = useCallback((enabled: boolean) => {
+    setIsRainActive(enabled);
+  }, []);
+
+  // Flood Propagation animation - per-point varied pulsing + position wobbling
+  const animateFloodPropagationIntensity = useCallback(() => {
+    if (!mapRef.current || !shouldAnimateFloodPropagationRef.current) {
+      // Cancel any pending frame before exiting
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      setIsFloodPropagationAnimating(false);
+      return;
+    }
+
+    // Throttle to ~20fps to avoid excessive source updates
+    const now = Date.now();
+    if (now - lastAnimationTimeRef.current < 50) {
+      animationFrameRef.current = requestAnimationFrame(
+        animateFloodPropagationIntensity
+      );
+      return;
+    }
+    lastAnimationTimeRef.current = now;
+
+    const nodeSource = mapRef.current.getSource(
+      'flood_propagation_nodes'
+    ) as mapboxgl.GeoJSONSource;
+    const lineSource = mapRef.current.getSource(
+      'flood_propagation_lines'
+    ) as mapboxgl.GeoJSONSource;
+
+    if (!nodeSource && !lineSource) {
+      setIsFloodPropagationAnimating(false);
+      return;
+    }
+
+    const time = now / 1000;
+    const pulseSpeed = 0.3; // Cycles per second (slower)
+    const pulseAmount = 0.35; // 35% depth - oscillates from 0.65 to 1.0
+
+    // Update node features with per-point pulsed multipliers + coordinate wobbling
+    if (nodeSource && nodeFloodPropagationFeaturesRef.current.length > 0) {
+      const wobbledNodes = nodeFloodPropagationFeaturesRef.current.map(
+        (feature) => {
+          const phase = feature.properties?.phase || 0;
+          const offsetAngle = feature.properties?.offsetAngle || 0;
+          const offsetDistance = feature.properties?.offsetDistance || 0;
+
+          // Calculate pulse multiplier
+          const pulse =
+            1 -
+            pulseAmount / 2 +
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+
+          // Calculate wobble offset (oscillates based on phase)
+          const wobbleAmount =
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
+
+          // Apply wobble to coordinates
+          const pointGeometry = feature.geometry as GeoJSON.Point;
+          const [lng, lat] = pointGeometry.coordinates as [number, number];
+          const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
+          const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
+
+          return {
+            ...feature,
+            geometry: {
+              type: 'Point' as const,
+              coordinates: [wobbledLng, wobbledLat],
+            },
+            properties: {
+              ...feature.properties,
+              pulseMultiplier: pulse,
+            },
+          };
+        }
+      );
+
+      nodeSource.setData({
+        type: 'FeatureCollection',
+        features: wobbledNodes,
+      });
+    }
+
+    // Update line features with per-point pulsed multipliers + coordinate wobbling
+    if (lineSource && lineFloodPropagationFeaturesRef.current.length > 0) {
+      const wobbledLines = lineFloodPropagationFeaturesRef.current.map(
+        (feature) => {
+          const phase = feature.properties?.phase || 0;
+          const offsetAngle = feature.properties?.offsetAngle || 0;
+          const offsetDistance = feature.properties?.offsetDistance || 0;
+
+          // Calculate pulse multiplier
+          const pulse =
+            1 -
+            pulseAmount / 2 +
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
+
+          // Calculate wobble offset (oscillates based on phase)
+          const wobbleAmount =
+            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
+
+          // Apply wobble to coordinates
+          const pointGeometry = feature.geometry as GeoJSON.Point;
+          const [lng, lat] = pointGeometry.coordinates as [number, number];
+          const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
+          const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
+
+          return {
+            ...feature,
+            geometry: {
+              type: 'Point' as const,
+              coordinates: [wobbledLng, wobbledLat],
+            },
+            properties: {
+              ...feature.properties,
+              pulseMultiplier: pulse,
+            },
+          };
+        }
+      );
+
+      lineSource.setData({
+        type: 'FeatureCollection',
+        features: wobbledLines,
+      });
+    }
+
+    // Continue animation
+    animationFrameRef.current = requestAnimationFrame(
+      animateFloodPropagationIntensity
+    );
+  }, []);
+
+  // Flood Propagation toggle handler
+  const handleToggleFloodPropagation = useCallback(
     (enabled: boolean) => {
       if (!mapRef.current) return;
 
-      if (enabled) {
-        // Determine intensity based on which model is active
-        let intensity = 1.0; // Default for Model2
+      const nodesLayer = mapRef.current.getLayer(
+        'flood_propagation-nodes-layer'
+      );
+      const linesLayer = mapRef.current.getLayer(
+        'flood_propagation-lines-layer'
+      );
 
-        // If Model3 is active and has rainfall params, use dynamic intensity
-        // Map 0-300mm precipitation to 0.3-1.0 intensity range
-        if (tableData3 && rainfallParams) {
-          const normalized = rainfallParams.total_precip / 300; // 0-1 range
-          intensity = 0.3 + normalized * 0.7; // Map to 0.3-1.0
-        }
-
-        enableRain(mapRef.current, intensity);
-        setIsRainActive(true);
-      } else {
-        disableRain(mapRef.current);
-        setIsRainActive(false);
+      if (!nodesLayer && !linesLayer) {
+        console.warn(
+          '[Flood Propagation] Toggle failed - Flood Propagation layers not found'
+        );
+        return;
       }
+
+      const visibility = enabled ? 'visible' : 'none';
+
+      // Toggle both Flood Propagation layers
+      if (nodesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          visibility
+        );
+      }
+      if (linesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          visibility
+        );
+      }
+
+      setIsFloodPropagationActive(enabled);
+      shouldAnimateFloodPropagationRef.current = enabled;
+
+      // Start or stop animation
+      if (enabled) {
+        setIsFloodPropagationAnimating(true);
+        animateFloodPropagationIntensity();
+      } else {
+        setIsFloodPropagationAnimating(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+      }
+
+      // Force map to repaint
+      mapRef.current.triggerRepaint();
     },
-    [tableData3, rainfallParams]
+    [animateFloodPropagationIntensity]
   );
+
+  // Cleanup animation on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // Synchronize rain effect with state
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (isRainActive) {
+      enableRain(mapRef.current);
+    } else {
+      disableRain(mapRef.current);
+    }
+  }, [isRainActive]);
 
   // Helper function to parse Node_ID and determine source and feature ID
   const parseNodeId = (
@@ -1221,10 +1995,10 @@ export default function SimulationPage() {
       return;
     }
 
-    // If selectedYear is not set (Model 3 scenario), try to extract it from table data
+    // If selectedYear is not set (model 2 scenario), try to extract it from table data
     let yearToUse = selectedYear;
     if (!yearToUse) {
-      // Try to find the year from Model 3 table data
+      // Try to find the year from model 2 table data
       if (tableData3) {
         const nodeData = tableData3.find((node) => node.Node_ID === nodeId);
         if (nodeData && nodeData.YR) {
@@ -1254,7 +2028,7 @@ export default function SimulationPage() {
       return;
     }
 
-    // Step 2: Minimize both tables instead of closing them (Model 2 and Model 3)
+    // Step 2: Minimize both tables instead of closing them (model 1 and model 2)
     setIsTableMinimized(true);
     setIsTable3Minimized(true);
 
@@ -1307,27 +2081,45 @@ export default function SimulationPage() {
     setIsTable3Minimized(false);
   };
 
-  // Cleanup rain effect when component unmounts
+  // Cleanup effects when component unmounts (flood clears automatically with map)
   useEffect(() => {
     return () => {
-      if (mapRef.current && isRainActive) {
+      if (mapRef.current) {
         disableRain(mapRef.current);
       }
     };
-  }, [isRainActive]);
+  }, []);
 
   return (
     <>
-      <main className="relative flex min-h-screen flex-col bg-gray-900">
+      <style>{`
+        html, body {
+          overflow: hidden !important;
+        }
+      `}</style>
+      <main
+        className="relative flex min-h-screen flex-col overflow-hidden"
+        style={{ backgroundColor: '#1e1e1e' }}
+      >
         <div
           className="relative h-screen w-full"
-          style={{ pointerEvents: isSimulationActive ? 'auto' : 'none' }}
+          style={{
+            pointerEvents: isSimulationActive ? 'auto' : 'none',
+            backgroundColor: '#1e1e1e',
+          }}
         >
-          <div ref={mapContainerRef} className="h-full w-full" />
+          <div
+            ref={mapContainerRef}
+            className="h-full w-full"
+            style={{ backgroundColor: '#1e1e1e' }}
+          />
 
           {/* Grey overlay when simulation is not active */}
           {!isSimulationActive && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center"
+              style={{ backgroundColor: '#1e1e1e' }}
+            >
               <div className="text-xl font-medium text-white">
                 Enter Simulation Mode to activate map
               </div>
@@ -1392,6 +2184,8 @@ export default function SimulationPage() {
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
+          isFloodPropagationActive={isFloodPropagationActive}
+          onToggleFloodPropagation={handleToggleFloodPropagation}
           isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls
@@ -1403,8 +2197,8 @@ export default function SimulationPage() {
           onExitSimulation={handleExitSimulation}
         />
 
-        {/* Vulnerability Data Table Overlay (Model 2) */}
-        {/* Vulnerability Data Table Overlay (Model 2) - Only render when NOT minimized */}
+        {/* Vulnerability Data Table Overlay (model 1) */}
+        {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
         {tableData && !isTableMinimized && (
           <div
             className="pointer-events-auto absolute z-20"
@@ -1429,7 +2223,7 @@ export default function SimulationPage() {
           </div>
         )}
 
-        {/* Vulnerability Data Table Overlay (Model 3) - Only render when NOT minimized */}
+        {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
         {tableData3 && !isTable3Minimized && (
           <div
             className="pointer-events-auto absolute z-20"

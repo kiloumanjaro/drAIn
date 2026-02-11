@@ -22,6 +22,7 @@ import {
   Minimize2,
   Maximize2,
   CloudRain,
+  Flame,
 } from 'lucide-react';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -81,6 +82,8 @@ interface Model3Props {
   onOpenNodeSimulation?: (nodeId: string) => void;
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
 }
 
 export const DEFAULT_NODE_PARAMS: NodeParams = {
@@ -130,6 +133,8 @@ export default function Model3({
   onToggleMinimize,
   isRainActive = false,
   onToggleRain,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
 }: Model3Props) {
   //const [rainfallParams, setRainfallParams] = useState<RainfallParams>(
   //  DEFAULT_RAINFALL_PARAMS
@@ -480,6 +485,47 @@ export default function Model3({
                 id="rain-toggle-model3"
                 checked={isRainActive}
                 onCheckedChange={onToggleRain}
+                disabled={!hasTable}
+              />
+            </div>
+          )}
+
+          {/* Flood Propagation Toggle */}
+          {onToggleFloodPropagation && (
+            <div
+              className={`border-border/40 bg-muted/20 flex items-center justify-between rounded-lg border px-3 py-2 ${
+                !hasTable ? 'opacity-50' : ''
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Flame className="text-muted-foreground h-4 w-4" />
+                <Label
+                  htmlFor="heatmap-toggle-model3"
+                  className={`text-sm font-normal ${
+                    hasTable ? 'cursor-pointer' : 'cursor-not-allowed'
+                  }`}
+                >
+                  Flood Propagation
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs text-xs">
+                        {hasTable
+                          ? 'Toggle vulnerability density heatmap showing flood-prone areas'
+                          : 'Generate table first to enable heatmap'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Switch
+                id="heatmap-toggle-model3"
+                checked={isFloodPropagationActive}
+                onCheckedChange={onToggleFloodPropagation}
                 disabled={!hasTable}
               />
             </div>

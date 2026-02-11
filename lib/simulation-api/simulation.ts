@@ -69,8 +69,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_RAILWAY_URL!;
  * @returns Simulation results including flooding summary
  */
 /**
- * Transform Model 3 simulation results to NodeDetails format for vulnerability table
- * @param nodesList - Array of node simulation results from Model 3 API
+ * Transform Model 2 simulation results to NodeDetails format for vulnerability table
+ * @param nodesList - Array of node simulation results from Model 2 API
  * @param rainfallDuration - Duration in hours to approximate year return period
  * @returns Array of NodeDetails for vulnerability table
  */
@@ -98,8 +98,8 @@ export function transformToNodeDetails(
     Node_ID: node.Node,
     Vulnerability_Category: node.Vulnerability_Category,
     Vulnerability_Rank: getVulnerabilityRank(node.Vulnerability_Score),
-    Cluster: 0, // Not provided by Model 3 API
-    Cluster_Score: 0, // Not provided by Model 3 API
+    Cluster: 0, // Not provided by Model 2 API
+    Cluster_Score: 0, // Not provided by Model 2 API
     YR: approximateYR(rainfallDuration),
     Time_Before_Overflow: node.Time_After_Raining_min,
     Hours_Flooded: node.Hours_Flooded,

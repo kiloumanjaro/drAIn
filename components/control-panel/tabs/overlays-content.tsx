@@ -47,6 +47,7 @@ interface OverlayContentProps {
   reports: Report[];
   isSimulationMode?: boolean;
   isFloodScenarioLoading?: boolean;
+  isFloodPropagationLoading?: boolean;
   floodProneAreas?: {
     id: string;
     name: string;
@@ -132,6 +133,7 @@ export default function OverlaysContent({
   reports,
   isSimulationMode = false,
   isFloodScenarioLoading = false,
+  isFloodPropagationLoading = false,
   floodProneAreas = [],
   onToggleFloodProneArea,
 }: OverlayContentProps) {
@@ -195,6 +197,7 @@ export default function OverlaysContent({
           <OverlayLegend
             overlays={overlays}
             onToggleOverlay={onToggleOverlay}
+            isFloodPropagationLoading={isFloodPropagationLoading}
           />
         ),
       },
@@ -336,6 +339,7 @@ export default function OverlaysContent({
       selectedFloodScenario,
       onChangeFloodScenario,
       isFloodScenarioLoading,
+      isFloodPropagationLoading,
       floodProneAreas,
       onToggleFloodProneArea,
     ]

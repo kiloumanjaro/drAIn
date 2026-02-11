@@ -84,7 +84,10 @@ export function ControlPanel({
   onClosePopUps = () => {},
   isRainActive = false,
   onToggleRain,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
   isFloodScenarioLoading = false,
+  isFloodPropagationLoading = false,
 }: ControlPanelProps & { reports: Report[] }) {
   // reports are latest, allReportsData are all
   const router = useRouter();
@@ -367,7 +370,10 @@ export function ControlPanel({
             onOpenNodeSimulation={onOpenNodeSimulation}
             isRainActive={isRainActive}
             onToggleRain={onToggleRain}
+            isFloodPropagationActive={isFloodPropagationActive}
+            onToggleFloodPropagation={onToggleFloodPropagation}
             isFloodScenarioLoading={isFloodScenarioLoading}
+            isFloodPropagationLoading={isFloodPropagationLoading}
           />
         </div>
       </div>

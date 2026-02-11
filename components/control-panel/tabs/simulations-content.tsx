@@ -28,7 +28,7 @@ interface SimulationsContentProps {
   selectedOutlet?: Outlet | null;
   selectedPipe?: Pipe | null;
   selectedDrain?: Drain | null;
-  // Model 2 props
+  // Model 1 props
   selectedYear?: number | null;
   onYearChange?: (year: number | null) => void;
   onGenerateTable?: () => void;
@@ -37,14 +37,14 @@ interface SimulationsContentProps {
   hasTable?: boolean;
   isTableMinimized?: boolean;
   onToggleTableMinimize?: () => void;
-  // Model 3 props
+  // Model 2 props
   onGenerateTable3?: () => void;
   isLoadingTable3?: boolean;
   onCloseTable3?: () => void;
   hasTable3?: boolean;
   isTable3Minimized?: boolean;
   onToggleTable3Minimize?: () => void;
-  // Model3 panel props
+  // Model 2 panel props
   selectedComponentIds?: string[];
   onComponentIdsChange?: (ids: string[]) => void;
   selectedPipeIds?: string[];
@@ -64,6 +64,9 @@ interface SimulationsContentProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  // Heatmap control
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
 }
 
 export default function SimulationsContent({
@@ -104,6 +107,8 @@ export default function SimulationsContent({
   onOpenNodeSimulation,
   isRainActive = false,
   onToggleRain,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
 }: SimulationsContentProps) {
   const [selectedModel, setSelectedModel] = useState<ModelType | null>(null);
   const router = useRouter();
@@ -180,6 +185,8 @@ export default function SimulationsContent({
       onToggleMinimize: onToggleTableMinimize,
       isRainActive,
       onToggleRain,
+      isFloodPropagationActive,
+      onToggleFloodPropagation,
     };
 
     const model3Props = {
@@ -207,6 +214,8 @@ export default function SimulationsContent({
       onOpenNodeSimulation,
       isRainActive,
       onToggleRain,
+      isFloodPropagationActive,
+      onToggleFloodPropagation,
     };
 
     switch (selectedModel) {

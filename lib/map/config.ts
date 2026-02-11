@@ -97,6 +97,15 @@ export const LAYER_COLORS = {
     strokeColor: '#0288d1',
     strokeWidth: 1,
   },
+  report_heatmap: {
+    // Heatmap color gradient from low to high density
+    lowDensity: 'rgba(65, 105, 225, 0.7)', // Blue
+    mediumDensity: 'rgba(0, 191, 255, 0.85)', // Cyan
+    highDensity: 'rgba(255, 255, 0, 0.9)', // Yellow
+    veryHighDensity: 'rgba(255, 140, 0, 0.95)', // Orange
+    peakDensity: 'rgba(220, 20, 60, 1)', // Deep red
+    icon: '#e74c3c', // Red for the toggle icon
+  },
 } as const;
 
 // OVERLAY_CONFIG synchronized with LAYER_COLORS
@@ -123,6 +132,11 @@ export const OVERLAY_CONFIG = [
     id: 'reports-layer',
     name: 'Reports',
     color: '#3F83DB',
+  },
+  {
+    id: 'report_heatmap-layer',
+    name: 'Report Heatmap',
+    color: LAYER_COLORS.report_heatmap.icon,
   },
 ];
 

@@ -113,7 +113,7 @@ export interface ControlPanelProps {
   // Reports refresh
   onRefreshReports?: () => Promise<void>;
   isRefreshingReports?: boolean;
-  // Vulnerability table props (Model 2)
+  // Vulnerability table props (Model 1)
   selectedYear?: number | null;
   onYearChange?: (year: number | null) => void;
   onGenerateTable?: () => void;
@@ -122,14 +122,14 @@ export interface ControlPanelProps {
   hasTable?: boolean;
   isTableMinimized?: boolean;
   onToggleTableMinimize?: () => void;
-  // Model 3 table props
+  // Model 2 table props
   onGenerateTable3?: () => void;
   isLoadingTable3?: boolean;
   onCloseTable3?: () => void;
   hasTable3?: boolean;
   isTable3Minimized?: boolean;
   onToggleTable3Minimize?: () => void;
-  // Model3 panel props
+  // Model 2 panel props
   selectedComponentIds?: string[];
   onComponentIdsChange?: (ids: string[]) => void;
   selectedPipeIds?: string[];
@@ -154,5 +154,9 @@ export interface ControlPanelProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  // Flood Propagation control
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
+  isFloodPropagationLoading?: boolean;
 }

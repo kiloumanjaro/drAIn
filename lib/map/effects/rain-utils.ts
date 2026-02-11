@@ -18,23 +18,16 @@ export function zoomBasedReveal(map: mapboxgl.Map, value: number): number {
  * Enable rain effect on the map using Mapbox's setRain API
  *
  * @param map - Mapbox GL JS map instance
- * @param intensity - Rain intensity (0-1.0), defaults to 1.0. Values are clamped to the valid range.
  */
-export function enableRain(map: mapboxgl.Map, intensity: number = 1.0): void {
+export function enableRain(map: mapboxgl.Map): void {
   if (!map || typeof map.setRain !== 'function') {
-    console.warn(
-      "setRain API is not available. Ensure you're using Mapbox Standard style."
-    );
     return;
   }
-
-  // Clamp intensity to valid range (0-1.0)
-  const clampedIntensity = Math.max(0, Math.min(1.0, intensity));
 
   try {
     map.setRain({
       density: zoomBasedReveal(map, 0.5),
-      intensity: clampedIntensity,
+      intensity: 1.0,
       color: '#a8adbc',
       opacity: 0.7,
       vignette: zoomBasedReveal(map, 1.0),
@@ -60,19 +53,15 @@ export function disableRain(map: mapboxgl.Map): void {
   }
 
   try {
-    map.setRain({
-      density: 0,
-      intensity: 0,
-      color: '#a8adbc',
-      opacity: 0,
-      vignette: 0,
-      'vignette-color': '#464646',
-      direction: [0, 80],
-      'droplet-size': [2.6, 18.2],
-      'distortion-strength': 0,
-      'center-thinning': 0,
-    });
+    map.setRain({ intensity: 0 });
   } catch (error) {
+    // Ignore "Style is not done loading" errors - the rain will still disable
+    if (
+      error instanceof Error &&
+      error.message.includes('Style is not done loading')
+    ) {
+      return;
+    }
     console.error('Error disabling rain effect:', error);
   }
 }

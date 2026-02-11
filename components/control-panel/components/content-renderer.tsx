@@ -118,7 +118,7 @@ interface ContentRendererProps {
   setProfile: (profile: Record<string, unknown>) => void;
   setPublicAvatarUrl: (url: string | null) => void;
 
-  // Vulnerability table props (Model 2)
+  // Vulnerability table props (Model 1)
   selectedYear?: number | null;
   onYearChange?: (year: number | null) => void;
   onGenerateTable?: () => void;
@@ -128,7 +128,7 @@ interface ContentRendererProps {
   isTableMinimized?: boolean;
   onToggleTableMinimize?: () => void;
 
-  // Model 3 table props
+  // Model 2 table props
   onGenerateTable3?: () => void;
   isLoadingTable3?: boolean;
   onCloseTable3?: () => void;
@@ -136,7 +136,7 @@ interface ContentRendererProps {
   isTable3Minimized?: boolean;
   onToggleTable3Minimize?: () => void;
 
-  // Model3 panel props
+  // Model 2 panel props
   selectedComponentIds?: string[];
   onComponentIdsChange?: (ids: string[]) => void;
   selectedPipeIds?: string[];
@@ -158,7 +158,11 @@ interface ContentRendererProps {
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
+  // Flood Propagation control
+  isFloodPropagationActive?: boolean;
+  onToggleFloodPropagation?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
+  isFloodPropagationLoading?: boolean;
 }
 
 export function ContentRenderer({
@@ -240,7 +244,10 @@ export function ContentRenderer({
   allReportsData, // Destructure allReportsData
   isRainActive = false,
   onToggleRain,
+  isFloodPropagationActive = false,
+  onToggleFloodPropagation,
   isFloodScenarioLoading = false,
+  isFloodPropagationLoading = false,
 }: ContentRendererProps) {
   // Check for loading states first
   if (loadingInlets)
@@ -271,6 +278,7 @@ export function ContentRenderer({
           floodProneAreas={floodProneAreas}
           onToggleFloodProneArea={onToggleFloodProneArea}
           isFloodScenarioLoading={isFloodScenarioLoading}
+          isFloodPropagationLoading={isFloodPropagationLoading}
         />
       );
 
@@ -317,6 +325,8 @@ export function ContentRenderer({
           onOpenNodeSimulation={onOpenNodeSimulation}
           isRainActive={isRainActive}
           onToggleRain={onToggleRain}
+          isFloodPropagationActive={isFloodPropagationActive}
+          onToggleFloodPropagation={onToggleFloodPropagation}
         />
       );
 
