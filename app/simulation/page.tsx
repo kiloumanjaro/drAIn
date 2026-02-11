@@ -18,10 +18,7 @@ import {
   transformToNodeDetails,
 } from '@/lib/simulation-api/simulation';
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
-import {
-  enableFlood3D,
-  disableFlood3D,
-} from '@/lib/map/effects/flood-3d-utils';
+import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -137,7 +134,7 @@ export default function SimulationPage() {
     string | null
   >(null);
 
-  // Vulnerability table state (Model 2)
+  // Vulnerability table state (Model 1)
   const [selectedYear, setSelectedYear] = useState<YearOption | null>(null);
   const [tableData, setTableData] = useState<NodeDetails[] | null>(null);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
@@ -153,7 +150,7 @@ export default function SimulationPage() {
     new Map()
   );
 
-  // Model 3 table state
+  // model 1 table state
   const [tableData3, setTableData3] = useState<NodeDetails[] | null>(null);
   const [isLoadingTable3, setIsLoadingTable3] = useState(false);
   const [isTable3Minimized, setIsTable3Minimized] = useState(false);
@@ -264,6 +261,8 @@ export default function SimulationPage() {
       );
       setSelectedFeature(null);
     }
+    // NOTE: We intentionally do NOT disable flood propagation here
+    // to preserve the visualization when navigating back
   };
 
   // Refs for data to avoid stale closures in map click handler
@@ -806,6 +805,28 @@ export default function SimulationPage() {
   const handleControlPanelBack = () => {
     clearSelections();
     setControlPanelTab('simulations');
+
+    // Preserve flood propagation visibility when navigating back
+    // This ensures the visualization remains visible after clearing selections
+    if (mapRef.current && isFloodPropagationActive) {
+      const nodesLayer = mapRef.current.getLayer('flood_propagation-nodes-layer');
+      const linesLayer = mapRef.current.getLayer('flood_propagation-lines-layer');
+
+      if (nodesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-nodes-layer',
+          'visibility',
+          'visible'
+        );
+      }
+      if (linesLayer) {
+        mapRef.current.setLayoutProperty(
+          'flood_propagation-lines-layer',
+          'visibility',
+          'visible'
+        );
+      }
+    }
   };
 
   const handleSelectInlet = (inlet: Inlet) => {
@@ -1505,31 +1526,8 @@ export default function SimulationPage() {
     setTableData3(null);
     setActivePanel(null);
 
-    // Disable 3D flood effect
-    if (mapRef.current && isFlood3DActive) {
-      disableFlood3D(mapRef.current);
-      setIsFlood3DActive(false);
-    }
-
-    // Disable heatmap (both layers)
-    if (mapRef.current && isFloodPropagationActive) {
-      if (mapRef.current.getLayer('flood_propagation-nodes-layer')) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-nodes-layer',
-          'visibility',
-          'none'
-        );
-      }
-      if (mapRef.current.getLayer('flood_propagation-lines-layer')) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-lines-layer',
-          'visibility',
-          'none'
-        );
-      }
-      shouldAnimateFloodPropagationRef.current = false;
-      setIsFloodPropagationActive(false);
-    }
+    // Both 3D flood gradient and flood propagation heatmap persist after closing
+    // This allows viewing results without the table open
   };
   // Vulnerability table handlers
   const handleGenerateTable = async () => {
@@ -1596,7 +1594,7 @@ export default function SimulationPage() {
     }
   };
 
-  // Model 3 table handler
+  // model 1 table handler
   const handleGenerateTable3 = async () => {
     if (selectedComponentIds.length === 0) {
       toast.error('Please select at least one component');
@@ -1703,38 +1701,15 @@ export default function SimulationPage() {
     setTableData(null);
     setIsTableMinimized(false);
 
-    // Disable 3D flood effect
-    if (mapRef.current && isFlood3DActive) {
-      disableFlood3D(mapRef.current);
-      setIsFlood3DActive(false);
-    }
-
-    // Disable heatmap (both layers)
-    if (mapRef.current && isFloodPropagationActive) {
-      if (mapRef.current.getLayer('flood_propagation-nodes-layer')) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-nodes-layer',
-          'visibility',
-          'none'
-        );
-      }
-      if (mapRef.current.getLayer('flood_propagation-lines-layer')) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-lines-layer',
-          'visibility',
-          'none'
-        );
-      }
-      shouldAnimateFloodPropagationRef.current = false;
-      setIsFloodPropagationActive(false);
-    }
+    // Both 3D flood gradient and flood propagation heatmap persist after closing
+    // This allows viewing results without the table open
   };
 
   const handleYearChange = (year: number | null) => {
     setSelectedYear(year as YearOption | null);
   };
 
-  // Model 3 table handlers
+  // model 1 table handlers
   const handleToggleTable3Minimize = () => {
     setIsTable3Minimized(!isTable3Minimized);
   };
@@ -1743,40 +1718,17 @@ export default function SimulationPage() {
     setTableData3(null);
     setIsTable3Minimized(false);
 
-    // Disable 3D flood effect
-    if (mapRef.current && isFlood3DActive) {
-      disableFlood3D(mapRef.current);
-      setIsFlood3DActive(false);
-    }
-
-    // Disable heatmap (both layers)
-    if (mapRef.current && isFloodPropagationActive) {
-      if (mapRef.current.getLayer('flood_propagation-nodes-layer')) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-nodes-layer',
-          'visibility',
-          'none'
-        );
-      }
-      if (mapRef.current.getLayer('flood_propagation-lines-layer')) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-lines-layer',
-          'visibility',
-          'none'
-        );
-      }
-      shouldAnimateFloodPropagationRef.current = false;
-      setIsFloodPropagationActive(false);
-    }
+    // Both 3D flood gradient and flood propagation heatmap persist after closing
+    // This allows viewing results without the table open
   };
 
   // Rain toggle handler
   const handleToggleRain = useCallback(
     (enabled: boolean) => {
       // Determine intensity based on which model is active
-      let intensity = 1.0; // Default for Model2
+      let intensity = 1.0; // Default for Model1
 
-      // If Model3 is active and has rainfall params, use dynamic intensity
+      // If Model2 is active and has rainfall params, use dynamic intensity
       // Map 0-300mm precipitation to 0.3-1.0 intensity range
       if (tableData3 && rainfallParams) {
         const normalized = rainfallParams.total_precip / 300; // 0-1 range
@@ -2069,10 +2021,10 @@ export default function SimulationPage() {
       return;
     }
 
-    // If selectedYear is not set (Model 3 scenario), try to extract it from table data
+    // If selectedYear is not set (model 2 scenario), try to extract it from table data
     let yearToUse = selectedYear;
     if (!yearToUse) {
-      // Try to find the year from Model 3 table data
+      // Try to find the year from model 2 table data
       if (tableData3) {
         const nodeData = tableData3.find((node) => node.Node_ID === nodeId);
         if (nodeData && nodeData.YR) {
@@ -2102,7 +2054,7 @@ export default function SimulationPage() {
       return;
     }
 
-    // Step 2: Minimize both tables instead of closing them (Model 2 and Model 3)
+    // Step 2: Minimize both tables instead of closing them (model 1 and model 2)
     setIsTableMinimized(true);
     setIsTable3Minimized(true);
 
@@ -2155,19 +2107,14 @@ export default function SimulationPage() {
     setIsTable3Minimized(false);
   };
 
-  // Cleanup rain and flood effects when component unmounts
+  // Cleanup effects when component unmounts (flood clears automatically with map)
   useEffect(() => {
     return () => {
       if (mapRef.current) {
-        if (isRainActive) {
-          disableRain(mapRef.current);
-        }
-        if (isFlood3DActive) {
-          disableFlood3D(mapRef.current);
-        }
+        disableRain(mapRef.current);
       }
     };
-  }, [isRainActive, isFlood3DActive]);
+  }, []);
 
   return (
     <>
@@ -2258,8 +2205,8 @@ export default function SimulationPage() {
           onExitSimulation={handleExitSimulation}
         />
 
-        {/* Vulnerability Data Table Overlay (Model 2) */}
-        {/* Vulnerability Data Table Overlay (Model 2) - Only render when NOT minimized */}
+        {/* Vulnerability Data Table Overlay (model 1) */}
+        {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
         {tableData && !isTableMinimized && (
           <div
             className="pointer-events-auto absolute z-20"
@@ -2284,7 +2231,7 @@ export default function SimulationPage() {
           </div>
         )}
 
-        {/* Vulnerability Data Table Overlay (Model 3) - Only render when NOT minimized */}
+        {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
         {tableData3 && !isTable3Minimized && (
           <div
             className="pointer-events-auto absolute z-20"

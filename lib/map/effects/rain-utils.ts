@@ -60,8 +60,18 @@ export function disableRain(map: mapboxgl.Map): void {
     return;
   }
 
-  // Only disable if style is loaded, otherwise silently ignore
+  // If style isn't loaded, wait for it to load before disabling
   if (!map.isStyleLoaded()) {
+    const handleStyleLoad = () => {
+      try {
+        map.setRain({ intensity: 0 });
+        console.log('[Rain] Rain effect disabled (after style load)');
+      } catch (error) {
+        console.error('Error disabling rain effect:', error);
+      }
+      map.off('style.load', handleStyleLoad);
+    };
+    map.on('style.load', handleStyleLoad);
     return;
   }
 

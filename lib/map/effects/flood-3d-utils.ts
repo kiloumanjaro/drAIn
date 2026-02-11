@@ -607,25 +607,18 @@ export function disableFlood3D(map: mapboxgl.Map): void {
 
   console.log('[3D Flood] Disabling gradient flood effect');
 
-  // Remove new gradient layer
+  // Hide the gradient layer instead of removing it
   if (map.getLayer('flood-gradient-layer')) {
-    map.removeLayer('flood-gradient-layer');
+    map.setLayoutProperty('flood-gradient-layer', 'visibility', 'none');
   }
 
-  // Remove old layers for backwards compatibility
+  // Hide old layers for backwards compatibility
   if (map.getLayer('flood-outline-layer')) {
-    map.removeLayer('flood-outline-layer');
+    map.setLayoutProperty('flood-outline-layer', 'visibility', 'none');
   }
   if (map.getLayer('flood-3d-layer')) {
-    map.removeLayer('flood-3d-layer');
+    map.setLayoutProperty('flood-3d-layer', 'visibility', 'none');
   }
-
-  if (map.getSource('flood-3d')) {
-    map.removeSource('flood-3d');
-  }
-
-  // Clear flag
-  delete map.getContainer().dataset.floodActive;
 }
 
 /**
