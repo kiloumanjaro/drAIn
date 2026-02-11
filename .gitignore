@@ -55,3 +55,4 @@ playwright.config.ts
 
 # vscode
 .vscode/
+.env*.local
