@@ -1,14 +1,159 @@
-import type { FeatureCollection } from 'geojson';
+import type {
+  FeatureCollection,
+  Feature,
+  GeoJsonProperties,
+  LineString,
+  Point,
+} from 'geojson';
 import type {
   Inlet,
   Outlet,
   Pipe,
   Drain,
 } from '@/components/control-panel/types';
-import { transformInlets } from '@/hooks/useInlets';
-import { transformOutletGeoJSON } from '@/hooks/useOutlets';
-import { transformGeoJSON as transformPipesGeoJSON } from '@/hooks/usePipes';
-import { transformGeoJSON as transformDrainsGeoJSON } from '@/hooks/useDrain';
+
+/**
+ * Transform raw GeoJSON into typed Inlet objects
+ */
+function transformInlets(geojson: FeatureCollection): Inlet[] {
+  return geojson.features.map((f: Feature) => {
+    const props = f.properties as GeoJsonProperties & {
+      In_Name: string;
+      Inv_Elev: number;
+      MaxDepth: number;
+      Length: number;
+      Height: number;
+      Weir_Coeff: number;
+      In_Type: number;
+      ClogFac: number;
+      ClogTime: number;
+      FPLAIN_080: number;
+    };
+
+    return {
+      id: props.In_Name,
+      Inv_Elev: props.Inv_Elev,
+      MaxDepth: props.MaxDepth,
+      Length: props.Length,
+      Height: props.Height,
+      Weir_Coeff: props.Weir_Coeff,
+      In_Type: props.In_Type,
+      ClogFac: props.ClogFac,
+      ClogTime: props.ClogTime,
+      FPLAIN_080: props.FPLAIN_080,
+      coordinates:
+        f.geometry?.type === 'Point'
+          ? (f.geometry.coordinates as [number, number])
+          : [0, 0],
+    };
+  });
+}
+
+/**
+ * Transform raw GeoJSON into typed Outlet objects
+ */
+function transformOutletGeoJSON(geojson: FeatureCollection): Outlet[] {
+  return geojson.features.map((f: Feature) => {
+    const props = f.properties as GeoJsonProperties & {
+      Out_Name: string;
+      Inv_Elev: number;
+      AllowQ: number;
+      FlapGate: number;
+    };
+
+    const coords =
+      f.geometry?.type === 'Point' ? f.geometry.coordinates : [0, 0];
+
+    return {
+      id: props.Out_Name,
+      Inv_Elev: props.Inv_Elev,
+      AllowQ: props.AllowQ,
+      FlapGate: props.FlapGate,
+      coordinates: coords as [number, number],
+    };
+  });
+}
+
+/**
+ * Transform raw GeoJSON into typed Pipe objects
+ */
+function transformPipesGeoJSON(geojson: FeatureCollection): Pipe[] {
+  return geojson.features.map((f: Feature) => {
+    const props = f.properties as GeoJsonProperties & {
+      Name: string;
+      TYPE: string;
+      Pipe_Shape: string;
+      Pipe_Lngth: number;
+      Height: number;
+      Width: number;
+      Barrels: number;
+      ClogPer: number;
+      ClogTime: number;
+      Mannings: number;
+    };
+
+    const coords =
+      f.geometry && f.geometry.type === 'LineString'
+        ? (f.geometry as LineString).coordinates
+        : [];
+
+    return {
+      id: props.Name,
+      TYPE: props.TYPE,
+      Pipe_Shape: props.Pipe_Shape,
+      Pipe_Lngth: props.Pipe_Lngth,
+      Height: props.Height,
+      Width: props.Width,
+      Barrels: props.Barrels,
+      ClogPer: props.ClogPer,
+      ClogTime: props.ClogTime,
+      Mannings: props.Mannings,
+      coordinates: coords as [number, number][],
+    };
+  });
+}
+
+/**
+ * Transform raw GeoJSON into typed Drain objects
+ */
+function transformDrainsGeoJSON(geojson: FeatureCollection): Drain[] {
+  return geojson.features.map((f: Feature) => {
+    const props = f.properties as GeoJsonProperties & {
+      In_Name: string;
+      InvElev: number;
+      clog_per: number;
+      clogtime: number;
+      Weir_coeff: number;
+      Length: number;
+      Height: number;
+      Max_Depth: number;
+      ClogFac: number;
+      NameNum: number;
+      FPLAIN_080: number;
+    };
+
+    const coords =
+      f.geometry && f.geometry.type === 'Point'
+        ? (f.geometry as Point).coordinates
+        : [0, 0];
+
+    return {
+      id: props.In_Name,
+      In_Name: props.In_Name,
+      InvElev: props.InvElev,
+      clog_per: props.clog_per,
+      clogtime: props.clogtime,
+      Weir_coeff: props.Weir_coeff,
+      Length: props.Length,
+      Height: props.Height,
+      Max_Depth: props.Max_Depth,
+      ClogFac: props.ClogFac,
+      NameNum: props.NameNum,
+      FPLAIN_080: props.FPLAIN_080,
+      coordinates: coords as [number, number],
+    };
+  });
+}
 
 /**
  * Custom error class for GeoJSON fetch failures

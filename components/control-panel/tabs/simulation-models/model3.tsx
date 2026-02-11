@@ -26,9 +26,11 @@ import {
 } from 'lucide-react';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { LoadingScreen } from '@/components/loading-screen';
-import { useInlets } from '@/hooks/useInlets';
-import { useDrain } from '@/hooks/useDrain';
-import { usePipes } from '@/hooks/usePipes';
+import {
+  useInlets,
+  useDrains,
+  usePipes,
+} from '@/lib/query/hooks/useDrainageData';
 import { toast } from 'sonner';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 
@@ -141,10 +143,10 @@ export default function Model3({
   //);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data from hooks
-  const { inlets, loading: inletsLoading } = useInlets();
-  const { drains, loading: drainsLoading } = useDrain();
-  const { pipes, loading: pipesLoading } = usePipes();
+  // Load data from hooks with TanStack Query
+  const { data: inlets = [], isLoading: inletsLoading } = useInlets();
+  const { data: drains = [], isLoading: drainsLoading } = useDrains();
+  const { data: pipes = [], isLoading: pipesLoading } = usePipes();
 
   // Update selected components when external prop changes
   useEffect(() => {

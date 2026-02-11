@@ -1,4 +1,2 @@
-export { usePipes } from './usePipes';
-export { useInlets } from './useInlets';
-export { useOutlets } from './useOutlets';
-export { useDrain } from './useDrain';
+// Old drainage data hooks have been migrated to TanStack Query
+// Import from @/lib/query/hooks/useDrainageData instead
