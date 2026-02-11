@@ -19,15 +19,15 @@ Flood Propagation is an animated heatmap visualization that displays flood risk 
 
 The heatmap uses a blue color gradient representing flood water intensity:
 
-| Density Level | Color | Opacity | Meaning |
-|---|---|---|---|
-| 0% | Transparent | 0.0 | No flood |
-| 15% | Dodger Blue | 0.7 | Low density/early warning |
-| 30% | Strong Blue | 0.8 | Low-moderate flood |
-| 50% | Blue | 0.85 | Moderate flood |
-| 70% | Dark Blue | 0.9 | High flood |
-| 85% | Very Dark Blue | 0.95 | Very high flood |
-| 100% | Navy Blue | 1.0 | Peak flood (fully opaque) |
+| Density Level | Color          | Opacity | Meaning                   |
+| ------------- | -------------- | ------- | ------------------------- |
+| 0%            | Transparent    | 0.0     | No flood                  |
+| 15%           | Dodger Blue    | 0.7     | Low density/early warning |
+| 30%           | Strong Blue    | 0.8     | Low-moderate flood        |
+| 50%           | Blue           | 0.85    | Moderate flood            |
+| 70%           | Dark Blue      | 0.9     | High flood                |
+| 85%           | Very Dark Blue | 0.95    | Very high flood           |
+| 100%          | Navy Blue      | 1.0     | Peak flood (fully opaque) |
 
 ### Dual-Layer Architecture
 
@@ -68,15 +68,15 @@ Subtle coordinate oscillation adds visual interest:
 Visualization adapts to zoom level for optimal visibility:
 
 | Zoom | Node Intensity | Node Radius | Node Opacity | Line Intensity | Line Radius | Line Opacity |
-|---|---|---|---|---|---|---|
-| 0 | 0.4 | 3px | 0.15 | 0.2 | 1px | 0.05 |
-| 7 | - | - | 0.2 | - | - | 0.1 |
-| 10 | - | - | 0.3 | - | - | 0.2 |
-| 12 | 1.0 | 12px | 0.4 | 0.6 | 6px | 0.3 |
-| 13 | 1.8 | 35px | - | 1.2 | 20px | - |
-| 14 | - | - | 0.5 | - | - | 0.45 |
-| 15 | 3.0 | 80px | 0.6 | 2.0 | 60px | 0.55 |
-| 16 | - | - | 0.6 | - | - | 0.55 |
+| ---- | -------------- | ----------- | ------------ | -------------- | ----------- | ------------ |
+| 0    | 0.4            | 3px         | 0.15         | 0.2            | 1px         | 0.05         |
+| 7    | -              | -           | 0.2          | -              | -           | 0.1          |
+| 10   | -              | -           | 0.3          | -              | -           | 0.2          |
+| 12   | 1.0            | 12px        | 0.4          | 0.6            | 6px         | 0.3          |
+| 13   | 1.8            | 35px        | -            | 1.2            | 20px        | -            |
+| 14   | -              | -           | 0.5          | -              | -           | 0.45         |
+| 15   | 3.0            | 80px        | 0.6          | 2.0            | 60px        | 0.55         |
+| 16   | -              | -           | 0.6          | -              | -           | 0.55         |
 
 At lower zooms, the heatmap is subtle and mostly invisible, becoming more prominent as users zoom in for detailed analysis.
 
@@ -142,6 +142,7 @@ Continuously updates features with animation:
 - **Update Scope**: Only updates if features exist
 
 Animation runs until:
+
 - User disables Flood Propagation
 - Simulation changes
 - Page unloads
@@ -155,10 +156,11 @@ Processes simulation data and updates heatmap layers.
 ```typescript
 const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
   // Implementation in app/simulation/page.tsx:1282
-}
+};
 ```
 
 **Process:**
+
 1. Filters nodes with flood volume > 0
 2. Creates node GeoJSON features
 3. Loads and processes pipe network
@@ -167,6 +169,7 @@ const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
 6. Updates both sources with retry logic
 
 **Retry Logic:**
+
 - Maximum 10 retry attempts
 - 300ms delay between retries
 - Ensures map is fully loaded before updating
@@ -178,10 +181,11 @@ Main animation loop for pulsing and wobbling effects.
 ```typescript
 const animateFloodPropagationIntensity = useCallback(() => {
   // Implementation in app/simulation/page.tsx:1720
-}, [])
+}, []);
 ```
 
 **Key Features:**
+
 - Throttled to ~20fps (50ms intervals)
 - Uses `requestAnimationFrame` for smooth animation
 - Updates both node and line sources
@@ -205,17 +209,22 @@ const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
 Controls visibility and animation state.
 
 ```typescript
-const handleToggleFloodPropagation = useCallback((enabled: boolean) => {
-  // Implementation in app/simulation/page.tsx:1832
-}, [animateFloodPropagationIntensity])
+const handleToggleFloodPropagation = useCallback(
+  (enabled: boolean) => {
+    // Implementation in app/simulation/page.tsx:1832
+  },
+  [animateFloodPropagationIntensity]
+);
 ```
 
 **When Enabled:**
+
 - Shows both heatmap layers
 - Starts animation loop
 - Sets animation ref flag
 
 **When Disabled:**
+
 - Hides both layers (visibility: 'none')
 - Cancels animation loop
 - Clears animation frame
@@ -228,7 +237,8 @@ const handleToggleFloodPropagation = useCallback((enabled: boolean) => {
 
 ```typescript
 const [isFloodPropagationActive, setIsFloodPropagationActive] = useState(true);
-const [isFloodPropagationAnimating, setIsFloodPropagationAnimating] = useState(false);
+const [isFloodPropagationAnimating, setIsFloodPropagationAnimating] =
+  useState(false);
 ```
 
 ### Refs (Performance Optimization)
@@ -266,21 +276,25 @@ useEffect(() => {
 ## Performance Characteristics
 
 ### Feature Counts
+
 - **Typical Node Points**: 50-500 flooded nodes
 - **Typical Line Sample Points**: 500-2000+ sampled from pipe network
 - **Total Features Per Update**: 500-2500 features
 
 ### Update Frequency
+
 - **Animation Loop**: ~20 updates per second
 - **Source Update Cost**: O(n) where n = feature count
 - **Throttling**: Prevents excessive updates
 
 ### Memory Usage
+
 - **Node Features**: ~0.5KB per feature in refs
 - **Line Features**: ~0.5KB per feature in refs
 - **Typical Memory**: 250KB-1.5MB for full feature set
 
 ### Browser Performance
+
 - **Canvas Rendering**: Handled by Mapbox GL JS
 - **GPU Acceleration**: Modern browsers provide GLSL rendering
 - **CPU Overhead**: Minimal with proper throttling
@@ -323,24 +337,28 @@ const pulseAmount = 0.35;      // 35% depth
 ## Common Issues & Troubleshooting
 
 ### Heatmap not visible
+
 - Check if `isFloodPropagationActive` is true
 - Verify features are being generated: Check console logs for `[Flood Propagation]` messages
 - Ensure vulnerability data exists: `vulnerabilityData.length > 0`
 - Check layer visibility: `map.getLayer('flood_propagation-nodes-layer').layout.visibility`
 
 ### Animation stuttering or jerky
+
 - Check browser tab performance: Other tabs consuming resources?
 - Verify throttling is working: Should be 50ms minimum between updates
 - Monitor feature count: If > 10,000 features, consider filtering
 - Check animation frame ref: Ensure no duplicate animation loops
 
 ### Colors not showing expected intensity
+
 - Verify heatmap-weight calculations are correct
 - Check pulse multiplier is between 0.65-1.0
 - Ensure vulnerability categories match expected values
 - Test with known flood nodes
 
 ### Memory leaks
+
 - Verify animation frame is cancelled on disable: `cancelAnimationFrame()`
 - Check refs are cleared on unmount
 - Ensure listeners are removed

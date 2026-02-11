@@ -39,23 +39,23 @@ if (vulnerabilityData) {
 
 ```typescript
 // User can toggle each visualization independently
-handleToggleFloodPropagation(true);   // Show/hide heatmap
-toggleFlood3D(mapRef.current, true);  // Show/hide 3D lines
-handleToggleRain(true);                // Show/hide rain
+handleToggleFloodPropagation(true); // Show/hide heatmap
+toggleFlood3D(mapRef.current, true); // Show/hide 3D lines
+handleToggleRain(true); // Show/hide rain
 ```
 
 ## Feature Comparison
 
-| Feature | 3D Lines | Flood Propagation | Rain Effect |
-|---|---|---|---|
-| **Type** | Gradient lines | Heatmap | Weather simulation |
-| **Primary Use** | Show flood paths | Show flood intensity | Environmental context |
-| **Data Input** | Node categories | Node flood volumes | Constant animation |
-| **Update Frequency** | Once per simulation | Continuous (~20fps) | GPU-accelerated |
-| **Zoom Dependent** | Visible at all zooms | More intense at zoom 12+ | Hidden until zoom 10 |
-| **Interactive** | User can enable/disable | User can enable/disable | User can enable/disable |
-| **Performance Impact** | Low | Low-Medium | Negligible |
-| **GPU Required** | No | No | Yes |
+| Feature                | 3D Lines                | Flood Propagation        | Rain Effect             |
+| ---------------------- | ----------------------- | ------------------------ | ----------------------- |
+| **Type**               | Gradient lines          | Heatmap                  | Weather simulation      |
+| **Primary Use**        | Show flood paths        | Show flood intensity     | Environmental context   |
+| **Data Input**         | Node categories         | Node flood volumes       | Constant animation      |
+| **Update Frequency**   | Once per simulation     | Continuous (~20fps)      | GPU-accelerated         |
+| **Zoom Dependent**     | Visible at all zooms    | More intense at zoom 12+ | Hidden until zoom 10    |
+| **Interactive**        | User can enable/disable | User can enable/disable  | User can enable/disable |
+| **Performance Impact** | Low                     | Low-Medium               | Negligible              |
+| **GPU Required**       | No                      | No                       | Yes                     |
 
 ## Layer Architecture
 
@@ -76,6 +76,7 @@ handleToggleRain(true);                // Show/hide rain
 ```
 
 This carefully ordered stack ensures:
+
 - Heatmaps render below infrastructure for context
 - 3D lines appear above heatmap for clarity
 - Infrastructure remains on top for interaction
@@ -127,6 +128,7 @@ Vulnerability Data Generated
 Each visualization uses different node properties:
 
 **3D Lines:**
+
 ```json
 {
   "Node_ID": "string",
@@ -136,6 +138,7 @@ Each visualization uses different node properties:
 ```
 
 **Flood Propagation:**
+
 ```json
 {
   "Node_ID": "string",
@@ -147,6 +150,7 @@ Each visualization uses different node properties:
 ```
 
 **Rain Effect:**
+
 ```
 No data properties - constant environmental effect
 ```
@@ -156,6 +160,7 @@ No data properties - constant environmental effect
 ### Color Schemes
 
 **3D Lines Color Gradient:**
+
 ```typescript
 // Edit getFloodColorRGB() in flood-3d-utils.ts
 High Risk:    'rgb(211, 47, 47)'     // Red
@@ -165,6 +170,7 @@ No Risk:      'rgb(56, 142, 60)'     // Green
 ```
 
 **Flood Propagation Heatmap:**
+
 ```typescript
 // Edit heatmapColor in app/simulation/page.tsx (line 389)
 0.15: 'rgba(30, 144, 255, 0.7)'    // Dodger Blue - low
@@ -173,6 +179,7 @@ No Risk:      'rgb(56, 142, 60)'     // Green
 ```
 
 **Rain Effect:**
+
 ```typescript
 // Edit enableRain() in lib/map/effects/rain-utils.ts
 color: '#a8adbc'              // Rain color
@@ -182,25 +189,28 @@ color: '#a8adbc'              // Rain color
 ### Animation Parameters
 
 **3D Lines Animation:**
+
 ```typescript
 // In enableFlood3D() call
 enableFlood3D(map, data, inlets, drains, {
   animate: true,
-  animationDuration: 3000  // ms for fade-in
+  animationDuration: 3000, // ms for fade-in
 });
 ```
 
 **Flood Propagation Pulsing:**
+
 ```typescript
 // In app/simulation/page.tsx (line 1748-1750)
-const pulseSpeed = 0.3;      // Cycles per second
-const pulseAmount = 0.35;    // Oscillation depth
+const pulseSpeed = 0.3; // Cycles per second
+const pulseAmount = 0.35; // Oscillation depth
 ```
 
 **Flood Propagation Wobble:**
+
 ```typescript
 // In updateFloodPropagation() (line 1323)
-offsetDistance: Math.random() * 0.00009  // ~9 meters max
+offsetDistance: Math.random() * 0.00009; // ~9 meters max
 ```
 
 ## Performance Optimization
@@ -239,13 +249,13 @@ Total Peak:           <5MB typical
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|---|---|---|
-| Visualizations not appearing | Style not loaded | Wait for `map.isStyleLoaded()` |
-| Gradient colors wrong | Bad RGB values | Check `getFloodColorRGB()` |
-| Heatmap stuttering | Too many features | Filter or reduce node count |
-| Rain not visible | Wrong style or zoom < 10 | Check style name and zoom |
-| Memory leak | Animation not cancelled | Verify `cancelAnimationFrame()` called |
+| Issue                        | Cause                    | Solution                               |
+| ---------------------------- | ------------------------ | -------------------------------------- |
+| Visualizations not appearing | Style not loaded         | Wait for `map.isStyleLoaded()`         |
+| Gradient colors wrong        | Bad RGB values           | Check `getFloodColorRGB()`             |
+| Heatmap stuttering           | Too many features        | Filter or reduce node count            |
+| Rain not visible             | Wrong style or zoom < 10 | Check style name and zoom              |
+| Memory leak                  | Animation not cancelled  | Verify `cancelAnimationFrame()` called |
 
 ### Debug Commands
 
@@ -260,7 +270,7 @@ const nodeSource = mapRef.current.getSource('flood_propagation_nodes');
 console.log(nodeSource._data.features.length);
 
 // Check animation frame status
-console.log(animationFrameRef.current);  // Should be null when stopped
+console.log(animationFrameRef.current); // Should be null when stopped
 ```
 
 ## Best Practices
@@ -268,18 +278,21 @@ console.log(animationFrameRef.current);  // Should be null when stopped
 ### When to Use Each Visualization
 
 **Use 3D Lines when:**
+
 - Showing flood propagation paths
 - Emphasizing connections between nodes
 - Displaying category-based risk assessment
 - Highlighting pipe-to-pipe flood spread
 
 **Use Flood Propagation when:**
+
 - Showing flood intensity distribution
 - Displaying dynamic animated effects
 - Comparing intensity between nodes
 - Providing detailed node-level information
 
 **Use Rain Effect when:**
+
 - Adding environmental storytelling
 - Contextualizing the flood event
 - Showing what caused the simulation
@@ -288,24 +301,27 @@ console.log(animationFrameRef.current);  // Should be null when stopped
 ### Recommended Configurations
 
 **Overview Mode (Zoom 8-11):**
+
 ```typescript
-isFloodPropagationActive: false   // Heatmap too subtle
-toggleFlood3D(map, true)           // 3D lines visible
-enableRain(map, 0.5)               // Light rain
+isFloodPropagationActive: false; // Heatmap too subtle
+toggleFlood3D(map, true); // 3D lines visible
+enableRain(map, 0.5); // Light rain
 ```
 
 **Detailed Analysis (Zoom 12-15):**
+
 ```typescript
-isFloodPropagationActive: true    // Heatmap prominent
-toggleFlood3D(map, true)          // 3D lines detailed
-enableRain(map, 0.8)              // Rain visible
+isFloodPropagationActive: true; // Heatmap prominent
+toggleFlood3D(map, true); // 3D lines detailed
+enableRain(map, 0.8); // Rain visible
 ```
 
 **Planning Mode (Zoom 16+):**
+
 ```typescript
-isFloodPropagationActive: true    // Full intensity
-toggleFlood3D(map, true)          // All details visible
-enableRain(map, 1.0)              // Maximum rain
+isFloodPropagationActive: true; // Full intensity
+toggleFlood3D(map, true); // All details visible
+enableRain(map, 1.0); // Maximum rain
 ```
 
 ## Related Documentation
@@ -319,18 +335,21 @@ enableRain(map, 1.0)              // Maximum rain
 ## Future Roadmap
 
 ### Short-term Enhancements
+
 1. Custom color palette selector
 2. Animation speed controls
 3. Opacity adjustment sliders
 4. Feature filtering by risk level
 
 ### Medium-term Features
+
 1. Time-series animation (flood progression over time)
 2. Side-by-side comparison views
 3. Animation playback/scrubbing
 4. Data export functionality
 
 ### Long-term Vision
+
 1. 3D elevation rendering of flood surfaces
 2. Volumetric flood water visualization
 3. Real-time flow direction arrows
@@ -360,6 +379,7 @@ Consider disabling heatmap animation on low-end devices
 ## Browser Support
 
 All visualization features are supported in:
+
 - Chrome 90+
 - Firefox 88+
 - Safari 14+

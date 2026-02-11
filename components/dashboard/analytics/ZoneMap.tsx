@@ -128,7 +128,8 @@ export default function ZoneMap({
 
   // Add layers once map is ready and data is available
   useEffect(() => {
-    if (!map.current || !mapReady || !geoJsonData || layersAdded.current) return;
+    if (!map.current || !mapReady || !geoJsonData || layersAdded.current)
+      return;
 
     // Mark layers as added to prevent duplicate additions
     layersAdded.current = true;
@@ -328,15 +329,7 @@ export default function ZoneMap({
           'circle-stroke-color': 'white',
           'circle-stroke-width': 2,
           // Transition from heatmap to circle layer
-          'circle-opacity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            7,
-            0,
-            15,
-            1,
-          ],
+          'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 15, 1],
         },
       },
       'waterway-label'
@@ -425,7 +418,10 @@ export default function ZoneMap({
     if (!map.current || !geoJsonData || !layersAdded.current) return;
 
     // Check if map and source are ready
-    if (!map.current.isStyleLoaded() || !map.current.getSource('heatmap-source')) {
+    if (
+      !map.current.isStyleLoaded() ||
+      !map.current.getSource('heatmap-source')
+    ) {
       return;
     }
 

@@ -114,10 +114,11 @@ function createFloodAlongPipes(
   floodData: NodeDetails[],
   nodeCoordinates: NodeCoordinates[],
   pipes: PipeFeature[]
-): GeoJSON.FeatureCollection
+): GeoJSON.FeatureCollection;
 ```
 
 **Parameters:**
+
 - `floodData`: Array of node flood metrics with vulnerability categories
 - `nodeCoordinates`: Mapping of node IDs to their [lng, lat] coordinates
 - `pipes`: GeoJSON pipe features with geometry and properties
@@ -125,6 +126,7 @@ function createFloodAlongPipes(
 **Returns:** GeoJSON FeatureCollection with line segments ready for Mapbox rendering
 
 **Key Properties in Features:**
+
 - `color`: Interpolated RGB color string
 - `floodVolume`: Average flood volume for width calculation
 - `startNodeId` / `endNodeId`: Reference node IDs
@@ -145,10 +147,11 @@ async function enableFlood3D(
     animate?: boolean;
     animationDuration?: number;
   }
-): Promise<void>
+): Promise<void>;
 ```
 
 **Parameters:**
+
 - `map`: Mapbox GL JS map instance
 - `floodData`: Vulnerability data from simulation
 - `inlets`: Inlet node coordinates
@@ -159,6 +162,7 @@ async function enableFlood3D(
   - `animationDuration`: Animation duration in ms (default: 3000)
 
 **Process:**
+
 1. Loads pipe GeoJSON from `/drainage/man_pipes.geojson`
 2. Calls `createFloodAlongPipes()` to generate features
 3. Creates Mapbox GeoJSON source and layer
@@ -170,10 +174,11 @@ async function enableFlood3D(
 Removes all flood visualization from the map.
 
 ```typescript
-function disableFlood3D(map: mapboxgl.Map): void
+function disableFlood3D(map: mapboxgl.Map): void;
 ```
 
 Clears:
+
 - `flood-gradient-layer` layer
 - `flood-3d` source
 - Associated legacy layers/sources (backwards compatibility)
@@ -183,7 +188,7 @@ Clears:
 Shows or hides the flood visualization.
 
 ```typescript
-function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void
+function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void;
 ```
 
 Changes layer visibility without removing source/features, allowing quick toggling.
@@ -195,7 +200,7 @@ Changes layer visibility without removing source/features, allowing quick toggli
 if (floodData && isFlood3DActive) {
   await enableFlood3D(mapRef.current, floodData, inlets, drains, {
     animate: true,
-    animationDuration: 3000
+    animationDuration: 3000,
   });
 }
 
@@ -238,17 +243,20 @@ For very large networks (10,000+ pipes):
 ## Common Issues & Troubleshooting
 
 ### Lines not appearing
+
 - Verify pipe data is loaded: Check `/drainage/man_pipes.geojson`
 - Ensure flooded nodes exist: Check `floodData` array is not empty
 - Verify both pipe endpoints are near flooded nodes (strict matching requirement)
 - Check layer visibility: `map.getLayer('flood-gradient-layer').layout.visibility`
 
 ### Lines appearing in wrong colors
+
 - Verify vulnerability categories match expected values: 'High Risk', 'Medium Risk', 'Low Risk', 'No Risk'
 - Check color interpolation logic in `getFloodColorRGB()`
 - Ensure data isn't malformed
 
 ### Performance issues
+
 - Check if too many features (>10,000 segments) are being created
 - Monitor network requests for `/drainage/man_pipes.geojson`
 - Check browser console for rendering performance warnings

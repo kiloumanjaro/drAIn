@@ -122,7 +122,7 @@ export function OverlayLegend({
                   }}
                 >
                   {showLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
                   ) : (
                     <Switch
                       checked={overlay.visible}

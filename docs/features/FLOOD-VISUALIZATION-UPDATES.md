@@ -9,9 +9,11 @@ Complete terminology update and comprehensive documentation for the flood visual
 ### Code Changes
 
 #### Terminology Replacement
+
 All references to "vulnerability heatmap" have been systematically replaced with "Flood Propagation":
 
 **Files Modified:**
+
 1. `app/simulation/page.tsx` - 159 replacements
 2. `components/control-panel/index.tsx` - 2 replacements
 3. `components/control-panel/types.ts` - 4 replacements
@@ -19,30 +21,32 @@ All references to "vulnerability heatmap" have been systematically replaced with
 
 **Specific Updates:**
 
-| Category | Old Name | New Name |
-|----------|----------|----------|
-| **Layer IDs** | vulnerability_heatmap_nodes | flood_propagation_nodes |
-| | vulnerability_heatmap_lines | flood_propagation_lines |
-| | vulnerability_heatmap-nodes-layer | flood_propagation-nodes-layer |
-| | vulnerability_heatmap-lines-layer | flood_propagation-lines-layer |
-| **State Variables** | isHeatmapActive | isFloodPropagationActive |
-| | isHeatmapAnimating | isFloodPropagationAnimating |
-| **Refs** | nodeHeatmapFeaturesRef | nodeFloodPropagationFeaturesRef |
-| | lineHeatmapFeaturesRef | lineFloodPropagationFeaturesRef |
-| | shouldAnimateHeatmapRef | shouldAnimateFloodPropagationRef |
-| **Functions** | updateVulnerabilityHeatmap() | updateFloodPropagation() |
-| | handleToggleHeatmap() | handleToggleFloodPropagation() |
-| | animateHeatmapIntensity() | animateFloodPropagationIntensity() |
-| **Component Props** | isHeatmapActive | isFloodPropagationActive |
-| | onToggleHeatmap | onToggleFloodPropagation |
-| | isHeatmapLoading | isFloodPropagationLoading |
+| Category            | Old Name                          | New Name                           |
+| ------------------- | --------------------------------- | ---------------------------------- |
+| **Layer IDs**       | vulnerability_heatmap_nodes       | flood_propagation_nodes            |
+|                     | vulnerability_heatmap_lines       | flood_propagation_lines            |
+|                     | vulnerability_heatmap-nodes-layer | flood_propagation-nodes-layer      |
+|                     | vulnerability_heatmap-lines-layer | flood_propagation-lines-layer      |
+| **State Variables** | isHeatmapActive                   | isFloodPropagationActive           |
+|                     | isHeatmapAnimating                | isFloodPropagationAnimating        |
+| **Refs**            | nodeHeatmapFeaturesRef            | nodeFloodPropagationFeaturesRef    |
+|                     | lineHeatmapFeaturesRef            | lineFloodPropagationFeaturesRef    |
+|                     | shouldAnimateHeatmapRef           | shouldAnimateFloodPropagationRef   |
+| **Functions**       | updateVulnerabilityHeatmap()      | updateFloodPropagation()           |
+|                     | handleToggleHeatmap()             | handleToggleFloodPropagation()     |
+|                     | animateHeatmapIntensity()         | animateFloodPropagationIntensity() |
+| **Component Props** | isHeatmapActive                   | isFloodPropagationActive           |
+|                     | onToggleHeatmap                   | onToggleFloodPropagation           |
+|                     | isHeatmapLoading                  | isFloodPropagationLoading          |
 
 ### Documentation Created
 
 #### 1. 3D Lines Documentation
+
 **File:** `docs/features/3d-lines.md` (8.4 KB)
 
 Comprehensive guide to the gradient-colored flood propagation visualization:
+
 - Gradient color system (Red→Orange→Yellow→Green)
 - Line width and opacity scaling based on flood volume
 - Complete algorithmic explanation of how pipes are processed
@@ -54,9 +58,11 @@ Comprehensive guide to the gradient-colored flood propagation visualization:
 - Future enhancement suggestions
 
 #### 2. Flood Propagation (Heatmap) Documentation
+
 **File:** `docs/features/flood-propagation.md` (11.3 KB)
 
 Complete guide to the animated heatmap visualization:
+
 - Color gradient system with detailed reference table
 - Dual-layer architecture (nodes and lines)
 - Pulsing animation mechanics (0.3 cycles/second, 35% depth)
@@ -71,9 +77,11 @@ Complete guide to the animated heatmap visualization:
 - Advanced troubleshooting guide
 
 #### 3. Rain Effect Documentation
+
 **File:** `docs/features/rain-effect.md` (12 KB)
 
 Complete guide to the weather visualization effect:
+
 - Zoom-based visibility system (hidden below zoom 10)
 - Configurable intensity (0.0-1.0)
 - Visual parameters (color, opacity, vignette, droplet size, distortion)
@@ -89,9 +97,11 @@ Complete guide to the weather visualization effect:
 - Future enhancement roadmap
 
 #### 4. Visualization Suite Master Documentation
+
 **File:** `docs/features/VISUALIZATION-SUITE.md` (11 KB)
 
 Comprehensive guide covering all three visualizations together:
+
 - Overview of the three-part visualization system
 - Quick start guide with code examples
 - Feature comparison table
@@ -111,6 +121,7 @@ Comprehensive guide covering all three visualizations together:
 ## File Locations
 
 ### Documentation Files
+
 ```
 docs/features/
 ├── 3d-lines.md                    (Gradient flood propagation)
@@ -121,6 +132,7 @@ docs/features/
 ```
 
 ### Modified Source Files
+
 ```
 app/simulation/page.tsx
 components/control-panel/index.tsx
@@ -131,12 +143,14 @@ lib/map/effects/flood-3d-utils.ts
 ## Verification Results
 
 ✅ **Terminology Replacement:**
+
 - Total replacements made: 170+
 - Files verified: 4
 - Broken references: 0
 - TypeScript compilation: All errors resolved
 
 ✅ **Documentation Quality:**
+
 - Total lines written: ~1,380
 - Code examples: 15+
 - Reference tables: 8
@@ -145,6 +159,7 @@ lib/map/effects/flood-3d-utils.ts
 - Cross-references: All links verified
 
 ✅ **Testing:**
+
 - Layer rendering order: Verified
 - Animation functionality: Verified
 - State synchronization: Verified
@@ -153,6 +168,7 @@ lib/map/effects/flood-3d-utils.ts
 ## Key Features Documented
 
 ### 3D Lines (Gradient Flood Propagation)
+
 - Visualizes flood paths through pipe network
 - Color-coded by vulnerability category
 - Width scaled by flood volume
@@ -160,6 +176,7 @@ lib/map/effects/flood-3d-utils.ts
 - Fade-in animation on enable
 
 ### Flood Propagation (Heatmap)
+
 - Animated intensity heatmap
 - Dual-layer (nodes and lines)
 - Pulsing effect (0.3 Hz sine wave)
@@ -168,6 +185,7 @@ lib/map/effects/flood-3d-utils.ts
 - ~20 FPS throttled updates
 
 ### Rain Effect
+
 - Environmental weather visualization
 - Zoom-triggered visibility (starts at zoom 10)
 - Configurable intensity (0-1.0)
@@ -177,18 +195,21 @@ lib/map/effects/flood-3d-utils.ts
 ## How to Use This Documentation
 
 ### For Development
+
 1. **Quick Start:** Read [VISUALIZATION-SUITE.md](./VISUALIZATION-SUITE.md) for overview
 2. **Specific Feature:** Read individual feature files (3d-lines.md, flood-propagation.md, rain-effect.md)
 3. **API Usage:** Check "API Reference" sections in each file
 4. **Troubleshooting:** Jump to "Troubleshooting Guide" section when issues arise
 
 ### For Customization
+
 1. **Colors:** See "Configuration Options" in each feature doc
 2. **Animation:** See "Configuration Parameters" sections
 3. **Performance:** See "Performance Characteristics" and "Optimization Techniques"
 4. **Zoom Levels:** See zoom-dependent tables in feature documentation
 
 ### For Integration
+
 1. **Typical Flow:** See "Quick Start" in VISUALIZATION-SUITE.md
 2. **Data Flow:** See "Data Flow" diagrams in feature docs
 3. **State Management:** See "State Management" sections
@@ -197,6 +218,7 @@ lib/map/effects/flood-3d-utils.ts
 ## Breaking Changes for Users
 
 **No breaking changes for end users.** The terminology update is internal:
+
 - All UI labels remain unchanged
 - Functionality is identical
 - User experience is unchanged
@@ -204,6 +226,7 @@ lib/map/effects/flood-3d-utils.ts
 - Data formats unchanged
 
 **Breaking changes for developers:**
+
 - Function names changed in source code
 - State variable names changed
 - Layer IDs changed (must update any custom integrations)
@@ -228,11 +251,13 @@ const nodeLayer = map.getLayer('flood_propagation-nodes-layer');
 ## Performance Impact
 
 ### Code Changes
+
 - **Memory:** Negligible impact (same data structures)
 - **Speed:** No change in execution speed
 - **Rendering:** No change in visual performance
 
 ### Documentation
+
 - **Build Time:** No impact (documentation is not compiled)
 - **Bundle Size:** No impact (documentation separate from code)
 - **Deployment:** No impact on production builds
@@ -257,12 +282,14 @@ const nodeLayer = map.getLayer('flood_propagation-nodes-layer');
 ## Future Work
 
 ### Planned Enhancements
+
 - Time-series animation of flood progression
 - Custom color palette selector
 - Animation speed controls
 - Feature filtering by risk level
 
 ### Long-term Vision
+
 - 3D volumetric flood visualization
 - Real-time sensor integration
 - AR/VR flood visualization
@@ -271,6 +298,7 @@ const nodeLayer = map.getLayer('flood_propagation-nodes-layer');
 ## Questions or Issues?
 
 For questions about:
+
 - **Terminology changes:** See [VISUALIZATION-SUITE.md](./VISUALIZATION-SUITE.md)
 - **3D Lines functionality:** See [3d-lines.md](./3d-lines.md)
 - **Flood Propagation heatmap:** See [flood-propagation.md](./flood-propagation.md)
@@ -279,16 +307,16 @@ For questions about:
 
 ## Summary Statistics
 
-| Metric | Count |
-|--------|-------|
-| Files Modified | 4 |
-| Code Replacements | 170+ |
-| Documentation Files Created | 4 |
+| Metric                      | Count  |
+| --------------------------- | ------ |
+| Files Modified              | 4      |
+| Code Replacements           | 170+   |
+| Documentation Files Created | 4      |
 | Documentation Lines Written | ~1,380 |
-| Reference Tables | 8 |
-| Code Examples | 15+ |
-| API Functions Documented | 10 |
-| Troubleshooting Scenarios | 20+ |
+| Reference Tables            | 8      |
+| Code Examples               | 15+    |
+| API Functions Documented    | 10     |
+| Troubleshooting Scenarios   | 20+    |
 
 ---
 

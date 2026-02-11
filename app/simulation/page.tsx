@@ -808,8 +808,12 @@ export default function SimulationPage() {
     // Preserve flood propagation visibility when navigating back
     // This ensures the visualization remains visible after clearing selections
     if (mapRef.current && isFloodPropagationActive) {
-      const nodesLayer = mapRef.current.getLayer('flood_propagation-nodes-layer');
-      const linesLayer = mapRef.current.getLayer('flood_propagation-lines-layer');
+      const nodesLayer = mapRef.current.getLayer(
+        'flood_propagation-nodes-layer'
+      );
+      const linesLayer = mapRef.current.getLayer(
+        'flood_propagation-lines-layer'
+      );
 
       if (nodesLayer) {
         mapRef.current.setLayoutProperty(
@@ -1712,12 +1716,9 @@ export default function SimulationPage() {
   };
 
   // Rain toggle handler
-  const handleToggleRain = useCallback(
-    (enabled: boolean) => {
-      setIsRainActive(enabled);
-    },
-    []
-  );
+  const handleToggleRain = useCallback((enabled: boolean) => {
+    setIsRainActive(enabled);
+  }, []);
 
   // Flood Propagation animation - per-point varied pulsing + position wobbling
   const animateFloodPropagationIntensity = useCallback(() => {
@@ -1870,7 +1871,6 @@ export default function SimulationPage() {
         return;
       }
 
-
       const visibility = enabled ? 'visible' : 'none';
 
       // Toggle both Flood Propagation layers
@@ -1906,7 +1906,6 @@ export default function SimulationPage() {
 
       // Force map to repaint
       mapRef.current.triggerRepaint();
-
     },
     [animateFloodPropagationIntensity]
   );
@@ -2098,16 +2097,29 @@ export default function SimulationPage() {
           overflow: hidden !important;
         }
       `}</style>
-      <main className="relative flex min-h-screen flex-col overflow-hidden" style={{ backgroundColor: '#1e1e1e' }}>
+      <main
+        className="relative flex min-h-screen flex-col overflow-hidden"
+        style={{ backgroundColor: '#1e1e1e' }}
+      >
         <div
           className="relative h-screen w-full"
-          style={{ pointerEvents: isSimulationActive ? 'auto' : 'none', backgroundColor: '#1e1e1e' }}
+          style={{
+            pointerEvents: isSimulationActive ? 'auto' : 'none',
+            backgroundColor: '#1e1e1e',
+          }}
         >
-          <div ref={mapContainerRef} className="h-full w-full" style={{ backgroundColor: '#1e1e1e' }} />
+          <div
+            ref={mapContainerRef}
+            className="h-full w-full"
+            style={{ backgroundColor: '#1e1e1e' }}
+          />
 
           {/* Grey overlay when simulation is not active */}
           {!isSimulationActive && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ backgroundColor: '#1e1e1e' }}>
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center"
+              style={{ backgroundColor: '#1e1e1e' }}
+            >
               <div className="text-xl font-medium text-white">
                 Enter Simulation Mode to activate map
               </div>

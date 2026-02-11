@@ -62,7 +62,9 @@ export function NavMain({
                   <SidebarMenuButton
                     tooltip={item.title}
                     isActive={active}
-                    className={active ? 'bg-transparent hover:bg-sidebar-accent' : ''}
+                    className={
+                      active ? 'hover:bg-sidebar-accent bg-transparent' : ''
+                    }
                     onClick={(e) => item.url && handleNavClick(e, item.url)}
                   >
                     {item.icon && (

@@ -30,6 +30,7 @@ return factor * value;
 ```
 
 **Zoom Reveal Timeline:**
+
 - Zoom < 10: Rain completely hidden
 - Zoom 10-15: Gradual reveal (0% → 100%)
 - Zoom > 15: Fully visible
@@ -53,17 +54,17 @@ Intensity is automatically clamped to valid range, preventing invalid values.
 
 The rain effect includes multiple visual characteristics that work together:
 
-| Parameter | Value | Effect |
-|---|---|---|
-| Density | Zoom-scaled 0.5 | Rain droplet concentration |
-| Color | #a8adbc | Light gray matching precipitation |
-| Opacity | 0.7 | Semi-transparent for visibility through effect |
-| Vignette | Zoom-scaled 1.0 | Darkened edges for depth |
-| Vignette Color | #464646 | Dark gray for edge dimming |
-| Direction | [0, 80] | Rain falls slightly forward-facing |
-| Droplet Size | [2.6, 18.2] | Varies from small to large drops |
-| Distortion | 0.7 | Lens distortion effect strength |
-| Center Thinning | 0 | Rain visible across entire screen |
+| Parameter       | Value           | Effect                                         |
+| --------------- | --------------- | ---------------------------------------------- |
+| Density         | Zoom-scaled 0.5 | Rain droplet concentration                     |
+| Color           | #a8adbc         | Light gray matching precipitation              |
+| Opacity         | 0.7             | Semi-transparent for visibility through effect |
+| Vignette        | Zoom-scaled 1.0 | Darkened edges for depth                       |
+| Vignette Color  | #464646         | Dark gray for edge dimming                     |
+| Direction       | [0, 80]         | Rain falls slightly forward-facing             |
+| Droplet Size    | [2.6, 18.2]     | Varies from small to large drops               |
+| Distortion      | 0.7             | Lens distortion effect strength                |
+| Center Thinning | 0               | Rain visible across entire screen              |
 
 ### Animation
 
@@ -81,14 +82,16 @@ Rain is continuously animated by the Mapbox Standard style renderer:
 Activates rain visualization on the map.
 
 ```typescript
-function enableRain(map: mapboxgl.Map, intensity: number = 1.0): void
+function enableRain(map: mapboxgl.Map, intensity: number = 1.0): void;
 ```
 
 **Parameters:**
+
 - `map`: Mapbox GL JS map instance
 - `intensity`: Rain intensity (0.0-1.0), defaults to 1.0
 
 **Process:**
+
 1. Verifies Mapbox Standard style is loaded
 2. Checks `setRain` API is available
 3. Clamps intensity to valid range [0, 1.0]
@@ -96,13 +99,15 @@ function enableRain(map: mapboxgl.Map, intensity: number = 1.0): void
 5. Logs success to console
 
 **Error Handling:**
+
 - Returns early if `map` is invalid
 - Logs warning if `setRain` API unavailable
 - Catches and logs any runtime errors
 
 **Example:**
+
 ```typescript
-enableRain(mapRef.current, 0.8);  // Enable with 80% intensity
+enableRain(mapRef.current, 0.8); // Enable with 80% intensity
 ```
 
 ### `disableRain()`
@@ -110,10 +115,11 @@ enableRain(mapRef.current, 0.8);  // Enable with 80% intensity
 Removes rain visualization from the map.
 
 ```typescript
-function disableRain(map: mapboxgl.Map): void
+function disableRain(map: mapboxgl.Map): void;
 ```
 
 **Process:**
+
 1. Verifies map exists and API is available
 2. Checks if style is fully loaded
 3. Sets intensity to 0 (Mapbox-recommended disable method)
@@ -122,8 +128,9 @@ function disableRain(map: mapboxgl.Map): void
 **Silent Failure:** Returns early if conditions aren't met (doesn't throw)
 
 **Example:**
+
 ```typescript
-disableRain(mapRef.current);  // Remove rain effect
+disableRain(mapRef.current); // Remove rain effect
 ```
 
 ### `zoomBasedReveal()`
@@ -131,16 +138,18 @@ disableRain(mapRef.current);  // Remove rain effect
 Calculates zoom-dependent scaling for visual parameters.
 
 ```typescript
-function zoomBasedReveal(map: mapboxgl.Map, value: number): number
+function zoomBasedReveal(map: mapboxgl.Map, value: number): number;
 ```
 
 **Parameters:**
+
 - `map`: Mapbox GL JS map instance
 - `value`: Base value to scale (e.g., 0.5, 1.0)
 
 **Returns:** Scaled value based on current zoom level
 
 **Logic:**
+
 ```
 zoom < 10:  return 0          (no reveal)
 10 ≤ zoom ≤ 15: return scaled 0 to value  (gradual reveal)
@@ -148,6 +157,7 @@ zoom > 15:  return value      (full reveal)
 ```
 
 **Used For:**
+
 - Rain density at different zoom levels
 - Vignette intensity scaling
 - Smooth transitions between zoom levels
@@ -225,16 +235,16 @@ All rain parameters are defined in `enableRain()` function:
 
 ```typescript
 map.setRain({
-  density: zoomBasedReveal(map, 0.5),       // 0-100% based on zoom
-  intensity: clampedIntensity,              // User-controlled 0-1.0
-  color: '#a8adbc',                         // Light gray
-  opacity: 0.7,                             // Semi-transparent
-  vignette: zoomBasedReveal(map, 1.0),     // 0-100% edge darkening
-  'vignette-color': '#464646',              // Dark gray edges
-  direction: [0, 80],                       // Forward-facing angle
-  'droplet-size': [2.6, 18.2],             // Small to large drops
-  'distortion-strength': 0.7,               // Lens distortion effect
-  'center-thinning': 0,                     // Rain on whole screen
+  density: zoomBasedReveal(map, 0.5), // 0-100% based on zoom
+  intensity: clampedIntensity, // User-controlled 0-1.0
+  color: '#a8adbc', // Light gray
+  opacity: 0.7, // Semi-transparent
+  vignette: zoomBasedReveal(map, 1.0), // 0-100% edge darkening
+  'vignette-color': '#464646', // Dark gray edges
+  direction: [0, 80], // Forward-facing angle
+  'droplet-size': [2.6, 18.2], // Small to large drops
+  'distortion-strength': 0.7, // Lens distortion effect
+  'center-thinning': 0, // Rain on whole screen
 });
 ```
 
@@ -243,21 +253,25 @@ map.setRain({
 To modify rain appearance, edit the `enableRain()` function:
 
 **Increase Intensity:**
+
 ```typescript
 'distortion-strength': 0.9,  // Stronger distortion effect
 ```
 
 **Change Color (warmer storm):**
+
 ```typescript
 color: '#b0a8a0',  // Warmer gray tone
 ```
 
 **Increase Vignette (darker edges):**
+
 ```typescript
 'vignette-color': '#2a2a2a',  // Darker gray
 ```
 
 **More Visible Droplets:**
+
 ```typescript
 'droplet-size': [3.0, 20.0],  // Larger size range
 ```
@@ -273,13 +287,13 @@ color: '#b0a8a0',  // Warmer gray tone
 
 ### Browser Compatibility
 
-| Feature | Browser | Status |
-|---|---|---|
-| Rain Effect | Chrome/Edge | ✅ Supported |
-| Rain Effect | Firefox | ✅ Supported |
-| Rain Effect | Safari | ✅ Supported |
-| Zoom Scaling | All | ✅ Supported |
-| Intensity Control | All | ✅ Supported |
+| Feature           | Browser     | Status       |
+| ----------------- | ----------- | ------------ |
+| Rain Effect       | Chrome/Edge | ✅ Supported |
+| Rain Effect       | Firefox     | ✅ Supported |
+| Rain Effect       | Safari      | ✅ Supported |
+| Zoom Scaling      | All         | ✅ Supported |
+| Intensity Control | All         | ✅ Supported |
 
 ### Hardware Requirements
 
@@ -294,6 +308,7 @@ color: '#b0a8a0',  // Warmer gray tone
 **Issue**: Clicked rain toggle but no effect visible
 
 **Solutions:**
+
 1. Verify using Mapbox Standard style (not other styles)
 2. Check browser console for warnings: `"setRain API is not available"`
 3. Ensure zoom level > 10 (rain hidden at lower zooms)
@@ -301,10 +316,11 @@ color: '#b0a8a0',  // Warmer gray tone
 5. Try zooming in/out to trigger rain visibility
 
 **Check:**
+
 ```javascript
 // In browser console
-mapboxgl.getRain?.();  // Should return rain settings object
-map.getStyle().name;   // Should contain "Standard"
+mapboxgl.getRain?.(); // Should return rain settings object
+map.getStyle().name; // Should contain "Standard"
 ```
 
 ### Rain appears with wrong color
@@ -312,6 +328,7 @@ map.getStyle().name;   // Should contain "Standard"
 **Issue**: Rain color doesn't match expected appearance
 
 **Solutions:**
+
 1. Edit color hex value in `enableRain()` function
 2. Verify color code is valid hexadecimal: `#RRGGBB`
 3. Note that opacity also affects perceived color
@@ -322,6 +339,7 @@ map.getStyle().name;   // Should contain "Standard"
 **Issue**: Rain takes time to appear/disappear
 
 **Solutions:**
+
 1. Ensure map style is fully loaded before toggle
 2. Check browser performance: other tabs consuming resources?
 3. Verify no network lag
@@ -332,6 +350,7 @@ map.getStyle().name;   // Should contain "Standard"
 **Issue**: Rain effect not visible even at high zoom
 
 **Solutions:**
+
 1. Increase intensity: `enableRain(map, 1.0)`
 2. Increase density: Edit `zoomBasedReveal(map, 0.7)` instead of 0.5
 3. Increase distortion: Set `'distortion-strength': 0.9`
@@ -345,8 +364,9 @@ map.getStyle().name;   // Should contain "Standard"
 
 **To Change:**
 Edit `zoomBasedReveal()` to adjust zoom threshold:
+
 ```typescript
-const factor = Math.max(0, Math.min(1, (zoom - 8) / 4));  // Show from zoom 8
+const factor = Math.max(0, Math.min(1, (zoom - 8) / 4)); // Show from zoom 8
 ```
 
 ## Related Features
@@ -377,7 +397,7 @@ The rain effect uses features only available in Mapbox Standard style:
 const style = 'mapbox://styles/mapbox/standard';
 
 // Bad - rain won't work with these styles
-const style = 'mapbox://styles/mapbox/dark-v11';  // Legacy style
+const style = 'mapbox://styles/mapbox/dark-v11'; // Legacy style
 const style = 'mapbox://styles/mapbox/light-v10'; // Legacy style
 ```
 
@@ -387,7 +407,9 @@ The code safely checks for API availability:
 
 ```typescript
 if (!map || typeof map.setRain !== 'function') {
-  console.warn("setRain API is not available. Ensure you're using Mapbox Standard style.");
+  console.warn(
+    "setRain API is not available. Ensure you're using Mapbox Standard style."
+  );
   return;
 }
 ```
@@ -406,6 +428,7 @@ Rain is rendered entirely on GPU via WebGL shaders, not JavaScript:
 ### Why Zoom-Based Reveal?
 
 At low zoom levels (map view of entire city), rain is invisible because:
+
 1. Individual droplets would be sub-pixel
 2. Visual clutter at wide overview
 3. Performance consideration for overview maps
@@ -414,6 +437,7 @@ At low zoom levels (map view of entire city), rain is invisible because:
 ### Why Vignette Effect?
 
 The darkened edges (vignette) serve to:
+
 1. Add visual depth and 3D perception
 2. Create focal point on center of map
 3. Enhance immersion of storm atmosphere
@@ -422,6 +446,7 @@ The darkened edges (vignette) serve to:
 ### Why Not 3D Rain Particles?
 
 Custom 3D rain particles aren't implemented because:
+
 1. Mapbox Standard style already provides high-quality effect
 2. GPU-accelerated is more efficient than JavaScript particles
 3. Consistent across all browsers with WebGL support

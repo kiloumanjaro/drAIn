@@ -242,7 +242,6 @@ export function createFloodAlongPipes(
     }
   });
 
-
   // Track which high risk nodes have been connected
   const connectedHighRiskNodes = new Set<string>();
 
@@ -339,7 +338,6 @@ export function createFloodAlongPipes(
     features.push(...gradientSegments);
   });
 
-
   return {
     type: 'FeatureCollection',
     features,
@@ -366,7 +364,6 @@ export async function enableFlood3D(
 
   // Combine inlet and drain coordinates
   const allCoordinates = [...inlets, ...drains];
-
 
   // Load pipes data directly from GeoJSON file
   let pipes: PipeFeature[] = [];
@@ -418,62 +415,60 @@ export async function enableFlood3D(
 
   // Add line layer with gradient colors
   // We'll add it first, then explicitly move it above the heatmap
-  map.addLayer(
-    {
-      id: 'flood-gradient-layer',
-      type: 'line',
-      source: 'flood-3d',
-      paint: {
-        // Use interpolated color per segment
-        'line-color': ['get', 'color'],
-        // Width based on flood volume - data-driven styling
-        'line-width': [
-          'interpolate',
-          ['linear'],
-          ['get', 'floodVolume'],
-          0,
-          4, // 0 volume = 4px width
-          10,
-          8, // 10 cubic meters = 8px
-          25,
-          14, // 25 cubic meters = 14px
-          50,
-          20, // 50+ cubic meters = 20px
-        ],
-        // Opacity based on average flood volume
-        'line-opacity': animate
-          ? 0
-          : [
-              'interpolate',
-              ['linear'],
-              ['get', 'floodVolume'],
-              0,
-              0.2, // Low volume = semi-transparent
-              5,
-              0.6, // Medium volume
-              15,
-              0.8, // High volume = more opaque
-            ],
-        // Blur to soften edges and make sharp turns appear smoother
-        // 'line-blur': [
-        //   'interpolate',
-        //   ['linear'],
-        //   ['get', 'floodVolume'],
-        //   0,
-        //   1, // Light blur for small floods
-        //   10,
-        //   2, // Medium blur
-        //   25,
-        //   3, // Heavier blur for larger floods
-        // ],
-      },
-      layout: {
-        'line-cap': 'round', // Use butt caps to avoid visible circles at segment boundaries
-        'line-join': 'round',
-        'visibility': 'visible', // Ensure layer is visible when created
-      },
-    }
-  );
+  map.addLayer({
+    id: 'flood-gradient-layer',
+    type: 'line',
+    source: 'flood-3d',
+    paint: {
+      // Use interpolated color per segment
+      'line-color': ['get', 'color'],
+      // Width based on flood volume - data-driven styling
+      'line-width': [
+        'interpolate',
+        ['linear'],
+        ['get', 'floodVolume'],
+        0,
+        4, // 0 volume = 4px width
+        10,
+        8, // 10 cubic meters = 8px
+        25,
+        14, // 25 cubic meters = 14px
+        50,
+        20, // 50+ cubic meters = 20px
+      ],
+      // Opacity based on average flood volume
+      'line-opacity': animate
+        ? 0
+        : [
+            'interpolate',
+            ['linear'],
+            ['get', 'floodVolume'],
+            0,
+            0.2, // Low volume = semi-transparent
+            5,
+            0.6, // Medium volume
+            15,
+            0.8, // High volume = more opaque
+          ],
+      // Blur to soften edges and make sharp turns appear smoother
+      // 'line-blur': [
+      //   'interpolate',
+      //   ['linear'],
+      //   ['get', 'floodVolume'],
+      //   0,
+      //   1, // Light blur for small floods
+      //   10,
+      //   2, // Medium blur
+      //   25,
+      //   3, // Heavier blur for larger floods
+      // ],
+    },
+    layout: {
+      'line-cap': 'round', // Use butt caps to avoid visible circles at segment boundaries
+      'line-join': 'round',
+      visibility: 'visible', // Ensure layer is visible when created
+    },
+  });
 
   // Explicitly move the flood gradient layer above the heatmap but below infrastructure
   // Rendering order: flood-propagation-lines < flood-propagation-nodes < flood gradient < pipes/nodes
@@ -484,13 +479,13 @@ export async function enableFlood3D(
       let beforeLayerId: string | undefined = undefined;
 
       if (layers) {
-
         // Look for the first drainage infrastructure layer
         const infrastructureLayer = layers.find(
-          (layer) => layer.id === 'man_pipes-layer' ||
-                     layer.id === 'inlets-layer' ||
-                     layer.id === 'outlets-layer' ||
-                     layer.id === 'storm_drains-layer'
+          (layer) =>
+            layer.id === 'man_pipes-layer' ||
+            layer.id === 'inlets-layer' ||
+            layer.id === 'outlets-layer' ||
+            layer.id === 'storm_drains-layer'
         );
 
         if (infrastructureLayer) {
@@ -504,9 +499,7 @@ export async function enableFlood3D(
       }
     } else {
     }
-  } catch (_error) {
-  }
-
+  } catch (_error) {}
 
   // Log a sample feature for debugging
   if (floodGeoJSON.features.length > 0) {
@@ -514,10 +507,12 @@ export async function enableFlood3D(
     console.log('[3D Flood] Sample feature:', {
       color: sample.properties?.color,
       floodVolume: sample.properties?.floodVolume,
-      coordinates: sample.geometry.type === 'LineString' ? sample.geometry.coordinates.length : 0
+      coordinates:
+        sample.geometry.type === 'LineString'
+          ? sample.geometry.coordinates.length
+          : 0,
     });
   }
-
 
   // Animate the flood appearing if enabled
   if (animate) {
@@ -595,7 +590,6 @@ export function disableFlood3D(map: mapboxgl.Map): void {
  */
 export function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void {
   if (!map || !map.getLayer('flood-gradient-layer')) return;
-
 
   const visibility = visible ? 'visible' : 'none';
 

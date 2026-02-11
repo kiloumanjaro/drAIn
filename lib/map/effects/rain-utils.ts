@@ -56,7 +56,10 @@ export function disableRain(map: mapboxgl.Map): void {
     map.setRain({ intensity: 0 });
   } catch (error) {
     // Ignore "Style is not done loading" errors - the rain will still disable
-    if (error instanceof Error && error.message.includes('Style is not done loading')) {
+    if (
+      error instanceof Error &&
+      error.message.includes('Style is not done loading')
+    ) {
       return;
     }
     console.error('Error disabling rain effect:', error);
