@@ -27,10 +27,12 @@ import {
   CAMERA_ANIMATION,
 } from '@/lib/map/config';
 import mapboxgl from 'mapbox-gl';
-import { useInlets } from '@/hooks/useInlets';
-import { useOutlets } from '@/hooks/useOutlets';
-import { useDrain } from '@/hooks/useDrain';
-import { usePipes } from '@/hooks/usePipes';
+import {
+  useInlets,
+  useOutlets,
+  usePipes,
+  useDrains,
+} from '@/lib/query/hooks/useDrainageData';
 import { useSidebar } from '@/components/ui/sidebar';
 import type {
   Inlet,
@@ -103,11 +105,43 @@ function MapPageContent() {
 
   const layerIds = useMemo(() => LAYER_IDS, []);
 
-  // Load data from hooks
-  const { inlets } = useInlets();
-  const { outlets } = useOutlets();
-  const { pipes } = usePipes();
-  const { drains } = useDrain();
+  // Load data from hooks with TanStack Query
+  const {
+    data: inlets = [],
+    isLoading: isLoadingInlets,
+    error: inletsError,
+  } = useInlets();
+
+  const {
+    data: outlets = [],
+    isLoading: isLoadingOutlets,
+    error: outletsError,
+  } = useOutlets();
+
+  const {
+    data: pipes = [],
+    isLoading: isLoadingPipes,
+    error: pipesError,
+  } = usePipes();
+
+  const {
+    data: drains = [],
+    isLoading: isLoadingDrains,
+    error: drainsError,
+  } = useDrains();
+
+  // Aggregate loading and error states
+  const isLoadingDrainageData =
+    isLoadingInlets || isLoadingOutlets || isLoadingPipes || isLoadingDrains;
+  const drainageDataError =
+    inletsError || outletsError || pipesError || drainsError;
+
+  // Handle drainage data errors
+  useEffect(() => {
+    if (drainageDataError) {
+      toast.error(`Failed to load drainage data: ${drainageDataError.message}`);
+    }
+  }, [drainageDataError]);
 
   // Selection state for control panel detail view
   const [selectedInlet, setSelectedInlet] = useState<Inlet | null>(null);
@@ -1546,6 +1580,16 @@ function MapPageContent() {
                 >
                   Reload Page
                 </button>
+              </div>
+            </div>
+          )}
+          {isLoadingDrainageData && (
+            <div className="absolute top-4 right-4 z-50 rounded-lg bg-white px-4 py-2 shadow-lg dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                <span className="text-sm text-gray-700 dark:text-gray-200">
+                  Loading drainage data...
+                </span>
               </div>
             </div>
           )}

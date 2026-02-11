@@ -35,3 +35,47 @@ export const dashboardKeys = {
     all: () => [...dashboardKeys.reports(), 'details', 'all'],
   }),
 };
+
+/**
+ * Query key factory for map queries
+ * Organized hierarchically for drainage data and overlays
+ */
+export const mapKeys = {
+  all: ['map'],
+  drainage: () => [...mapKeys.all, 'drainage'],
+  drainageDetails: () => ({
+    all: [...mapKeys.drainage(), 'details'],
+    inlets: () => [...mapKeys.drainage(), 'details', 'inlets'],
+    outlets: () => [...mapKeys.drainage(), 'details', 'outlets'],
+    pipes: () => [...mapKeys.drainage(), 'details', 'pipes'],
+    drains: () => [...mapKeys.drainage(), 'details', 'drains'],
+  }),
+  overlays: () => [...mapKeys.all, 'overlays'],
+  overlayDetails: () => ({
+    floodHazard: (scenario: string) => [
+      ...mapKeys.overlays(),
+      'flood-hazard',
+      scenario,
+    ],
+    population: () => [...mapKeys.overlays(), 'population'],
+    floodProneAreas: (areaId: string) => [
+      ...mapKeys.overlays(),
+      'flood-prone',
+      areaId,
+    ],
+  }),
+};
+
+/**
+ * Query key factory for report queries
+ */
+export const reportKeys = {
+  all: ['reports'],
+  lists: () => [...reportKeys.all, 'list'],
+  list: (filters?: string) => [...reportKeys.lists(), filters ?? 'all'],
+  details: () => [...reportKeys.all, 'details'],
+  detail: (id: string) => [...reportKeys.details(), id],
+  latest: () => [...reportKeys.all, 'latest'],
+  latestPerComponent: () => [...reportKeys.latest(), 'per-component'],
+  notifications: () => [...reportKeys.all, 'notifications'],
+};

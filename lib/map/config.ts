@@ -133,11 +133,6 @@ export const OVERLAY_CONFIG = [
     name: 'Reports',
     color: '#3F83DB',
   },
-  {
-    id: 'report_heatmap-layer',
-    name: 'Report Heatmap',
-    color: LAYER_COLORS.report_heatmap.icon,
-  },
 ];
 
 export const LAYER_IDS: string[] = [
