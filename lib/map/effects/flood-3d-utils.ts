@@ -19,7 +19,7 @@ interface PipeFeature {
   properties: {
     Name: string;
     Pipe_Lngth: number;
-    [key: string]: any;
+    [key: string]: string | number;
   };
   geometry: {
     type: 'LineString';
@@ -501,12 +501,6 @@ export async function enableFlood3D(
       // Move flood gradient to be right above Flood Propagation but below infrastructure
       if (beforeLayerId) {
         map.moveLayer('flood-gradient-layer', beforeLayerId);
-
-        // Verify the move
-        const updatedLayers = map.getStyle().layers;
-        const gradientIndex = updatedLayers?.findIndex(l => l.id === 'flood-gradient-layer');
-        const floodPropagationIndex = updatedLayers?.findIndex(l => l.id === 'flood_propagation-nodes-layer');
-      } else {
       }
     } else {
     }
