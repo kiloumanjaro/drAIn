@@ -1,6 +1,6 @@
 export default function SimulationLoading() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-900">
+    <div className="flex h-screen w-full items-center justify-center bg-[#1e1e1e]">
       <div className="flex flex-col items-center gap-4">
         <div className="relative h-16 w-16">
           <div className="absolute inset-0 rounded-full border-4 border-gray-700"></div>

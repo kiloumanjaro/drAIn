@@ -2093,16 +2093,21 @@ export default function SimulationPage() {
 
   return (
     <>
-      <main className="relative flex min-h-screen flex-col bg-gray-900">
+      <style>{`
+        html, body {
+          overflow: hidden !important;
+        }
+      `}</style>
+      <main className="relative flex min-h-screen flex-col overflow-hidden" style={{ backgroundColor: '#1e1e1e' }}>
         <div
           className="relative h-screen w-full"
-          style={{ pointerEvents: isSimulationActive ? 'auto' : 'none' }}
+          style={{ pointerEvents: isSimulationActive ? 'auto' : 'none', backgroundColor: '#1e1e1e' }}
         >
-          <div ref={mapContainerRef} className="h-full w-full" />
+          <div ref={mapContainerRef} className="h-full w-full" style={{ backgroundColor: '#1e1e1e' }} />
 
           {/* Grey overlay when simulation is not active */}
           {!isSimulationActive && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
+            <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ backgroundColor: '#1e1e1e' }}>
               <div className="text-xl font-medium text-white">
                 Enter Simulation Mode to activate map
               </div>
