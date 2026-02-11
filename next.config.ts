@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  webpack(config) {
+    // Handle SVG imports with SVGR
+    config.module.rules.push({
+      test: /\.svg$/i,
+      issuer: /\.[jt]sx?$/,
+      use: ['@svgr/webpack'],
+    });
+    
+    return config;
+  },
 };
 
 export default nextConfig;
