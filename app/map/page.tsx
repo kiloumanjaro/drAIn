@@ -27,10 +27,12 @@ import {
   CAMERA_ANIMATION,
 } from '@/lib/map/config';
 import mapboxgl from 'mapbox-gl';
-import { useInlets } from '@/hooks/useInlets';
-import { useOutlets } from '@/hooks/useOutlets';
-import { useDrain } from '@/hooks/useDrain';
-import { usePipes } from '@/hooks/usePipes';
+import {
+  useInlets,
+  useOutlets,
+  usePipes,
+  useDrains,
+} from '@/lib/query/hooks/useDrainageData';
 import { useSidebar } from '@/components/ui/sidebar';
 import type {
   Inlet,
@@ -69,7 +71,6 @@ function MapPageContent() {
     'reports-layer': true,
     'flood_hazard-layer': true,
     'mandaue_population-layer': false,
-    'report_heatmap-layer': true,
   });
 
   const [floodProneVisibility, setFloodProneVisibility] = useState({
@@ -104,11 +105,43 @@ function MapPageContent() {
 
   const layerIds = useMemo(() => LAYER_IDS, []);
 
-  // Load data from hooks
-  const { inlets } = useInlets();
-  const { outlets } = useOutlets();
-  const { pipes } = usePipes();
-  const { drains } = useDrain();
+  // Load data from hooks with TanStack Query
+  const {
+    data: inlets = [],
+    isLoading: isLoadingInlets,
+    error: inletsError,
+  } = useInlets();
+
+  const {
+    data: outlets = [],
+    isLoading: isLoadingOutlets,
+    error: outletsError,
+  } = useOutlets();
+
+  const {
+    data: pipes = [],
+    isLoading: isLoadingPipes,
+    error: pipesError,
+  } = usePipes();
+
+  const {
+    data: drains = [],
+    isLoading: isLoadingDrains,
+    error: drainsError,
+  } = useDrains();
+
+  // Aggregate loading and error states
+  const isLoadingDrainageData =
+    isLoadingInlets || isLoadingOutlets || isLoadingPipes || isLoadingDrains;
+  const drainageDataError =
+    inletsError || outletsError || pipesError || drainsError;
+
+  // Handle drainage data errors
+  useEffect(() => {
+    if (drainageDataError) {
+      toast.error(`Failed to load drainage data: ${drainageDataError.message}`);
+    }
+  }, [drainageDataError]);
 
   // Selection state for control panel detail view
   const [selectedInlet, setSelectedInlet] = useState<Inlet | null>(null);
@@ -590,93 +623,6 @@ function MapPageContent() {
             }
           });
 
-          // Add report heatmap layer
-          if (!map.getSource('report_heatmap')) {
-            // Create GeoJSON from reports for heatmap
-            const reportHeatmapData: GeoJSON.FeatureCollection = {
-              type: 'FeatureCollection',
-              features: [],
-            };
-
-            map.addSource('report_heatmap', {
-              type: 'geojson',
-              data: reportHeatmapData,
-            });
-
-            map.addLayer({
-              id: 'report_heatmap-layer',
-              type: 'heatmap',
-              source: 'report_heatmap',
-              layout: {
-                visibility: overlayVisibility['report_heatmap-layer']
-                  ? 'visible'
-                  : 'none',
-              },
-              paint: {
-                // Weight each point equally
-                'heatmap-weight': 1,
-                // Increase intensity as zoom level increases
-                'heatmap-intensity': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  0,
-                  0.8,
-                  13,
-                  2,
-                  15,
-                  3,
-                ],
-                // Color gradient from low to high density
-                'heatmap-color': [
-                  'interpolate',
-                  ['linear'],
-                  ['heatmap-density'],
-                  0,
-                  'rgba(0, 0, 0, 0)',
-                  0.15,
-                  'rgba(65, 105, 225, 0.7)', // Blue - low density
-                  0.35,
-                  'rgba(0, 191, 255, 0.85)', // Cyan - moderate
-                  0.55,
-                  'rgba(255, 255, 0, 0.9)', // Yellow - higher
-                  0.7,
-                  'rgba(255, 140, 0, 0.95)', // Orange - concentrated
-                  0.85,
-                  'rgba(255, 69, 0, 1)', // Red-orange - very concentrated
-                  1,
-                  'rgba(220, 20, 60, 1)', // Deep red - peak
-                ],
-                // Radius increases with zoom
-                'heatmap-radius': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  0,
-                  25,
-                  12,
-                  60,
-                  13,
-                  90,
-                  15,
-                  120,
-                ],
-                // Fade out at high zoom levels
-                'heatmap-opacity': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  7,
-                  1,
-                  14,
-                  0.8,
-                  16,
-                  0.6,
-                ],
-              },
-            });
-          }
-
           // Add hover handlers for flood prone areas
           const floodPronePopupRef = { current: null as mapboxgl.Popup | null };
 
@@ -998,6 +944,8 @@ function MapPageContent() {
 
         // Handle clicks outside population areas to clear clicked state
         map.on('click', (e) => {
+          if (!map.getLayer('mandaue_population-fill')) return;
+
           const features = map.queryRenderedFeatures(e.point, {
             layers: ['mandaue_population-fill'],
           });
@@ -1146,49 +1094,6 @@ function MapPageContent() {
     });
   }, [reports, handleReportHistoryClick]);
 
-  // Update heatmap data when reports change
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const updateHeatmapData = () => {
-      const source = map.getSource('report_heatmap') as mapboxgl.GeoJSONSource;
-      if (!source) {
-        // Source doesn't exist yet, try again after a short delay
-        setTimeout(updateHeatmapData, 500);
-        return;
-      }
-
-      // Use allReportsData for heatmap to show all reports, not just latest
-      const reportsForHeatmap = allReportsData || reports || [];
-
-      const heatmapData: GeoJSON.FeatureCollection = {
-        type: 'FeatureCollection',
-        features: reportsForHeatmap.map((report) => ({
-          type: 'Feature' as const,
-          properties: {
-            id: report.id,
-            category: report.category,
-          },
-          geometry: {
-            type: 'Point' as const,
-            coordinates: report.coordinates,
-          },
-        })),
-      };
-
-      source.setData(heatmapData);
-    };
-
-    // If map style is loaded, update immediately
-    if (map.isStyleLoaded()) {
-      updateHeatmapData();
-    } else {
-      // Otherwise wait for style to load
-      map.once('style.load', updateHeatmapData);
-    }
-  }, [reports, allReportsData]);
-
   useEffect(() => {
     if (mapRef.current) {
       layerIds.forEach((layerId) => {
@@ -1239,25 +1144,6 @@ function MapPageContent() {
           populationPopupRef.current.remove();
           populationPopupRef.current = null;
         }
-      }
-
-      // Control report heatmap layer visibility
-      const heatmapVisible = overlayVisibility['report_heatmap-layer'];
-      const setHeatmapVisibility = () => {
-        if (mapRef.current?.getLayer('report_heatmap-layer')) {
-          mapRef.current.setLayoutProperty(
-            'report_heatmap-layer',
-            'visibility',
-            heatmapVisible ? 'visible' : 'none'
-          );
-        } else {
-          // Layer doesn't exist yet, retry after a short delay
-          setTimeout(setHeatmapVisibility, 500);
-        }
-      };
-
-      if (mapRef.current?.isStyleLoaded()) {
-        setHeatmapVisibility();
       }
     }
   }, [overlayVisibility, layerIds]);
@@ -1440,7 +1326,6 @@ function MapPageContent() {
           'outlets-layer': false,
           'flood_hazard-layer': false,
           'mandaue_population-layer': false,
-          'report_heatmap-layer': false,
         }));
 
         // Debounce toast to show only once per toggle session
@@ -1468,7 +1353,6 @@ function MapPageContent() {
       'reports-layer': !someVisible,
       'flood_hazard-layer': !someVisible,
       'mandaue_population-layer': !someVisible,
-      'report_heatmap-layer': !someVisible,
     };
 
     setOverlayVisibility(updated);
@@ -1681,7 +1565,7 @@ function MapPageContent() {
 
   return (
     <>
-      <main className="relative flex min-h-screen flex-col bg-blue-200">
+      <main className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
         <div className="h-screen w-full" ref={mapContainerRef}>
           {mapError && (
             <div className="bg-background/95 absolute inset-0 z-50 flex items-center justify-center">
@@ -1741,7 +1625,16 @@ function MapPageContent() {
 
 export default function MapPage() {
   return (
-    <Suspense fallback={<div className="h-screen w-full bg-blue-200" />}>
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center bg-[#e0e0d1]">
+          <div className="relative h-16 w-16">
+            <div className="absolute inset-0 rounded-full border-4 border-gray-300"></div>
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-t-blue-600"></div>
+          </div>
+        </div>
+      }
+    >
       <MapPageContent />
     </Suspense>
   );

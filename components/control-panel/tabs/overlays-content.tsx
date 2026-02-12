@@ -197,7 +197,6 @@ export default function OverlaysContent({
           <OverlayLegend
             overlays={overlays}
             onToggleOverlay={onToggleOverlay}
-            isFloodPropagationLoading={isFloodPropagationLoading}
           />
         ),
       },

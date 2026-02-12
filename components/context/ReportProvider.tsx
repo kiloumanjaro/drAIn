@@ -8,13 +8,18 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   subscribeToReportChanges,
-  fetchAllReports,
-  fetchLatestReportsPerComponent,
   formatReport,
   Report,
 } from '@/lib/supabase/report';
+import {
+  useAllReports,
+  useLatestReports,
+  useRefreshReports,
+} from '@/lib/query/hooks/useReportQueries';
+import { reportKeys } from '@/lib/query/keys';
 
 interface ReportContextType {
   allReports: Report[];
@@ -29,72 +34,64 @@ interface ReportContextType {
 const ReportContext = createContext<ReportContextType | undefined>(undefined);
 
 export function ReportProvider({ children }: { children: ReactNode }) {
-  const [allReports, setAllReports] = useState<Report[]>([]);
-  const [latestReports, setLatestReports] = useState<Report[]>([]);
-  const [isRefreshingReports, setIsRefreshingReports] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Use TanStack Query hooks for data fetching
+  const { data: allReports = [], isLoading: isLoadingAll } = useAllReports();
+  const { data: latestReports = [], isLoading: isLoadingLatest } =
+    useLatestReports();
+  const refreshMutation = useRefreshReports();
+
   const [notifications, setNotifications] = useState<Report[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const handleOpenNotifications = () => setUnreadCount(0);
 
   const refreshReports = useCallback(async () => {
-    setIsRefreshingReports(true);
-    try {
-      const fetchedAllReports = await fetchAllReports();
-      setAllReports(fetchedAllReports);
-      const latest = await fetchLatestReportsPerComponent(fetchedAllReports);
-      setLatestReports(latest);
-    } catch (err) {
-      console.error('Failed to refresh reports in provider:', err);
-    } finally {
-      setIsRefreshingReports(false);
-    }
-  }, []);
+    await refreshMutation.mutateAsync();
+  }, [refreshMutation]);
 
+  const isRefreshingReports =
+    isLoadingAll || isLoadingLatest || refreshMutation.isPending;
+
+  // Subscribe to realtime changes from Supabase
   useEffect(() => {
-    refreshReports();
-
     const handleInsert = (newReport: Report) => {
       const formatted = formatReport(newReport);
 
-      setAllReports((prev) => [formatted, ...prev]);
+      // Update TanStack Query cache for all reports
+      queryClient.setQueryData<Report[]>(reportKeys.list(), (old = []) => [
+        formatted,
+        ...old,
+      ]);
+
+      // Add to notifications
       setNotifications((prev) => [formatted, ...prev]);
       setUnreadCount((c) => c + 1);
 
-      setLatestReports((prev) => {
-        const newLatestMap = new Map(prev.map((r) => [r.componentId, r]));
-        const existing = newLatestMap.get(formatted.componentId);
-        if (!existing || new Date(formatted.date) > new Date(existing.date)) {
-          newLatestMap.set(formatted.componentId, formatted);
-        }
-        return Array.from(newLatestMap.values());
+      // Invalidate latest reports to recalculate
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.latestPerComponent(),
       });
     };
 
     const handleUpdate = (updatedReport: Report) => {
       const formatted = formatReport(updatedReport);
 
+      // Update notifications
       setNotifications((prev) => [
         formatted,
         ...prev.filter((n) => n.id !== formatted.id),
       ]);
 
-      setAllReports((prevAllReports) => {
-        const updatedAllReports = prevAllReports.map((r) =>
-          r.id === formatted.id ? formatted : r
-        );
+      // Update TanStack Query cache for all reports
+      queryClient.setQueryData<Report[]>(reportKeys.list(), (old = []) =>
+        old.map((r) => (r.id === formatted.id ? formatted : r))
+      );
 
-        const latestFromUpdated = new Map<string, Report>();
-        for (const report of updatedAllReports) {
-          const existing = latestFromUpdated.get(report.componentId);
-          if (!existing || new Date(report.date) > new Date(existing.date)) {
-            latestFromUpdated.set(report.componentId, report);
-          }
-        }
-
-        setLatestReports(Array.from(latestFromUpdated.values()));
-
-        return updatedAllReports;
+      // Invalidate latest reports to recalculate
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.latestPerComponent(),
       });
     };
 
@@ -105,7 +102,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
         unsubscribe();
       }
     };
-  }, [refreshReports]);
+  }, [queryClient]);
 
   const value = {
     allReports,

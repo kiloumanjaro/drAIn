@@ -9,7 +9,12 @@ import { useControlPanelState } from './hooks/use-control-panel-state';
 import { Sidebar } from './components/sidebar';
 import { TopBar } from './components/top-bar';
 import { ContentRenderer } from './components/content-renderer';
-import { usePipes, useInlets, useOutlets, useDrain } from '@/hooks';
+import {
+  usePipes,
+  useInlets,
+  useOutlets,
+  useDrains,
+} from '@/lib/query/hooks/useDrainageData';
 import client from '@/app/api/client';
 import type { DateFilterValue } from '../date-sort';
 import type { Report } from '@/lib/supabase/report';
@@ -217,11 +222,11 @@ export function ControlPanel({
     router.push('/login');
   };
 
-  // Data hooks
-  const { inlets, loading: loadingInlets } = useInlets();
-  const { outlets, loading: loadingOutlets } = useOutlets();
-  const { pipes, loading: loadingPipes } = usePipes();
-  const { drains, loading: loadingDrains } = useDrain();
+  // Data hooks with TanStack Query
+  const { data: inlets = [], isLoading: loadingInlets } = useInlets();
+  const { data: outlets = [], isLoading: loadingOutlets } = useOutlets();
+  const { data: pipes = [], isLoading: loadingPipes } = usePipes();
+  const { data: drains = [], isLoading: loadingDrains } = useDrains();
 
   const selectedItem =
     selectedInlet || selectedPipe || selectedOutlet || selectedDrain;

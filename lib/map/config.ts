@@ -9,7 +9,7 @@ export const MAP_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 export const MAPBOX_ACCESS_TOKEN =
-  'pk.eyJ1Ijoia2lsb3VraWxvdSIsImEiOiJjbWZsMmc5dWMwMGlxMmtwdXgxaHE0ZjVnIn0.TFZP0T-4zrLdI0Be-u0t3Q';
+  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '';
 
 // ============================================
 // LAYER COLOR CONFIGURATION
@@ -132,11 +132,6 @@ export const OVERLAY_CONFIG = [
     id: 'reports-layer',
     name: 'Reports',
     color: '#3F83DB',
-  },
-  {
-    id: 'report_heatmap-layer',
-    name: 'Report Heatmap',
-    color: LAYER_COLORS.report_heatmap.icon,
   },
 ];
 

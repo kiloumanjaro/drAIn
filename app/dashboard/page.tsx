@@ -14,34 +14,17 @@ import { formatDistanceToNow } from 'date-fns';
 import AnalyticsTab from '@/components/dashboard/analytics/AnalyticsTab';
 import ReportsTab from '@/components/dashboard/reports/ReportsTab';
 import StatsCards from '@/components/dashboard/analytics/StatsCards';
-import { useDashboard } from '@/components/context/DashboardProvider';
+import { useOverviewMetrics } from '@/lib/query/hooks/useOverviewMetrics';
 
 export default function DashboardPage() {
   const {
-    metrics,
+    data: metrics,
     isLoading: metricsLoading,
-    refresh,
-    isRefreshing,
-  } = useDashboard();
+    refetch,
+    isFetching,
+    dataUpdatedAt,
+  } = useOverviewMetrics();
   const [activeTab, setActiveTab] = useState('analytics');
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const refreshTimerRef = React.useRef<number | null>(null);
-
-  const handleRefresh = async () => {
-    await refresh();
-    setLastUpdated(new Date());
-    refreshTimerRef.current = window.setTimeout(() => {
-      refreshTimerRef.current = null;
-    }, 800);
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-      }
-    };
-  }, []);
 
   // Manage scrollbar visibility
   React.useEffect(() => {
@@ -64,21 +47,21 @@ export default function DashboardPage() {
                 <Clock className="h-3.5 w-3.5 text-gray-500" />
                 <span>
                   Updated{' '}
-                  {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+                  {formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}
                 </span>
               </div>
 
               <button
-                onClick={handleRefresh}
-                title={isRefreshing ? 'Refreshing...' : 'Refresh data'}
-                aria-busy={isRefreshing}
-                disabled={isRefreshing}
+                onClick={() => refetch()}
+                title={isFetching ? 'Refreshing...' : 'Refresh data'}
+                aria-busy={isFetching}
+                disabled={isFetching}
                 className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-wait disabled:opacity-60"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                  className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`}
                 />
-                <span>{isRefreshing ? 'Refreshing' : 'Refresh'}</span>
+                <span>{isFetching ? 'Refreshing' : 'Refresh'}</span>
               </button>
             </div>
           </div>

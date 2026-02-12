@@ -31,10 +31,12 @@ import {
   getCirclePaintConfig,
 } from '@/lib/map/simulation-config';
 import mapboxgl from 'mapbox-gl';
-import { useInlets } from '@/hooks/useInlets';
-import { useOutlets } from '@/hooks/useOutlets';
-import { useDrain } from '@/hooks/useDrain';
-import { usePipes } from '@/hooks/usePipes';
+import {
+  useInlets,
+  useOutlets,
+  useDrains,
+  usePipes,
+} from '@/lib/query/hooks/useDrainageData';
 import type {
   DatasetType,
   Inlet,
@@ -114,11 +116,11 @@ export default function SimulationPage() {
 
   const layerIds = useMemo(() => SIMULATION_LAYER_IDS, []);
 
-  // Load data from hooks
-  const { inlets } = useInlets();
-  const { outlets } = useOutlets();
-  const { pipes } = usePipes();
-  const { drains } = useDrain();
+  // Load data from hooks with TanStack Query
+  const { data: inlets = [] } = useInlets();
+  const { data: outlets = [] } = useOutlets();
+  const { data: pipes = [] } = usePipes();
+  const { data: drains = [] } = useDrains();
 
   // Selection state for control panel detail view
   const [selectedInlet, setSelectedInlet] = useState<Inlet | null>(null);

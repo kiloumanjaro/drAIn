@@ -24,10 +24,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { useInlets } from '@/hooks/useInlets';
-import { useOutlets } from '@/hooks/useOutlets';
-import { useDrain } from '@/hooks/useDrain';
-import { usePipes } from '@/hooks/usePipes';
+import {
+  useInlets,
+  useOutlets,
+  useDrains,
+  usePipes,
+} from '@/lib/query/hooks/useDrainageData';
 
 export const description = 'Drainage infrastructure distribution';
 
@@ -60,10 +62,10 @@ interface ChartPieDonutTextProps {
 }
 
 export function ChartPieDonutText({ onNavigate }: ChartPieDonutTextProps = {}) {
-  const { inlets, loading: loadingInlets } = useInlets();
-  const { outlets, loading: loadingOutlets } = useOutlets();
-  const { drains, loading: loadingDrains } = useDrain();
-  const { pipes, loading: loadingPipes } = usePipes();
+  const { data: inlets = [], isLoading: loadingInlets } = useInlets();
+  const { data: outlets = [], isLoading: loadingOutlets } = useOutlets();
+  const { data: drains = [], isLoading: loadingDrains } = useDrains();
+  const { data: pipes = [], isLoading: loadingPipes } = usePipes();
 
   const chartData = React.useMemo(() => {
     return [
