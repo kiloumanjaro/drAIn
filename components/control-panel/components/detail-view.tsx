@@ -14,6 +14,31 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
   const [showModel, setShowModel] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top when item changes
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+
+    // Find the scrollable parent element
+    let scrollableElement: HTMLElement | null = scrollContainerRef.current;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (scrollableElement && attempts < maxAttempts) {
+      if (scrollableElement.scrollHeight > scrollableElement.clientHeight) {
+        scrollableElement.scrollTop = 0;
+        break;
+      }
+      scrollableElement = scrollableElement.parentElement;
+      attempts++;
+    }
+
+    // Fallback: scroll the element itself
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [item]);
 
   // Track which card is currently in view
   useEffect(() => {
@@ -42,7 +67,10 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
   }, [fields.length]);
 
   return (
-    <div className="space-y-4 px-4 pb-8">
+    <div
+      ref={scrollContainerRef}
+      className="space-y-4 overflow-y-auto px-4 pb-8"
+    >
       <div className="space-y-2">
         <div className="flex rounded-md border border-[#ced1cd]">
           {!showModel ? (
