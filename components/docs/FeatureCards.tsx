@@ -34,7 +34,7 @@ export default function FeatureCards({
 
   return (
     <TooltipProvider>
-      <div className={`mb-6 grid grid-cols-1 gap-4 ${gridCols}`}>
+      <div className={`mb-5 grid grid-cols-1 gap-4 ${gridCols}`}>
         {features.map((feature) => {
           const Icon = feature.icon;
           return (
@@ -57,7 +57,7 @@ export default function FeatureCards({
               </div>
 
               <Card className="gap-3 border-x-0 border-b-0 border-[#dfdfdf] px-6 py-6">
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-slate-100">
                     <Icon className="h-6 w-6 text-slate-600" />
                   </div>

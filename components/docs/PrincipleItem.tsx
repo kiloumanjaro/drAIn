@@ -21,9 +21,7 @@ export default function PrincipleItem({
         <Icon className="h-5 w-5 text-slate-600" />
       </div>
       <div className="flex flex-1 flex-col">
-        <p className="text-foreground text-base font-semibold">
-          {titleWithoutColon}
-        </p>
+        <p className="text-foreground text-base">{titleWithoutColon}</p>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
     </div>

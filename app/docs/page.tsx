@@ -338,7 +338,7 @@ export default function Docs() {
             </div>
             <div className="flex-1 border-x border-[#dfdfdf] bg-[#fcfcfc] px-8 pt-4 pb-4">
               {activeSection === 'overview' && (
-                <div className="space-y-3">
+                <div>
                   <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Overview
@@ -379,8 +379,8 @@ export default function Docs() {
                     ]}
                   />
 
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                    <div className="flex items-start gap-4">
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 pl-8">
+                    <div className="flex items-center gap-4">
                       <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600" />
                       <p className="text-sm text-amber-800">
                         Mandaue City grapples with chronic urban flooding due to
@@ -393,12 +393,10 @@ export default function Docs() {
                     </div>
                   </div>
 
-                  <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white">
                       <div className="border-b border-[#dfdfdf] bg-[#f7f7f7] px-4 py-3">
-                        <h3 className="text-sm font-semibold text-slate-900">
-                          Our Vision
-                        </h3>
+                        <h3 className="text-sm text-slate-900">Our Vision</h3>
                       </div>
                       <div className="space-y-4 px-4 py-4">
                         <PrincipleItem
@@ -421,7 +419,7 @@ export default function Docs() {
 
                     <div className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white">
                       <div className="border-b border-[#dfdfdf] bg-[#f7f7f7] px-4 py-3">
-                        <h3 className="text-sm font-semibold text-slate-900">
+                        <h3 className="text-sm text-slate-900">
                           Core Principles
                         </h3>
                       </div>
@@ -573,7 +571,7 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {[
                       {
                         title: 'Interactive Map',
@@ -638,36 +636,42 @@ export default function Docs() {
                     ].map((feature, idx) => (
                       <div
                         key={idx}
-                        className="overflow-hidden rounded-lg border border-slate-200"
+                        className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-[#f7f7f7]"
                       >
                         <button
                           onClick={() => toggleSection(feature.title)}
-                          className="flex w-full items-center justify-between bg-white px-3 py-2 transition-colors hover:bg-slate-50"
+                          className={`flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-slate-100 ${
+                            expandedSections[feature.title]
+                              ? 'border-b border-[#dfdfdf]'
+                              : ''
+                          }`}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-6 w-6 items-center justify-center rounded bg-slate-100">
-                              <feature.icon className="h-3.5 w-3.5 text-slate-600" />
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-slate-300 bg-white">
+                              <feature.icon className="h-4 w-4 text-slate-600" />
                             </div>
-                            <h3 className="text-sm font-semibold text-slate-900">
+                            <h3 className="text-foreground text-base">
                               {feature.title}
                             </h3>
                           </div>
                           {expandedSections[feature.title] ? (
-                            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                            <ChevronDown className="h-4 w-4 text-slate-600" />
                           ) : (
-                            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                            <ChevronRight className="h-4 w-4 text-slate-600" />
                           )}
                         </button>
                         {expandedSections[feature.title] && (
-                          <div className="bg-slate-50 px-3 py-2">
-                            <ul className="space-y-1">
+                          <div className="bg-white px-4 py-4">
+                            <ul className="space-y-3">
                               {feature.features.map((item, i) => (
                                 <li
                                   key={i}
-                                  className="flex items-start gap-2 text-xs text-slate-700"
+                                  className="text-foreground flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm"
                                 >
-                                  <CheckCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500" />
-                                  <span>{item}</span>
+                                  <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
+                                  <span className="leading-relaxed font-normal">
+                                    {item}
+                                  </span>
                                 </li>
                               ))}
                             </ul>
@@ -985,69 +989,58 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
+                  <FeatureCards
+                    columns={2}
+                    features={[
                       {
-                        role: 'City Engineer',
+                        icon: Zap,
+                        title: 'City Engineer',
                         description:
-                          'Identify vulnerable drainage components and prioritize maintenance schedules',
-                        benefit:
+                          'Identify vulnerable drainage components, and prioritize maintenance schedules to optimize infrastructure planning',
+                        tooltip:
                           'Efficient planning without manual network inspection',
                       },
                       {
-                        role: 'Urban Planner',
+                        icon: Map,
+                        title: 'Urban Planner',
                         description:
-                          'Simulate infrastructure changes and evaluate design scenarios',
-                        benefit: 'Ensure flood-resilient city development',
+                          'Simulate infrastructure changes, evaluate design scenarios, and visualize flood impacts across different urban development strategies',
+                        tooltip: 'Ensure flood-resilient city development',
                       },
                       {
-                        role: 'Disaster Risk Reduction',
+                        icon: AlertCircle,
+                        title: 'Disaster Risk Reduction',
                         description:
-                          'Run rainfall simulations to predict overflow areas',
-                        benefit:
+                          'Run rainfall simulations to predict overflow areas, generate early warnings, and allocate emergency resources effectively',
+                        tooltip:
                           'Prepare early warnings and allocate emergency resources',
                       },
                       {
-                        role: 'Environmental Researcher',
+                        icon: BarChart3,
+                        title: 'Environmental Researcher',
                         description:
-                          'Study urban flooding behavior through simulation outputs',
-                        benefit:
+                          'Study urban flooding behavior through detailed simulation and analyze correlations between urbanization patterns and vulnerability',
+                        tooltip:
                           'Explore correlations between urbanization and vulnerability',
                       },
                       {
-                        role: 'Policy Maker',
+                        icon: FileText,
+                        title: 'Policy Maker',
                         description:
-                          'Review visual maps and vulnerability reports',
-                        benefit:
+                          'Review comprehensive visual maps, vulnerability reports, and data-driven evidence for infrastructure and disaster mitigation strategies',
+                        tooltip:
                           'Data-driven evidence for funding and infrastructure decisions',
                       },
                       {
-                        role: 'Citizen',
+                        icon: Users,
+                        title: 'Citizen',
                         description:
-                          'Report drainage issues with real-time updates',
-                        benefit:
+                          'Report drainage issues with photo and embedded coordinates while receiving real-time updates on maintenance progress',
+                        tooltip:
                           'Enhanced situational awareness and faster maintenance response',
                       },
-                    ].map((user, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-lg border border-slate-200 bg-white p-3"
-                      >
-                        <h3 className="mb-0.5 text-sm font-semibold text-slate-900">
-                          {user.role}
-                        </h3>
-                        <p className="mb-1.5 text-xs text-slate-700">
-                          {user.description}
-                        </p>
-                        <div className="flex items-start gap-1.5">
-                          <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-green-600" />
-                          <span className="text-xs font-medium text-green-700">
-                            {user.benefit}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    ]}
+                  />
                 </div>
               )}
 
@@ -1279,7 +1272,7 @@ export default function Docs() {
 
                   {/* Demo Video Section */}
                   <div
-                    className="relative w-full overflow-hidden rounded-lg bg-slate-700 shadow-lg"
+                    className="relative w-full overflow-hidden rounded-lg bg-slate-700"
                     style={{
                       aspectRatio: '16/9',
                       maxHeight: 'calc(100vh - 300px)',
@@ -1298,8 +1291,8 @@ export default function Docs() {
               )}
             </div>
             {/* Footer */}
-            <div className="rounded-b-xl border border-[#dfdfdf] bg-linear-to-b from-[#ffffff] to-[#f3f3f3] px-6 py-3.5 text-center text-sm text-gray-600">
-              © 2024 drAin Project. All rights reserved.
+            <div className="rounded-b-xl border border-[#dfdfdf] bg-white px-6 py-3.5 text-center text-sm text-gray-600">
+              © 2026 drAIn Project. All rights reserved.
             </div>
           </main>
         </div>
