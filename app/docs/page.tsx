@@ -49,9 +49,18 @@ import {
   FileText,
   Mail,
   Info,
+  Zap as ZapIcon,
+  Users as UsersIcon,
+  TrendingDown,
+  GitFork,
+  Eye,
+  CheckSquare,
+  Scale,
+  Smile,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import FeatureCards from '@/components/docs/FeatureCards';
+import PrincipleItem from '@/components/docs/PrincipleItem';
 
 const developers = [
   { name: 'Kint Borbano', initials: 'KB', color: 'bg-blue-100 text-blue-700' },
@@ -330,7 +339,7 @@ export default function Docs() {
             <div className="flex-1 border-x border-[#dfdfdf] bg-[#fcfcfc] px-8 pt-4 pb-4">
               {activeSection === 'overview' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Overview
                     </h2>
@@ -338,25 +347,6 @@ export default function Docs() {
                       AI-driven urban flood intelligence — what drAin is and why
                       it matters.
                     </p>
-                  </div>
-
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <div className="flex gap-3">
-                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-                      <div>
-                        <h4 className="mb-1 text-sm font-semibold text-amber-900">
-                          The Problem
-                        </h4>
-                        <p className="text-xs text-amber-800">
-                          Mandaue City grapples with chronic urban flooding due
-                          to intensifying rainfall, rapid urbanization, and
-                          inadequate drainage infrastructure. Existing flood
-                          hazard maps show <em>where</em> floods happen but not{' '}
-                          <em>why</em>, failing to reveal which specific
-                          drainage components are vulnerable.
-                        </p>
-                      </div>
-                    </div>
                   </div>
 
                   <FeatureCards
@@ -389,50 +379,68 @@ export default function Docs() {
                     ]}
                   />
 
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <h3 className="mb-2 text-sm font-semibold text-slate-900">
-                        Our Vision
-                      </h3>
-                      <ul className="space-y-1.5">
-                        {[
-                          'Empower local governments with actionable flood data',
-                          'Enable citizens to report and monitor drainage conditions',
-                          'Reduce hydrological study costs using AI and open data',
-                          'Promote open-source collaboration for urban resilience',
-                        ].map((item, idx) => (
-                          <li
-                            key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-700"
-                          >
-                            <CheckCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-start gap-4">
+                      <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600" />
+                      <p className="text-sm text-amber-800">
+                        Mandaue City grapples with chronic urban flooding due to
+                        intensifying rainfall, rapid urbanization, and
+                        inadequate drainage infrastructure. Existing flood
+                        hazard maps show <em>where</em> floods happen but not{' '}
+                        <em>why</em>, failing to reveal which specific drainage
+                        components are vulnerable.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white">
+                      <div className="border-b border-[#dfdfdf] bg-[#f7f7f7] px-4 py-3">
+                        <h3 className="text-sm font-semibold text-slate-900">
+                          Our Vision
+                        </h3>
+                      </div>
+                      <div className="space-y-4 px-4 py-4">
+                        <PrincipleItem
+                          icon={ZapIcon}
+                          title="Empower:"
+                          description="Local governments with actionable flood data"
+                        />
+                        <PrincipleItem
+                          icon={UsersIcon}
+                          title="Enable:"
+                          description="Citizens to report and monitor drainage conditions"
+                        />
+                        <PrincipleItem
+                          icon={TrendingDown}
+                          title="Reduce:"
+                          description="Hydrological study costs using AI and open data"
+                        />
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <h3 className="mb-2 text-sm font-semibold text-slate-900">
-                        Core Principles
-                      </h3>
-                      <div className="space-y-2 text-xs text-slate-700">
-                        <div>
-                          <strong>Transparency:</strong> Built with open-source
-                          tools and public datasets
-                        </div>
-                        <div>
-                          <strong>Reproducibility:</strong> Consistent
-                          simulation results you can trust
-                        </div>
-                        <div>
-                          <strong>Scalability:</strong> Adaptable to new cities
-                          and datasets
-                        </div>
-                        <div>
-                          <strong>User-Centricity:</strong> Designed for experts
-                          and citizens alike
-                        </div>
+                    <div className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white">
+                      <div className="border-b border-[#dfdfdf] bg-[#f7f7f7] px-4 py-3">
+                        <h3 className="text-sm font-semibold text-slate-900">
+                          Core Principles
+                        </h3>
+                      </div>
+                      <div className="space-y-4 px-4 py-4">
+                        <PrincipleItem
+                          icon={Eye}
+                          title="Transparency:"
+                          description="Built with open-source tools and public datasets"
+                        />
+                        <PrincipleItem
+                          icon={CheckSquare}
+                          title="Reproducibility:"
+                          description="Consistent simulation results you can trust"
+                        />
+                        <PrincipleItem
+                          icon={Scale}
+                          title="Scalability:"
+                          description="Adaptable to new cities and datasets"
+                        />
                       </div>
                     </div>
                   </div>
@@ -441,7 +449,7 @@ export default function Docs() {
 
               {activeSection === 'architecture' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       System Architecture
                     </h2>
@@ -555,7 +563,7 @@ export default function Docs() {
 
               {activeSection === 'features' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Core Features
                     </h2>
@@ -673,7 +681,7 @@ export default function Docs() {
 
               {activeSection === 'tech-stack' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Technology Stack
                     </h2>
@@ -748,7 +756,7 @@ export default function Docs() {
 
               {activeSection === 'data-sources' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Data Sources
                     </h2>
@@ -846,7 +854,7 @@ export default function Docs() {
 
               {activeSection === 'simulation' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Simulation Models
                     </h2>
@@ -968,7 +976,7 @@ export default function Docs() {
 
               {activeSection === 'users' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       User Stories
                     </h2>
@@ -1045,7 +1053,7 @@ export default function Docs() {
 
               {activeSection === 'deployment' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Deployment
                     </h2>
@@ -1156,7 +1164,7 @@ export default function Docs() {
 
               {activeSection === 'limitations' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Limitations & Future Work
                     </h2>
@@ -1260,7 +1268,7 @@ export default function Docs() {
 
               {activeSection === 'demo' && (
                 <div className="space-y-3">
-                  <div>
+                  <div className="mb-5 ml-2">
                     <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       System Demo
                     </h2>
