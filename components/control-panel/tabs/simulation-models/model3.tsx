@@ -23,6 +23,7 @@ import {
   Maximize2,
   CloudRain,
   Flame,
+  Loader2,
 } from 'lucide-react';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -33,6 +34,7 @@ import {
 } from '@/lib/query/hooks/useDrainageData';
 import { toast } from 'sonner';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
+import { on } from 'events';
 
 export interface NodeParams {
   inv_elev: number;
@@ -254,6 +256,20 @@ export default function Model3({
     onPipeParamsChange(new Map());
     onRainfallParamsChange(DEFAULT_RAINFALL_PARAMS);
     setError(null);
+  };
+
+  const [isTogglingTable, setIsTogglingTable] = useState(false);
+
+  const handleToggleTable = async () => {
+    if (!onToggleMinimize) return;
+
+    setIsTogglingTable(true);
+
+    try {
+      await Promise.resolve(onToggleMinimize()); // works for sync or async
+    } finally {
+      setTimeout(() => setIsTogglingTable(false), 250); // smooth UX
+    }
   };
 
   return (
@@ -574,11 +590,13 @@ export default function Model3({
               <Button
                 variant="outline"
                 onClick={() => onToggleMinimize()}
-                disabled={isLoadingTable || !hasTable}
-                className="flex-none"
+                disabled={isLoadingTable || !hasTable || isTogglingTable}
+                className="flex-none transition-transform active:scale-95"
                 aria-label={isTableMinimized ? 'Show table' : 'Hide table'}
               >
-                {isTableMinimized ? (
+                {isTogglingTable ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isTableMinimized ? (
                   <Maximize2 className="h-4 w-4" />
                 ) : (
                   <Minimize2 className="h-4 w-4" />

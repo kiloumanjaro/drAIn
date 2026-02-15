@@ -23,6 +23,7 @@ import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { Loader2, Minimize2, Maximize2, CloudRain, Flame } from 'lucide-react';
 import { LoadingScreen } from '@/components/loading-screen';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
+import { useState } from 'react';
 
 interface Model2Props {
   selectedPointId?: string | null;
@@ -67,6 +68,20 @@ export default function Model2({
   isFloodPropagationActive = false,
   onToggleFloodPropagation,
 }: Model2Props) {
+  const [isTogglingTable, setIsTogglingTable] = useState(false);
+
+  const handleToggleTable = async () => {
+    if (!onToggleMinimize) return;
+
+    setIsTogglingTable(true);
+
+    try {
+      await Promise.resolve(onToggleMinimize()); // works for sync or async
+    } finally {
+      setTimeout(() => setIsTogglingTable(false), 250); // smooth UX
+    }
+  };
+
   return (
     <>
       {/* Loading Screen */}
@@ -289,12 +304,14 @@ export default function Model2({
 
             <Button
               variant="outline"
-              onClick={() => onToggleMinimize && onToggleMinimize()}
-              disabled={isLoading || !hasTable}
+              onClick={handleToggleTable}
+              disabled={isLoading || !hasTable || isTogglingTable}
               className="flex-none"
               aria-label={isTableMinimized ? 'Show table' : 'Hide table'}
             >
-              {isTableMinimized ? (
+              {isTogglingTable ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isTableMinimized ? (
                 <Maximize2 className="h-4 w-4" />
               ) : (
                 <Minimize2 className="h-4 w-4" />
