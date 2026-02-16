@@ -352,7 +352,9 @@ export default function ReportHistoryList({
           coordinates={selectedReport.coordinates}
           componentId={selectedReport.componentId}
           address={selectedReport.address}
-          status={selectedReport.status as 'pending' | 'in-progress' | 'resolved'}
+          status={
+            selectedReport.status as 'pending' | 'in-progress' | 'resolved'
+          }
           priority={'low'}
           onClose={() => setShowImageViewer(false)}
         />
