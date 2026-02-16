@@ -14,6 +14,7 @@ interface FeatureCard {
   title: string;
   description: string;
   tooltip?: string;
+  iconColor?: string;
 }
 
 interface FeatureCardsProps {
@@ -58,8 +59,10 @@ export default function FeatureCards({
 
               <Card className="gap-3 border-x-0 border-b-0 border-[#dfdfdf] px-6 py-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-slate-100">
-                    <Icon className="h-6 w-6 text-slate-600" />
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-[#dfdfdf] bg-slate-100">
+                    <Icon
+                      className={`h-6 w-6 ${feature.iconColor || 'text-slate-600'}`}
+                    />
                   </div>
                   <p className="text-sm text-slate-600">
                     {feature.description}

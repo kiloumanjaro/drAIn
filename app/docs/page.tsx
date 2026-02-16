@@ -57,8 +57,15 @@ import {
   CheckSquare,
   Scale,
   Smile,
+  Gauge,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import FeatureCards from '@/components/docs/FeatureCards';
 import PrincipleItem from '@/components/docs/PrincipleItem';
 
@@ -318,21 +325,26 @@ export default function Docs() {
                     <span>Last changed on November 2025 by</span>
                   </div>
 
-                  <div className="flex -space-x-2">
-                    {developers.map((dev) => (
-                      <Avatar
-                        key={dev.initials}
-                        className="h-8 w-8 border-2 border-white"
-                        title={dev.name}
-                      >
-                        <AvatarFallback
-                          className={`text-xs font-medium ${dev.color}`}
-                        >
-                          {dev.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
+                  <TooltipProvider>
+                    <div className="flex -space-x-2">
+                      {developers.map((dev) => (
+                        <Tooltip key={dev.initials}>
+                          <TooltipTrigger asChild>
+                            <Avatar className="h-8 w-8 cursor-pointer border-2 border-white">
+                              <AvatarFallback
+                                className={`text-xs font-medium ${dev.color}`}
+                              >
+                                {dev.initials}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{dev.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>
@@ -456,106 +468,43 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                          <Server className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-1 text-sm font-semibold text-slate-900">
-                            Frontend Layer
-                          </h3>
-                          <p className="mb-2 text-xs text-slate-600">
-                            Next.js application with Turbopack build
-                            optimization, styled with Tailwind CSS
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Next.js
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              React
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Tailwind CSS
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-100">
-                          <Code className="h-4 w-4 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-1 text-sm font-semibold text-slate-900">
-                            Backend Layer
-                          </h3>
-                          <p className="mb-2 text-xs text-slate-600">
-                            Python FastAPI for simulation processing and
-                            Supabase backend services
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Python FastAPI
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              SWMM
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              K-means ML
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-100">
-                          <Database className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-1 text-sm font-semibold text-slate-900">
-                            Data Layer
-                          </h3>
-                          <p className="mb-2 text-xs text-slate-600">
-                            Supabase PostgreSQL database with real-time
-                            capabilities
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Supabase
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              PostgreSQL
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-100">
-                          <Cloud className="h-4 w-4 text-orange-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-1 text-sm font-semibold text-slate-900">
-                            Deployment
-                          </h3>
-                          <p className="mb-2 text-xs text-slate-600">
-                            Distributed deployment across cloud platforms
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Vercel (Frontend)
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700">
-                              Railway (Backend)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Server,
+                        title: 'Frontend Layer',
+                        description:
+                          'Next.js application with Turbopack build optimization, React components, and Tailwind CSS styling for responsive user interfaces',
+                        tooltip:
+                          'User-facing web application with optimized performance and modern UI framework',
+                      },
+                      {
+                        icon: Code,
+                        title: 'Backend Layer',
+                        description:
+                          'Python FastAPI for simulation processing, SWMM hydrological modeling, and K-means ML for vulnerability classification',
+                        tooltip:
+                          'API server handling flood simulations, data processing, and machine learning computations',
+                      },
+                      {
+                        icon: Database,
+                        title: 'Data Layer',
+                        description:
+                          'Supabase PostgreSQL database with real-time capabilities for managing drainage networks and user data',
+                        tooltip:
+                          'Real-time database storing drainage networks, simulation results, and user information',
+                      },
+                      {
+                        icon: Cloud,
+                        title: 'Deployment',
+                        description:
+                          'Distributed deployment across Vercel for frontend hosting and Railway for backend services with scalable infrastructure',
+                        tooltip:
+                          'Cloud-based hosting with auto-scaling and global content delivery',
+                      },
+                    ]}
+                  />
                 </div>
               )}
 
@@ -636,7 +585,7 @@ export default function Docs() {
                     ].map((feature, idx) => (
                       <div
                         key={idx}
-                        className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-[#f7f7f7]"
+                        className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white"
                       >
                         <button
                           onClick={() => toggleSection(feature.title)}
@@ -647,7 +596,7 @@ export default function Docs() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-slate-300 bg-white">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-slate-300 bg-[#f1f5f9]">
                               <feature.icon className="h-4 w-4 text-slate-600" />
                             </div>
                             <h3 className="text-foreground text-base">
@@ -661,14 +610,16 @@ export default function Docs() {
                           )}
                         </button>
                         {expandedSections[feature.title] && (
-                          <div className="bg-white px-4 py-4">
-                            <ul className="space-y-3">
+                          <div className="bg-[#f7f7f7] px-4 py-4">
+                            <ul className="space-y-1.5">
                               {feature.features.map((item, i) => (
                                 <li
                                   key={i}
-                                  className="text-foreground flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm"
+                                  className="text-foreground flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm"
                                 >
-                                  <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                                    <CheckCircle className="h-4 w-4 text-slate-600" />
+                                  </div>
                                   <span className="leading-relaxed font-normal">
                                     {item}
                                   </span>
@@ -695,66 +646,75 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                    {[
+                  <FeatureCards
+                    columns={3}
+                    features={[
                       {
-                        category: 'Frontend',
-                        tech: 'Next.js',
+                        icon: Code,
+                        title: 'Next.js',
                         description:
-                          'React framework with server-side rendering',
+                          'React framework with server-side rendering and optimized performance',
+                        tooltip:
+                          'Full-stack framework with built-in performance optimization',
                       },
                       {
-                        category: 'Styling',
-                        tech: 'Tailwind CSS',
-                        description: 'Utility-first CSS framework',
+                        icon: Zap,
+                        title: 'Tailwind CSS',
+                        description:
+                          'Utility-first CSS framework for rapid UI development',
+                        tooltip:
+                          'Low-level utility classes for flexible design system',
                       },
                       {
-                        category: 'Backend',
-                        tech: 'Python FastAPI',
-                        description: 'High-performance async API framework',
+                        icon: Server,
+                        title: 'Python FastAPI',
+                        description:
+                          'High-performance async API framework for backend processing',
+                        tooltip:
+                          'Modern async framework with automatic API documentation',
                       },
                       {
-                        category: 'Backend Services',
-                        tech: 'Supabase',
-                        description: 'Real-time database and authentication',
+                        icon: Cloud,
+                        title: 'Supabase',
+                        description:
+                          'Real-time database and authentication backend services',
+                        tooltip:
+                          'Open-source Firebase alternative with PostgreSQL',
                       },
                       {
-                        category: 'Database',
-                        tech: 'PostgreSQL',
-                        description: 'Via Supabase cloud platform',
+                        icon: Database,
+                        title: 'PostgreSQL',
+                        description:
+                          'Powerful relational database via Supabase cloud platform',
+                        tooltip:
+                          'Advanced open-source SQL database with real-time features',
                       },
                       {
-                        category: 'Build Tool',
-                        tech: 'Turbopack',
-                        description: 'Next-gen bundler for fast builds',
+                        icon: Zap,
+                        title: 'Turbopack',
+                        description:
+                          'Next-generation bundler for lightning-fast builds',
+                        tooltip:
+                          'Incremental bundler written in Rust for ultra-fast compilation',
                       },
                       {
-                        category: 'Frontend Deploy',
-                        tech: 'Vercel',
-                        description: 'Serverless deployment platform',
+                        icon: Cloud,
+                        title: 'Vercel',
+                        description:
+                          'Serverless deployment platform for frontend hosting',
+                        tooltip:
+                          'Optimized hosting platform for Next.js and static sites',
                       },
                       {
-                        category: 'Backend Deploy',
-                        tech: 'Railway',
-                        description: 'Cloud infrastructure for APIs',
+                        icon: Server,
+                        title: 'Railway',
+                        description:
+                          'Modern cloud infrastructure platform for backend APIs',
+                        tooltip:
+                          'Simple cloud platform for deploying containerized services',
                       },
-                    ].map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-lg border border-slate-200 bg-slate-50 p-3"
-                      >
-                        <div className="mb-0.5 text-[10px] font-medium text-slate-500">
-                          {item.category}
-                        </div>
-                        <h3 className="mb-0.5 text-sm font-semibold text-slate-900">
-                          {item.tech}
-                        </h3>
-                        <p className="text-xs text-slate-700">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                    ]}
+                  />
                 </div>
               )}
 
@@ -770,88 +730,80 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                    <p className="text-xs text-blue-900">
-                      <strong>Primary Source:</strong> Datasets adapted from
-                      Quijano and Bañados (2023) - Integrated flood modeling for
-                      urban resilience planning in Mandaue City, Philippines
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
+                  <FeatureCards
+                    columns={3}
+                    features={[
                       {
-                        dataset: 'Rainfall',
-                        source:
-                          'RIDF data from PAGASA via Quijano and Bañados (2023)',
                         icon: Cloud,
+                        title: 'Rainfall',
+                        description:
+                          'RIDF rainfall data from PAGASA via Quijano and Bañados (2023) research',
+                        tooltip:
+                          'Philippine Atmospheric, Geophysical and Astronomical Services Administration data',
                       },
                       {
-                        dataset: 'Elevation',
-                        source: 'LiDAR derived via Quijano and Bañados (2023)',
                         icon: Map,
+                        title: 'Elevation',
+                        description:
+                          'LiDAR-derived digital elevation model data via Quijano and Bañados (2023)',
+                        tooltip:
+                          'Light Detection and Ranging derived topographic data',
                       },
                       {
-                        dataset: 'Land Cover',
-                        source:
-                          'Global Map of Local Climate Zones (Demuzere et al, 2022)',
                         icon: Layers,
+                        title: 'Land Cover',
+                        description:
+                          'Map of Local Climate Zones from Demuzere et al (2022) classification',
+                        tooltip:
+                          'Urban climate zone classification for land surface characterization',
                       },
                       {
-                        dataset: 'Drainage Network',
-                        source: 'Quijano and Bañados (2023)',
                         icon: GitBranch,
+                        title: 'Drainage Network',
+                        description:
+                          'Drainage infrastructure network from Quijano and Bañados (2023)',
+                        tooltip:
+                          'Complete mapping of drainage system components and connections',
                       },
                       {
-                        dataset: 'Node Flooding',
-                        source: 'SWMM simulation derived',
                         icon: BarChart3,
+                        title: 'Node Flooding',
+                        description:
+                          'Flood simulation results derived from SWMM hydrological modeling',
+                        tooltip:
+                          'Computed flooding predictions for drainage network nodes',
                       },
                       {
-                        dataset: 'Subcatchments',
-                        source: 'Aggregated from drainage network data',
                         icon: Database,
+                        title: 'Subcatchments',
+                        description:
+                          'Aggregated subcatchment derived from drainage network spatial data',
+                        tooltip:
+                          'Watershed delineation for hydrological modeling units',
                       },
-                    ].map((item, idx) => (
+                    ]}
+                  />
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[
+                      'Enhanced spatial accuracy with DEM',
+                      'Real-world surface characteristics',
+                      'Up-to-date precipitation measurements',
+                      'Reduced data collection costs',
+                      'Support for continuous model updates',
+                    ].map((benefit, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white p-2.5"
+                        className="flex items-center gap-3 rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] p-3"
                       >
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-100">
-                          <item.icon className="h-3.5 w-3.5 text-slate-600" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <CheckCircle className="h-4 w-4 text-slate-600" />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="mb-0.5 text-sm font-semibold text-slate-900">
-                            {item.dataset}
-                          </h3>
-                          <p className="text-xs text-slate-600">
-                            {item.source}
-                          </p>
-                        </div>
+                        <span className="text-xs text-slate-700">
+                          {benefit}
+                        </span>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <h3 className="mb-2 text-sm font-semibold text-slate-900">
-                      Satellite Data Benefits
-                    </h3>
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                      {[
-                        'Enhanced spatial accuracy with DEM',
-                        'Real-world surface characteristics',
-                        'Up-to-date precipitation measurements',
-                        'Reduced data collection costs',
-                        'Support for continuous model updates',
-                      ].map((benefit, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-600" />
-                          <span className="text-xs text-slate-700">
-                            {benefit}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
               )}
@@ -867,27 +819,19 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <p className="text-xs text-slate-700">
-                    drAin uses the Storm Water Management Model (SWMM) to
-                    simulate rainfall-runoff-flooding processes, combined with
-                    K-means clustering for vulnerability classification.
-                  </p>
-
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-200">
-                          <Database className="h-3.5 w-3.5 text-slate-700" />
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Database className="h-4 w-4 text-slate-600" />
                         </div>
-                        <h3 className="text-sm font-semibold text-slate-900">
-                          Static Model
-                        </h3>
+                        <h3 className="text-sm text-slate-900">Static Model</h3>
                       </div>
-                      <p className="mb-2 text-xs text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Pre-simulated rainfall-runoff analysis based on
                         historical data and PAGASA RIDF curves.
                       </p>
-                      <ul className="space-y-0.5">
+                      <div className="space-y-2">
                         {[
                           'Node flooding summaries',
                           'Predicted time to overflow',
@@ -895,31 +839,32 @@ export default function Docs() {
                           'Multiple rainfall return periods',
                           'Color-coded vulnerability layers',
                         ].map((feature, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-700"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-slate-400"></div>
-                            <span>{feature}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {feature}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-200">
-                          <Zap className="h-3.5 w-3.5 text-slate-700" />
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Zap className="h-4 w-4 text-slate-600" />
                         </div>
-                        <h3 className="text-sm font-semibold text-slate-900">
+                        <h3 className="text-sm text-slate-900">
                           Dynamic Model
                         </h3>
                       </div>
-                      <p className="mb-2 text-xs text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Interactive on-demand simulations with real-time
                         parameter adjustments.
                       </p>
-                      <ul className="space-y-0.5">
+                      <div className="space-y-2">
                         {[
                           'Modify rainfall intensity & duration',
                           'Adjust node elevations',
@@ -928,53 +873,58 @@ export default function Docs() {
                           'Real-time vulnerability updates',
                           'What-if scenario analysis',
                         ].map((feature, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-700"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1 h-1 w-1 shrink-0 rounded-full bg-slate-400"></div>
-                            <span>{feature}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {feature}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <h4 className="mb-1 text-sm font-semibold text-slate-900">
-                      Vulnerability Classification
-                    </h4>
-                    <p className="mb-2 text-xs text-slate-700">
-                      K-means clustering algorithm classifies drainage assets
-                      based on:
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                      <div className="rounded-md border border-slate-200 bg-white p-2 text-center">
-                        <div className="mx-auto mb-1.5 h-2.5 w-2.5 rounded-full bg-green-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          No Risk
-                        </span>
-                      </div>
-                      <div className="rounded-md border border-slate-200 bg-white p-2 text-center">
-                        <div className="mx-auto mb-1.5 h-2.5 w-2.5 rounded-full bg-yellow-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          Low Risk
-                        </span>
-                      </div>
-                      <div className="rounded-md border border-slate-200 bg-white p-2 text-center">
-                        <div className="mx-auto mb-1.5 h-2.5 w-2.5 rounded-full bg-orange-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          Medium Risk
-                        </span>
-                      </div>
-                      <div className="rounded-md border border-slate-200 bg-white p-2 text-center">
-                        <div className="mx-auto mb-1.5 h-2.5 w-2.5 rounded-full bg-red-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          High Risk
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Gauge,
+                        title: 'No Risk',
+                        description:
+                          'Drainage nodes with no predicted flooding under simulated rainfall conditions',
+                        tooltip: 'Safe zones with adequate drainage capacity',
+                        iconColor: 'text-green-500',
+                      },
+                      {
+                        icon: Gauge,
+                        title: 'Low Risk',
+                        description:
+                          'Minor overflow potential under heavy rainfall with minimal infrastructure impact',
+                        tooltip:
+                          'Areas requiring monitoring during extreme events',
+                        iconColor: 'text-yellow-500',
+                      },
+                      {
+                        icon: Gauge,
+                        title: 'Medium Risk',
+                        description:
+                          'Moderate flooding likelihood requiring drainage improvements and maintenance',
+                        tooltip: 'Priority areas for infrastructure upgrades',
+                        iconColor: 'text-orange-500',
+                      },
+                      {
+                        icon: Gauge,
+                        title: 'High Risk',
+                        description:
+                          'Critical vulnerability with significant overflow and potential urban damage',
+                        tooltip:
+                          'Immediate intervention and capacity expansion needed',
+                        iconColor: 'text-red-500',
+                      },
+                    ]}
+                  />
                 </div>
               )}
 
@@ -1055,54 +1005,38 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                      <h3 className="mb-1 text-sm font-semibold text-slate-900">
-                        Live Demo Access
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-700">URL:</span>
-                        <code className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-blue-600">
-                          https://project-drain.vercel.app/
-                        </code>
-                      </div>
-                    </div>
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Cloud,
+                        title: 'Live Demo Access',
+                        description: 'https://ai-drain.vercel.app/',
+                        tooltip:
+                          'Publicly accessible deployment hosted on Vercel',
+                      },
+                      {
+                        icon: Users,
+                        title: 'Test Credentials',
+                        description: 'tester@gmail.com (123password)',
+                        tooltip:
+                          'Use these credentials to explore the platform',
+                      },
+                    ]}
+                  />
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <h3 className="mb-1 text-sm font-semibold text-slate-900">
-                        Test Credentials
-                      </h3>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-700">User:</span>
-                          <code className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-900">
-                            tester@gmail.com
-                          </code>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Server className="h-4 w-4 text-slate-600" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-700">Pass:</span>
-                          <code className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-900">
-                            123password
-                          </code>
-                        </div>
+                        <h3 className="text-sm text-slate-900">Vercel</h3>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div className="rounded-lg border border-slate-200 bg-white p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded bg-slate-900">
-                          <Server className="h-3.5 w-3.5 text-white" />
-                        </div>
-                        <h3 className="text-sm font-semibold text-slate-900">
-                          Vercel
-                        </h3>
-                      </div>
-                      <p className="mb-1.5 text-xs text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Frontend Deployment
                       </p>
-                      <ul className="space-y-0.5">
+                      <div className="space-y-2">
                         {[
                           'Next.js application hosting',
                           'Automatic deployments from Git',
@@ -1110,30 +1044,29 @@ export default function Docs() {
                           'Serverless functions',
                           'Built with Turbopack',
                         ].map((item, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-600"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-slate-400"></div>
-                            <span>{item}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {item}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-white p-3">
-                      <div className="mb-2 flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded bg-purple-600">
-                          <Server className="h-3.5 w-3.5 text-white" />
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Server className="h-4 w-4 text-slate-600" />
                         </div>
-                        <h3 className="text-sm font-semibold text-slate-900">
-                          Railway
-                        </h3>
+                        <h3 className="text-sm text-slate-900">Railway</h3>
                       </div>
-                      <p className="mb-1.5 text-xs text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Backend Deployment
                       </p>
-                      <ul className="space-y-0.5">
+                      <div className="space-y-2">
                         {[
                           'Python FastAPI hosting',
                           'SWMM simulation processing',
@@ -1141,15 +1074,16 @@ export default function Docs() {
                           'Environment management',
                           'Integration with Supabase',
                         ].map((item, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-xs text-slate-600"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1 h-1 w-1 flex-shrink-0 rounded-full bg-purple-400"></div>
-                            <span>{item}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {item}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1166,95 +1100,63 @@ export default function Docs() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
+                  <FeatureCards
+                    columns={2}
+                    features={[
                       {
-                        title: 'Geographic Scope',
-                        text: 'Currently focused on Mandaue City. Framework is scalable to other urban areas.',
-                        border: 'border-amber-200',
-                        bg: 'bg-amber-50',
-                        titleColor: 'text-amber-900',
-                        textColor: 'text-amber-800',
-                        iconColor: 'text-amber-600',
-                      },
-                      {
+                        icon: Target,
                         title: 'Simulation Precision',
-                        text: 'Simplified approach vs high-end software. Enhances efficiency and accessibility.',
-                        border: 'border-blue-200',
-                        bg: 'bg-blue-50',
-                        titleColor: 'text-blue-900',
-                        textColor: 'text-blue-800',
-                        iconColor: 'text-blue-600',
+                        description:
+                          'Simplified approach vs high-end software. Enhances efficiency and accessibility.',
+                        tooltip:
+                          'Trade-off between computational speed and modeling detail',
                       },
                       {
+                        icon: Database,
                         title: 'Data Dependency',
-                        text: 'Accuracy depends on quality of satellite data and drainage information.',
-                        border: 'border-purple-200',
-                        bg: 'bg-purple-50',
-                        titleColor: 'text-purple-900',
-                        textColor: 'text-purple-800',
-                        iconColor: 'text-purple-600',
+                        description:
+                          'Accuracy depends on quality of satellite data and drainage information.',
+                        tooltip:
+                          'Results are only as reliable as the input datasets',
                       },
                       {
+                        icon: BarChart3,
                         title: 'Clustering Interpretation',
-                        text: 'K-means provides relative groupings requiring expert validation.',
-                        border: 'border-cyan-200',
-                        bg: 'bg-cyan-50',
-                        titleColor: 'text-cyan-900',
-                        textColor: 'text-cyan-800',
-                        iconColor: 'text-cyan-600',
+                        description:
+                          'K-means provides relative groupings requiring expert validation.',
+                        tooltip:
+                          'Vulnerability classifications should be reviewed by domain experts',
                       },
                       {
+                        icon: Users,
                         title: 'User Participation',
-                        text: 'Citizen reporting depends on consistent participation and verified submissions.',
-                        border: 'border-green-200',
-                        bg: 'bg-green-50',
-                        titleColor: 'text-green-900',
-                        textColor: 'text-green-800',
-                        iconColor: 'text-green-600',
+                        description:
+                          'Citizen reporting depends on consistent participation and verified submissions.',
+                        tooltip:
+                          'Community engagement is essential for accurate field data',
                       },
+                    ]}
+                  />
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[
+                      'Refine model parameters',
+                      'Improve simulation accuracy',
+                      'Enhance decision-support features',
+                      'Expand to additional cities',
+                      'Integrate real-time sensor data',
+                      'Develop mobile applications',
                     ].map((item, idx) => (
                       <div
                         key={idx}
-                        className={`rounded-lg border ${item.border} ${item.bg} p-2.5`}
+                        className="flex items-center gap-3 rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] p-3"
                       >
-                        <div className="mb-1 flex items-center gap-2">
-                          <AlertCircle
-                            className={`h-3.5 w-3.5 shrink-0 ${item.iconColor}`}
-                          />
-                          <h3
-                            className={`text-sm font-semibold ${item.titleColor}`}
-                          >
-                            {item.title}
-                          </h3>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <CheckCircle className="h-4 w-4 text-slate-600" />
                         </div>
-                        <p className={`text-xs ${item.textColor}`}>
-                          {item.text}
-                        </p>
+                        <span className="text-xs text-slate-700">{item}</span>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-                      <GitBranch className="h-3.5 w-3.5" />
-                      Future Development
-                    </h3>
-                    <div className="grid grid-cols-2 gap-1 md:grid-cols-3">
-                      {[
-                        'Refine model parameters',
-                        'Improve simulation accuracy',
-                        'Enhance decision-support features',
-                        'Expand to additional cities',
-                        'Integrate real-time sensor data',
-                        'Develop mobile applications',
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-1.5">
-                          <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-blue-600" />
-                          <span className="text-xs text-slate-700">{item}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
               )}
@@ -1271,13 +1173,7 @@ export default function Docs() {
                   </div>
 
                   {/* Demo Video Section */}
-                  <div
-                    className="relative w-full overflow-hidden rounded-lg bg-slate-700"
-                    style={{
-                      aspectRatio: '16/9',
-                      maxHeight: 'calc(100vh - 300px)',
-                    }}
-                  >
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-700">
                     <iframe
                       className="absolute top-0 left-0 h-full w-full"
                       src="https://www.youtube.com/embed/ZHE9dCcayRQ"
