@@ -2,13 +2,34 @@
 
 import React, { useState } from 'react';
 import {
-  Book,
-  Database,
-  Layers,
-  Zap,
-  Users,
+  BookOpenIcon as BookOpenOutline,
+  BoltIcon as BoltOutline,
+  UsersIcon as UsersOutline,
+  Square3Stack3DIcon as Square3Stack3DOutline,
+  CubeIcon as CubeOutline,
+  CircleStackIcon as CircleStackOutline,
+  ChartBarIcon as ChartBarOutline,
+  ServerIcon as ServerOutline,
+  ExclamationTriangleIcon as ExclamationTriangleOutline,
+  PlayIcon as PlayOutline,
+} from '@heroicons/react/24/outline';
+import {
+  BookOpenIcon as BookOpenSolid,
+  BoltIcon as BoltSolid,
+  UsersIcon as UsersSolid,
+  Square3Stack3DIcon as Square3Stack3DSolid,
+  CubeIcon as CubeSolid,
+  CircleStackIcon as CircleStackSolid,
+  ChartBarIcon as ChartBarSolid,
+  ServerIcon as ServerSolid,
+  ExclamationTriangleIcon as ExclamationTriangleSolid,
+  PlayIcon as PlaySolid,
+  InformationCircleIcon as InformationCircleSolid,
+} from '@heroicons/react/24/solid';
+import {
   Code,
   GitBranch,
+  Layers,
   Server,
   Cloud,
   Map,
@@ -17,8 +38,56 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronRight,
-  Play,
+  Zap,
+  Database,
+  Clock,
+  Search,
+  Users,
+  Droplets,
+  Target,
+  Heart,
+  FileText,
+  Mail,
+  Info,
+  Zap as ZapIcon,
+  Users as UsersIcon,
+  TrendingDown,
+  GitFork,
+  Eye,
+  CheckSquare,
+  Scale,
+  Smile,
+  Gauge,
 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import FeatureCards from '@/components/docs/FeatureCards';
+import PrincipleItem from '@/components/docs/PrincipleItem';
+
+const developers = [
+  { name: 'Kint Borbano', initials: 'KB', color: 'bg-blue-100 text-blue-700' },
+  {
+    name: 'Eli Alcaraz',
+    initials: 'EA',
+    color: 'bg-emerald-100 text-emerald-700',
+  },
+  {
+    name: 'Christian James',
+    initials: 'CJ',
+    color: 'bg-violet-100 text-violet-700',
+  },
+  {
+    name: 'Norman Jazul',
+    initials: 'NJ',
+    color: 'bg-amber-100 text-amber-700',
+  },
+  { name: 'John Carlo', initials: 'JC', color: 'bg-rose-100 text-rose-700' },
+];
 
 type SectionID =
   | 'overview'
@@ -41,6 +110,8 @@ export default function Docs() {
   const [expandedSections, setExpandedSections] = useState<ExpandedSections>(
     {}
   );
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   // Add scrollbar-gutter to body only for this page
   React.useEffect(() => {
@@ -50,6 +121,18 @@ export default function Docs() {
     };
   }, []);
 
+  // Handle / shortcut
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -57,116 +140,317 @@ export default function Docs() {
     }));
   };
 
-  const sections = [
-    { id: 'overview', label: 'Overview', icon: Book },
-    { id: 'architecture', label: 'Architecture', icon: Layers },
-    { id: 'features', label: 'Core Features', icon: Zap },
-    { id: 'tech-stack', label: 'Technology Stack', icon: Code },
-    { id: 'data-sources', label: 'Data Sources', icon: Database },
-    { id: 'simulation', label: 'Simulation Models', icon: BarChart3 },
-    { id: 'users', label: 'User Stories', icon: Users },
-    { id: 'deployment', label: 'Deployment', icon: Server },
-    { id: 'limitations', label: 'Limitations', icon: AlertCircle },
-    { id: 'demo', label: 'Demonstration', icon: Play },
+  const sectionGroups = [
+    {
+      heading: 'General',
+      items: [
+        {
+          id: 'overview',
+          label: 'Overview',
+          icon: BookOpenOutline,
+          iconSolid: BookOpenSolid,
+        },
+        {
+          id: 'features',
+          label: 'Core Features',
+          icon: BoltOutline,
+          iconSolid: BoltSolid,
+        },
+        {
+          id: 'users',
+          label: 'User Stories',
+          icon: UsersOutline,
+          iconSolid: UsersSolid,
+        },
+      ],
+    },
+    {
+      heading: 'Technical',
+      items: [
+        {
+          id: 'architecture',
+          label: 'Architecture',
+          icon: Square3Stack3DOutline,
+          iconSolid: Square3Stack3DSolid,
+        },
+        {
+          id: 'tech-stack',
+          label: 'Technology Stack',
+          icon: CubeOutline,
+          iconSolid: CubeSolid,
+        },
+        {
+          id: 'data-sources',
+          label: 'Data Sources',
+          icon: CircleStackOutline,
+          iconSolid: CircleStackSolid,
+        },
+        {
+          id: 'simulation',
+          label: 'Simulation Models',
+          icon: ChartBarOutline,
+          iconSolid: ChartBarSolid,
+        },
+      ],
+    },
+    {
+      heading: 'Operations',
+      items: [
+        {
+          id: 'deployment',
+          label: 'Deployment',
+          icon: ServerOutline,
+          iconSolid: ServerSolid,
+        },
+        {
+          id: 'limitations',
+          label: 'Limitations',
+          icon: ExclamationTriangleOutline,
+          iconSolid: ExclamationTriangleSolid,
+        },
+        {
+          id: 'demo',
+          label: 'Demonstration',
+          icon: PlayOutline,
+          iconSolid: PlaySolid,
+        },
+      ],
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-[#e8e8e8]/50">
-      <div className="mx-auto w-[1280px] px-4 py-8 md:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+    <div className="min-h-screen bg-[#f1f1f1] px-4">
+      <div className="mx-auto pb-5">
+        <div className="flex gap-4">
           {/* Sidebar Navigation */}
-          <nav className="lg:col-span-1">
-            <div className="sticky top-24 rounded-xl border border-[#ced1cd] bg-white px-6 py-6">
-              <h2 className="text-foreground mb-3 px-2 text-sm font-semibold">
-                Contents
-              </h2>
-              <ul className="space-y-1">
-                {sections.map(({ id, label, icon: Icon }) => (
-                  <li key={id}>
-                    <button
-                      onClick={() => setActiveSection(id as SectionID)}
-                      className={`flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm transition-colors ${
-                        activeSection === id
-                          ? 'bg-[#3B82F6] font-medium text-white'
-                          : 'text-foreground hover:bg-[#f5f5f5]'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{label}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+          <nav className="w-52 flex-shrink-0">
+            <div className="sticky">
+              <div className="mt-2 mb-4 flex items-center gap-2">
+                <div className="flex w-full justify-center rounded-lg border border-[#dfdfdf] bg-white px-5 py-2">
+                  <img src="/images/text.png" alt="drAIn" className="h-9" />
+                </div>
+              </div>
+              <div className="mb-3 flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search..."
+                    value={sidebarSearch}
+                    onChange={(e) => setSidebarSearch(e.target.value)}
+                    className="w-full rounded-md bg-transparent py-1.5 pr-2 pl-7 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none"
+                  />
+                </div>
+                {!sidebarSearch && (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md border border-[#dfdfdf] bg-white">
+                    <kbd className="text-xs font-semibold text-[#28385a]">
+                      /
+                    </kbd>
+                  </div>
+                )}
+              </div>
+              <div className="mt-0 mb-3 border-t-2 border-b border-t-[#e7e7e7] border-b-white" />
+              <div className="space-y-3">
+                {sectionGroups
+                  .map((group) => {
+                    const filtered = group.items.filter((item) =>
+                      item.label
+                        .toLowerCase()
+                        .includes(sidebarSearch.toLowerCase())
+                    );
+                    if (filtered.length === 0) return null;
+                    return (
+                      <div key={group.heading}>
+                        <h2 className="mb-2 px-2 text-xs text-gray-400">
+                          {group.heading}
+                        </h2>
+                        <ul className="space-y-0.5">
+                          {filtered.map(
+                            ({
+                              id,
+                              label,
+                              icon: Icon,
+                              iconSolid: IconSolid,
+                            }) => {
+                              const ActiveIcon =
+                                activeSection === id ? IconSolid : Icon;
+                              return (
+                                <li key={id}>
+                                  <button
+                                    onClick={() =>
+                                      setActiveSection(id as SectionID)
+                                    }
+                                    className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#535353] transition-colors ${
+                                      activeSection === id
+                                        ? 'bg-[#e7e7e7]'
+                                        : 'hover:bg-[#e7e7e7]/50'
+                                    }`}
+                                  >
+                                    <ActiveIcon className="h-3.5 w-3.5" />
+                                    <span>{label}</span>
+                                  </button>
+                                </li>
+                              );
+                            }
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })
+                  .map((element, idx, arr) => (
+                    <React.Fragment key={idx}>
+                      {element}
+                      {idx < arr.length - 1 && !sidebarSearch && (
+                        <div className="my-3 border-t-2 border-b border-t-[#e7e7e7] border-b-white" />
+                      )}
+                    </React.Fragment>
+                  ))}
+              </div>
             </div>
           </nav>
 
           {/* Main Content */}
-          <main className="lg:col-span-3">
-            <div className="rounded-xl border border-[#ced1cd] bg-white px-6 py-6">
-              {activeSection === 'overview' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-foreground mb-3 text-3xl font-bold">
-                      Overview
-                    </h2>
+          <main className="mt-5 flex min-h-[calc(100vh-60px)] flex-1 flex-col">
+            {/* Header */}
+            <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-foreground/70 font-semibold">
+                  Documentation
+                </p>
+
+                <div className="flex items-center gap-3">
+                  <div className="hidden items-center gap-2 text-xs text-gray-600 sm:flex">
+                    <Clock className="h-3.5 w-3.5 text-gray-500" />
+                    <span>Last changed on November 2025 by</span>
                   </div>
 
-                  <div className="prose max-w-none">
-                    <p className="text-foreground text-base leading-relaxed md:text-sm">
-                      <strong>drAin</strong> is an AI-driven vulnerability
-                      ranking and simulation platform that empowers cities to
-                      better understand and manage urban flooding. It integrates
-                      satellite-derived datasets with drainage network
-                      attributes to model stormwater flows under different
-                      scenarios.
+                  <TooltipProvider>
+                    <div className="flex -space-x-2">
+                      {developers.map((dev) => (
+                        <Tooltip key={dev.initials}>
+                          <TooltipTrigger asChild>
+                            <Avatar className="h-8 w-8 cursor-pointer border-2 border-white">
+                              <AvatarFallback
+                                className={`text-xs font-medium ${dev.color}`}
+                              >
+                                {dev.initials}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{dev.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </TooltipProvider>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 border-x border-[#dfdfdf] bg-[#fcfcfc] px-8 pt-4 pb-4">
+              {activeSection === 'overview' && (
+                <div>
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
+                      Overview
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      AI-driven urban flood intelligence — what drAin is and why
+                      it matters.
                     </p>
                   </div>
 
-                  <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
-                      <BarChart3 className="mb-3 h-8 w-8 text-blue-600" />
-                      <h3 className="mb-2 font-semibold text-slate-900">
-                        Data-Driven
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Powered by satellite data and AI clustering
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-6">
-                      <Zap className="mb-3 h-8 w-8 text-purple-600" />
-                      <h3 className="mb-2 font-semibold text-slate-900">
-                        Interactive
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Real-time simulation and scenario testing
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-6">
-                      <Users className="mb-3 h-8 w-8 text-green-600" />
-                      <h3 className="mb-2 font-semibold text-slate-900">
-                        Collaborative
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Citizen reporting and admin management
+                  <FeatureCards
+                    columns={3}
+                    features={[
+                      {
+                        icon: Droplets,
+                        title: 'SWMM Integration',
+                        description:
+                          'Hydrological modeling for accurate drainage network simulation',
+                        tooltip:
+                          'Uses Storm Water Management Model for accurate rainfall-runoff simulation',
+                      },
+                      {
+                        icon: Target,
+                        title: 'AI Clustering',
+                        description:
+                          'ML identifies vulnerability patterns and weak points in drainage systems',
+                        tooltip:
+                          'Machine learning identifies vulnerability clusters for drainage components',
+                      },
+                      {
+                        icon: Users,
+                        title: 'Citizen Engagement',
+                        description:
+                          'Real-time reporting and monitorin capabilities for communities',
+                        tooltip:
+                          'Citizens can report issues and track drainage system status in real-time',
+                      },
+                    ]}
+                  />
+
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 pl-8">
+                    <div className="flex items-center gap-4">
+                      <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600" />
+                      <p className="text-sm text-amber-800">
+                        Mandaue City grapples with chronic urban flooding due to
+                        intensifying rainfall, rapid urbanization, and
+                        inadequate drainage infrastructure. Existing flood
+                        hazard maps show <em>where</em> floods happen but not{' '}
+                        <em>why</em>, failing to reveal which specific drainage
+                        components are vulnerable.
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-6">
-                    <div className="flex gap-3">
-                      <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-                      <div>
-                        <h4 className="mb-1 font-semibold text-amber-900">
-                          Problem Statement
-                        </h4>
-                        <p className="text-sm text-amber-800">
-                          Mandaue City grapples with chronic urban flooding due
-                          to intensifying rainfall, rapid urbanization, and
-                          inadequate drainage infrastructure. Existing flood
-                          hazard maps show where floods happen but not why,
-                          failing to reveal which specific drainage components
-                          are vulnerable.
-                        </p>
+                  <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white">
+                      <div className="border-b border-[#dfdfdf] bg-[#f7f7f7] px-4 py-3">
+                        <h3 className="text-sm text-slate-900">Our Vision</h3>
+                      </div>
+                      <div className="space-y-4 px-4 py-4">
+                        <PrincipleItem
+                          icon={ZapIcon}
+                          title="Empower:"
+                          description="Local governments with actionable flood data"
+                        />
+                        <PrincipleItem
+                          icon={UsersIcon}
+                          title="Enable:"
+                          description="Citizens to report and monitor drainage conditions"
+                        />
+                        <PrincipleItem
+                          icon={TrendingDown}
+                          title="Reduce:"
+                          description="Hydrological study costs using AI and open data"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white">
+                      <div className="border-b border-[#dfdfdf] bg-[#f7f7f7] px-4 py-3">
+                        <h3 className="text-sm text-slate-900">
+                          Core Principles
+                        </h3>
+                      </div>
+                      <div className="space-y-4 px-4 py-4">
+                        <PrincipleItem
+                          icon={Eye}
+                          title="Transparency:"
+                          description="Built with open-source tools and public datasets"
+                        />
+                        <PrincipleItem
+                          icon={CheckSquare}
+                          title="Reproducibility:"
+                          description="Consistent simulation results you can trust"
+                        />
+                        <PrincipleItem
+                          icon={Scale}
+                          title="Scalability:"
+                          description="Adaptable to new cities and datasets"
+                        />
                       </div>
                     </div>
                   </div>
@@ -174,130 +458,73 @@ export default function Docs() {
               )}
 
               {activeSection === 'architecture' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-foreground mb-3 text-3xl font-bold">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       System Architecture
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      How the frontend, backend, and data layers connect.
+                    </p>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-8">
-                    <div className="space-y-6">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                          <Server className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-2 font-semibold text-slate-900">
-                            Frontend Layer
-                          </h3>
-                          <p className="mb-3 text-sm text-slate-600">
-                            Next.js application with Turbopack build
-                            optimization, styled with Tailwind CSS
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              Next.js
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              React
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              Tailwind CSS
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-purple-100">
-                          <Code className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-2 font-semibold text-slate-900">
-                            Backend Layer
-                          </h3>
-                          <p className="mb-3 text-sm text-slate-600">
-                            Python FastAPI for simulation processing and
-                            Supabase backend services
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              Python FastAPI
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              SWMM
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              K-means ML
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-green-100">
-                          <Database className="h-6 w-6 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-2 font-semibold text-slate-900">
-                            Data Layer
-                          </h3>
-                          <p className="mb-3 text-sm text-slate-600">
-                            Supabase PostgreSQL database with real-time
-                            capabilities
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              Supabase
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              PostgreSQL
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-orange-100">
-                          <Cloud className="h-6 w-6 text-orange-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="mb-2 font-semibold text-slate-900">
-                            Deployment
-                          </h3>
-                          <p className="mb-3 text-sm text-slate-600">
-                            Distributed deployment across cloud platforms
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              Vercel (Frontend)
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                              Railway (Backend)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Server,
+                        title: 'Frontend Layer',
+                        description:
+                          'Next.js application with Turbopack build optimization, React components, and Tailwind CSS styling for responsive user interfaces',
+                        tooltip:
+                          'User-facing web application with optimized performance and modern UI framework',
+                      },
+                      {
+                        icon: Code,
+                        title: 'Backend Layer',
+                        description:
+                          'Python FastAPI for simulation processing, SWMM hydrological modeling, and K-means ML for vulnerability classification',
+                        tooltip:
+                          'API server handling flood simulations, data processing, and machine learning computations',
+                      },
+                      {
+                        icon: Database,
+                        title: 'Data Layer',
+                        description:
+                          'Supabase PostgreSQL database with real-time capabilities for managing drainage networks and user data',
+                        tooltip:
+                          'Real-time database storing drainage networks, simulation results, and user information',
+                      },
+                      {
+                        icon: Cloud,
+                        title: 'Deployment',
+                        description:
+                          'Distributed deployment across Vercel for frontend hosting and Railway for backend services with scalable infrastructure',
+                        tooltip:
+                          'Cloud-based hosting with auto-scaling and global content delivery',
+                      },
+                    ]}
+                  />
                 </div>
               )}
 
               {activeSection === 'features' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-foreground mb-3 text-3xl font-bold">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Core Features
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Key capabilities of the platform across map, simulation,
+                      and reporting.
+                    </p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {[
                       {
                         title: 'Interactive Map',
                         icon: Map,
-                        color: 'blue',
                         features: [
                           'City map with drainage system overlay',
                           'Zoom, satellite view, and position reset',
@@ -308,7 +535,6 @@ export default function Docs() {
                       {
                         title: 'Overlay Analytics',
                         icon: BarChart3,
-                        color: 'purple',
                         features: [
                           'Pie chart statistics for all components',
                           'Toggle visibility for inlets, outlets, drains, pipes',
@@ -319,7 +545,6 @@ export default function Docs() {
                       {
                         title: 'Inventory Management',
                         icon: Database,
-                        color: 'green',
                         features: [
                           'Sortable component tables',
                           'Search by component ID',
@@ -330,7 +555,6 @@ export default function Docs() {
                       {
                         title: 'Simulation Engine',
                         icon: Zap,
-                        color: 'amber',
                         features: [
                           'Static model with pre-simulated data',
                           'Dynamic model with real-time adjustments',
@@ -341,7 +565,6 @@ export default function Docs() {
                       {
                         title: 'Citizen Reporting',
                         icon: Users,
-                        color: 'cyan',
                         features: [
                           'Image upload with embedded coordinates',
                           'Component type selection',
@@ -352,7 +575,6 @@ export default function Docs() {
                       {
                         title: 'Admin Dashboard',
                         icon: CheckCircle,
-                        color: 'emerald',
                         features: [
                           'Maintenance history tracking',
                           'Report status updates (pending, in-progress, resolved)',
@@ -363,40 +585,44 @@ export default function Docs() {
                     ].map((feature, idx) => (
                       <div
                         key={idx}
-                        className="overflow-hidden rounded-xl border border-slate-200"
+                        className="overflow-hidden rounded-lg border border-[#dfdfdf] bg-white"
                       >
                         <button
                           onClick={() => toggleSection(feature.title)}
-                          className="flex w-full items-center justify-between bg-white p-5 transition-colors hover:bg-slate-50"
+                          className={`flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-slate-100 ${
+                            expandedSections[feature.title]
+                              ? 'border-b border-[#dfdfdf]'
+                              : ''
+                          }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div
-                              className={`h-10 w-10 bg-${feature.color}-100 flex items-center justify-center rounded-lg`}
-                            >
-                              <feature.icon
-                                className={`h-5 w-5 text-${feature.color}-600`}
-                              />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-slate-300 bg-[#f1f5f9]">
+                              <feature.icon className="h-4 w-4 text-slate-600" />
                             </div>
-                            <h3 className="font-semibold text-slate-900">
+                            <h3 className="text-foreground text-base">
                               {feature.title}
                             </h3>
                           </div>
                           {expandedSections[feature.title] ? (
-                            <ChevronDown className="h-5 w-5 text-slate-400" />
+                            <ChevronDown className="h-4 w-4 text-slate-600" />
                           ) : (
-                            <ChevronRight className="h-5 w-5 text-slate-400" />
+                            <ChevronRight className="h-4 w-4 text-slate-600" />
                           )}
                         </button>
                         {expandedSections[feature.title] && (
-                          <div className="bg-slate-50 px-5 pb-5">
-                            <ul className="space-y-2">
+                          <div className="bg-[#f7f7f7] px-4 py-4">
+                            <ul className="space-y-1.5">
                               {feature.features.map((item, i) => (
                                 <li
                                   key={i}
-                                  className="flex items-start gap-2 text-sm text-slate-700"
+                                  className="text-foreground flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm"
                                 >
-                                  <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
-                                  <span>{item}</span>
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                                    <CheckCircle className="h-4 w-4 text-slate-600" />
+                                  </div>
+                                  <span className="leading-relaxed font-normal">
+                                    {item}
+                                  </span>
                                 </li>
                               ))}
                             </ul>
@@ -409,205 +635,203 @@ export default function Docs() {
               )}
 
               {activeSection === 'tech-stack' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-foreground mb-3 text-3xl font-bold">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Technology Stack
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Frameworks, libraries, and services powering the
+                      application.
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {[
+                  <FeatureCards
+                    columns={3}
+                    features={[
                       {
-                        category: 'Frontend',
-                        tech: 'Next.js',
+                        icon: Code,
+                        title: 'Next.js',
                         description:
-                          'React framework with server-side rendering',
-                        color: 'blue',
+                          'React framework with server-side rendering and optimized performance',
+                        tooltip:
+                          'Full-stack framework with built-in performance optimization',
                       },
                       {
-                        category: 'Styling',
-                        tech: 'Tailwind CSS',
-                        description: 'Utility-first CSS framework',
-                        color: 'cyan',
+                        icon: Zap,
+                        title: 'Tailwind CSS',
+                        description:
+                          'Utility-first CSS framework for rapid UI development',
+                        tooltip:
+                          'Low-level utility classes for flexible design system',
                       },
                       {
-                        category: 'Backend',
-                        tech: 'Python FastAPI',
-                        description: 'High-performance async API framework',
-                        color: 'green',
+                        icon: Server,
+                        title: 'Python FastAPI',
+                        description:
+                          'High-performance async API framework for backend processing',
+                        tooltip:
+                          'Modern async framework with automatic API documentation',
                       },
                       {
-                        category: 'Backend Services',
-                        tech: 'Supabase',
-                        description: 'Real-time database and authentication',
-                        color: 'emerald',
+                        icon: Cloud,
+                        title: 'Supabase',
+                        description:
+                          'Real-time database and authentication backend services',
+                        tooltip:
+                          'Open-source Firebase alternative with PostgreSQL',
                       },
                       {
-                        category: 'Database',
-                        tech: 'PostgreSQL',
-                        description: 'Via Supabase cloud platform',
-                        color: 'purple',
+                        icon: Database,
+                        title: 'PostgreSQL',
+                        description:
+                          'Powerful relational database via Supabase cloud platform',
+                        tooltip:
+                          'Advanced open-source SQL database with real-time features',
                       },
                       {
-                        category: 'Build Tool',
-                        tech: 'Turbopack',
-                        description: 'Next-gen bundler for fast builds',
-                        color: 'orange',
+                        icon: Zap,
+                        title: 'Turbopack',
+                        description:
+                          'Next-generation bundler for lightning-fast builds',
+                        tooltip:
+                          'Incremental bundler written in Rust for ultra-fast compilation',
                       },
                       {
-                        category: 'Frontend Deploy',
-                        tech: 'Vercel',
-                        description: 'Serverless deployment platform',
-                        color: 'slate',
+                        icon: Cloud,
+                        title: 'Vercel',
+                        description:
+                          'Serverless deployment platform for frontend hosting',
+                        tooltip:
+                          'Optimized hosting platform for Next.js and static sites',
                       },
                       {
-                        category: 'Backend Deploy',
-                        tech: 'Railway',
-                        description: 'Cloud infrastructure for APIs',
-                        color: 'pink',
+                        icon: Server,
+                        title: 'Railway',
+                        description:
+                          'Modern cloud infrastructure platform for backend APIs',
+                        tooltip:
+                          'Simple cloud platform for deploying containerized services',
                       },
-                    ].map((item, idx) => (
-                      <div
-                        key={idx}
-                        className={`bg-gradient-to-br from-${item.color}-50 to-${item.color}-100 rounded-xl border p-6 border-${item.color}-200`}
-                      >
-                        <div className="mb-2 text-xs font-semibold tracking-wide text-slate-600 uppercase">
-                          {item.category}
-                        </div>
-                        <h3 className="mb-1 text-xl font-bold text-slate-900">
-                          {item.tech}
-                        </h3>
-                        <p className="text-sm text-slate-700">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                    ]}
+                  />
                 </div>
               )}
 
               {activeSection === 'data-sources' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="mb-3 text-3xl font-bold text-slate-900">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Data Sources
                     </h2>
-                  </div>
-
-                  <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6">
-                    <p className="text-sm text-blue-900">
-                      <strong>Primary Source:</strong> Datasets adapted from
-                      Quijano and Bañados (2023) - Integrated flood modeling for
-                      urban resilience planning in Mandaue City, Philippines
+                    <p className="text-muted-foreground text-sm">
+                      Satellite and field datasets used for modeling and
+                      analysis.
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    {[
+                  <FeatureCards
+                    columns={3}
+                    features={[
                       {
-                        dataset: 'Rainfall',
-                        source:
-                          'RIDF data from PAGASA via Quijano and Bañados (2023)',
                         icon: Cloud,
+                        title: 'Rainfall',
+                        description:
+                          'RIDF rainfall data from PAGASA via Quijano and Bañados (2023) research',
+                        tooltip:
+                          'Philippine Atmospheric, Geophysical and Astronomical Services Administration data',
                       },
                       {
-                        dataset: 'Elevation',
-                        source: 'LiDAR derived via Quijano and Bañados (2023)',
                         icon: Map,
+                        title: 'Elevation',
+                        description:
+                          'LiDAR-derived digital elevation model data via Quijano and Bañados (2023)',
+                        tooltip:
+                          'Light Detection and Ranging derived topographic data',
                       },
                       {
-                        dataset: 'Land Cover',
-                        source:
-                          'Global Map of Local Climate Zones (Demuzere et al, 2022)',
                         icon: Layers,
+                        title: 'Land Cover',
+                        description:
+                          'Map of Local Climate Zones from Demuzere et al (2022) classification',
+                        tooltip:
+                          'Urban climate zone classification for land surface characterization',
                       },
                       {
-                        dataset: 'Drainage Network',
-                        source: 'Quijano and Bañados (2023)',
                         icon: GitBranch,
+                        title: 'Drainage Network',
+                        description:
+                          'Drainage infrastructure network from Quijano and Bañados (2023)',
+                        tooltip:
+                          'Complete mapping of drainage system components and connections',
                       },
                       {
-                        dataset: 'Node Flooding',
-                        source: 'SWMM simulation derived',
                         icon: BarChart3,
+                        title: 'Node Flooding',
+                        description:
+                          'Flood simulation results derived from SWMM hydrological modeling',
+                        tooltip:
+                          'Computed flooding predictions for drainage network nodes',
                       },
                       {
-                        dataset: 'Subcatchments',
-                        source: 'Aggregated from drainage network data',
                         icon: Database,
+                        title: 'Subcatchments',
+                        description:
+                          'Aggregated subcatchment derived from drainage network spatial data',
+                        tooltip:
+                          'Watershed delineation for hydrological modeling units',
                       },
-                    ].map((item, idx) => (
+                    ]}
+                  />
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[
+                      'Enhanced spatial accuracy with DEM',
+                      'Real-world surface characteristics',
+                      'Up-to-date precipitation measurements',
+                      'Reduced data collection costs',
+                      'Support for continuous model updates',
+                    ].map((benefit, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-4 rounded-lg border border-slate-200 bg-white p-4"
+                        className="flex items-center gap-3 rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] p-3"
                       >
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                          <item.icon className="h-5 w-5 text-slate-600" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <CheckCircle className="h-4 w-4 text-slate-600" />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="mb-1 font-semibold text-slate-900">
-                            {item.dataset}
-                          </h3>
-                          <p className="text-sm text-slate-600">
-                            {item.source}
-                          </p>
-                        </div>
+                        <span className="text-xs text-slate-700">
+                          {benefit}
+                        </span>
                       </div>
                     ))}
-                  </div>
-
-                  <div className="mt-8 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-                    <h3 className="mb-4 font-semibold text-slate-900">
-                      Satellite Data Benefits
-                    </h3>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {[
-                        'Enhanced spatial accuracy with DEM',
-                        'Real-world surface characteristics',
-                        'Up-to-date precipitation measurements',
-                        'Reduced data collection costs',
-                        'Support for continuous model updates',
-                      ].map((benefit, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                          <span className="text-sm text-slate-700">
-                            {benefit}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
               )}
 
               {activeSection === 'simulation' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-foreground mb-3 text-3xl font-bold">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Simulation Models
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      SWMM-based static and dynamic flood simulation engines.
+                    </p>
                   </div>
 
-                  <p className="text-slate-700">
-                    drAin uses the Storm Water Management Model (SWMM) to
-                    simulate rainfall-runoff-flooding processes, combined with
-                    K-means clustering for vulnerability classification.
-                  </p>
-
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6">
-                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600">
-                        <Database className="h-6 w-6 text-white" />
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Database className="h-4 w-4 text-slate-600" />
+                        </div>
+                        <h3 className="text-sm text-slate-900">Static Model</h3>
                       </div>
-                      <h3 className="mb-3 text-xl font-bold text-slate-900">
-                        Static Model
-                      </h3>
-                      <p className="mb-4 text-sm text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Pre-simulated rainfall-runoff analysis based on
                         historical data and PAGASA RIDF curves.
                       </p>
-                      <ul className="space-y-2">
+                      <div className="space-y-2">
                         {[
                           'Node flooding summaries',
                           'Predicted time to overflow',
@@ -615,29 +839,32 @@ export default function Docs() {
                           'Multiple rainfall return periods',
                           'Color-coded vulnerability layers',
                         ].map((feature, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-sm text-slate-700"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-600"></div>
-                            <span>{feature}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {feature}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
 
-                    <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6">
-                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-600">
-                        <Zap className="h-6 w-6 text-white" />
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Zap className="h-4 w-4 text-slate-600" />
+                        </div>
+                        <h3 className="text-sm text-slate-900">
+                          Dynamic Model
+                        </h3>
                       </div>
-                      <h3 className="mb-3 text-xl font-bold text-slate-900">
-                        Dynamic Model
-                      </h3>
-                      <p className="mb-4 text-sm text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Interactive on-demand simulations with real-time
                         parameter adjustments.
                       </p>
-                      <ul className="space-y-2">
+                      <div className="space-y-2">
                         {[
                           'Modify rainfall intensity & duration',
                           'Adjust node elevations',
@@ -646,206 +873,170 @@ export default function Docs() {
                           'Real-time vulnerability updates',
                           'What-if scenario analysis',
                         ].map((feature, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-sm text-slate-700"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-600"></div>
-                            <span>{feature}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {feature}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-300 bg-slate-100 p-6">
-                    <h4 className="mb-3 font-semibold text-slate-900">
-                      Vulnerability Classification
-                    </h4>
-                    <p className="mb-4 text-sm text-slate-700">
-                      K-means clustering algorithm classifies drainage assets
-                      based on:
-                    </p>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                      <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
-                        <div className="mx-auto mb-2 h-3 w-3 rounded-full bg-green-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          No Risk
-                        </span>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
-                        <div className="mx-auto mb-2 h-3 w-3 rounded-full bg-yellow-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          Low Risk
-                        </span>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
-                        <div className="mx-auto mb-2 h-3 w-3 rounded-full bg-orange-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          Medium Risk
-                        </span>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
-                        <div className="mx-auto mb-2 h-3 w-3 rounded-full bg-red-500"></div>
-                        <span className="text-xs font-medium text-slate-700">
-                          High Risk
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Gauge,
+                        title: 'No Risk',
+                        description:
+                          'Drainage nodes with no predicted flooding under simulated rainfall conditions',
+                        tooltip: 'Safe zones with adequate drainage capacity',
+                        iconColor: 'text-green-500',
+                      },
+                      {
+                        icon: Gauge,
+                        title: 'Low Risk',
+                        description:
+                          'Minor overflow potential under heavy rainfall with minimal infrastructure impact',
+                        tooltip:
+                          'Areas requiring monitoring during extreme events',
+                        iconColor: 'text-yellow-500',
+                      },
+                      {
+                        icon: Gauge,
+                        title: 'Medium Risk',
+                        description:
+                          'Moderate flooding likelihood requiring drainage improvements and maintenance',
+                        tooltip: 'Priority areas for infrastructure upgrades',
+                        iconColor: 'text-orange-500',
+                      },
+                      {
+                        icon: Gauge,
+                        title: 'High Risk',
+                        description:
+                          'Critical vulnerability with significant overflow and potential urban damage',
+                        tooltip:
+                          'Immediate intervention and capacity expansion needed',
+                        iconColor: 'text-red-500',
+                      },
+                    ]}
+                  />
                 </div>
               )}
 
               {activeSection === 'users' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-foreground mb-3 text-3xl font-bold">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       User Stories
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Target users and how each role benefits from the platform.
+                    </p>
                   </div>
 
-                  <div className="space-y-4">
-                    {[
+                  <FeatureCards
+                    columns={2}
+                    features={[
                       {
-                        role: 'City Engineer',
+                        icon: Zap,
+                        title: 'City Engineer',
                         description:
-                          'Identify vulnerable drainage components and prioritize maintenance schedules',
-                        benefit:
+                          'Identify vulnerable drainage components, and prioritize maintenance schedules to optimize infrastructure planning',
+                        tooltip:
                           'Efficient planning without manual network inspection',
                       },
                       {
-                        role: 'Urban Planner',
+                        icon: Map,
+                        title: 'Urban Planner',
                         description:
-                          'Simulate infrastructure changes and evaluate design scenarios',
-                        benefit: 'Ensure flood-resilient city development',
+                          'Simulate infrastructure changes, evaluate design scenarios, and visualize flood impacts across different urban development strategies',
+                        tooltip: 'Ensure flood-resilient city development',
                       },
                       {
-                        role: 'Disaster Risk Reduction',
+                        icon: AlertCircle,
+                        title: 'Disaster Risk Reduction',
                         description:
-                          'Run rainfall simulations to predict overflow areas',
-                        benefit:
+                          'Run rainfall simulations to predict overflow areas, generate early warnings, and allocate emergency resources effectively',
+                        tooltip:
                           'Prepare early warnings and allocate emergency resources',
                       },
                       {
-                        role: 'Environmental Researcher',
+                        icon: BarChart3,
+                        title: 'Environmental Researcher',
                         description:
-                          'Study urban flooding behavior through simulation outputs',
-                        benefit:
+                          'Study urban flooding behavior through detailed simulation and analyze correlations between urbanization patterns and vulnerability',
+                        tooltip:
                           'Explore correlations between urbanization and vulnerability',
                       },
                       {
-                        role: 'Policy Maker',
+                        icon: FileText,
+                        title: 'Policy Maker',
                         description:
-                          'Review visual maps and vulnerability reports',
-                        benefit:
+                          'Review comprehensive visual maps, vulnerability reports, and data-driven evidence for infrastructure and disaster mitigation strategies',
+                        tooltip:
                           'Data-driven evidence for funding and infrastructure decisions',
                       },
                       {
-                        role: 'Citizen',
+                        icon: Users,
+                        title: 'Citizen',
                         description:
-                          'Report drainage issues with real-time updates',
-                        benefit:
+                          'Report drainage issues with photo and embedded coordinates while receiving real-time updates on maintenance progress',
+                        tooltip:
                           'Enhanced situational awareness and faster maintenance response',
                       },
-                    ].map((user, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100">
-                            <Users className="h-6 w-6 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="mb-2 text-lg font-bold text-slate-900">
-                              {user.role}
-                            </h3>
-                            <p className="mb-2 text-sm text-slate-700">
-                              {user.description}
-                            </p>
-                            <div className="flex items-start gap-2">
-                              <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                              <span className="text-sm font-medium text-green-700">
-                                {user.benefit}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    ]}
+                  />
                 </div>
               )}
 
               {activeSection === 'deployment' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="mb-3 text-3xl font-bold text-slate-900">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Deployment
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Hosting infrastructure and live access credentials.
+                    </p>
                   </div>
 
-                  <div className="mb-6 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
-                    <div className="flex items-start gap-3">
-                      <Cloud className="mt-1 h-6 w-6 flex-shrink-0 text-blue-600" />
-                      <div>
-                        <h3 className="mb-2 font-semibold text-slate-900">
-                          Live Demo Access
-                        </h3>
-                        <p className="mb-3 text-sm text-slate-700">
-                          The drAin platform is currently deployed and
-                          accessible for testing and demonstration purposes.
-                        </p>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-slate-700">
-                              URL:
-                            </span>
-                            <code className="rounded border border-slate-300 bg-white px-3 py-1 text-sm text-blue-600">
-                              https://project-drain.vercel.app/
-                            </code>
-                          </div>
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Cloud,
+                        title: 'Live Demo Access',
+                        description: 'https://ai-drain.vercel.app/',
+                        tooltip:
+                          'Publicly accessible deployment hosted on Vercel',
+                      },
+                      {
+                        icon: Users,
+                        title: 'Test Credentials',
+                        description: 'tester@gmail.com (123password)',
+                        tooltip:
+                          'Use these credentials to explore the platform',
+                      },
+                    ]}
+                  />
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Server className="h-4 w-4 text-slate-600" />
                         </div>
+                        <h3 className="text-sm text-slate-900">Vercel</h3>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-6">
-                    <h3 className="mb-4 font-semibold text-slate-900">
-                      Test Credentials
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4">
-                        <span className="w-24 text-sm font-medium text-slate-700">
-                          Username:
-                        </span>
-                        <code className="rounded border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900">
-                          tester@gmail.com
-                        </code>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="w-24 text-sm font-medium text-slate-700">
-                          Password:
-                        </span>
-                        <code className="rounded border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900">
-                          123password
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="rounded-xl border border-slate-200 bg-white p-6">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
-                          <Server className="h-5 w-5 text-white" />
-                        </div>
-                        <h3 className="font-bold text-slate-900">Vercel</h3>
-                      </div>
-                      <p className="mb-3 text-sm text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Frontend Deployment
                       </p>
-                      <ul className="space-y-2">
+                      <div className="space-y-2">
                         {[
                           'Next.js application hosting',
                           'Automatic deployments from Git',
@@ -853,28 +1044,29 @@ export default function Docs() {
                           'Serverless functions',
                           'Built with Turbopack',
                         ].map((item, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-sm text-slate-600"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-slate-400"></div>
-                            <span>{item}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {item}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-200 bg-white p-6">
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-600">
-                          <Server className="h-5 w-5 text-white" />
+                    <div className="rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] px-6 py-4">
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <Server className="h-4 w-4 text-slate-600" />
                         </div>
-                        <h3 className="font-bold text-slate-900">Railway</h3>
+                        <h3 className="text-sm text-slate-900">Railway</h3>
                       </div>
-                      <p className="mb-3 text-sm text-slate-700">
+                      <p className="mb-3 text-xs text-slate-700">
                         Backend Deployment
                       </p>
-                      <ul className="space-y-2">
+                      <div className="space-y-2">
                         {[
                           'Python FastAPI hosting',
                           'SWMM simulation processing',
@@ -882,163 +1074,110 @@ export default function Docs() {
                           'Environment management',
                           'Integration with Supabase',
                         ].map((item, idx) => (
-                          <li
+                          <div
                             key={idx}
-                            className="flex items-start gap-2 text-sm text-slate-600"
+                            className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2"
                           >
-                            <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-400"></div>
-                            <span>{item}</span>
-                          </li>
+                            <span className="text-xs text-slate-700">
+                              {item}
+                            </span>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
               {activeSection === 'limitations' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="mb-3 text-3xl font-bold text-slate-900">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       Limitations & Future Work
                     </h2>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-                        <div>
-                          <h3 className="mb-2 font-semibold text-amber-900">
-                            Geographic Scope
-                          </h3>
-                          <p className="text-sm text-amber-800">
-                            Currently focused on Mandaue City due to data
-                            availability. However, the framework and methodology
-                            are scalable and can be adapted to other urban areas
-                            with compatible data sources.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-6">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-                        <div>
-                          <h3 className="mb-2 font-semibold text-blue-900">
-                            Simulation Precision
-                          </h3>
-                          <p className="text-sm text-blue-800">
-                            Offers a simplified approach compared to high-end
-                            hydrodynamic software with detailed 3D
-                            visualizations. While this limits precision, it
-                            greatly enhances computational efficiency,
-                            cost-effectiveness, and accessibility for local
-                            governments.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-purple-200 bg-purple-50 p-6">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-purple-600" />
-                        <div>
-                          <h3 className="mb-2 font-semibold text-purple-900">
-                            Data Dependency
-                          </h3>
-                          <p className="text-sm text-purple-800">
-                            System accuracy depends on the quality and
-                            completeness of satellite data and drainage
-                            information available. Incomplete or outdated data
-                            may affect simulation reliability.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-6">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-cyan-600" />
-                        <div>
-                          <h3 className="mb-2 font-semibold text-cyan-900">
-                            Clustering Interpretation
-                          </h3>
-                          <p className="text-sm text-cyan-800">
-                            K-means clustering provides relative vulnerability
-                            groupings that require expert interpretation for
-                            decision-making. Results should be validated by
-                            domain experts.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-green-200 bg-green-50 p-6">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
-                        <div>
-                          <h3 className="mb-2 font-semibold text-green-900">
-                            User Participation
-                          </h3>
-                          <p className="text-sm text-green-800">
-                            Citizen reporting feature depends on consistent user
-                            participation and verified data submissions to
-                            maintain accuracy and effectiveness.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 rounded-xl border border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-                    <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-900">
-                      <GitBranch className="h-5 w-5" />
-                      Future Development
-                    </h3>
-                    <p className="mb-4 text-sm text-slate-700">
-                      Further development will involve collaboration with civil
-                      and environmental engineering experts to:
+                    <p className="text-muted-foreground text-sm">
+                      Current constraints and planned improvements.
                     </p>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {[
-                        'Refine model parameters',
-                        'Improve simulation accuracy',
-                        'Enhance decision-support features',
-                        'Expand to additional cities',
-                        'Integrate real-time sensor data',
-                        'Develop mobile applications',
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
-                          <span className="text-sm text-slate-700">{item}</span>
+                  </div>
+
+                  <FeatureCards
+                    columns={2}
+                    features={[
+                      {
+                        icon: Target,
+                        title: 'Simulation Precision',
+                        description:
+                          'Simplified approach vs high-end software. Enhances efficiency and accessibility.',
+                        tooltip:
+                          'Trade-off between computational speed and modeling detail',
+                      },
+                      {
+                        icon: Database,
+                        title: 'Data Dependency',
+                        description:
+                          'Accuracy depends on quality of satellite data and drainage information.',
+                        tooltip:
+                          'Results are only as reliable as the input datasets',
+                      },
+                      {
+                        icon: BarChart3,
+                        title: 'Clustering Interpretation',
+                        description:
+                          'K-means provides relative groupings requiring expert validation.',
+                        tooltip:
+                          'Vulnerability classifications should be reviewed by domain experts',
+                      },
+                      {
+                        icon: Users,
+                        title: 'User Participation',
+                        description:
+                          'Citizen reporting depends on consistent participation and verified submissions.',
+                        tooltip:
+                          'Community engagement is essential for accurate field data',
+                      },
+                    ]}
+                  />
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {[
+                      'Refine model parameters',
+                      'Improve simulation accuracy',
+                      'Enhance decision-support features',
+                      'Expand to additional cities',
+                      'Integrate real-time sensor data',
+                      'Develop mobile applications',
+                    ].map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 rounded-lg border border-[#dfdfdf] bg-[#f7f7f7] p-3"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
+                          <CheckCircle className="h-4 w-4 text-slate-600" />
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-xs text-slate-700">{item}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
               {activeSection === 'demo' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="mb-3 text-3xl font-bold text-slate-900">
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
                       System Demo
                     </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Video walkthrough of the platform in action.
+                    </p>
                   </div>
 
                   {/* Demo Video Section */}
-
-                  <div
-                    className="relative w-full overflow-hidden rounded-xl bg-slate-700 shadow-2xl"
-                    style={{ paddingBottom: '56.25%' }}
-                  >
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-700">
                     <iframe
                       className="absolute top-0 left-0 h-full w-full"
                       src="https://www.youtube.com/embed/ZHE9dCcayRQ"
                       title="YouTube video player"
-                      frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       referrerPolicy="strict-origin-when-cross-origin"
                       allowFullScreen
@@ -1047,14 +1186,9 @@ export default function Docs() {
                 </div>
               )}
             </div>
-
             {/* Footer */}
-            <div className="mt-8 text-center text-sm text-slate-600">
-              <p>
-                Built by Computer Science students from University of the
-                Philippines - Cebu
-              </p>
-              <p className="mt-1">© 2024 drAin Project. All rights reserved.</p>
+            <div className="rounded-b-xl border border-[#dfdfdf] bg-white px-6 py-3.5 text-center text-sm text-gray-600">
+              © 2026 drAIn Project. All rights reserved.
             </div>
           </main>
         </div>

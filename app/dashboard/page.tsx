@@ -132,7 +132,7 @@ export default function DashboardPage() {
 
         {/* Footer */}
         <div className="rounded-b-xl border border-[#dfdfdf] bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] px-6 py-3.5 text-center text-sm text-gray-600">
-          © 2024 drAIn Project. All rights reserved.
+          © 2026 drAIn Project. All rights reserved.
         </div>
       </div>
     </div>
