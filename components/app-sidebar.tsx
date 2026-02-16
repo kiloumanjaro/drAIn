@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Logo from '@/public/icons/logo.svg';
-import { IconArticleFilled } from '@tabler/icons-react';
 import {
   HomeIcon,
   MapIcon,
@@ -53,11 +52,6 @@ const data = {
       title: 'Documentation',
       url: '/docs',
       icon: BookOpenIcon,
-    },
-    {
-      title: 'About',
-      url: '/about',
-      icon: IconArticleFilled,
     },
   ],
 };
