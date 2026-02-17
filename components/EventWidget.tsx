@@ -24,7 +24,7 @@ export default function EventWidget() {
   }
 
   const comparisonData = encodeURIComponent(JSON.stringify(eventData));
-  const comparisonUrl = `/reports?compareEvent=${comparisonData}`;
+  const comparisonUrl = `/docs?section=reports&compareEvent=${comparisonData}`;
 
   const handleDrag = (e: DraggableEvent, ui: DraggableData) => {
     const { x, y } = position;
