@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   BookOpenIcon as BookOpenOutline,
   BoltIcon as BoltOutline,
@@ -12,6 +13,7 @@ import {
   ServerIcon as ServerOutline,
   ExclamationTriangleIcon as ExclamationTriangleOutline,
   PlayIcon as PlayOutline,
+  DocumentTextIcon as DocumentTextOutline,
 } from '@heroicons/react/24/outline';
 import {
   BookOpenIcon as BookOpenSolid,
@@ -25,6 +27,7 @@ import {
   ExclamationTriangleIcon as ExclamationTriangleSolid,
   PlayIcon as PlaySolid,
   InformationCircleIcon as InformationCircleSolid,
+  DocumentTextIcon as DocumentTextSolid,
 } from '@heroicons/react/24/solid';
 import {
   Code,
@@ -68,25 +71,34 @@ import {
 } from '@/components/ui/tooltip';
 import FeatureCards from '@/components/docs/FeatureCards';
 import PrincipleItem from '@/components/docs/PrincipleItem';
+import FloodEventCards from '@/components/docs/FloodEventCards';
 
 const developers = [
-  { name: 'Kint Borbano', initials: 'KB', color: 'bg-blue-100 text-blue-700' },
   {
-    name: 'Eli Alcaraz',
+    name: 'Kint Louise Borbano',
+    initials: 'KB',
+    color: 'bg-blue-100 text-blue-700',
+  },
+  {
+    name: 'Eliseo Alcaraz',
     initials: 'EA',
     color: 'bg-emerald-100 text-emerald-700',
   },
   {
-    name: 'Christian James',
+    name: 'Christian James Bayadog',
     initials: 'CJ',
     color: 'bg-violet-100 text-violet-700',
   },
   {
-    name: 'Norman Jazul',
+    name: 'Norman Jazul Jr.',
     initials: 'NJ',
     color: 'bg-amber-100 text-amber-700',
   },
-  { name: 'John Carlo', initials: 'JC', color: 'bg-rose-100 text-rose-700' },
+  {
+    name: 'John Carlo Sandro',
+    initials: 'JC',
+    color: 'bg-rose-100 text-rose-700',
+  },
 ];
 
 type SectionID =
@@ -99,14 +111,48 @@ type SectionID =
   | 'users'
   | 'deployment'
   | 'limitations'
-  | 'demo';
+  | 'demo'
+  | 'reports';
 
 interface ExpandedSections {
   [key: string]: boolean;
 }
 
-export default function Docs() {
-  const [activeSection, setActiveSection] = useState<SectionID>('overview');
+function DocsContent() {
+  const searchParams = useSearchParams();
+  const initialSection =
+    (searchParams.get('section') as SectionID) || 'overview';
+  const [activeSection, setActiveSection] = useState<SectionID>(initialSection);
+
+  useEffect(() => {
+    const section = searchParams.get('section') as SectionID | null;
+    if (section) setActiveSection(section);
+  }, [searchParams]);
+
+  const [reportEvents, setReportEvents] = useState<
+    Array<{ eventName: string; summary: string; data: Record<string, string> }>
+  >([]);
+  const [comparisonEvent, setComparisonEvent] = useState<{
+    eventName: string;
+    summary: string;
+    data: Record<string, string>;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/reports')
+      .then((r) => r.json())
+      .then((data) => setReportEvents(data.events ?? []));
+
+    const param = searchParams.get('compareEvent');
+    if (param) {
+      try {
+        setComparisonEvent(JSON.parse(decodeURIComponent(param)));
+      } catch (e) {
+        console.error('Failed to parse comparison event:', e);
+      }
+    }
+  }, [searchParams]);
+
   const [expandedSections, setExpandedSections] = useState<ExpandedSections>(
     {}
   );
@@ -161,6 +207,12 @@ export default function Docs() {
           label: 'User Stories',
           icon: UsersOutline,
           iconSolid: UsersSolid,
+        },
+        {
+          id: 'reports',
+          label: 'Flood Reports',
+          icon: DocumentTextOutline,
+          iconSolid: DocumentTextSolid,
         },
       ],
     },
@@ -1161,6 +1213,23 @@ export default function Docs() {
                 </div>
               )}
 
+              {activeSection === 'reports' && (
+                <div className="space-y-3">
+                  <div className="mb-5 ml-2">
+                    <h2 className="mb-1 text-xl font-semibold text-gray-900">
+                      Flood Reports
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Historical flood event records and comparison data.
+                    </p>
+                  </div>
+                  <FloodEventCards
+                    events={reportEvents}
+                    comparisonEvent={comparisonEvent}
+                  />
+                </div>
+              )}
+
               {activeSection === 'demo' && (
                 <div className="space-y-3">
                   <div className="mb-5 ml-2">
@@ -1194,5 +1263,13 @@ export default function Docs() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Docs() {
+  return (
+    <Suspense fallback={<div />}>
+      <DocsContent />
+    </Suspense>
   );
 }

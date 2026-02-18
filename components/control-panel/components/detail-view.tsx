@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import type { DetailItem, FieldConfig } from '../types';
 import ModelViewer from '../../ModelViewer';
 import { DataFieldCard } from './DataFieldCard';
+import { ProgressTimeline } from './ProgressTimeline';
 
 interface DetailViewProps {
   item: DetailItem;
@@ -133,83 +133,10 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
       </div>
 
       <div className="flex gap-3">
-        {/* Timeline column with background line */}
-        <div className="relative flex flex-col gap-4" style={{ width: '20px' }}>
-          {/* Vertical connecting line - starts from first dot center to last dot center with padding */}
-          <div
-            className="absolute left-1/2 w-[2px] -translate-x-1/2 bg-gray-200"
-            style={{
-              top: `calc(${(0.5 / fields.length) * 100}% - 4px)`, // 4px padding for pulse expansion
-              bottom: `calc(${(0.5 / fields.length) * 100}% - 4px)`,
-            }}
-          />
-
-          {/* Animated blue line that grows with scroll with padding */}
-          <motion.div
-            className="absolute left-1/2 w-[2px] -translate-x-1/2"
-            animate={{
-              height:
-                activeIndex >= 0
-                  ? `calc(${((activeIndex + 0.5) / fields.length) * 100}% - ${
-                      (0.5 / fields.length) * 100
-                    }% + 8px)`
-                  : '0%',
-            }}
-            transition={{
-              type: 'spring',
-              stiffness: 100,
-              damping: 20,
-            }}
-            style={{
-              top: `calc(${(0.5 / fields.length) * 100}% - 4px)`, // Start 4px earlier
-              backgroundColor: '#3b82f6',
-            }}
-          />
-
-          {/* Timeline dots */}
-          {fields.map((_, index) => {
-            const isActive = index <= activeIndex;
-            const isCurrent = index === activeIndex;
-
-            return (
-              <div
-                key={index}
-                className="relative flex items-center justify-center"
-                style={{ flex: '1 1 0px', minHeight: '40px' }}
-              >
-                <motion.div
-                  className={`z-10 h-3 w-3 rounded-full border-2 ${
-                    isActive
-                      ? 'border-[#3b82f6] bg-[#3b82f6]'
-                      : 'border-gray-300 bg-white'
-                  }`}
-                  animate={{
-                    scale: isCurrent ? [1, 1.3, 1] : 1,
-                    boxShadow: isCurrent
-                      ? [
-                          '0 0 0 0 rgba(59, 130, 246, 0)',
-                          '0 0 0 8px rgba(59, 130, 246, 0.2)',
-                          '0 0 0 0 rgba(59, 130, 246, 0)',
-                        ]
-                      : '0 0 0 0 rgba(59, 130, 246, 0)',
-                  }}
-                  transition={{
-                    scale: {
-                      duration: 0.6,
-                      repeat: isCurrent ? Infinity : 0,
-                      repeatType: 'loop',
-                    },
-                    boxShadow: {
-                      duration: 1.5,
-                      repeat: isCurrent ? Infinity : 0,
-                      repeatType: 'loop',
-                    },
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
+        <ProgressTimeline
+          fieldCount={fields.length}
+          activeIndex={activeIndex}
+        />
 
         {/* Cards column */}
         <div className="flex flex-1 flex-col gap-4">

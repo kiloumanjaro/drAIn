@@ -15,6 +15,7 @@ export default function WelcomePage() {
   const [_profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [_profileLoading, setProfileLoading] = useState(true);
   const [_publicAvatarUrl, setPublicAvatarUrl] = useState<string | null>(null);
+  const [isClicked, setIsClicked] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -57,6 +58,7 @@ export default function WelcomePage() {
   }, [user, supabase]);
 
   const handleNavigateToMap = () => {
+    setIsClicked(true);
     navigateTo('/map');
   };
 
@@ -143,7 +145,9 @@ export default function WelcomePage() {
           <div>
             <Button
               size="lg"
-              className="text-md pointer-events-auto bg-[#3B82F6] hover:bg-[#2563EB]"
+              className={`text-md pointer-events-auto opacity-100! transition-colors ${
+                isClicked ? 'bg-[#2563EB]' : 'bg-[#3B82F6] hover:bg-[#2563EB]'
+              } focus:bg-[#2563EB] active:bg-[#2563EB]`}
               onClick={handleNavigateToMap}
               disabled={isNavigating}
             >

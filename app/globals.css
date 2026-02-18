@@ -271,3 +271,57 @@
 .text-gradient-animated:hover {
   animation: gradientShift 2s ease-in-out infinite;
 }
+
+/* Widget trigger shake animation */
+@keyframes widgetShake {
+  0%,
+  55%,
+  100% {
+    transform: rotate(0deg);
+  }
+  57% {
+    transform: rotate(-15deg);
+  }
+  60% {
+    transform: rotate(15deg);
+  }
+  63% {
+    transform: rotate(-15deg);
+  }
+  66% {
+    transform: rotate(15deg);
+  }
+  69% {
+    transform: rotate(-10deg);
+  }
+  72% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+  78% {
+    transform: rotate(5deg);
+  }
+  81% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-widget-shake {
+  animation: widgetShake 3.2s ease-in-out infinite;
+}
+
+/* Fade in animation for text transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade {
+  animation: fadeIn 0.3s ease-in-out;
+}

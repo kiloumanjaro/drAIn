@@ -10,30 +10,36 @@ export function ProgressTimeline({
   activeIndex,
 }: ProgressTimelineProps) {
   return (
-    <div className="relative flex flex-col gap-4" style={{ minWidth: '20px' }}>
-      {/* Background vertical line */}
-      <div className="absolute top-0 bottom-0 left-1/2 w-[2px] -translate-x-1/2 bg-gray-200" />
+    <div
+      className="relative flex flex-col gap-4"
+      style={{ width: '20px', marginLeft: '8px', marginRight: '-4px' }}
+    >
+      {/* Grey background line — from first dot center to last dot center */}
+      <div
+        className="absolute left-1/2 w-0.5 -translate-x-1/2 bg-gray-200"
+        style={{
+          top: `calc(${(0.5 / fieldCount) * 100}%)`,
+          bottom: `calc(${(0.5 / fieldCount) * 100}%)`,
+        }}
+      />
 
-      {/* Animated progress line */}
+      {/* Animated blue fill line — same bounds as grey track, height as fraction of track */}
       <motion.div
-        className="absolute top-0 left-1/2 w-[2px] origin-top -translate-x-1/2"
-        initial={{ height: '0%' }}
+        className="absolute left-1/2 w-0.5 -translate-x-1/2"
         animate={{
           height:
-            activeIndex >= 0
-              ? `calc(${((activeIndex + 0.5) / fieldCount) * 100}%)`
+            activeIndex >= 0 && fieldCount > 1
+              ? `calc((100% - ${(1 / fieldCount) * 90}%) * ${activeIndex / (fieldCount - 1)} - 10px)`
               : '0%',
         }}
-        transition={{
-          type: 'spring',
-          stiffness: 100,
-          damping: 20,
-        }}
+        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
         style={{
+          top: `calc(${(0.5 / fieldCount) * 105}% - 2px)`,
           backgroundColor: '#3b82f6',
         }}
       />
 
+      {/* Dots */}
       {Array.from({ length: fieldCount }).map((_, index) => {
         const isActive = index <= activeIndex;
         const isCurrent = index === activeIndex;
@@ -41,13 +47,9 @@ export function ProgressTimeline({
         return (
           <div
             key={index}
-            className="relative flex flex-shrink-0 items-center justify-center"
-            style={{
-              minHeight: '64px', // Approximate card height
-              flex: '1 1 auto',
-            }}
+            className="relative flex items-center justify-center"
+            style={{ flex: '1 1 0px', minHeight: '40px' }}
           >
-            {/* Dot */}
             <motion.div
               className={`relative z-10 h-3 w-3 rounded-full border-2 ${
                 isActive
