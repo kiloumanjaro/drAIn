@@ -48,7 +48,6 @@ import { getreportCategoryCount } from '@/lib/supabase/report';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useReports } from '@/components/context/ReportProvider';
 import { toast } from 'sonner';
-import WidgetTrigger from '@/components/WidgetTrigger';
 
 function MapPageContent() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
@@ -1619,9 +1618,6 @@ function MapPageContent() {
           onResetPosition={handleResetPosition}
           onChangeStyle={handleChangeStyle}
         />
-        <div className="absolute right-6 bottom-6 z-40">
-          <WidgetTrigger />
-        </div>
       </main>
     </>
   );

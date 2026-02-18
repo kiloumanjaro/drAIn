@@ -22,9 +22,9 @@ interface FloodEventCardsProps {
   comparisonEvent?: FloodEvent | null;
 }
 
-// Strips "Event N: " prefix → e.g. "Flash Flood of July 1, 2016"
+// Strips "Event N: " or "NEW EVENT: " prefix → e.g. "Flash Flood of July 1, 2016"
 function stripPrefix(name: string): string {
-  return name.replace(/^Event\s+\d+:\s*/i, '');
+  return name.replace(/^(Event\s+\d+|NEW\s+EVENT):\s*/i, '');
 }
 
 // Extracts { month: "Jul", day: "1" } from "...of July 1, 2016"
@@ -64,9 +64,7 @@ export default function FloodEventCards({
       <div className="grid grid-cols-1 gap-4">
         {allEvents.map((event, idx) => {
           const isComparison = !!comparisonEvent && idx === 0;
-          const displayName = isComparison
-            ? event.eventName
-            : stripPrefix(event.eventName);
+          const displayName = stripPrefix(event.eventName);
           const date = extractDate(event.eventName);
 
           const allEntries = Object.entries(event.data);
@@ -85,7 +83,9 @@ export default function FloodEventCards({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      {isComparison ? 'Live comparison event' : event.summary}
+                      {isComparison
+                        ? 'Latest flood event'
+                        : 'Historical flood event'}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -93,7 +93,7 @@ export default function FloodEventCards({
 
               {/* Body */}
               <Card
-                className={`gap-0 border-x-0 border-b-0 ${isComparison ? 'border-blue-200' : 'border-[#dfdfdf]'} px-6 py-4`}
+                className={`gap-0 border-x-0 border-b-0 ${isComparison ? 'border-blue-200' : 'border-[#dfdfdf]'} px-6 py-4 !pb-0`}
               >
                 {/* Summary row: DateBadge + summary text */}
                 <div className="mb-4 flex items-start gap-3">
@@ -108,7 +108,7 @@ export default function FloodEventCards({
                   <EventTimeline count={allEntries.length} />
                   <div className="flex flex-1 flex-col gap-4">
                     {allEntries.map(([key, value]) => (
-                      <div key={key} style={{ minHeight: '64px' }}>
+                      <div key={key} style={{ minHeight: '50px' }}>
                         <p className="text-xs font-medium text-slate-700">
                           {key}
                         </p>

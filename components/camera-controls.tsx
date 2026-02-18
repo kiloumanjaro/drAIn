@@ -2,6 +2,7 @@
 
 import { FC } from 'react';
 import { Plus, Minus, Crosshair, Map as MapIcon, X } from 'lucide-react';
+import WidgetTrigger from '@/components/WidgetTrigger';
 
 type CameraControlsProps = {
   onZoomIn: () => void;
@@ -21,8 +22,8 @@ export const CameraControls: FC<CameraControlsProps> = ({
   onExitSimulation,
 }) => {
   return (
-    <div className="absolute right-0 z-30 mx-5 flex h-full flex-col justify-between py-5">
-      <div className="flex flex-col gap-2">
+    <div className="absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5">
+      <div className="flex flex-col items-end gap-2">
         {/* Exit button when simulation is active */}
         {isSimulationActive && onExitSimulation && (
           <button
@@ -32,6 +33,7 @@ export const CameraControls: FC<CameraControlsProps> = ({
             <X className="h-4 w-4 cursor-pointer text-white" />
           </button>
         )}
+
         {/* Zoom In / Zoom Out */}
         <div className="flex flex-col overflow-hidden rounded-sm bg-white shadow-md">
           <button
@@ -55,6 +57,9 @@ export const CameraControls: FC<CameraControlsProps> = ({
         >
           <Crosshair className="h-4 w-4 cursor-pointer" />
         </button>
+
+        {/* Widget Trigger */}
+        <WidgetTrigger />
       </div>
 
       <button

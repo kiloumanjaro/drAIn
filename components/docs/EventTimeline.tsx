@@ -56,7 +56,7 @@ export default function EventTimeline({ count }: EventTimelineProps) {
               rowRefs.current[index] = el;
             }}
             className="relative flex shrink-0 flex-col items-center"
-            style={{ minHeight: '64px', flex: '1 1 auto' }}
+            style={{ minHeight: '67px', flex: '1 1 auto' }}
           >
             {/* Dot */}
             <div

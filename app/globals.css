@@ -271,3 +271,43 @@
 .text-gradient-animated:hover {
   animation: gradientShift 2s ease-in-out infinite;
 }
+
+/* Widget trigger shake animation */
+@keyframes widgetShake {
+  0%,
+  55%,
+  100% {
+    transform: translateX(0);
+  }
+  57% {
+    transform: translateX(-4px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  63% {
+    transform: translateX(-4px);
+  }
+  66% {
+    transform: translateX(4px);
+  }
+  69% {
+    transform: translateX(-3px);
+  }
+  72% {
+    transform: translateX(3px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  78% {
+    transform: translateX(2px);
+  }
+  81% {
+    transform: translateX(0);
+  }
+}
+
+.animate-widget-shake {
+  animation: widgetShake 2.4s ease-in-out infinite;
+}
