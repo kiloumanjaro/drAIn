@@ -277,37 +277,51 @@
   0%,
   55%,
   100% {
-    transform: translateX(0);
+    transform: rotate(0deg);
   }
   57% {
-    transform: translateX(-4px);
+    transform: rotate(-15deg);
   }
   60% {
-    transform: translateX(4px);
+    transform: rotate(15deg);
   }
   63% {
-    transform: translateX(-4px);
+    transform: rotate(-15deg);
   }
   66% {
-    transform: translateX(4px);
+    transform: rotate(15deg);
   }
   69% {
-    transform: translateX(-3px);
+    transform: rotate(-10deg);
   }
   72% {
-    transform: translateX(3px);
+    transform: rotate(10deg);
   }
   75% {
-    transform: translateX(-2px);
+    transform: rotate(-5deg);
   }
   78% {
-    transform: translateX(2px);
+    transform: rotate(5deg);
   }
   81% {
-    transform: translateX(0);
+    transform: rotate(0deg);
   }
 }
 
 .animate-widget-shake {
-  animation: widgetShake 2.4s ease-in-out infinite;
+  animation: widgetShake 3.2s ease-in-out infinite;
+}
+
+/* Fade in animation for text transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade {
+  animation: fadeIn 0.3s ease-in-out;
 }

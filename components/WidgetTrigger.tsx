@@ -73,9 +73,12 @@ export default function WidgetTrigger() {
       <button
         onClick={handleHeadlineClick}
         className="flex items-center justify-between self-stretch bg-white px-4 text-xs font-normal text-gray-600 transition-all duration-500 hover:text-gray-800"
-        style={{ opacity: hovered ? 1 : 0, minWidth: '205px' }}
+        style={{ opacity: hovered ? 1 : 0, minWidth: '210px' }}
       >
-        <span className="truncate">
+        <span
+          key={showHeadline ? 'headline' : 'weather'}
+          className="animate-fade truncate"
+        >
           {showHeadline ? LATEST_HEADLINE : 'The chances of rain are 50%'}
         </span>
         <div
