@@ -6,7 +6,7 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const LATEST_HEADLINE = 'Flash Flood of Nov 14, 2025';
 
@@ -26,14 +26,22 @@ export default function WidgetTrigger() {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [showHeadline, setShowHeadline] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleNextSwitch = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setShowHeadline((prev) => !prev);
+      scheduleNextSwitch();
+    }, 5000);
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setShowHeadline((prev) => !prev);
-    }, 5000); // Switch every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
+    scheduleNextSwitch();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [scheduleNextSwitch]);
 
   const handleHeadlineClick = () => {
     const compareEventParam = encodeURIComponent(
@@ -45,6 +53,7 @@ export default function WidgetTrigger() {
   const handleRefreshClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowHeadline((prev) => !prev);
+    scheduleNextSwitch();
   };
 
   return (
