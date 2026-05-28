@@ -13,8 +13,8 @@ import {
 } from './ui/dialog';
 import { Checkbox } from './ui/checkbox';
 import { uploadReport } from '@/lib/supabase/report';
-import { extractExifLocation } from '@/lib/report/extractEXIF';
-import { getClosestPipes } from '@/lib/report/getClosestPipe';
+import { extractExifLocation } from '@/lib/reports/extract-exif';
+import { getClosestPipes } from '@/lib/reports/get-closest-pipe';
 import { useAuth } from '@/components/context/AuthProvider';
 import { ComboboxForm } from './combobox-form';
 import type { ComboboxOption } from './combobox-form';

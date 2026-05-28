@@ -38,7 +38,7 @@ import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldContent } from '@/components/ui/field';
 import ImageUploader from '@/components/image-uploader';
-import { extractExifLocation } from '@/lib/report/extractEXIF';
+import { extractExifLocation } from '@/lib/reports/extract-exif';
 import { useAuth } from '@/components/context/AuthProvider';
 import {
   Dialog,
