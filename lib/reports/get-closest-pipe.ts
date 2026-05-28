@@ -21,7 +21,7 @@ export async function getClosestPipes(
   category: string
 ): Promise<PipeResult[]> {
   try {
-    const response = await fetch('/api/closestPipe', {
+    const response = await fetch('/api/closest-pipe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
