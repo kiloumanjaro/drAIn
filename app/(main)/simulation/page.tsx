@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 'use client';
 
 import { ControlPanel } from '@/components/control-panel';
@@ -44,6 +42,10 @@ import type {
   Drain,
   Pipe,
 } from '@/components/control-panel/types';
+import type {
+  NodeParams,
+  LinkParams,
+} from '@/components/control-panel/tabs/simulation-models/model3';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
@@ -177,10 +179,12 @@ export default function SimulationPage() {
     []
   );
   const [selectedPipeIds, setSelectedPipeIds] = useState<string[]>([]);
-  const [componentParams, setComponentParams] = useState<Map<string, any>>(
+  const [componentParams, setComponentParams] = useState<
+    Map<string, NodeParams>
+  >(new Map());
+  const [pipeParams, setPipeParams] = useState<Map<string, LinkParams>>(
     new Map()
   );
-  const [pipeParams, setPipeParams] = useState<Map<string, any>>(new Map());
   const [rainfallParams, setRainfallParams] =
     useState<RainfallParams>(rainfallVal);
 
@@ -442,7 +446,7 @@ export default function SimulationPage() {
                 15,
                 2.0,
               ],
-              'heatmap-color': heatmapColor as any,
+              'heatmap-color': heatmapColor as mapboxgl.ExpressionSpecification,
               'heatmap-radius': [
                 'interpolate',
                 ['linear'],
@@ -517,7 +521,7 @@ export default function SimulationPage() {
                 15,
                 3.0,
               ],
-              'heatmap-color': heatmapColor as any,
+              'heatmap-color': heatmapColor as mapboxgl.ExpressionSpecification,
               'heatmap-radius': [
                 'interpolate',
                 ['linear'],
@@ -788,16 +792,38 @@ export default function SimulationPage() {
   };
 
   // Update param handlers
-  const updateComponentParam = (id: string, key: string, value: number) => {
+  const updateComponentParam = (
+    id: string,
+    key: keyof NodeParams,
+    value: number
+  ) => {
     const newParams = new Map(componentParams);
-    const current = newParams.get(id) || {};
+    const current =
+      newParams.get(id) ??
+      ({
+        inv_elev: 0,
+        init_depth: 0,
+        ponding_area: 0,
+        surcharge_depth: 0,
+      } satisfies NodeParams);
     newParams.set(id, { ...current, [key]: value });
     setComponentParams(newParams);
   };
 
-  const updatePipeParam = (id: string, key: string, value: number) => {
+  const updatePipeParam = (
+    id: string,
+    key: keyof LinkParams,
+    value: number
+  ) => {
     const newParams = new Map(pipeParams);
-    const current = newParams.get(id) || {};
+    const current =
+      newParams.get(id) ??
+      ({
+        init_flow: 0,
+        upstrm_offset_depth: 0,
+        downstrm_offset_depth: 0,
+        avg_conduit_loss: 0,
+      } satisfies LinkParams);
     newParams.set(id, { ...current, [key]: value });
     setPipeParams(newParams);
   };
@@ -1129,8 +1155,14 @@ export default function SimulationPage() {
 
     // Build match expression for Mapbox for inlets
     // Format: ["match", ["get", "In_Name"], node1, color1, node2, color2, ..., defaultColor]
-    const inletsMatchExpression: any[] = ['match', ['get', 'In_Name']];
-    const inletsStrokeMatchExpression: any[] = ['match', ['get', 'In_Name']];
+    const inletsMatchExpression: (string | number | unknown[])[] = [
+      'match',
+      ['get', 'In_Name'],
+    ];
+    const inletsStrokeMatchExpression: (string | number | unknown[])[] = [
+      'match',
+      ['get', 'In_Name'],
+    ];
 
     vulnerabilityData.forEach((node) => {
       const color = getColorForCategory(node.Vulnerability_Category);
@@ -1149,8 +1181,14 @@ export default function SimulationPage() {
     inletsStrokeMatchExpression.push('#005400'); // Original inlets stroke color
 
     // Build match expression for storm drains
-    const drainsMatchExpression: any[] = ['match', ['get', 'In_Name']];
-    const drainsStrokeMatchExpression: any[] = ['match', ['get', 'In_Name']];
+    const drainsMatchExpression: (string | number | unknown[])[] = [
+      'match',
+      ['get', 'In_Name'],
+    ];
+    const drainsStrokeMatchExpression: (string | number | unknown[])[] = [
+      'match',
+      ['get', 'In_Name'],
+    ];
 
     vulnerabilityData.forEach((node) => {
       const color = getColorForCategory(node.Vulnerability_Category);
@@ -1402,6 +1440,7 @@ export default function SimulationPage() {
       const floodLines = createFloodAlongPipes(
         vulnerabilityData,
         allCoordinates,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pipes is a strongly-typed app-side FeatureCollection but createFloodAlongPipes accepts a looser geojson shape that doesn't align cleanly
         pipes as any
       );
 
@@ -1613,13 +1652,13 @@ export default function SimulationPage() {
     setIsLoadingTable3(true);
     try {
       // Build nodes object from componentParams
-      const nodes: Record<string, any> = {};
+      const nodes: Record<string, NodeParams> = {};
       componentParams.forEach((params, id) => {
         nodes[id] = params;
       });
 
       // Build links object from pipeParams
-      const links: Record<string, any> = {};
+      const links: Record<string, LinkParams> = {};
       pipeParams.forEach((params, id) => {
         links[id] = params;
       });
