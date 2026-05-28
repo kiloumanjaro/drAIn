@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import {
   BookOpenIcon as BookOpenOutline,
@@ -279,7 +280,13 @@ function DocsContent() {
             <div className="sticky">
               <div className="mt-2 mb-4 flex items-center gap-2">
                 <div className="flex w-full justify-center rounded-lg border border-[#dfdfdf] bg-white px-5 py-2">
-                  <img src="/images/text.png" alt="drAIn" className="h-9" />
+                  <Image
+                    src="/images/text.png"
+                    alt="drAIn"
+                    width={120}
+                    height={36}
+                    className="h-9 w-auto"
+                  />
                 </div>
               </div>
               <div className="mb-3 flex gap-2">

@@ -84,8 +84,10 @@ const Loader: FC<{ placeholderSrc?: string }> = ({ placeholderSrc }) => {
   return (
     <Html center>
       {placeholderSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element -- placeholderSrc is an arbitrary data URI / external thumbnail that next/image's loader cannot validate
         <img
           src={placeholderSrc}
+          alt=""
           width={128}
           height={128}
           className="rounded-lg blur-lg"
