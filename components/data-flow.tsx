@@ -53,6 +53,16 @@
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Delay before the entry animation kicks in, in ms. */
+const ANIMATION_START_DELAY_MS = 400;
+
+/** Trailing-path opacity is the configured fillOpacity scaled by this factor. */
+const TRAIL_OPACITY_MULTIPLIER = 0.5;
+
 type Props = {
   /** render as absolutely-positioned background filling its parent */
   background?: boolean;
@@ -81,6 +91,13 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Animated SVG pipeline used as the landing-page hero background. Renders a
+ * static pipe-network SVG with optional Mapbox-tile underlay and per-path
+ * hover/click interactions. The component intentionally owns all of its own
+ * state (hover trail, animation start) because every path emits via event
+ * delegation through a single shared callback set.
+ */
 export default function DataFlowPipeline({
   background = false,
   cover = true,
@@ -107,7 +124,10 @@ export default function DataFlowPipeline({
   const hoverTimeoutRef = React.useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   useEffect(() => {
-    const timer = setTimeout(() => setStartAnim(true), 400); // 400ms delay before animation starts
+    const timer = setTimeout(
+      () => setStartAnim(true),
+      ANIMATION_START_DELAY_MS
+    );
     return () => clearTimeout(timer);
   }, []);
 
@@ -193,7 +213,9 @@ export default function DataFlowPipeline({
     const isHighlighted = isCurrentHover || isInTrail;
 
     // Trail effect: current hover at full opacity, trailing paths at reduced opacity
-    const trailOpacity = isCurrentHover ? fillOpacity : fillOpacity * 0.5;
+    const trailOpacity = isCurrentHover
+      ? fillOpacity
+      : fillOpacity * TRAIL_OPACITY_MULTIPLIER;
 
     return {
       // Data attribute to identify path for event delegation
