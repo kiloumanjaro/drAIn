@@ -6,7 +6,6 @@ import { queryClient } from '@/lib/query/client';
 import { AuthProvider } from '@/components/context/AuthProvider';
 import { ReportProvider } from '@/components/context/ReportProvider';
 import { NavigationLoadingProvider } from '@/components/context/NavigationLoadingProvider';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { ThemeProvider } from 'next-themes';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,9 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
         <AuthProvider>
           <ReportProvider>
-            <NavigationLoadingProvider>
-              <SidebarProvider>{children}</SidebarProvider>
-            </NavigationLoadingProvider>
+            <NavigationLoadingProvider>{children}</NavigationLoadingProvider>
           </ReportProvider>
         </AuthProvider>
       </ThemeProvider>
