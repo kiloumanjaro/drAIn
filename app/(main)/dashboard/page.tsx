@@ -1,12 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs-custom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, FileText, Clock, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -94,17 +89,17 @@ export default function DashboardPage() {
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList>
+              <TabsList className="text-muted-foreground inline-flex h-10 w-1/2 items-center justify-start gap-0 rounded-none border-b border-gray-200 bg-[#fcfcfc] p-0">
                 <TabsTrigger
                   value="analytics"
-                  className="flex items-center gap-2"
+                  className="relative inline-flex h-full flex-1 items-center justify-center gap-2 rounded-none border-t border-b-0 border-t-[#dfdfdf] bg-[#fcfcfc] px-4 py-3 text-xs whitespace-nowrap text-gray-500 transition-colors duration-150 outline-none first:border-l-0 last:border-r-0 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-t-[7px] data-[state=active]:border-t-[#3F83DB] data-[state=active]:bg-[#fcfcfc] data-[state=active]:text-gray-900 first:data-[state=active]:border-r first:data-[state=active]:border-l-0 first:data-[state=active]:border-r-[#dfdfdf] last:data-[state=active]:border-r last:data-[state=active]:border-l last:data-[state=active]:border-r-[#dfdfdf] last:data-[state=active]:border-l-[#dfdfdf] first:[&:not([data-state=active])]:border-r-0 last:[&:not([data-state=active])]:border-l-0"
                 >
                   <BarChart3 className="h-4 w-4" />
                   <span>Analytics</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="reports"
-                  className="flex items-center gap-2"
+                  className="relative inline-flex h-full flex-1 items-center justify-center gap-2 rounded-none border-t border-b-0 border-t-[#dfdfdf] bg-[#fcfcfc] px-4 py-3 text-xs whitespace-nowrap text-gray-500 transition-colors duration-150 outline-none first:border-l-0 last:border-r-0 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-t-[7px] data-[state=active]:border-t-[#3F83DB] data-[state=active]:bg-[#fcfcfc] data-[state=active]:text-gray-900 first:data-[state=active]:border-r first:data-[state=active]:border-l-0 first:data-[state=active]:border-r-[#dfdfdf] last:data-[state=active]:border-r last:data-[state=active]:border-l last:data-[state=active]:border-r-[#dfdfdf] last:data-[state=active]:border-l-[#dfdfdf] first:[&:not([data-state=active])]:border-r-0 last:[&:not([data-state=active])]:border-l-0"
                 >
                   <FileText className="h-4 w-4" />
                   <span>All Reports</span>

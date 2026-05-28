@@ -3,12 +3,7 @@
 import { useContext } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@/components/ui/tabs-modified';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pencil, Link2, FileText } from 'lucide-react';
 import { AuthContext } from '@/components/context/AuthProvider';
 import client from '@/lib/supabase/client';
