@@ -73,47 +73,7 @@ import {
 import FeatureCards from '@/components/docs/FeatureCards';
 import PrincipleItem from '@/components/docs/PrincipleItem';
 import FloodEventCards from '@/components/docs/FloodEventCards';
-
-const developers = [
-  {
-    name: 'Kint Louise Borbano',
-    initials: 'KB',
-    color: 'bg-blue-100 text-blue-700',
-  },
-  {
-    name: 'Eliseo Alcaraz',
-    initials: 'EA',
-    color: 'bg-emerald-100 text-emerald-700',
-  },
-  {
-    name: 'Christian James Bayadog',
-    initials: 'CJ',
-    color: 'bg-violet-100 text-violet-700',
-  },
-  {
-    name: 'Norman Jazul Jr.',
-    initials: 'NJ',
-    color: 'bg-amber-100 text-amber-700',
-  },
-  {
-    name: 'John Carlo Sandro',
-    initials: 'JC',
-    color: 'bg-rose-100 text-rose-700',
-  },
-];
-
-type SectionID =
-  | 'overview'
-  | 'architecture'
-  | 'features'
-  | 'tech-stack'
-  | 'data-sources'
-  | 'simulation'
-  | 'users'
-  | 'deployment'
-  | 'limitations'
-  | 'demo'
-  | 'reports';
+import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 
 interface ExpandedSections {
   [key: string]: boolean;
@@ -187,89 +147,7 @@ function DocsContent() {
     }));
   };
 
-  const sectionGroups = [
-    {
-      heading: 'General',
-      items: [
-        {
-          id: 'overview',
-          label: 'Overview',
-          icon: BookOpenOutline,
-          iconSolid: BookOpenSolid,
-        },
-        {
-          id: 'features',
-          label: 'Core Features',
-          icon: BoltOutline,
-          iconSolid: BoltSolid,
-        },
-        {
-          id: 'users',
-          label: 'User Stories',
-          icon: UsersOutline,
-          iconSolid: UsersSolid,
-        },
-        {
-          id: 'reports',
-          label: 'Flood Reports',
-          icon: DocumentTextOutline,
-          iconSolid: DocumentTextSolid,
-        },
-      ],
-    },
-    {
-      heading: 'Technical',
-      items: [
-        {
-          id: 'architecture',
-          label: 'Architecture',
-          icon: Square3Stack3DOutline,
-          iconSolid: Square3Stack3DSolid,
-        },
-        {
-          id: 'tech-stack',
-          label: 'Technology Stack',
-          icon: CubeOutline,
-          iconSolid: CubeSolid,
-        },
-        {
-          id: 'data-sources',
-          label: 'Data Sources',
-          icon: CircleStackOutline,
-          iconSolid: CircleStackSolid,
-        },
-        {
-          id: 'simulation',
-          label: 'Simulation Models',
-          icon: ChartBarOutline,
-          iconSolid: ChartBarSolid,
-        },
-      ],
-    },
-    {
-      heading: 'Operations',
-      items: [
-        {
-          id: 'deployment',
-          label: 'Deployment',
-          icon: ServerOutline,
-          iconSolid: ServerSolid,
-        },
-        {
-          id: 'limitations',
-          label: 'Limitations',
-          icon: ExclamationTriangleOutline,
-          iconSolid: ExclamationTriangleSolid,
-        },
-        {
-          id: 'demo',
-          label: 'Demonstration',
-          icon: PlayOutline,
-          iconSolid: PlaySolid,
-        },
-      ],
-    },
-  ];
+  const sectionGroups = SECTION_GROUPS;
 
   return (
     <div className="min-h-screen bg-[#f1f1f1] px-4">
@@ -386,7 +264,7 @@ function DocsContent() {
 
                   <TooltipProvider>
                     <div className="flex -space-x-2">
-                      {developers.map((dev) => (
+                      {DEVELOPERS.map((dev) => (
                         <Tooltip key={dev.initials}>
                           <TooltipTrigger asChild>
                             <Avatar className="h-8 w-8 cursor-pointer border-2 border-white">
@@ -1273,6 +1151,11 @@ function DocsContent() {
   );
 }
 
+/**
+ * Top-level `/docs` route. Wraps {@link DocsContent} in Suspense so the
+ * component can read URL search params (`useSearchParams`) to preselect a
+ * section / honour `?compareEvent=...` deep links from the EventWidget.
+ */
 export default function Docs() {
   return (
     <Suspense fallback={<div />}>
