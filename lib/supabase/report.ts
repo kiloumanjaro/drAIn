@@ -1,7 +1,4 @@
-/* eslint-disable */
-
 import client from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Report {
   id: string;
@@ -18,6 +15,33 @@ export interface Report {
   resolvedByMaintenanceId?: string | null;
   resolvedByMaintenanceType?: string | null;
   resolvedImage?: string | null;
+}
+
+export interface ReportRow {
+  id?: string | number | null;
+  created_at?: string | null;
+  date?: string | null;
+  category?: string | null;
+  description?: string | null;
+  image?: string | null;
+  reporter_name?: string | null;
+  status?: string | null;
+  component_id?: string | null;
+  long?: string | number | null;
+  lat?: string | number | null;
+  geocoded_status?: string | null;
+  address?: string | null;
+  priority?: 'low' | 'medium' | 'high' | 'critical' | null;
+  resolved_by_maintenance_id?: string | null;
+  resolved_by_maintenance_type?: string | null;
+  resolved_image?: string | null;
+}
+
+interface ReportStatusUpdate {
+  status: 'in-progress' | 'resolved';
+  resolved_by_maintenance_id?: string;
+  resolved_by_maintenance_type?: string;
+  resolved_image?: string;
 }
 
 export const uploadReport = async (
@@ -160,7 +184,7 @@ export const updateReportsStatusForComponent = async (
   maintenanceImage?: string
 ) => {
   try {
-    const updates: any = { status };
+    const updates: ReportStatusUpdate = { status };
     if (maintenanceId) updates.resolved_by_maintenance_id = maintenanceId;
     if (maintenanceType) updates.resolved_by_maintenance_type = maintenanceType;
     if (maintenanceImage) updates.resolved_image = maintenanceImage;
@@ -213,50 +237,49 @@ export const deleteReportsByComponentId = async (componentId: string) => {
   }
 };
 
-export const formatReport = (
-  report: Record<string, unknown> | Report
-): Report => {
+export const formatReport = (report: ReportRow): Report => {
   const { data: img } = client.storage
     .from('ReportImage')
-    .getPublicUrl((report as any).image || '');
+    .getPublicUrl(report.image ?? '');
 
   let resolvedImageUrl = '';
-  if ((report as any).resolved_image) {
+  if (report.resolved_image) {
     const { data: rImg } = client.storage
       .from('ReportImage')
-      .getPublicUrl((report as any).resolved_image);
+      .getPublicUrl(report.resolved_image);
     resolvedImageUrl = rImg?.publicUrl || '';
   }
 
-  const rawDate = (report as any).created_at || (report as any).date || null;
-  const parsedDate = new Date(rawDate);
+  const rawDate = report.created_at ?? report.date ?? null;
+  const parsedDate = rawDate ? new Date(rawDate) : null;
   const safeDate =
-    !rawDate || isNaN(parsedDate.getTime())
+    !parsedDate || isNaN(parsedDate.getTime())
       ? new Date().toISOString()
       : parsedDate.toISOString();
 
-  const long = parseFloat((report as any).long);
-  const lat = parseFloat((report as any).lat);
-  const safeCoords =
-    !isNaN(long) && !isNaN(lat)
-      ? ([long, lat] as [number, number])
-      : ([0, 0] as [number, number]);
+  const long =
+    typeof report.long === 'number'
+      ? report.long
+      : parseFloat(report.long ?? '');
+  const lat =
+    typeof report.lat === 'number' ? report.lat : parseFloat(report.lat ?? '');
+  const safeCoords: [number, number] =
+    !isNaN(long) && !isNaN(lat) ? [long, lat] : [0, 0];
 
   return {
-    id: (report as any).id?.toString() ?? crypto.randomUUID(),
+    id: report.id?.toString() ?? crypto.randomUUID(),
     date: safeDate,
-    category: (report as any).category ?? 'Uncategorized',
-    description: (report as any).description ?? 'No description provided.',
+    category: report.category ?? 'Uncategorized',
+    description: report.description ?? 'No description provided.',
     image: img?.publicUrl ?? '',
-    reporterName: (report as any).reporter_name ?? 'Anonymous',
-    status: (report as any).status ?? 'Pending',
-    componentId: (report as any).component_id ?? 'N/A',
+    reporterName: report.reporter_name ?? 'Anonymous',
+    status: report.status ?? 'Pending',
+    componentId: report.component_id ?? 'N/A',
     coordinates: safeCoords,
-    geocoded_status: (report as any).geocoded_status ?? 'pending',
-    address: (report as any).address ?? 'Unknown address',
-    resolvedByMaintenanceId: (report as any).resolved_by_maintenance_id ?? null,
-    resolvedByMaintenanceType:
-      (report as any).resolved_by_maintenance_type ?? null,
+    geocoded_status: report.geocoded_status ?? 'pending',
+    address: report.address ?? 'Unknown address',
+    resolvedByMaintenanceId: report.resolved_by_maintenance_id ?? null,
+    resolvedByMaintenanceType: report.resolved_by_maintenance_type ?? null,
     resolvedImage: resolvedImageUrl || null,
   };
 };
