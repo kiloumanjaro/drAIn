@@ -295,7 +295,6 @@ export function subscribeToReportChanges(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'reports' },
       (payload) => {
-        // console.log("Channel Insert:", payload.new);
         onInsert(payload.new as Report);
       }
     );
@@ -306,15 +305,12 @@ export function subscribeToReportChanges(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'reports' },
       (payload) => {
-        // console.log("Channel Update:", payload.new);
         onUpdate(payload.new as Report);
       }
     );
   }
 
-  channel.subscribe((status, err) => {
-    // console.log("Report Channel status:", status, err || "");
-  });
+  channel.subscribe();
 
   return () => {
     client.removeChannel(channel);
@@ -326,13 +322,12 @@ export const getreportCategoryCount = async (
   categoryId: string
 ): Promise<number> => {
   try {
-    const { count: categoryCount, error: _error } = await client
+    const { count: categoryCount } = await client
       .from('reports')
       .select('category', { count: 'exact', head: true })
       .eq('category', targetCategory)
       .eq('component_id', categoryId);
 
-    // console.log(targetCategory, categoryId, categoryCount);
     return categoryCount ?? 0;
   } catch (error) {
     console.error('Error fetching reports:', error);
