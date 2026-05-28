@@ -1,6 +1,6 @@
 'use client';
 
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import { updateReportsStatusForComponent } from '@/lib/supabase/report';
 
 // Helper function to normalize Supabase joined data to arrays for TypeScript

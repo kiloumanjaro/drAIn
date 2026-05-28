@@ -24,7 +24,7 @@ import { CardDescription, CardHeader, CardTitle } from './ui/card';
 import { SpinnerEmpty } from './spinner-empty';
 import { AlertCircle, CheckCircle2Icon } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 
 interface CategoryData {
   name: string;

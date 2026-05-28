@@ -15,7 +15,7 @@ import {
   useOutlets,
   useDrains,
 } from '@/lib/query/hooks/useDrainageData';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import type { DateFilterValue } from '../date-sort';
 import type { Report } from '@/lib/supabase/report';
 

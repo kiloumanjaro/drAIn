@@ -1,6 +1,6 @@
 /* eslint-disable */
 
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Report {

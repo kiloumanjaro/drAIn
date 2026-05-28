@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import server from '@/app/api/server';
+import server from '@/lib/supabase/server';
 
 interface Location {
   lat: number;

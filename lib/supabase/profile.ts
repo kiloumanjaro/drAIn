@@ -1,4 +1,4 @@
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
 
 export interface Profile {

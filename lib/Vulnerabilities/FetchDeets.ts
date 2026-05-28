@@ -1,4 +1,4 @@
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 

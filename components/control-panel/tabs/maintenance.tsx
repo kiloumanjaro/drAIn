@@ -51,7 +51,7 @@ import {
 import { SpinnerEmpty } from '@/components/spinner-empty';
 import distance from '@turf/distance';
 import { point } from '@turf/helpers';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import Image from 'next/image';
 import { format } from 'date-fns';
 

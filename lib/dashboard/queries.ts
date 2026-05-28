@@ -1,4 +1,4 @@
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import type { Report } from '@/lib/supabase/report';
 
 export interface OverviewMetrics {

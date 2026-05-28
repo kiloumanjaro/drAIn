@@ -20,7 +20,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/components/context/AuthProvider';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 
 import NotificationBell from '@/components/report-notif';

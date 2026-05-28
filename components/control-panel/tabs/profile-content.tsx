@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/tabs-modified';
 import { Pencil, Link2, FileText } from 'lucide-react';
 import { AuthContext } from '@/components/context/AuthProvider';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import {
   updateUserProfile,
   linkAgencyToProfile,

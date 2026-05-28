@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/components/context/AuthProvider';
 import { useState, useEffect } from 'react';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import DataFlowPipeline from '@/components/data-flow';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';

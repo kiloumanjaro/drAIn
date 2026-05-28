@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 export default function LoginForm() {

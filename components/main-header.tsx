@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/context/AuthProvider';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 
 export function Header() {
   const { user } = useAuth();
