@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 import { Providers } from './providers';
-import { AuthProvider } from '@/components/context/AuthProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { SidebarLayout } from '@/components/sidebar-layout';
 import { NavigationLoadingOverlay } from '@/components/NavigationLoadingOverlay';
@@ -51,19 +50,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${centuryGothic.variable} antialiased`}
       >
-        <AuthProvider>
-          <Providers>
-            <EventWidgetProvider>
-              <SidebarLayout>
-                {/* <WidgetTrigger /> */}
-                {children}
-              </SidebarLayout>
-              <NavigationLoadingOverlay />
-              <Toaster position="top-center" />
-              <EventWidget />
-            </EventWidgetProvider>
-          </Providers>
-        </AuthProvider>
+        <Providers>
+          <EventWidgetProvider>
+            <SidebarLayout>
+              {/* <WidgetTrigger /> */}
+              {children}
+            </SidebarLayout>
+            <NavigationLoadingOverlay />
+            <Toaster position="top-center" />
+            <EventWidget />
+          </EventWidgetProvider>
+        </Providers>
       </body>
     </html>
   );
