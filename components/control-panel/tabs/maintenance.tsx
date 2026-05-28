@@ -10,7 +10,7 @@ import {
   getOutletMaintenanceHistory,
   recordStormDrainMaintenance,
   getStormDrainMaintenanceHistory,
-} from '@/app/actions/clientMaintenanceActions';
+} from '@/lib/supabase/maintenance';
 import { fetchAllReports } from '@/lib/supabase/report';
 import type { Report } from '@/lib/supabase/report';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
