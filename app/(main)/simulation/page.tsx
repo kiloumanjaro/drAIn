@@ -51,7 +51,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
 import { VulnerabilityDataTable } from '@/components/vulnerability-data-table';
-import { fetchYRTable } from '@/lib/Vulnerabilities/FetchDeets';
+import { fetchYRTable } from '@/lib/vulnerabilities/fetch-yr-table';
 import { NodeSimulationSlideshow } from '@/components/node-simulation-slideshow';
 import { NodeParametersPanel } from '@/components/node-parameters-panel';
 import { LinkParametersPanel } from '@/components/link-parameters-panel';
