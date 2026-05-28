@@ -193,13 +193,15 @@ const ModelInner: FC<ModelInnerProps> = ({
     g.position.set(-sphere.center.x, -sphere.center.y, -sphere.center.z);
     g.scale.setScalar(s);
 
-    g.traverse((o: any) => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
+    g.traverse((o: THREE.Object3D) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         if (fadeIn) {
-          o.material.transparent = true;
-          o.material.opacity = 0;
+          const mat = mesh.material as THREE.Material;
+          mat.transparent = true;
+          mat.opacity = 0;
         }
       }
     });
@@ -228,8 +230,12 @@ const ModelInner: FC<ModelInnerProps> = ({
       const id = setInterval(() => {
         t += 0.05;
         const v = Math.min(t, 1);
-        g.traverse((o: any) => {
-          if (o.isMesh) o.material.opacity = v;
+        g.traverse((o: THREE.Object3D) => {
+          const mesh = o as THREE.Mesh;
+          if (mesh.isMesh) {
+            const mat = mesh.material as THREE.Material;
+            mat.opacity = v;
+          }
         });
         invalidate();
         if (v === 1) {
@@ -482,9 +488,13 @@ const ModelViewer: FC<ViewerProps> = ({
     if (!g || !s || !c) return;
     g.shadowMap.enabled = false;
     const tmp: { l: THREE.Light; cast: boolean }[] = [];
-    s.traverse((o: any) => {
-      if (o.isLight && 'castShadow' in o) {
-        tmp.push({ l: o, cast: o.castShadow });
+    s.traverse((o: THREE.Object3D) => {
+      const light = o as THREE.Light;
+      if (light.isLight && 'castShadow' in light) {
+        tmp.push({
+          l: light,
+          cast: (light as THREE.Light & { castShadow: boolean }).castShadow,
+        });
         o.castShadow = false;
       }
     });
@@ -534,7 +544,14 @@ const ModelViewer: FC<ViewerProps> = ({
         style={{ touchAction: 'pan-y pinch-zoom' }}
       >
         {environmentPreset !== 'none' && (
-          <Environment preset={environmentPreset as any} background={false} />
+          <Environment
+            preset={
+              environmentPreset as React.ComponentProps<
+                typeof Environment
+              >['preset']
+            }
+            background={false}
+          />
         )}
 
         <ambientLight intensity={ambientIntensity} />
