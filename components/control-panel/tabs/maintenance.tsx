@@ -1,17 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  recordInletMaintenance,
-  getInletMaintenanceHistory,
-  recordManPipeMaintenance,
-  getManPipeMaintenanceHistory,
-  recordOutletMaintenance,
-  getOutletMaintenanceHistory,
-  recordStormDrainMaintenance,
-  getStormDrainMaintenanceHistory,
-} from '@/lib/supabase/maintenance';
 import { fetchAllReports } from '@/lib/supabase/report';
+import {
+  DEBUG_MODE,
+  MAINTENANCE_PHOTO_MAX_AGE_HOURS,
+  getStatusStyles,
+  type HistoryItem,
+} from './maintenance.helpers';
+import { assetActions } from './maintenance.actions';
 import type { Report } from '@/lib/supabase/report';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import {
@@ -55,37 +52,6 @@ import client from '@/lib/supabase/client';
 import Image from 'next/image';
 import { format } from 'date-fns';
 
-const DEBUG_MODE = false; // Set to true to bypass EXIF/Location checks
-
-type HistoryItem = {
-  last_cleaned_at: string;
-  agencies: { name: string }[] | null;
-  profiles: { full_name: string }[] | null;
-  status: string | null;
-  addressed_report_id: string | null;
-  description: string | null;
-  evidence_image: string | null;
-};
-
-const assetActions = {
-  inlets: {
-    getHistory: getInletMaintenanceHistory,
-    record: recordInletMaintenance,
-  },
-  man_pipes: {
-    getHistory: getManPipeMaintenanceHistory,
-    record: recordManPipeMaintenance,
-  },
-  outlets: {
-    getHistory: getOutletMaintenanceHistory,
-    record: recordOutletMaintenance,
-  },
-  storm_drains: {
-    getHistory: getStormDrainMaintenanceHistory,
-    record: recordStormDrainMaintenance,
-  },
-};
-
 export type MaintenanceProps = {
   selectedInlet?: Inlet | null;
   selectedOutlet?: Outlet | null;
@@ -94,17 +60,15 @@ export type MaintenanceProps = {
   profile?: Record<string, unknown> | null;
 };
 
-const getStatusStyles = (status: string | null) => {
-  switch (status) {
-    case 'resolved':
-      return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
-    case 'in-progress':
-      return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-    default:
-      return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-  }
-};
-
+/**
+ * Maintenance tab rendered inside the `/map` and `/simulation` control
+ * panels. Lets agency-linked users record cleaning / repair events against a
+ * selected drainage asset (inlet, outlet, pipe, storm drain) — including an
+ * EXIF-validated evidence photo — and shows the asset's maintenance history.
+ *
+ * Renders an "Admin Privileges Required" empty state for visitors that lack
+ * an `agency_id` on their profile.
+ */
 export default function Maintenance({
   selectedInlet,
   selectedOutlet,
@@ -300,7 +264,7 @@ export default function Maintenance({
         const diffMs = now.getTime() - imageDate.getTime();
         const hoursDiff = diffMs / (1000 * 60 * 60);
 
-        if (hoursDiff > 12) {
+        if (hoursDiff > MAINTENANCE_PHOTO_MAX_AGE_HOURS) {
           throw new Error('Image is too old. Must be taken within 12 hours.');
         }
         if (hoursDiff < 0) {
