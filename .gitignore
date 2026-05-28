@@ -48,6 +48,9 @@ CLAUDE.md
 *.claude.md
 CLAUDE.
 playwright.config.ts
+# Playwright run artifacts
+/test-results/
+/playwright-report/
 
 # copilot-instructions.md
 .github/copilot-instructions.md
