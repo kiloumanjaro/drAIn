@@ -49,6 +49,20 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useReports } from '@/components/context/ReportProvider';
 import { toast } from 'sonner';
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Inline CSS for the close button injected into the imperatively-built population popup. */
+const POPULATION_POPUP_CLOSE_BUTTON_CSS =
+  'position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s; background-color: #f3f4f6;';
+
+/** Default background colour for the popup close button. */
+const POPULATION_POPUP_CLOSE_BG = '#f3f4f6';
+
+/** Hover background colour for the popup close button. */
+const POPULATION_POPUP_CLOSE_BG_HOVER = '#e5e7eb';
+
 function MapPageContent() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
   const {
@@ -876,17 +890,17 @@ function MapPageContent() {
 
             // Create close button
             const closeButton = document.createElement('button');
-            closeButton.style.cssText =
-              'position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s; background-color: #f3f4f6;';
+            closeButton.style.cssText = POPULATION_POPUP_CLOSE_BUTTON_CSS;
             closeButton.innerHTML = `
               <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
               </svg>
             `;
             closeButton.onmouseover = () =>
-              (closeButton.style.backgroundColor = '#e5e7eb');
+              (closeButton.style.backgroundColor =
+                POPULATION_POPUP_CLOSE_BG_HOVER);
             closeButton.onmouseout = () =>
-              (closeButton.style.backgroundColor = '#f3f4f6');
+              (closeButton.style.backgroundColor = POPULATION_POPUP_CLOSE_BG);
 
             // Create content
             const content = document.createElement('div');
@@ -1623,6 +1637,11 @@ function MapPageContent() {
   );
 }
 
+/**
+ * Top-level `/map` route. Wraps the imperative Mapbox content in a Suspense
+ * boundary so the page can read URL search params (`useSearchParams`) without
+ * forcing the whole tree into client-side rendering during navigation.
+ */
 export default function MapPage() {
   return (
     <Suspense
