@@ -46,6 +46,18 @@ import type {
   NodeParams,
   LinkParams,
 } from '@/components/control-panel/tabs/simulation-models/model3';
+import {
+  getColorForCategory,
+  getStrokeColorForCategory,
+  getVulnerabilityFromColor,
+  samplePointsFromLine,
+  isPointTooCloseToNodes,
+  parseNodeId,
+  CAMERA_FLY_DURATION_MS,
+  FLOOD_PROPAGATION_MAX_RETRIES,
+  FLOOD_PULSE_AMOUNT,
+  FLOOD_PULSE_SPEED_HZ,
+} from './page.helpers';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
@@ -1104,55 +1116,6 @@ export default function SimulationPage() {
 
     // Color mapping for vulnerability categories
     // Using a function to handle case-insensitive and flexible matching
-    const getColorForCategory = (category: string): string => {
-      const normalized = category.toLowerCase().trim();
-
-      if (normalized.includes('high')) return '#D32F2F';
-      if (normalized.includes('medium')) return '#FFA000';
-      if (normalized.includes('low')) return '#FFF176';
-      if (normalized.includes('no')) return '#388E3C';
-
-      // Fallback based on exact matches
-      const colorMap: Record<string, string> = {
-        'High Risk': '#D32F2F',
-        'Medium Risk': '#FFA000',
-        'Low Risk': '#FFF176',
-        'No Risk': '#388E3C',
-        'high risk': '#D32F2F',
-        'medium risk': '#FFA000',
-        'low risk': '#FFF176',
-        'no risk': '#388E3C',
-      };
-
-      return colorMap[category] || colorMap[normalized] || '#5687ca';
-    };
-
-    // Get darker stroke color for vulnerability categories
-    const getStrokeColorForCategory = (category: string): string => {
-      const normalized = category.toLowerCase().trim();
-
-      if (normalized.includes('high')) return '#8B0000'; // Dark red
-      if (normalized.includes('medium')) return '#B36200'; // Dark amber
-      if (normalized.includes('low')) return '#C4B000'; // Dark yellow
-      if (normalized.includes('no')) return '#1B5E20'; // Dark green
-
-      // Fallback based on exact matches
-      const strokeColorMap: Record<string, string> = {
-        'High Risk': '#8B0000',
-        'Medium Risk': '#B36200',
-        'Low Risk': '#C4B000',
-        'No Risk': '#1B5E20',
-        'high risk': '#8B0000',
-        'medium risk': '#B36200',
-        'low risk': '#C4B000',
-        'no risk': '#1B5E20',
-      };
-
-      return (
-        strokeColorMap[category] || strokeColorMap[normalized] || '#00346c'
-      );
-    };
-
     // Build match expression for Mapbox for inlets
     // Format: ["match", ["get", "In_Name"], node1, color1, node2, color2, ..., defaultColor]
     const inletsMatchExpression: (string | number | unknown[])[] = [
@@ -1239,128 +1202,6 @@ export default function SimulationPage() {
   };
 
   // Helper function to convert RGB color from flood line to vulnerability category
-  const getVulnerabilityFromColor = (color: string): string => {
-    if (color.includes('211, 47, 47')) return 'High Risk'; // Red
-    if (color.includes('255, 160, 0')) return 'Medium Risk'; // Orange
-    if (color.includes('255, 235, 100')) return 'Low Risk'; // Yellow
-    if (color.includes('56, 142, 60')) return 'No Risk'; // Green
-
-    // For interpolated colors, determine based on RGB values
-    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (!match) return 'Medium Risk'; // Fallback
-
-    const [, r, g] = match.map(Number);
-
-    // Red-dominant → High Risk
-    if (r > 200 && g < 100) return 'High Risk';
-    // Yellow-dominant → Low Risk
-    if (r > 200 && g > 200) return 'Low Risk';
-    // Orange or intermediate → Medium Risk
-    return 'Medium Risk';
-  };
-
-  // Helper function to sample points along a line, scaled by length
-  const samplePointsFromLine = (
-    lineFeature: GeoJSON.Feature<GeoJSON.LineString>,
-    samplesPerSegment: number = 3 // Points per ~0.0005 degree segment (~55m)
-  ): GeoJSON.Feature[] => {
-    const coords = lineFeature.geometry.coordinates as [number, number][];
-    if (coords.length < 2) return [];
-
-    const props = lineFeature.properties || {};
-    const vulnerability = getVulnerabilityFromColor(props.color || '');
-    const points: GeoJSON.Feature[] = [];
-
-    // Calculate total line length and cumulative distances
-    const segLengths: number[] = [];
-    let totalLength = 0;
-    for (let i = 0; i < coords.length - 1; i++) {
-      const dx = coords[i + 1][0] - coords[i][0];
-      const dy = coords[i + 1][1] - coords[i][1];
-      const len = Math.sqrt(dx * dx + dy * dy);
-      segLengths.push(len);
-      totalLength += len;
-    }
-    if (totalLength === 0) return [];
-
-    // Vulnerability multiplier - higher risk = more points = denser heatmap
-    const vulnerabilityMultiplier =
-      vulnerability === 'High Risk'
-        ? 3
-        : vulnerability === 'Medium Risk'
-          ? 2
-          : vulnerability === 'Low Risk'
-            ? 1.5
-            : 1;
-
-    // Scale number of samples based on line length and vulnerability
-    // Use ~0.0005 degrees (~55m) as the reference segment length
-    const referenceSegLength = 0.0005;
-    const numSegments = Math.max(
-      1,
-      Math.round(totalLength / referenceSegLength)
-    );
-    const numSamples = Math.max(
-      samplesPerSegment,
-      Math.round(numSegments * samplesPerSegment * vulnerabilityMultiplier)
-    );
-
-    // Sample evenly along the full line length (skip first and last to avoid node overlap)
-    for (let i = 1; i <= numSamples; i++) {
-      const t = i / (numSamples + 1);
-      const targetDist = t * totalLength;
-
-      // Walk along segments to find the point at targetDist
-      let walked = 0;
-      for (let s = 0; s < segLengths.length; s++) {
-        if (walked + segLengths[s] >= targetDist) {
-          const segT = (targetDist - walked) / segLengths[s];
-          const lng = coords[s][0] + (coords[s + 1][0] - coords[s][0]) * segT;
-          const lat = coords[s][1] + (coords[s + 1][1] - coords[s][1]) * segT;
-
-          points.push({
-            type: 'Feature',
-            properties: {
-              source: 'line',
-              vulnerability: vulnerability,
-              floodVolume: props.floodVolume || 0,
-              pipeName: props.pipeName || '',
-              phase: Math.random() * Math.PI * 2, // Random phase for animation
-              offsetAngle: Math.random() * Math.PI * 2, // Random wobble direction
-              offsetDistance: Math.random() * 0.00009, // ~9 meters max wobble
-            },
-            geometry: {
-              type: 'Point',
-              coordinates: [lng, lat],
-            },
-          } as GeoJSON.Feature);
-          break;
-        }
-        walked += segLengths[s];
-      }
-    }
-
-    return points;
-  };
-
-  // Helper function to check if a point is too close to any existing node point
-  const isPointTooCloseToNodes = (
-    linePoint: [number, number],
-    nodeFeatures: GeoJSON.Feature[],
-    minDistance: number = 0.00008 // ~9 meters (tuned for pipe spacing)
-  ): boolean => {
-    return nodeFeatures.some((nodeFeature) => {
-      const nodeCoord = (nodeFeature.geometry as GeoJSON.Point).coordinates as [
-        number,
-        number,
-      ];
-      const dx = linePoint[0] - nodeCoord[0];
-      const dy = linePoint[1] - nodeCoord[1];
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      return distance < minDistance;
-    });
-  };
-
   // Helper function to update Flood Propagation heatmap
   const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
     const map = mapRef.current;
@@ -1507,7 +1348,7 @@ export default function SimulationPage() {
 
     // Update both Flood Propagation sources with retry logic
     let retryCount = 0;
-    const maxRetries = 10;
+    const maxRetries = FLOOD_PROPAGATION_MAX_RETRIES;
 
     const updateFloodPropagationData = () => {
       const nodeSource = map.getSource(
@@ -1796,8 +1637,8 @@ export default function SimulationPage() {
     }
 
     const time = now / 1000;
-    const pulseSpeed = 0.3; // Cycles per second (slower)
-    const pulseAmount = 0.35; // 35% depth - oscillates from 0.65 to 1.0
+    const pulseSpeed = FLOOD_PULSE_SPEED_HZ;
+    const pulseAmount = FLOOD_PULSE_AMOUNT;
 
     // Update node features with per-point pulsed multipliers + coordinate wobbling
     if (nodeSource && nodeFloodPropagationFeaturesRef.current.length > 0) {
@@ -1972,19 +1813,6 @@ export default function SimulationPage() {
   }, [isRainActive]);
 
   // Helper function to parse Node_ID and determine source and feature ID
-  const parseNodeId = (
-    nodeId: string
-  ): { source: string | null; featureId: string | null } => {
-    if (nodeId.startsWith('ISD-')) {
-      // Storm drain: ISD-* maps to storm_drains source with In_Name as promoteId
-      return { source: 'storm_drains', featureId: nodeId };
-    } else if (nodeId.startsWith('I-')) {
-      // Inlet: I-* maps to inlets source with In_Name as promoteId
-      return { source: 'inlets', featureId: nodeId };
-    }
-    return { source: null, featureId: null };
-  };
-
   // Handler for highlighting nodes from vulnerability table
   const handleHighlightNodes = (nodeIds: Set<string>) => {
     const map = mapRef.current;
@@ -2088,7 +1916,7 @@ export default function SimulationPage() {
 
     // Step 5: Wait for flyTo animation to mostly complete
     // Calculate approximate duration based on distance and speed
-    const flyDuration = 1500; // ~1.5 seconds for fly animation
+    const flyDuration = CAMERA_FLY_DURATION_MS;
     await new Promise((resolve) => setTimeout(resolve, flyDuration));
 
     // Step 6: Highlight the node on the map
