@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, FileText, Clock, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,16 +21,8 @@ export default function DashboardPage() {
   } = useOverviewMetrics();
   const [activeTab, setActiveTab] = useState('analytics');
 
-  // Manage scrollbar visibility
-  React.useEffect(() => {
-    document.body.style.overflowY = 'scroll';
-    return () => {
-      document.body.style.overflowY = '';
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen bg-[#e8e8e8]/50 px-8">
+    <div className="min-h-screen overflow-y-scroll bg-[#e8e8e8]/50 px-8">
       <div className="mx-auto py-5 pb-5">
         {/* Header */}
         <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
