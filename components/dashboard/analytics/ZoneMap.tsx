@@ -137,8 +137,7 @@ export default function ZoneMap({
     // Add GeoJSON source for barangay boundaries
     map.current.addSource('barangay-source', {
       type: 'geojson',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: geoJsonData as any,
+      data: geoJsonData as GeoJSON.FeatureCollection,
       generateId: true,
     });
 
@@ -174,8 +173,7 @@ export default function ZoneMap({
     // Add heatmap source
     map.current.addSource('heatmap-source', {
       type: 'geojson',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: heatmapPoints as any,
+      data: heatmapPoints as GeoJSON.FeatureCollection,
     });
 
     // Add heatmap layer (official Mapbox approach)
@@ -453,8 +451,7 @@ export default function ZoneMap({
 
     // Update the source data
     (map.current.getSource('heatmap-source') as mapboxgl.GeoJSONSource).setData(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      heatmapPoints as any
+      heatmapPoints as GeoJSON.FeatureCollection
     );
   }, [reports, data, geoJsonData]);
 
