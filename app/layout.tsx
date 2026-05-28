@@ -4,7 +4,6 @@ import localFont from 'next/font/local';
 import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
-import { SidebarLayout } from '@/components/sidebar-layout';
 import { NavigationLoadingOverlay } from '@/components/NavigationLoadingOverlay';
 import { EventWidgetProvider } from '@/components/context/EventWidgetProvider';
 import EventWidget from '@/components/EventWidget';
@@ -52,10 +51,7 @@ export default function RootLayout({
       >
         <Providers>
           <EventWidgetProvider>
-            <SidebarLayout>
-              {/* <WidgetTrigger /> */}
-              {children}
-            </SidebarLayout>
+            {children}
             <NavigationLoadingOverlay />
             <Toaster position="top-center" />
             <EventWidget />
