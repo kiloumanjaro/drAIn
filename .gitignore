@@ -58,3 +58,6 @@ playwright.config.ts
 # vscode
 .vscode/
 .env*.local
+
+# graphify knowledge graph output
+/graphify-out/
