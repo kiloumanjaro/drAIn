@@ -1,10 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import {
-  ArrowTopRightOnSquareIcon,
-  ArrowPathIcon,
-} from '@heroicons/react/24/solid';
+import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 

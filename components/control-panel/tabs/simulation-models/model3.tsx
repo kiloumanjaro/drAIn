@@ -34,7 +34,6 @@ import {
 } from '@/lib/query/hooks/use-drainage-data';
 import { toast } from 'sonner';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
-import { on } from 'events';
 
 export interface NodeParams {
   inv_elev: number;
@@ -589,7 +588,7 @@ export default function Model3({
             {onToggleMinimize && (
               <Button
                 variant="outline"
-                onClick={() => onToggleMinimize()}
+                onClick={handleToggleTable}
                 disabled={isLoadingTable || !hasTable || isTogglingTable}
                 className="flex-none transition-transform active:scale-95"
                 aria-label={isTableMinimized ? 'Show table' : 'Hide table'}

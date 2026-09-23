@@ -59,14 +59,13 @@ import {
 } from './page.helpers';
 
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
 import { VulnerabilityDataTable } from '@/components/vulnerability-data-table';
 import { fetchYRTable } from '@/lib/vulnerabilities/fetch-yr-table';
 import { NodeSimulationSlideshow } from '@/components/node-simulation-slideshow';
 import { NodeParametersPanel } from '@/components/node-parameters-panel';
 import { LinkParametersPanel } from '@/components/link-parameters-panel';
-import { Minimize } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import {
@@ -169,9 +168,6 @@ export default function SimulationPage() {
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(
     new Set()
   );
-  const [vulnerabilityMap, setVulnerabilityMap] = useState<Map<string, string>>(
-    new Map()
-  );
 
   // model 1 table state
   const [tableData3, setTableData3] = useState<NodeDetails[] | null>(null);
@@ -206,7 +202,6 @@ export default function SimulationPage() {
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
-  const [isFlood3DActive, setIsFlood3DActive] = useState(false);
   const [isFloodPropagationActive, setIsFloodPropagationActive] =
     useState(true); // Enabled by default
   const [isFloodPropagationAnimating, setIsFloodPropagationAnimating] =
@@ -935,7 +930,7 @@ export default function SimulationPage() {
   const applyVulnerabilityColors = (vulnerabilityData: NodeDetails[]) => {
     const map = mapRef.current;
     if (!map) return;
-    setVulnerabilityMap(applyVulnerabilityColorsOnMap(map, vulnerabilityData));
+    applyVulnerabilityColorsOnMap(map, vulnerabilityData);
   };
 
   /**
@@ -1001,9 +996,7 @@ export default function SimulationPage() {
         inletsRef.current,
         drainsRef.current,
         FLOOD_3D_OPTIONS
-      )
-        .then(() => setIsFlood3DActive(true))
-        .catch((error) => console.error('Error enabling 3D flood:', error));
+      ).catch((error) => console.error('Error enabling 3D flood:', error));
     }
   };
 

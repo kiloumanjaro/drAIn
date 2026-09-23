@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable */
-
 import {
   FC,
+  type ComponentRef,
   Suspense,
   useRef,
   useLayoutEffect,
@@ -105,7 +103,8 @@ const DesktopControls: FC<{
   max: number;
   zoomEnabled: boolean;
 }> = ({ pivot, min, max, zoomEnabled }) => {
-  const ref = useRef<any>(null);
+  // Typed from the component itself so it tracks drei's OrbitControls.
+  const ref = useRef<ComponentRef<typeof OrbitControls>>(null);
   useFrame(() => ref.current?.target.copy(pivot));
   return (
     <OrbitControls

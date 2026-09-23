@@ -137,9 +137,6 @@ function MapPageContent() {
     error: drainsError,
   } = useDrains();
 
-  // Aggregate loading and error states
-  const isLoadingDrainageData =
-    isLoadingInlets || isLoadingOutlets || isLoadingPipes || isLoadingDrains;
   const drainageDataError =
     inletsError || outletsError || pipesError || drainsError;
 

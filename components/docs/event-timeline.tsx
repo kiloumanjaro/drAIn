@@ -39,9 +39,6 @@ export default function EventTimeline({ count }: EventTimelineProps) {
   // Highest index currently in the viewport
   const activeIndex = visibleSet.size > 0 ? Math.max(...visibleSet) : -1;
 
-  const fillPercent =
-    activeIndex >= 0 ? ((activeIndex + 0.5) / count) * 100 : 0;
-
   return (
     <div className="relative flex flex-col" style={{ minWidth: '20px' }}>
       {Array.from({ length: count }).map((_, index) => {

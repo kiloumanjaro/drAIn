@@ -19,6 +19,17 @@ const eslintConfig = [
   ...nextTypescript,
   {
     rules: {
+      // The codebase marks deliberately unused bindings with a leading
+      // underscore. Honour that so the rule only reports the accidents.
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
       // These react-hooks v7 / React compiler rules surface real issues across
       // the legacy pages, but they pre-date this audit. Downgrade to warnings
       // so the lint-staged commit hook is unblocked while the violations are
