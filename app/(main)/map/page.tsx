@@ -19,11 +19,6 @@ import {
   OVERLAY_CONFIG,
   LAYER_IDS,
   MAP_STYLES,
-  getLinePaintConfig,
-  getCirclePaintConfig,
-  getLineHitAreaPaintConfig,
-  getCircleHitAreaPaintConfig,
-  getFloodHazardPaintConfig,
   CAMERA_ANIMATION,
 } from '@/lib/map/config';
 import mapboxgl from 'mapbox-gl';
@@ -34,6 +29,7 @@ import {
   useDrains,
 } from '@/lib/query/hooks/use-drainage-data';
 import { useLatestRef } from '@/hooks/use-latest-ref';
+import { addMapLayers, floodHazardDataUrl } from '@/lib/map/layers';
 import {
   ALL_FLOOD_PRONE_HIDDEN,
   FLOOD_PRONE_AREAS,
@@ -113,29 +109,13 @@ function MapPageContent() {
   const layerIds = useMemo(() => LAYER_IDS, []);
 
   // Load data from hooks with TanStack Query
-  const {
-    data: inlets = [],
-    isLoading: isLoadingInlets,
-    error: inletsError,
-  } = useInlets();
+  const { data: inlets = [], error: inletsError } = useInlets();
 
-  const {
-    data: outlets = [],
-    isLoading: isLoadingOutlets,
-    error: outletsError,
-  } = useOutlets();
+  const { data: outlets = [], error: outletsError } = useOutlets();
 
-  const {
-    data: pipes = [],
-    isLoading: isLoadingPipes,
-    error: pipesError,
-  } = usePipes();
+  const { data: pipes = [], error: pipesError } = usePipes();
 
-  const {
-    data: drains = [],
-    isLoading: isLoadingDrains,
-    error: drainsError,
-  } = useDrains();
+  const { data: drains = [], error: drainsError } = useDrains();
 
   const drainageDataError =
     inletsError || outletsError || pipesError || drainsError;
@@ -264,7 +244,7 @@ function MapPageContent() {
     ) as mapboxgl.GeoJSONSource;
 
     if (source) {
-      const dataUrl = `/flood-hazard/${scenarioId} Flood Hazard.json`;
+      const dataUrl = floodHazardDataUrl(scenarioId);
 
       source.setData(dataUrl);
 
@@ -330,286 +310,8 @@ function MapPageContent() {
 
         mapRef.current = map;
 
-        const addCustomLayers = () => {
-          if (!map.getSource('mapbox-dem')) {
-            map.addSource('mapbox-dem', {
-              type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-              tileSize: 512,
-              maxzoom: 14,
-            });
-            map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-          }
-
-          if (!map.getLayer('3d-buildings')) {
-            map.addLayer(
-              {
-                id: '3d-buildings',
-                source: 'composite',
-                'source-layer': 'building',
-                filter: ['==', 'extrude', 'true'],
-                type: 'fill-extrusion',
-                minzoom: 15,
-                paint: {
-                  'fill-extrusion-color': '#aaa',
-                  'fill-extrusion-height': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    15,
-                    0,
-                    15.05,
-                    ['get', 'height'],
-                  ],
-                  'fill-extrusion-base': ['get', 'min_height'],
-                  'fill-extrusion-opacity': 0.6,
-                },
-              },
-              'waterway-label'
-            );
-          }
-
-          if (!map.getSource('flood_hazard')) {
-            map.addSource('flood_hazard', {
-              type: 'geojson',
-              data: `/flood-hazard/${selectedFloodScenario} Flood Hazard.json`,
-            });
-
-            map.addLayer({
-              id: 'flood_hazard-layer',
-              type: 'fill',
-              source: 'flood_hazard',
-              paint: getFloodHazardPaintConfig(),
-            });
-          }
-
-          if (!map.getSource('mandaue_population')) {
-            map.addSource('mandaue_population', {
-              type: 'geojson',
-              data: '/additional-overlays/mandaue_population.geojson',
-              promoteId: 'name',
-            });
-
-            map.addLayer({
-              id: 'mandaue_population-fill',
-              type: 'fill',
-              source: 'mandaue_population',
-              layout: {
-                visibility: 'none',
-              },
-              paint: {
-                'fill-color': '#0288d1',
-                'fill-opacity': [
-                  'case',
-                  ['boolean', ['feature-state', 'clicked'], false],
-                  0.18,
-                  ['boolean', ['feature-state', 'hover'], false],
-                  0.09,
-                  0,
-                ],
-              },
-            });
-
-            map.addLayer({
-              id: 'mandaue_population-layer',
-              type: 'line',
-              source: 'mandaue_population',
-              layout: {
-                visibility: 'none',
-              },
-              paint: {
-                'line-color': '#0288d1',
-                'line-width': [
-                  'case',
-                  ['boolean', ['feature-state', 'clicked'], false],
-                  2,
-                  ['boolean', ['feature-state', 'hover'], false],
-                  1,
-                  0,
-                ],
-              },
-            });
-          }
-
-          if (!map.getSource('man_pipes')) {
-            map.addSource('man_pipes', {
-              type: 'geojson',
-              data: '/drainage/man_pipes.geojson',
-              promoteId: 'Name',
-            });
-            // Add invisible hit area layer first (rendered below)
-            map.addLayer({
-              id: 'man_pipes-hit-layer',
-              type: 'line',
-              source: 'man_pipes',
-              paint: getLineHitAreaPaintConfig('man_pipes'),
-            });
-            // Add visible layer on top
-            map.addLayer({
-              id: 'man_pipes-layer',
-              type: 'line',
-              source: 'man_pipes',
-              paint: getLinePaintConfig('man_pipes'),
-            });
-          }
-
-          if (!map.getSource('storm_drains')) {
-            map.addSource('storm_drains', {
-              type: 'geojson',
-              data: '/drainage/storm_drains.geojson',
-              promoteId: 'In_Name',
-            });
-            // Add invisible hit area layer first (rendered below)
-            map.addLayer({
-              id: 'storm_drains-hit-layer',
-              type: 'circle',
-              source: 'storm_drains',
-              paint: getCircleHitAreaPaintConfig('storm_drains'),
-            });
-            // Add visible layer on top
-            map.addLayer({
-              id: 'storm_drains-layer',
-              type: 'circle',
-              source: 'storm_drains',
-              paint: getCirclePaintConfig('storm_drains'),
-            });
-          }
-
-          if (!map.getSource('inlets')) {
-            map.addSource('inlets', {
-              type: 'geojson',
-              data: '/drainage/inlets.geojson',
-              promoteId: 'In_Name',
-            });
-            // Add invisible hit area layer first (rendered below)
-            map.addLayer({
-              id: 'inlets-hit-layer',
-              type: 'circle',
-              source: 'inlets',
-              paint: getCircleHitAreaPaintConfig('inlets'),
-            });
-            // Add visible layer on top
-            map.addLayer({
-              id: 'inlets-layer',
-              type: 'circle',
-              source: 'inlets',
-              paint: getCirclePaintConfig('inlets'),
-            });
-          }
-
-          if (!map.getSource('outlets')) {
-            map.addSource('outlets', {
-              type: 'geojson',
-              data: '/drainage/outlets.geojson',
-              promoteId: 'Out_Name',
-            });
-            // Add invisible hit area layer first (rendered below)
-            map.addLayer({
-              id: 'outlets-hit-layer',
-              type: 'circle',
-              source: 'outlets',
-              paint: getCircleHitAreaPaintConfig('outlets'),
-            });
-            // Add visible layer on top
-            map.addLayer({
-              id: 'outlets-layer',
-              type: 'circle',
-              source: 'outlets',
-              paint: getCirclePaintConfig('outlets'),
-            });
-          }
-
-          // Add flood prone areas
-          const floodProneAreas = FLOOD_PRONE_AREAS;
-
-          floodProneAreas.forEach((area) => {
-            if (!map.getSource(area.id)) {
-              map.addSource(area.id, {
-                type: 'geojson',
-                data: `/additional-overlays/flood-prone-area/${area.file}`,
-              });
-
-              map.addLayer({
-                id: `${area.id}-layer`,
-                type: 'circle',
-                source: area.id,
-                layout: {
-                  visibility: 'none',
-                },
-                paint: {
-                  'circle-radius': 8,
-                  'circle-color': area.color,
-                  'circle-opacity': 1,
-                  'circle-stroke-width': 2,
-                  'circle-stroke-color': '#ffffff',
-                },
-              });
-            }
-          });
-
-          // Add hover handlers for flood prone areas
-          const floodPronePopupRef = { current: null as mapboxgl.Popup | null };
-
-          floodProneAreas.forEach((area) => {
-            map.on('mouseenter', `${area.id}-layer`, (e) => {
-              map.getCanvas().style.cursor = 'pointer';
-
-              if (e.features && e.features.length > 0) {
-                const feature = e.features[0];
-                const props = feature.properties || {};
-
-                // Remove existing popup if any
-                if (floodPronePopupRef.current) {
-                  floodPronePopupRef.current.remove();
-                }
-
-                // Get feature coordinates (center of the circle)
-                const coordinates = (
-                  feature.geometry as { coordinates: number[] }
-                ).coordinates.slice() as [number, number];
-
-                // Ensure coordinates don't get wrapped around the globe
-                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-                  coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-                }
-
-                // Create popup container
-                const popupContainer = document.createElement('div');
-                popupContainer.style.padding = '8px 10px';
-                popupContainer.style.whiteSpace = 'nowrap';
-
-                // Create content
-                const content = document.createElement('div');
-                content.innerHTML = `
-                  <h3 style="margin: 0; font-size: 12px; font-weight: 600;">
-                    ${props.Name || 'Flood Prone Area'}
-                  </h3>
-                `;
-
-                popupContainer.appendChild(content);
-
-                // Create popup positioned above the circle
-                floodPronePopupRef.current = new mapboxgl.Popup({
-                  closeButton: false,
-                  closeOnClick: false,
-                  anchor: 'bottom',
-                  offset: 25,
-                })
-                  .setLngLat(coordinates)
-                  .setDOMContent(popupContainer)
-                  .addTo(map);
-              }
-            });
-
-            map.on('mouseleave', `${area.id}-layer`, () => {
-              map.getCanvas().style.cursor = '';
-              if (floodPronePopupRef.current) {
-                floodPronePopupRef.current.remove();
-                floodPronePopupRef.current = null;
-              }
-            });
-          });
-        };
+        const addCustomLayers = () =>
+          addMapLayers(map, { floodScenario: selectedFloodScenario });
 
         map.on('load', addCustomLayers);
         map.on('style.load', addCustomLayers);
