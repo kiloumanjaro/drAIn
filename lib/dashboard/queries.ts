@@ -52,6 +52,44 @@ interface MaintenanceRecord {
   last_cleaned_at: string;
 }
 
+/** The four per-component-type maintenance tables and their name column. */
+const MAINTENANCE_TABLES = [
+  { table: 'inlets_maintenance', nameColumn: 'in_name' },
+  { table: 'outlets_maintenance', nameColumn: 'out_name' },
+  { table: 'storm_drains_maintenance', nameColumn: 'in_name' },
+  { table: 'man_pipes_maintenance', nameColumn: 'name' },
+] as const;
+
+/**
+ * When each component was last cleaned, keyed by component id.
+ *
+ * Maintenance is split across one table per component type. All four are
+ * read at once rather than in sequence, and merged into a single lookup.
+ */
+async function fetchLastCleanedByComponent(): Promise<Map<string, string>> {
+  const results = await Promise.all(
+    MAINTENANCE_TABLES.map(
+      ({ table, nameColumn }) =>
+        client
+          .from(table)
+          .select(`${nameColumn}, last_cleaned_at`) as unknown as Promise<{
+          data: MaintenanceRecord[] | null;
+        }>
+    )
+  );
+
+  const lastCleaned = new Map<string, string>();
+  for (const { data } of results) {
+    for (const record of data ?? []) {
+      const key = record.in_name || record.out_name || record.name || '';
+      if (key) {
+        lastCleaned.set(key, record.last_cleaned_at);
+      }
+    }
+  }
+  return lastCleaned;
+}
+
 interface ReportRecord {
   id: string;
   created_at: string;
@@ -67,10 +105,6 @@ interface ReportRecord {
   geocoded_status?: string;
   address?: string;
   priority?: string;
-}
-
-interface Profile {
-  id: string;
 }
 
 interface ZoneReport {
@@ -91,75 +125,40 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { data: fixedData } = await client
-      .from('reports')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'resolved')
-      .gte('created_at', startOfMonth.toISOString());
+    // These four are independent, so they go out together rather than one
+    // after another.
+    const [
+      { data: fixedData },
+      { data: pendingData },
+      { data: adminData },
+      { data: allReports },
+    ] = await Promise.all([
+      client
+        .from('reports')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'resolved')
+        .gte('created_at', startOfMonth.toISOString()),
+      client
+        .from('reports')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending'),
+      // Admins are the profiles attached to an agency.
+      client
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .not('agency_id', 'is', null),
+      client
+        .from('reports')
+        .select('id, created_at, component_id, status')
+        .eq('status', 'resolved')
+        .limit(1000), // Capped: repair time is an average, not a total.
+    ]);
 
-    // Get pending count
-    const { data: pendingData } = await client
-      .from('reports')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending');
-
-    // Get admin count (users with agency_id)
-    const { data: adminData } = await client
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .not('agency_id', 'is', null);
-
-    // Get average repair time (join with maintenance records)
-    // This is a simplified approach - in production, use a database function
-    const { data: allReports } = await client
-      .from('reports')
-      .select('id, created_at, component_id, status')
-      .eq('status', 'resolved')
-      .limit(1000); // Limit for performance
-
-    // For now, we'll fetch maintenance data separately
-    // In production, use a materialized view or database function
     let totalDays = 0;
     let resolvedCount = 0;
 
     if (allReports) {
-      // Get maintenance records for repair time calculation
-      const { data: inletMaintenance } = (await client
-        .from('inlets_maintenance')
-        .select('in_name, last_cleaned_at')) as {
-        data: MaintenanceRecord[] | null;
-      };
-
-      const { data: outletMaintenance } = (await client
-        .from('outlets_maintenance')
-        .select('out_name, last_cleaned_at')) as {
-        data: MaintenanceRecord[] | null;
-      };
-
-      const { data: drainMaintenance } = (await client
-        .from('storm_drains_maintenance')
-        .select('in_name, last_cleaned_at')) as {
-        data: MaintenanceRecord[] | null;
-      };
-
-      const { data: pipeMaintenance } = (await client
-        .from('man_pipes_maintenance')
-        .select('name, last_cleaned_at')) as {
-        data: MaintenanceRecord[] | null;
-      };
-
-      // Build maintenance map
-      const maintenanceMap = new Map<string, string>();
-      [inletMaintenance, outletMaintenance, drainMaintenance, pipeMaintenance]
-        .filter(Boolean)
-        .forEach((records) => {
-          records?.forEach((record: MaintenanceRecord) => {
-            const key = record.in_name || record.out_name || record.name || '';
-            if (key) {
-              maintenanceMap.set(key, record.last_cleaned_at);
-            }
-          });
-        });
+      const maintenanceMap = await fetchLastCleanedByComponent();
 
       // Calculate repair days
       allReports.forEach((report: ReportRecord) => {
@@ -218,34 +217,7 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
     }
 
     // Fetch maintenance records
-    const { data: inletMaintenance } = await client
-      .from('inlets_maintenance')
-      .select('in_name, last_cleaned_at');
-
-    const { data: outletMaintenance } = await client
-      .from('outlets_maintenance')
-      .select('out_name, last_cleaned_at');
-
-    const { data: drainMaintenance } = await client
-      .from('storm_drains_maintenance')
-      .select('in_name, last_cleaned_at');
-
-    const { data: pipeMaintenance } = await client
-      .from('man_pipes_maintenance')
-      .select('name, last_cleaned_at');
-
-    // Build maintenance map
-    const maintenanceMap = new Map<string, string>();
-    [inletMaintenance, outletMaintenance, drainMaintenance, pipeMaintenance]
-      .filter(Boolean)
-      .forEach((records) => {
-        records?.forEach((record: MaintenanceRecord) => {
-          const key = record.in_name || record.out_name || record.name || '';
-          if (key) {
-            maintenanceMap.set(key, record.last_cleaned_at);
-          }
-        });
-      });
+    const maintenanceMap = await fetchLastCleanedByComponent();
 
     // Group by date and calculate average
     const dateMap = new Map<string, { totalDays: number; count: number }>();
@@ -377,40 +349,7 @@ export async function getRepairTimeByComponent(): Promise<
     }
 
     // Fetch maintenance records
-    const { data: inletMaintenance } = (await client
-      .from('inlets_maintenance')
-      .select('in_name, last_cleaned_at')) as {
-      data: MaintenanceRecord[] | null;
-    };
-
-    const { data: outletMaintenance } = (await client
-      .from('outlets_maintenance')
-      .select('out_name, last_cleaned_at')) as {
-      data: MaintenanceRecord[] | null;
-    };
-
-    const { data: drainMaintenance } = (await client
-      .from('storm_drains_maintenance')
-      .select('in_name, last_cleaned_at')) as {
-      data: MaintenanceRecord[] | null;
-    };
-
-    const { data: pipeMaintenance } = (await client
-      .from('man_pipes_maintenance')
-      .select('name, last_cleaned_at')) as { data: MaintenanceRecord[] | null };
-
-    // Build maintenance map
-    const maintenanceMap = new Map<string, string>();
-    [inletMaintenance, outletMaintenance, drainMaintenance, pipeMaintenance]
-      .filter(Boolean)
-      .forEach((records) => {
-        records?.forEach((record: MaintenanceRecord) => {
-          const key = record.in_name || record.out_name || record.name || '';
-          if (key) {
-            maintenanceMap.set(key, record.last_cleaned_at);
-          }
-        });
-      });
+    const maintenanceMap = await fetchLastCleanedByComponent();
 
     // Group by component type
     const componentMap = new Map<
@@ -457,53 +396,56 @@ export async function getRepairTimeByComponent(): Promise<
  */
 export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
   try {
-    // Get all agencies
-    const { data: agencies } = (await client
-      .from('agencies')
-      .select('id, name')) as {
-      data: Array<{ id: string; name: string }> | null;
-    };
+    // Three queries regardless of how many agencies there are. This used to
+    // run two per agency, in sequence, so the round trips grew with the team
+    // list.
+    const [{ data: agencies }, { data: profiles }] = await Promise.all([
+      client.from('agencies').select('id, name') as unknown as Promise<{
+        data: Array<{ id: string; name: string }> | null;
+      }>,
+      client.from('profiles').select('id, agency_id') as unknown as Promise<{
+        data: Array<{ id: string; agency_id: string | null }> | null;
+      }>,
+    ]);
 
-    if (!agencies) {
+    if (!agencies || !profiles) {
       return [];
     }
 
-    const performance: TeamPerformanceData[] = [];
+    const agencyIdByUser = new Map(
+      profiles.map((profile) => [profile.id, profile.agency_id])
+    );
 
-    for (const agency of agencies) {
-      // Get all users (profiles) for this agency
-      const { data: profiles } = (await client
-        .from('profiles')
-        .select('id')
-        .eq('agency_id', agency.id)) as { data: Profile[] | null };
+    const { data: reports } = (await client
+      .from('reports')
+      .select('id, status, user_id')
+      .in('user_id', [...agencyIdByUser.keys()])) as {
+      data: Array<ReportRecord & { user_id: string }> | null;
+    };
 
-      if (!profiles || profiles.length === 0) {
-        continue; // Skip agencies with no users
-      }
+    const totals = new Map<string, { total: number; resolved: number }>();
+    for (const report of reports ?? []) {
+      const agencyId = agencyIdByUser.get(report.user_id);
+      if (!agencyId) continue;
 
-      // Get all reports submitted by users in this agency
-      const userIds = profiles.map((p: Profile) => p.id);
-      const { data: agencyReports } = (await client
-        .from('reports')
-        .select('id, status')
-        .in('user_id', userIds)) as { data: ReportRecord[] | null };
-
-      const totalIssues = agencyReports?.length ?? 0;
-      const resolvedIssues =
-        agencyReports?.filter((r: ReportRecord) => r.status === 'resolved')
-          .length ?? 0;
-
-      if (totalIssues > 0) {
-        performance.push({
-          agencyName: agency.name,
-          totalIssues,
-          resolvedIssues,
-          averageDays: 0, // TODO: Calculate from maintenance records
-        });
-      }
+      const tally = totals.get(agencyId) ?? { total: 0, resolved: 0 };
+      tally.total += 1;
+      if (report.status === 'resolved') tally.resolved += 1;
+      totals.set(agencyId, tally);
     }
 
-    return performance.sort((a, b) => b.totalIssues - a.totalIssues);
+    return (
+      agencies
+        .map((agency) => ({
+          agencyName: agency.name,
+          totalIssues: totals.get(agency.id)?.total ?? 0,
+          resolvedIssues: totals.get(agency.id)?.resolved ?? 0,
+          averageDays: 0, // TODO: Calculate from maintenance records
+        }))
+        // Agencies with nothing reported against them are left out, as before.
+        .filter((entry) => entry.totalIssues > 0)
+        .sort((a, b) => b.totalIssues - a.totalIssues)
+    );
   } catch (error) {
     console.error('Error fetching team performance:', error);
     return [];
