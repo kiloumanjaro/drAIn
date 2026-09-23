@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchAllReports } from '@/lib/supabase/report';
 import {
   DEBUG_MODE,
-  MAINTENANCE_PHOTO_MAX_AGE_HOURS,
+  validateMaintenancePhoto,
   getStatusStyles,
   type HistoryItem,
 } from './maintenance.helpers';
@@ -48,6 +48,12 @@ import {
 import { SpinnerEmpty } from '@/components/spinner-empty';
 import distance from '@turf/distance';
 import { point } from '@turf/helpers';
+
+/** Great-circle distance between two [lng, lat] pairs, in metres. */
+const measureDistanceM = (
+  from: [number, number],
+  to: [number, number]
+): number => distance(point(from), point(to)) * 1000;
 import client from '@/lib/supabase/client';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -240,6 +246,18 @@ export default function Maintenance({
     }
   };
 
+  /**
+   * Every point the evidence photo may be measured against. A node has one;
+   * a pipe has its whole run, since a photo anywhere along it is valid.
+   */
+  const assetCoordinates = (): [number, number][] => {
+    if (selectedInlet) return [selectedInlet.coordinates];
+    if (selectedOutlet) return [selectedOutlet.coordinates];
+    if (selectedDrain) return [selectedDrain.coordinates];
+    if (selectedPipe) return selectedPipe.coordinates;
+    return [];
+  };
+
   const handleMaintenanceImageSubmit = async () => {
     if (!maintenanceImage || !selectedAsset || !pendingStatus) return;
 
@@ -252,69 +270,12 @@ export default function Maintenance({
 
       // DEBUG MODE: Bypass Validation
       if (!DEBUG_MODE) {
-        // Validate Date (Must be within last 12 hours)
-        if (!exifData.date) {
-          throw new Error(
-            'Could not retrieve date from image. Ensure the image has EXIF data.'
-          );
-        }
-
-        const now = new Date();
-        const imageDate = exifData.date;
-        const diffMs = now.getTime() - imageDate.getTime();
-        const hoursDiff = diffMs / (1000 * 60 * 60);
-
-        if (hoursDiff > MAINTENANCE_PHOTO_MAX_AGE_HOURS) {
-          throw new Error('Image is too old. Must be taken within 12 hours.');
-        }
-        if (hoursDiff < 0) {
-          throw new Error(
-            'Image appears to be from the future. Check device settings.'
-          );
-        }
-
-        // Validate Location
-        if (!exifData.latitude || !exifData.longitude) {
-          throw new Error('Could not retrieve coordinates from image.');
-        }
-
-        // Get selected asset coordinates
-        let assetCoords: [number, number] | null = null;
-        if (selectedInlet) assetCoords = selectedInlet.coordinates;
-        else if (selectedOutlet) assetCoords = selectedOutlet.coordinates;
-        else if (selectedDrain) assetCoords = selectedDrain.coordinates;
-        else if (selectedPipe && selectedPipe.coordinates.length > 0) {
-          assetCoords = selectedPipe.coordinates[0];
-        }
-
-        if (!assetCoords) {
-          throw new Error('Could not determine asset location.');
-        }
-
-        const from = point([exifData.longitude, exifData.latitude]);
-        const to = point([assetCoords[0], assetCoords[1]]);
-        const distKm = distance(from, to);
-        const distMeters = distKm * 1000;
-
-        const MAX_RADIUS_METERS = 50;
-        let isWithinRadius = distMeters <= MAX_RADIUS_METERS;
-
-        if (selectedPipe && !isWithinRadius) {
-          for (const coord of selectedPipe.coordinates) {
-            const pipePt = point([coord[0], coord[1]]);
-            const d = distance(from, pipePt) * 1000;
-            if (d <= MAX_RADIUS_METERS) {
-              isWithinRadius = true;
-              break;
-            }
-          }
-        }
-
-        if (!isWithinRadius) {
-          throw new Error(
-            `Image location is too far from the selected asset (${distMeters.toFixed(0)}m). Must be within ${MAX_RADIUS_METERS}m.`
-          );
-        }
+        const error = validateMaintenancePhoto(
+          exifData,
+          assetCoordinates(),
+          measureDistanceM
+        );
+        if (error) throw new Error(error);
       }
 
       // 2. Upload Image to 'ReportImage' bucket
