@@ -33,6 +33,12 @@ import {
   usePipes,
   useDrains,
 } from '@/lib/query/hooks/useDrainageData';
+import { useLatestRef } from '@/hooks/use-latest-ref';
+import {
+  ALL_FLOOD_PRONE_HIDDEN,
+  FLOOD_PRONE_AREAS,
+  type FloodProneVisibility,
+} from '@/lib/map/flood-prone-areas';
 import { useSidebar } from '@/components/ui/sidebar';
 import type {
   Inlet,
@@ -87,17 +93,8 @@ function MapPageContent() {
     'mandaue_population-layer': false,
   });
 
-  const [floodProneVisibility, setFloodProneVisibility] = useState({
-    downstream_south_area: false,
-    mc_briones_highway: false,
-    lh_prime_area: false,
-    rolling_hills_area: false,
-    downstream_east_area: false,
-    maguikay_cabancalan_tabok_tingub_butuaonon: false,
-    paknaan_butuanon: false,
-    basak_pagsabungan: false,
-    maguikay_barangay_road: false,
-  });
+  const [floodProneVisibility, setFloodProneVisibility] =
+    useState<FloodProneVisibility>(ALL_FLOOD_PRONE_HIDDEN);
 
   const [selectedFeature, setSelectedFeature] = useState<{
     id: string | number;
@@ -105,16 +102,12 @@ function MapPageContent() {
     layer: string;
   } | null>(null);
 
-  const selectedFeatureRef = useRef<{
-    id: string | number;
-    source: string;
-    layer: string;
-  } | null>(null);
+  const selectedFeatureRef = useLatestRef(selectedFeature);
 
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
   const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
   const clickedPopulationIdRef = useRef<string | null>(null);
-  const overlayVisibilityRef = useRef(overlayVisibility);
+  const overlayVisibilityRef = useLatestRef(overlayVisibility);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
@@ -294,37 +287,12 @@ function MapPageContent() {
     }
   };
 
-  // Refs for data to avoid stale closures in map click handler
-  const inletsRef = useRef<Inlet[]>([]);
-  const outletsRef = useRef<Outlet[]>([]);
-  const pipesRef = useRef<Pipe[]>([]);
-  const drainsRef = useRef<Drain[]>([]);
-
-  // Update refs when data changes
-  useEffect(() => {
-    inletsRef.current = inlets;
-  }, [inlets]);
-
-  useEffect(() => {
-    outletsRef.current = outlets;
-  }, [outlets]);
-
-  useEffect(() => {
-    pipesRef.current = pipes;
-  }, [pipes]);
-
-  useEffect(() => {
-    drainsRef.current = drains;
-  }, [drains]);
-
-  // Sync ref with state to avoid stale closures
-  useEffect(() => {
-    selectedFeatureRef.current = selectedFeature;
-  }, [selectedFeature]);
-
-  useEffect(() => {
-    overlayVisibilityRef.current = overlayVisibility;
-  }, [overlayVisibility]);
+  // The Mapbox click handler is registered once, so it must read drainage
+  // data through refs rather than closing over it.
+  const inletsRef = useLatestRef(inlets);
+  const outletsRef = useLatestRef(outlets);
+  const pipesRef = useLatestRef(pipes);
+  const drainsRef = useLatestRef(drains);
 
   // Toggle report popups visibility
   useEffect(() => {
@@ -564,53 +532,7 @@ function MapPageContent() {
           }
 
           // Add flood prone areas
-          const floodProneAreas = [
-            {
-              id: 'downstream_south_area',
-              file: 'downsteam_south_area.geojson',
-              color: '#DC2626',
-            },
-            {
-              id: 'mc_briones_highway',
-              file: 'mc_briones_highway.geojson',
-              color: '#059669',
-            },
-            {
-              id: 'lh_prime_area',
-              file: 'lh_prime_area.geojson',
-              color: '#0284C7',
-            },
-            {
-              id: 'rolling_hills_area',
-              file: 'rolling_hills_area.geojson',
-              color: '#EA580C',
-            },
-            {
-              id: 'downstream_east_area',
-              file: 'downstream_east_area.geojson',
-              color: '#0D9488',
-            },
-            {
-              id: 'maguikay_cabancalan_tabok_tingub_butuaonon',
-              file: 'maguikay_cabancalan_tabok_tingub_butuaonon.geojson',
-              color: '#D97706',
-            },
-            {
-              id: 'paknaan_butuanon',
-              file: 'paknaan_butuanon.geojson',
-              color: '#7C3AED',
-            },
-            {
-              id: 'basak_pagsabungan',
-              file: 'basak_pagsabungan.geojson',
-              color: '#0891B2',
-            },
-            {
-              id: 'maguikay_barangay_road',
-              file: 'maguikay_barangay_road.geojson',
-              color: '#DB2777',
-            },
-          ];
+          const floodProneAreas = FLOOD_PRONE_AREAS;
 
           floodProneAreas.forEach((area) => {
             if (!map.getSource(area.id)) {
@@ -1225,17 +1147,7 @@ function MapPageContent() {
         (v) => v
       );
       if (anyFloodProneVisible) {
-        setFloodProneVisibility({
-          downstream_south_area: false,
-          mc_briones_highway: false,
-          lh_prime_area: false,
-          rolling_hills_area: false,
-          downstream_east_area: false,
-          maguikay_cabancalan_tabok_tingub_butuaonon: false,
-          paknaan_butuanon: false,
-          basak_pagsabungan: false,
-          maguikay_barangay_road: false,
-        });
+        setFloodProneVisibility(ALL_FLOOD_PRONE_HIDDEN);
 
         // Debounce toast to show only once per toggle session
         if (toastTimeoutRef.current) {
@@ -1256,64 +1168,12 @@ function MapPageContent() {
     visible: overlayVisibility[config.id as keyof typeof overlayVisibility],
   }));
 
-  const floodProneAreasData = [
-    {
-      id: 'downstream_south_area',
-      name: 'Downstream South',
-      color: '#DC2626',
-      visible: floodProneVisibility['downstream_south_area'] || false,
-    },
-    {
-      id: 'mc_briones_highway',
-      name: 'Briones Highway',
-      color: '#059669',
-      visible: floodProneVisibility['mc_briones_highway'] || false,
-    },
-    {
-      id: 'lh_prime_area',
-      name: 'LH Prime',
-      color: '#0284C7',
-      visible: floodProneVisibility['lh_prime_area'] || false,
-    },
-    {
-      id: 'rolling_hills_area',
-      name: 'Rolling Hills',
-      color: '#EA580C',
-      visible: floodProneVisibility['rolling_hills_area'] || false,
-    },
-    {
-      id: 'downstream_east_area',
-      name: 'Downstream East',
-      color: '#0D9488',
-      visible: floodProneVisibility['downstream_east_area'] || false,
-    },
-    {
-      id: 'maguikay_cabancalan_tabok_tingub_butuaonon',
-      name: 'Butuanon River',
-      color: '#D97706',
-      visible:
-        floodProneVisibility['maguikay_cabancalan_tabok_tingub_butuaonon'] ||
-        false,
-    },
-    {
-      id: 'paknaan_butuanon',
-      name: 'Paknaan Basin',
-      color: '#7C3AED',
-      visible: floodProneVisibility['paknaan_butuanon'] || false,
-    },
-    {
-      id: 'basak_pagsabungan',
-      name: 'Bask & Pagsabungan',
-      color: '#0891B2',
-      visible: floodProneVisibility['basak_pagsabungan'] || false,
-    },
-    {
-      id: 'maguikay_barangay_road',
-      name: 'Maguikay Road',
-      color: '#DB2777',
-      visible: floodProneVisibility['maguikay_barangay_road'] || false,
-    },
-  ];
+  const floodProneAreasData = FLOOD_PRONE_AREAS.map((area) => ({
+    id: area.id,
+    name: area.name,
+    color: area.color,
+    visible: floodProneVisibility[area.id] ?? false,
+  }));
 
   const handleToggleFloodProneArea = (areaId: string) => {
     const isCurrentlyVisible =
@@ -1377,17 +1237,7 @@ function MapPageContent() {
         (v) => v
       );
       if (anyFloodProneVisible) {
-        setFloodProneVisibility({
-          downstream_south_area: false,
-          mc_briones_highway: false,
-          lh_prime_area: false,
-          rolling_hills_area: false,
-          downstream_east_area: false,
-          maguikay_cabancalan_tabok_tingub_butuaonon: false,
-          paknaan_butuanon: false,
-          basak_pagsabungan: false,
-          maguikay_barangay_road: false,
-        });
+        setFloodProneVisibility(ALL_FLOOD_PRONE_HIDDEN);
 
         // Debounce toast to show only once per toggle session
         if (toastTimeoutRef.current) {
