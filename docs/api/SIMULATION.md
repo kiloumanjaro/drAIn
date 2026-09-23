@@ -121,9 +121,30 @@ interface SimulationResponse {
 }
 ```
 
-Each entry carries `Hours_Flooded`, `Maximum_Rate_CMS`, `Time_of_Max_days`,
-`Time_of_Max_hr_min`, `Total_Flood_Volume_10e6_ltr`, `Time_After_Raining_min`,
-`Vulnerability_Category` and `Vulnerability_Score`.
+Each entry carries the raw flooding figures — `Hours_Flooded`,
+`Maximum_Rate_CMS`, `Time_of_Max_days`, `Time_of_Max_hr_min`,
+`Total_Flood_Volume_10e6_ltr`, `Time_After_Raining_min` — plus three ratings.
+
+### The three ratings
+
+| Field                                              | What it knows                                                                                                                                        |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Vulnerability_Score` / `Vulnerability_Category`   | **Hazard.** How badly the node floods: volume, duration as a share of the event, peak rate. 0–1, monotonic. A node that floods can never score zero. |
+| `Exposure_Score`, `Barangay`, `Population_Density` | **Exposure.** Roughly how many people are around it, from the density of the barangay it sits in. 0–1.                                               |
+| `Risk_Score`                                       | **Hazard × exposure.** Rank work lists on this.                                                                                                      |
+| `Legacy_Cluster_Category` / `Legacy_Cluster_Score` | The superseded k-means output, kept for comparison.                                                                                                  |
+
+Ranking on hazard alone puts a drain in an empty lot level with one in the
+densest barangay in the city — exposure moves nine of the top twenty.
+
+The field names still say "Vulnerability" because they are the wire
+contract. The user-facing term is "flood hazard".
+
+> **What these are not.** They come from simulation, not observation, and
+> have not been checked against field records. Exposure is barangay density,
+> not a count of who is inside the flood footprint. "No hazard" means the
+> model found no overflow at that node under this storm, not that the
+> location is safe.
 
 ## Parameters
 
