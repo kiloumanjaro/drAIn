@@ -46,13 +46,16 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
               Agency
             </th>
             <th className="px-4 py-3 text-center font-semibold text-gray-700">
-              Total Issues
+              Open
+            </th>
+            <th className="px-4 py-3 text-center font-semibold text-gray-700">
+              Total
             </th>
             <th className="px-4 py-3 text-center font-semibold text-gray-700">
               Resolved
             </th>
             <th className="px-4 py-3 text-center font-semibold text-gray-700">
-              Avg Days
+              Median days to resolve
             </th>
           </tr>
         </thead>
@@ -64,6 +67,9 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
             >
               <td className="px-4 py-3 font-medium text-gray-900">
                 {team.agencyName}
+              </td>
+              <td className="px-4 py-3 text-center font-semibold text-gray-900">
+                {team.outstandingIssues}
               </td>
               <td className="px-4 py-3 text-center text-gray-700">
                 {team.totalIssues}
@@ -80,14 +86,20 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
                 </div>
               </td>
               <td className="px-4 py-3 text-center font-semibold text-blue-600">
-                {formatDays(team.averageDays)}
+                {team.medianDaysToResolve === null
+                  ? '—'
+                  : formatDays(team.medianDaysToResolve)}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
       <div className="mt-4 text-sm text-gray-600">
-        <p>Agency performance based on issue resolution and repair time.</p>
+        <p>
+          Ordered by what is still open. A dash under median days means nothing
+          has been resolved with a linked maintenance record yet, so there is no
+          figure to show.
+        </p>
       </div>
     </div>
   );

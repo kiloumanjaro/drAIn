@@ -1,4 +1,5 @@
 import client from '@/lib/supabase/client';
+import { daysBetween, median } from './metrics';
 import type { Report } from '@/lib/supabase/report';
 
 export interface OverviewMetrics {
@@ -37,7 +38,36 @@ export interface TeamPerformanceData {
   agencyName: string;
   totalIssues: number;
   resolvedIssues: number;
-  averageDays: number;
+  /** Reports raised against this agency that are still open. */
+  outstandingIssues: number;
+  /**
+   * Median days from a report being raised to the maintenance that closed
+   * it. Median rather than mean: one report left open for a year should not
+   * swamp fifty closed in a day. `null` when nothing has been resolved with
+   * a linked maintenance record, which is honest about having no figure
+   * rather than showing zero.
+   */
+  medianDaysToResolve: number | null;
+}
+
+/** When each maintenance record was carried out, keyed by its id. */
+async function fetchMaintenanceDates(): Promise<Map<string, string>> {
+  const results = await Promise.all(
+    MAINTENANCE_TABLES.map(
+      ({ table }) =>
+        client.from(table).select('id, last_cleaned_at') as unknown as Promise<{
+          data: Array<{ id: string; last_cleaned_at: string }> | null;
+        }>
+    )
+  );
+
+  const dates = new Map<string, string>();
+  for (const { data } of results) {
+    for (const record of data ?? []) {
+      if (record.id) dates.set(String(record.id), record.last_cleaned_at);
+    }
+  }
+  return dates;
 }
 
 export interface ReportWithMetadata extends Report {
@@ -396,17 +426,16 @@ export async function getRepairTimeByComponent(): Promise<
  */
 export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
   try {
-    // Three queries regardless of how many agencies there are. This used to
-    // run two per agency, in sequence, so the round trips grew with the team
-    // list.
-    const [{ data: agencies }, { data: profiles }] = await Promise.all([
-      client.from('agencies').select('id, name') as unknown as Promise<{
-        data: Array<{ id: string; name: string }> | null;
-      }>,
-      client.from('profiles').select('id, agency_id') as unknown as Promise<{
-        data: Array<{ id: string; agency_id: string | null }> | null;
-      }>,
-    ]);
+    const [{ data: agencies }, { data: profiles }, maintenanceDates] =
+      await Promise.all([
+        client.from('agencies').select('id, name') as unknown as Promise<{
+          data: Array<{ id: string; name: string }> | null;
+        }>,
+        client.from('profiles').select('id, agency_id') as unknown as Promise<{
+          data: Array<{ id: string; agency_id: string | null }> | null;
+        }>,
+        fetchMaintenanceDates(),
+      ]);
 
     if (!agencies || !profiles) {
       return [];
@@ -418,33 +447,68 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
     const { data: reports } = (await client
       .from('reports')
-      .select('id, status, user_id')
+      .select('id, status, user_id, created_at, resolved_by_maintenance_id')
       .in('user_id', [...agencyIdByUser.keys()])) as {
-      data: Array<ReportRecord & { user_id: string }> | null;
+      data: Array<{
+        id: string;
+        status: string | null;
+        user_id: string;
+        created_at: string | null;
+        resolved_by_maintenance_id: string | null;
+      }> | null;
     };
 
-    const totals = new Map<string, { total: number; resolved: number }>();
+    const tallies = new Map<
+      string,
+      { total: number; resolved: number; durations: number[] }
+    >();
+
     for (const report of reports ?? []) {
       const agencyId = agencyIdByUser.get(report.user_id);
       if (!agencyId) continue;
 
-      const tally = totals.get(agencyId) ?? { total: 0, resolved: 0 };
+      const tally = tallies.get(agencyId) ?? {
+        total: 0,
+        resolved: 0,
+        durations: [],
+      };
       tally.total += 1;
-      if (report.status === 'resolved') tally.resolved += 1;
-      totals.set(agencyId, tally);
+
+      if (report.status === 'resolved') {
+        tally.resolved += 1;
+        // Time to resolve comes from the maintenance record that closed the
+        // report, which is the only timestamp for when work actually
+        // happened.
+        const closedAt = report.resolved_by_maintenance_id
+          ? maintenanceDates.get(String(report.resolved_by_maintenance_id))
+          : null;
+        const days = daysBetween(report.created_at, closedAt ?? null);
+        if (days !== null) tally.durations.push(days);
+      }
+
+      tallies.set(agencyId, tally);
     }
 
     return (
       agencies
-        .map((agency) => ({
-          agencyName: agency.name,
-          totalIssues: totals.get(agency.id)?.total ?? 0,
-          resolvedIssues: totals.get(agency.id)?.resolved ?? 0,
-          averageDays: 0, // TODO: Calculate from maintenance records
-        }))
-        // Agencies with nothing reported against them are left out, as before.
+        .map((agency) => {
+          const tally = tallies.get(agency.id);
+          const total = tally?.total ?? 0;
+          const resolved = tally?.resolved ?? 0;
+          return {
+            agencyName: agency.name,
+            totalIssues: total,
+            resolvedIssues: resolved,
+            outstandingIssues: total - resolved,
+            medianDaysToResolve: median(tally?.durations ?? []),
+          };
+        })
         .filter((entry) => entry.totalIssues > 0)
-        .sort((a, b) => b.totalIssues - a.totalIssues)
+        // Ordered by what is still open, so the table points at where the
+        // work is. It used to lead on total volume, which made the surest
+        // way up the list "receive more reports" and the surest way to look
+        // good "mark them resolved".
+        .sort((a, b) => b.outstandingIssues - a.outstandingIssues)
     );
   } catch (error) {
     console.error('Error fetching team performance:', error);
