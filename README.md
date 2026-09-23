@@ -142,6 +142,19 @@ Edit the `.env` file with your configuration (API keys, database URL, etc.)
 pnpm run dev
 ```
 
+### ✅ Checks
+
+The same four gates CI runs:
+
+```sh
+pnpm run lint         # ESLint
+pnpm run type-check   # tsc --noEmit
+pnpm run test         # Vitest unit tests
+pnpm run format:check # Prettier
+```
+
+`pnpm run test:e2e` runs the Playwright suite, which needs the app running.
+
 <!-- CONTRIBUTING -->
 
 ## 📬 Contributing
@@ -165,23 +178,29 @@ Don't forget to give the project a star! Thanks again!
 
 ```
 drAIn/
-├── app/                    # Next.js App Router pages
-│   ├── (auth)/            # Authentication routes
-│   ├── map/               # Interactive map interface
-│   ├── dashboard/         # Analytics dashboard
-│   ├── simulation/        # SWMM simulation
-│   └── reports/           # Flood reporting
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Login and sign-up, with their own layout
+│   ├── (main)/            # The app proper
+│   │   ├── map/           # Interactive map interface
+│   │   ├── simulation/    # SWMM simulation
+│   │   ├── dashboard/     # Analytics dashboard
+│   │   └── docs/          # In-app documentation, one file per section
+│   └── api/               # Route handlers
 ├── components/            # React components
 │   ├── ui/               # Base UI components (shadcn/ui)
 │   ├── control-panel/    # Control panel feature
 │   ├── dashboard/        # Dashboard components
+│   ├── docs/             # Documentation page components
 │   └── context/          # Context providers
 ├── lib/                   # Utilities and libraries
-│   ├── map/              # Map configuration
+│   ├── map/              # Map config, layer setup and visual effects
 │   ├── supabase/         # Database operations
 │   ├── simulation-api/   # SWMM API client
+│   ├── query/            # TanStack Query hooks
 │   └── dashboard/        # Dashboard queries
-├── hooks/                 # Custom React hooks
+├── hooks/                 # Shared React hooks
+├── types/                 # Shared type definitions
+├── e2e/                   # Playwright specs
 ├── public/                # Static assets
 │   ├── drainage/         # GeoJSON data
 │   └── images/           # Images and icons
@@ -193,6 +212,8 @@ drAIn/
 │   └── features/         # Feature documentation
 └── scripts/              # Build and utility scripts
 ```
+
+Unit tests sit next to what they cover, as `*.test.ts`.
 
 For a detailed architecture overview, see [System Architecture Documentation](docs/architecture/SYSTEM_ARCHITECTURE.md).
 
