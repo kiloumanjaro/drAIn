@@ -69,6 +69,11 @@ import { NodeParametersPanel } from '@/components/node-parameters-panel';
 import { LinkParametersPanel } from '@/components/link-parameters-panel';
 import { Minimize } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { useLatestRef } from '@/hooks/use-latest-ref';
+import {
+  usePersistentPosition,
+  useAnchoredPosition,
+} from '@/hooks/use-persistent-position';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
@@ -86,6 +91,13 @@ interface NodeDetails {
   Total_Flood_Volume: number;
 }
 
+/** Identifies a feature whose Mapbox `selected` feature-state is set. */
+interface SelectedFeature {
+  id: string | number;
+  source: string;
+  layer: string;
+}
+
 interface RainfallParams {
   total_precip: number;
   duration_hr: number;
@@ -96,6 +108,12 @@ const rainfallVal = {
   total_precip: 140,
   duration_hr: 1,
 };
+
+/** Floating vulnerability tables sit right of centre, clear of the control panel. */
+const FLOATING_TABLE_ANCHOR = { width: 500, height: 600, anchorX: 0.6 };
+
+/** Node and link parameter panels open centred. */
+const PARAMETER_PANEL_ANCHOR = { width: 500, height: 600 };
 
 export default function SimulationPage() {
   const router = useRouter();
@@ -116,17 +134,9 @@ export default function SimulationPage() {
     'outlets-layer': true,
   });
 
-  const [selectedFeature, setSelectedFeature] = useState<{
-    id: string | number;
-    source: string;
-    layer: string;
-  } | null>(null);
-
-  const selectedFeatureRef = useRef<{
-    id: string | number;
-    source: string;
-    layer: string;
-  } | null>(null);
+  const [selectedFeature, setSelectedFeature] =
+    useState<SelectedFeature | null>(null);
+  const selectedFeatureRef = useLatestRef(selectedFeature);
 
   const layerIds = useMemo(() => SIMULATION_LAYER_IDS, []);
 
@@ -155,10 +165,9 @@ export default function SimulationPage() {
   const [tableData, setTableData] = useState<NodeDetails[] | null>(null);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [isTableMinimized, setIsTableMinimized] = useState(false);
-  const [tablePosition, setTablePosition] = useState<{ x: number; y: number }>({
-    x: typeof window !== 'undefined' ? window.innerWidth * 0.6 - 250 : 400,
-    y: typeof window !== 'undefined' ? window.innerHeight * 0.5 - 300 : 100,
-  });
+  const [tablePosition, setTablePosition] = useAnchoredPosition(
+    FLOATING_TABLE_ANCHOR
+  );
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(
     new Set()
   );
@@ -170,13 +179,9 @@ export default function SimulationPage() {
   const [tableData3, setTableData3] = useState<NodeDetails[] | null>(null);
   const [isLoadingTable3, setIsLoadingTable3] = useState(false);
   const [isTable3Minimized, setIsTable3Minimized] = useState(false);
-  const [table3Position, setTable3Position] = useState<{
-    x: number;
-    y: number;
-  }>({
-    x: typeof window !== 'undefined' ? window.innerWidth * 0.6 - 250 : 400,
-    y: typeof window !== 'undefined' ? window.innerHeight * 0.5 - 300 : 100,
-  });
+  const [table3Position, setTable3Position] = useAnchoredPosition(
+    FLOATING_TABLE_ANCHOR
+  );
 
   // Slideshow state
   const [slideshowNode, setSlideshowNode] = useState<string | null>(null);
@@ -218,47 +223,15 @@ export default function SimulationPage() {
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
 
   // Panel positions (persisted in localStorage)
-  const [nodePanelPosition, setNodePanelPosition] = useState<{
-    x: number;
-    y: number;
-  }>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('nodePanelPosition');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error('Failed to parse saved node panel position', e);
-        }
-      }
-      return {
-        x: window.innerWidth * 0.5 - 250,
-        y: window.innerHeight * 0.5 - 300,
-      };
-    }
-    return { x: 400, y: 100 };
-  });
+  const [nodePanelPosition, setNodePanelPosition] = usePersistentPosition(
+    'nodePanelPosition',
+    PARAMETER_PANEL_ANCHOR
+  );
 
-  const [linkPanelPosition, setLinkPanelPosition] = useState<{
-    x: number;
-    y: number;
-  }>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('linkPanelPosition');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error('Failed to parse saved link panel position', e);
-        }
-      }
-      return {
-        x: window.innerWidth * 0.5 - 250,
-        y: window.innerHeight * 0.5 - 300,
-      };
-    }
-    return { x: 400, y: 100 };
-  });
+  const [linkPanelPosition, setLinkPanelPosition] = usePersistentPosition(
+    'linkPanelPosition',
+    PARAMETER_PANEL_ANCHOR
+  );
 
   // Function to clear all selections
   const clearSelections = () => {
@@ -282,52 +255,12 @@ export default function SimulationPage() {
     // to preserve the visualization when navigating back
   };
 
-  // Refs for data to avoid stale closures in map click handler
-  const inletsRef = useRef<Inlet[]>([]);
-  const outletsRef = useRef<Outlet[]>([]);
-  const pipesRef = useRef<Pipe[]>([]);
-  const drainsRef = useRef<Drain[]>([]);
-
-  // Update refs when data changes
-  useEffect(() => {
-    inletsRef.current = inlets;
-  }, [inlets]);
-
-  useEffect(() => {
-    outletsRef.current = outlets;
-  }, [outlets]);
-
-  useEffect(() => {
-    pipesRef.current = pipes;
-  }, [pipes]);
-
-  useEffect(() => {
-    drainsRef.current = drains;
-  }, [drains]);
-
-  // Sync ref with state to avoid stale closures
-  useEffect(() => {
-    selectedFeatureRef.current = selectedFeature;
-  }, [selectedFeature]);
-
-  // Save panel positions to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(
-        'nodePanelPosition',
-        JSON.stringify(nodePanelPosition)
-      );
-    }
-  }, [nodePanelPosition]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(
-        'linkPanelPosition',
-        JSON.stringify(linkPanelPosition)
-      );
-    }
-  }, [linkPanelPosition]);
+  // The Mapbox click handler is registered once, so it must read drainage
+  // data and the current selection through refs rather than closing over them.
+  const inletsRef = useLatestRef(inlets);
+  const outletsRef = useLatestRef(outlets);
+  const pipesRef = useLatestRef(pipes);
+  const drainsRef = useLatestRef(drains);
 
   // Auto-open node panel when components selected
   useEffect(() => {
