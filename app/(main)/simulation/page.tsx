@@ -803,155 +803,99 @@ export default function SimulationPage() {
     }
   };
 
-  const handleSelectInlet = (inlet: Inlet) => {
-    if (!mapRef.current) return;
-    const [lng, lat] = inlet.coordinates;
+  /**
+   * Marks a feature as selected on the map and flies the camera to it.
+   *
+   * Every dataset names its Mapbox layer after its source, so the layer is
+   * derived rather than passed.
+   */
+  const focusMapFeature = (
+    source: DatasetType,
+    id: string,
+    center: [number, number]
+  ) => {
+    const map = mapRef.current;
+    if (!map) return;
 
-    // Clear any previous selections first
-    clearSelections();
+    map.setFeatureState({ source, id }, { selected: true });
+    setSelectedFeature({ id, source, layer: `${source}-layer` });
 
-    // Set the new selection state for control panel
-    setSelectedInlet(inlet);
-    setControlPanelTab('simulations'); // Switch to simulations tab
-    setControlPanelDataset('inlets');
-    setSelectedPointForSimulation(inlet.id); // Pass to simulations content
-
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'inlets', id: inlet.id },
-      { selected: true }
-    );
-    setSelectedFeature({
-      id: inlet.id,
-      source: 'inlets',
-      layer: 'inlets-layer',
-    });
-
-    // Fly to the selected feature with smooth animation
-    mapRef.current.flyTo({
-      center: [lng, lat],
+    map.flyTo({
+      center,
       zoom: CAMERA_ANIMATION.targetZoom,
       speed: CAMERA_ANIMATION.speed,
       curve: CAMERA_ANIMATION.curve,
       essential: CAMERA_ANIMATION.essential,
       easing: CAMERA_ANIMATION.easing,
     });
+  };
 
-    // Show toast notification
+  /** Toast body with a link through to the stats tab. */
+  const selectionToast = (lead: React.ReactNode, trailer: string) => (
+    <div>
+      {lead}{' '}
+      <button
+        className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
+        onClick={() => setControlPanelTab('stats')}
+      >
+        here
+      </button>{' '}
+      {trailer}
+    </div>
+  );
+
+  const handleSelectInlet = (inlet: Inlet) => {
+    if (!mapRef.current) return;
+
+    clearSelections();
+
+    setSelectedInlet(inlet);
+    setControlPanelTab('simulations');
+    setControlPanelDataset('inlets');
+    setSelectedPointForSimulation(inlet.id);
+
+    focusMapFeature('inlets', inlet.id, inlet.coordinates);
+
     toast.info(
-      <div>
-        Outlet distance updated. Go{' '}
-        <button
-          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
-          onClick={() => {
-            setControlPanelTab('stats');
-          }}
-        >
-          here
-        </button>{' '}
-        to view more details
-      </div>
+      selectionToast('Outlet distance updated. Go', 'to view more details')
     );
   };
 
   const handleSelectOutlet = (outlet: Outlet) => {
     if (!mapRef.current) return;
-    const [lng, lat] = outlet.coordinates;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedOutlet(outlet);
-    // DON'T change tab - stay on current tab
+    // Deliberately keeps the current tab.
     setControlPanelDataset('outlets');
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'outlets', id: outlet.id },
-      { selected: true }
-    );
-    setSelectedFeature({
-      id: outlet.id,
-      source: 'outlets',
-      layer: 'outlets-layer',
-    });
+    focusMapFeature('outlets', outlet.id, outlet.coordinates);
 
-    // Fly to the selected feature with smooth animation
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
-
-    // Show toast notification
     toast.info(
-      <div>
-        <strong>{outlet.id}</strong> is selected. Go{' '}
-        <button
-          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
-          onClick={() => {
-            setControlPanelTab('stats');
-          }}
-        >
-          here
-        </button>{' '}
-        to view details
-      </div>
+      selectionToast(
+        <>
+          <strong>{outlet.id}</strong> is selected. Go
+        </>,
+        'to view details'
+      )
     );
   };
 
   const handleSelectDrain = (drain: Drain) => {
     if (!mapRef.current) return;
-    const [lng, lat] = drain.coordinates;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedDrain(drain);
-    setControlPanelTab('simulations'); // Switch to simulations tab
+    setControlPanelTab('simulations');
     setControlPanelDataset('storm_drains');
-    setSelectedPointForSimulation(drain.id); // Pass to simulations content
+    setSelectedPointForSimulation(drain.id);
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'storm_drains', id: drain.id },
-      { selected: true }
-    );
-    setSelectedFeature({
-      id: drain.id,
-      source: 'storm_drains',
-      layer: 'storm_drains-layer',
-    });
+    focusMapFeature('storm_drains', drain.id, drain.coordinates);
 
-    // Fly to the selected feature with smooth animation
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
-
-    // Show toast notification
     toast.info(
-      <div>
-        Outlet distance updated. Go{' '}
-        <button
-          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
-          onClick={() => {
-            setControlPanelTab('stats');
-          }}
-        >
-          here
-        </button>{' '}
-        for more details
-      </div>
+      selectionToast('Outlet distance updated. Go', 'for more details')
     );
   };
 
@@ -959,53 +903,23 @@ export default function SimulationPage() {
     if (!mapRef.current) return;
     if (!pipe.coordinates || pipe.coordinates.length === 0) return;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedPipe(pipe);
-    // DON'T change tab - stay on current tab
+    // Deliberately keeps the current tab.
     setControlPanelDataset('man_pipes');
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'man_pipes', id: pipe.id },
-      { selected: true }
-    );
-    setSelectedFeature({
-      id: pipe.id,
-      source: 'man_pipes',
-      layer: 'man_pipes-layer',
-    });
+    // A pipe is a line, so the camera targets its midpoint.
+    const midpoint = pipe.coordinates[Math.floor(pipe.coordinates.length / 2)];
+    focusMapFeature('man_pipes', pipe.id, midpoint);
 
-    // Popup at midpoint
-    const midIndex = Math.floor(pipe.coordinates.length / 2);
-    const midpoint = pipe.coordinates[midIndex];
-
-    // Fly to the selected feature with smooth animation (center on midpoint)
-    mapRef.current.flyTo({
-      center: midpoint,
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
-
-    // Show toast notifications
     toast.info(
-      <div>
-        <strong>{pipe.id}</strong> is selected. Go{' '}
-        <button
-          className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
-          onClick={() => {
-            setControlPanelTab('stats');
-          }}
-        >
-          here
-        </button>{' '}
-        for more details
-      </div>
+      selectionToast(
+        <>
+          <strong>{pipe.id}</strong> is selected. Go
+        </>,
+        'for more details'
+      )
     );
   };
 
