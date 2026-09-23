@@ -754,7 +754,7 @@ export default function SimulationPage() {
       );
     } catch (error) {
       console.error('Error fetching vulnerability data:', error);
-      toast.error('Failed to load vulnerability data. Please try again.');
+      toast.error('Failed to load flood hazard data. Please try again.');
       setTableData(null);
     } finally {
       setIsLoadingTable(false);
@@ -807,7 +807,7 @@ export default function SimulationPage() {
       showVulnerabilityOnMap(transformedData);
 
       toast.success(
-        `Successfully generated vulnerability data for ${transformedData.length} nodes`
+        `Successfully generated flood hazard data for ${transformedData.length} nodes`
       );
     } catch (error) {
       console.error('Error running simulation:', error);

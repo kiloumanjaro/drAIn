@@ -27,7 +27,7 @@ export function UsersSection() {
             icon: Zap,
             title: 'City Engineer',
             description:
-              'Identify vulnerable drainage components, and prioritize maintenance schedules to optimize infrastructure planning',
+              'Identify the drainage components that flood worst in simulation, and prioritize maintenance schedules accordingly',
             tooltip: 'Efficient planning without manual network inspection',
           },
           {
@@ -48,15 +48,15 @@ export function UsersSection() {
             icon: BarChart3,
             title: 'Environmental Researcher',
             description:
-              'Study urban flooding behavior through detailed simulation and analyze correlations between urbanization patterns and vulnerability',
+              'Study urban flooding behavior through detailed simulation and analyze correlations between urbanization patterns and simulated flood hazard',
             tooltip:
-              'Explore correlations between urbanization and vulnerability',
+              'Explore correlations between urbanization and simulated flood hazard',
           },
           {
             icon: FileText,
             title: 'Policy Maker',
             description:
-              'Review comprehensive visual maps, vulnerability reports, and data-driven evidence for infrastructure and disaster mitigation strategies',
+              'Review comprehensive visual maps, flood hazard reports, and simulation evidence for infrastructure and disaster mitigation strategies',
             tooltip:
               'Data-driven evidence for funding and infrastructure decisions',
           },

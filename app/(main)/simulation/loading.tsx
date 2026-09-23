@@ -10,7 +10,7 @@ export default function SimulationLoading() {
           Entering Simulation Mode...
         </p>
         <p className="text-sm text-gray-400">
-          Loading vulnerability models and analysis tools
+          Loading flood hazard models and analysis tools
         </p>
       </div>
     </div>

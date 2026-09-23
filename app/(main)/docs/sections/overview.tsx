@@ -38,9 +38,9 @@ export function OverviewSection() {
             icon: Target,
             title: 'AI Clustering',
             description:
-              'ML identifies vulnerability patterns and weak points in drainage systems',
+              'ML groups drainage components by how severely they flood in simulation',
             tooltip:
-              'Machine learning identifies vulnerability clusters for drainage components',
+              'Machine learning clusters drainage components by simulated flood hazard',
           },
           {
             icon: Users,
@@ -61,7 +61,7 @@ export function OverviewSection() {
             intensifying rainfall, rapid urbanization, and inadequate drainage
             infrastructure. Existing flood hazard maps show <em>where</em>{' '}
             floods happen but not <em>why</em>, failing to reveal which specific
-            drainage components are vulnerable.
+            drainage components flood.
           </p>
         </div>
       </div>

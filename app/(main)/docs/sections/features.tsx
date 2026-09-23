@@ -68,7 +68,7 @@ export function FeaturesSection({
             features: [
               'Static model with pre-simulated data',
               'Dynamic model with real-time adjustments',
-              'Vulnerability classification (No Risk to High)',
+              'Flood hazard classification (No Risk to High)',
               'What-if scenario analysis',
             ],
           },

@@ -280,7 +280,7 @@ export default function Model3({
           'Running SWMM simulation...',
           'Processing node parameters...',
           'Checking infrastructure health...',
-          'Generating vulnerability results...',
+          'Generating flood hazard results...',
         ]}
         isLoading={isLoadingTable}
         position="bottom-right"
@@ -532,7 +532,7 @@ export default function Model3({
                     <TooltipContent>
                       <p className="max-w-xs text-xs">
                         {hasTable
-                          ? 'Toggle vulnerability density heatmap showing flood-prone areas'
+                          ? 'Toggle flood hazard density heatmap showing flood-prone areas'
                           : 'Generate table first to enable heatmap'}
                       </p>
                     </TooltipContent>

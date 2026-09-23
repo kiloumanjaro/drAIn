@@ -29,9 +29,9 @@ export function SimulationSection() {
             {[
               'Node flooding summaries',
               'Predicted time to overflow',
-              'Vulnerability classifications',
+              'Flood hazard classifications',
               'Multiple rainfall return periods',
-              'Color-coded vulnerability layers',
+              'Color-coded flood hazard layers',
             ].map((feature, idx) => (
               <div
                 key={idx}
@@ -60,7 +60,7 @@ export function SimulationSection() {
               'Adjust node elevations',
               'Change conduit dimensions',
               'Alter flow capacity',
-              'Real-time vulnerability updates',
+              'Real-time flood hazard updates',
               'What-if scenario analysis',
             ].map((feature, idx) => (
               <div
@@ -105,7 +105,7 @@ export function SimulationSection() {
             icon: Gauge,
             title: 'High Risk',
             description:
-              'Critical vulnerability with significant overflow and potential urban damage',
+              'Severe simulated flooding, with significant overflow volume',
             tooltip: 'Immediate intervention and capacity expansion needed',
             iconColor: 'text-red-500',
           },

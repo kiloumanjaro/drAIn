@@ -37,7 +37,15 @@ export function LimitationsSection() {
             description:
               'K-means provides relative groupings requiring expert validation.',
             tooltip:
-              'Vulnerability classifications should be reviewed by domain experts',
+              'Flood hazard classifications should be reviewed by domain experts',
+          },
+          {
+            icon: Users,
+            title: 'Hazard, Not Risk',
+            description:
+              'Ratings describe simulated flooding only. They carry no data on who or what is exposed.',
+            tooltip:
+              'A node rated High in an empty field and one outside a hospital are rated the same way. Population, buildings and critical facilities are not inputs to the rating.',
           },
           {
             icon: Users,

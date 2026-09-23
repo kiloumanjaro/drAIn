@@ -32,7 +32,7 @@ const loadingConfig: Record<
     title: 'Entering Simulation',
     messages: [
       'Entering simulation mode...',
-      'Loading vulnerability models...',
+      'Loading flood hazard models...',
       'Preparing analysis tools...',
       'Initializing parameters...',
     ],
