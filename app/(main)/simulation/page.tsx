@@ -115,6 +115,18 @@ const FLOATING_TABLE_ANCHOR = { width: 500, height: 600, anchorX: 0.6 };
 /** Node and link parameter panels open centred. */
 const PARAMETER_PANEL_ANCHOR = { width: 500, height: 600 };
 
+const FLOOD_3D_OPTIONS = {
+  opacity: 0.7,
+  animate: true,
+  animationDuration: 3000,
+};
+
+/**
+ * Both table generators finish no sooner than this. Results can arrive almost
+ * instantly, and a spinner that flashes reads as a glitch rather than work.
+ */
+const MIN_GENERATE_DURATION_MS = 2000;
+
 export default function SimulationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1345,56 +1357,50 @@ export default function SimulationPage() {
     // This allows viewing results without the table open
   };
   // Vulnerability table handlers
+  /**
+   * Switches the map into "results" mode for a freshly generated table:
+   * clears the layers that would obscure the results, recolours nodes by
+   * vulnerability, and starts the rain and 3D flood visualisations.
+   */
+  const showVulnerabilityOnMap = (data: NodeDetails[]) => {
+    // Outlets and pipes would sit on top of the vulnerability colours.
+    setOverlayVisibility((prev) => ({
+      ...prev,
+      'outlets-layer': false,
+      'man_pipes-layer': false,
+    }));
+
+    applyVulnerabilityColors(data);
+    updateFloodPropagation(data);
+    setIsRainActive(true);
+
+    if (mapRef.current) {
+      enableFlood3D(
+        mapRef.current,
+        data,
+        inletsRef.current,
+        drainsRef.current,
+        FLOOD_3D_OPTIONS
+      )
+        .then(() => setIsFlood3DActive(true))
+        .catch((error) => console.error('Error enabling 3D flood:', error));
+    }
+  };
+
   const handleGenerateTable = async () => {
     if (!selectedYear) return;
 
     setIsLoadingTable(true);
     try {
-      // Enforce minimum 2-second loading time for better UX
       const [data] = await Promise.all([
         fetchYRTable(selectedYear),
-        new Promise((resolve) => setTimeout(resolve, 2000)),
+        new Promise((resolve) => setTimeout(resolve, MIN_GENERATE_DURATION_MS)),
       ]);
 
       setTableData(data);
       setIsTableMinimized(false);
 
-      // Hide outlets and pipes layers when table is generated
-      setOverlayVisibility((prev) => ({
-        ...prev,
-        'outlets-layer': false,
-        'man_pipes-layer': false,
-      }));
-
-      // Apply vulnerability colors to inlets and storm drains
-      applyVulnerabilityColors(data);
-
-      // Update Flood Propagation
-      updateFloodPropagation(data);
-
-      // Enable rain effect
-      setIsRainActive(true);
-
-      // Enable 3D flood visualization
-      if (mapRef.current) {
-        enableFlood3D(
-          mapRef.current,
-          data,
-          inletsRef.current,
-          drainsRef.current,
-          {
-            opacity: 0.7,
-            animate: true,
-            animationDuration: 3000,
-          }
-        )
-          .then(() => {
-            setIsFlood3DActive(true);
-          })
-          .catch((error) => {
-            console.error('Error enabling 3D flood:', error);
-          });
-      }
+      showVulnerabilityOnMap(data);
 
       toast.success(
         `Successfully loaded ${data.length} nodes for ${selectedYear}YR`
@@ -1437,10 +1443,9 @@ export default function SimulationPage() {
         links[id] = params;
       });
 
-      // Enforce minimum 2-second loading time for better UX
       const [response] = await Promise.all([
         runSimulation(nodes, links, rainfallParams),
-        new Promise((resolve) => setTimeout(resolve, 2000)),
+        new Promise((resolve) => setTimeout(resolve, MIN_GENERATE_DURATION_MS)),
       ]);
 
       // Transform the nodes_list to NodeDetails format
@@ -1452,42 +1457,7 @@ export default function SimulationPage() {
       setTableData3(transformedData);
       setIsTable3Minimized(false);
 
-      // Hide outlets and pipes layers when table is generated
-      setOverlayVisibility((prev) => ({
-        ...prev,
-        'outlets-layer': false,
-        'man_pipes-layer': false,
-      }));
-
-      // Apply vulnerability colors to inlets and storm drains
-      applyVulnerabilityColors(transformedData);
-
-      // Update Flood Propagation
-      updateFloodPropagation(transformedData);
-
-      // Enable rain effect
-      setIsRainActive(true);
-
-      // Enable 3D flood visualization
-      if (mapRef.current) {
-        enableFlood3D(
-          mapRef.current,
-          transformedData,
-          inletsRef.current,
-          drainsRef.current,
-          {
-            opacity: 0.7,
-            animate: true,
-            animationDuration: 3000,
-          }
-        )
-          .then(() => {
-            setIsFlood3DActive(true);
-          })
-          .catch((error) => {
-            console.error('Error enabling 3D flood:', error);
-          });
-      }
+      showVulnerabilityOnMap(transformedData);
 
       toast.success(
         `Successfully generated vulnerability data for ${transformedData.length} nodes`
