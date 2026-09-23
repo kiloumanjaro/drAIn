@@ -31,6 +31,10 @@ import {
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import { addMapLayers, floodHazardDataUrl } from '@/lib/map/layers';
 import {
+  focusMapFeature as focusFeatureOnMap,
+  type SelectedFeature,
+} from '@/lib/map/focus-feature';
+import {
   ALL_FLOOD_PRONE_HIDDEN,
   FLOOD_PRONE_AREAS,
   type FloodProneVisibility,
@@ -92,11 +96,8 @@ function MapPageContent() {
   const [floodProneVisibility, setFloodProneVisibility] =
     useState<FloodProneVisibility>(ALL_FLOOD_PRONE_HIDDEN);
 
-  const [selectedFeature, setSelectedFeature] = useState<{
-    id: string | number;
-    source: string;
-    layer: string;
-  } | null>(null);
+  const [selectedFeature, setSelectedFeature] =
+    useState<SelectedFeature | null>(null);
 
   const selectedFeatureRef = useLatestRef(selectedFeature);
 
@@ -947,143 +948,69 @@ function MapPageContent() {
   };
 
   const handleSelectInlet = useCallback((inlet: Inlet) => {
-    if (!mapRef.current) return;
-    const [lng, lat] = inlet.coordinates;
+    const map = mapRef.current;
+    if (!map) return;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedInlet(inlet);
-    // Remove the tab switching from here since it's handled in the click handler
+    // The tab is chosen by the click handler, not here.
     setControlPanelDataset('inlets');
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'inlets', id: inlet.id },
-      { selected: true }
+    const center = inlet.coordinates;
+    setSelectedFeature(
+      focusFeatureOnMap(map, 'inlets', inlet.id, center, CAMERA_ANIMATION)
     );
-    setSelectedFeature({
-      id: inlet.id,
-      source: 'inlets',
-      layer: 'inlets-layer',
-    });
-
-    // Fly to the location on the map with silky smooth animation
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
   }, []);
 
   const handleSelectOutlet = useCallback((outlet: Outlet) => {
-    if (!mapRef.current) return;
-    const [lng, lat] = outlet.coordinates;
+    const map = mapRef.current;
+    if (!map) return;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedOutlet(outlet);
-    // Remove the tab switching from here since it's handled in the click handler
+    // The tab is chosen by the click handler, not here.
     setControlPanelDataset('outlets');
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'outlets', id: outlet.id },
-      { selected: true }
+    const center = outlet.coordinates;
+    setSelectedFeature(
+      focusFeatureOnMap(map, 'outlets', outlet.id, center, CAMERA_ANIMATION)
     );
-    setSelectedFeature({
-      id: outlet.id,
-      source: 'outlets',
-      layer: 'outlets-layer',
-    });
-
-    // Fly to the location on the map with silky smooth animation
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
   }, []);
 
   const handleSelectDrain = useCallback((drain: Drain) => {
-    if (!mapRef.current) return;
-    const [lng, lat] = drain.coordinates;
+    const map = mapRef.current;
+    if (!map) return;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedDrain(drain);
-    // Remove the tab switching from here since it's handled in the click handler
+    // The tab is chosen by the click handler, not here.
     setControlPanelDataset('storm_drains');
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'storm_drains', id: drain.id },
-      { selected: true }
+    const center = drain.coordinates;
+    setSelectedFeature(
+      focusFeatureOnMap(map, 'storm_drains', drain.id, center, CAMERA_ANIMATION)
     );
-    setSelectedFeature({
-      id: drain.id,
-      source: 'storm_drains',
-      layer: 'storm_drains-layer',
-    });
-
-    // Fly to the location on the map with silky smooth animation
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
   }, []);
 
   const handleSelectPipe = useCallback((pipe: Pipe) => {
-    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (!map) return;
     if (!pipe.coordinates || pipe.coordinates.length === 0) return;
 
-    // Clear any previous selections first
     clearSelections();
 
-    // Set the new selection state for control panel
     setSelectedPipe(pipe);
-    // Remove the tab switching from here since it's handled in the click handler
+    // The tab is chosen by the click handler, not here.
     setControlPanelDataset('man_pipes');
 
-    // Set new map feature state
-    mapRef.current.setFeatureState(
-      { source: 'man_pipes', id: pipe.id },
-      { selected: true }
+    // A pipe is a line, so the camera targets its midpoint.
+    const center = pipe.coordinates[Math.floor(pipe.coordinates.length / 2)];
+    setSelectedFeature(
+      focusFeatureOnMap(map, 'man_pipes', pipe.id, center, CAMERA_ANIMATION)
     );
-    setSelectedFeature({
-      id: pipe.id,
-      source: 'man_pipes',
-      layer: 'man_pipes-layer',
-    });
-
-    // Calculate midpoint for camera animation
-    const midIndex = Math.floor(pipe.coordinates.length / 2);
-    const midpoint = pipe.coordinates[midIndex];
-
-    // Fly to the location on the map with silky smooth animation
-    mapRef.current.flyTo({
-      center: midpoint,
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
   }, []);
 
   // Add a ref to track current tab

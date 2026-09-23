@@ -20,6 +20,10 @@ import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
 import { addSimulationLayers } from '@/lib/map/simulation-layers';
 import {
+  focusMapFeature as focusFeatureOnMap,
+  type SelectedFeature,
+} from '@/lib/map/focus-feature';
+import {
   buildFloodPropagationFeatures,
   setFloodPropagationData,
 } from '@/lib/map/effects/flood-propagation';
@@ -74,13 +78,6 @@ import {
 import type { NodeDetails } from '@/types/simulation';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
-
-/** Identifies a feature whose Mapbox `selected` feature-state is set. */
-interface SelectedFeature {
-  id: string | number;
-  source: string;
-  layer: string;
-}
 
 interface RainfallParams {
   total_precip: number;
@@ -544,12 +541,6 @@ export default function SimulationPage() {
     }
   };
 
-  /**
-   * Marks a feature as selected on the map and flies the camera to it.
-   *
-   * Every dataset names its Mapbox layer after its source, so the layer is
-   * derived rather than passed.
-   */
   const focusMapFeature = (
     source: DatasetType,
     id: string,
@@ -557,18 +548,9 @@ export default function SimulationPage() {
   ) => {
     const map = mapRef.current;
     if (!map) return;
-
-    map.setFeatureState({ source, id }, { selected: true });
-    setSelectedFeature({ id, source, layer: `${source}-layer` });
-
-    map.flyTo({
-      center,
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
+    setSelectedFeature(
+      focusFeatureOnMap(map, source, id, center, CAMERA_ANIMATION)
+    );
   };
 
   /** Toast body with a link through to the stats tab. */
