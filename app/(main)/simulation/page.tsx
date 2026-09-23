@@ -17,6 +17,7 @@ import {
 } from '@/lib/simulation-api/simulation';
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
 import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
+import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -47,8 +48,6 @@ import type {
   LinkParams,
 } from '@/components/control-panel/tabs/simulation-models/model3';
 import {
-  getColorForCategory,
-  getStrokeColorForCategory,
   getVulnerabilityFromColor,
   samplePointsFromLine,
   isPointTooCloseToNodes,
@@ -1041,109 +1040,7 @@ export default function SimulationPage() {
   const applyVulnerabilityColors = (vulnerabilityData: NodeDetails[]) => {
     const map = mapRef.current;
     if (!map) return;
-
-    // Create vulnerability mapping: Node_ID -> Vulnerability_Category
-    const vulnMap = new Map<string, string>();
-    vulnerabilityData.forEach((node) => {
-      vulnMap.set(node.Node_ID, node.Vulnerability_Category);
-    });
-    setVulnerabilityMap(vulnMap);
-
-    // Debug: Log unique vulnerability categories
-    const uniqueCategories = new Set(
-      vulnerabilityData.map((node) => node.Vulnerability_Category)
-    );
-    console.log(
-      'Unique vulnerability categories:',
-      Array.from(uniqueCategories)
-    );
-    // console.log("Sample nodes:", vulnerabilityData.slice(0, 5));
-
-    // Color mapping for vulnerability categories
-    // Using a function to handle case-insensitive and flexible matching
-    // Build match expression for Mapbox for inlets
-    // Format: ["match", ["get", "In_Name"], node1, color1, node2, color2, ..., defaultColor]
-    const inletsMatchExpression: (string | number | unknown[])[] = [
-      'match',
-      ['get', 'In_Name'],
-    ];
-    const inletsStrokeMatchExpression: (string | number | unknown[])[] = [
-      'match',
-      ['get', 'In_Name'],
-    ];
-
-    vulnerabilityData.forEach((node) => {
-      const color = getColorForCategory(node.Vulnerability_Category);
-      const strokeColor = getStrokeColorForCategory(
-        node.Vulnerability_Category
-      );
-      inletsMatchExpression.push(node.Node_ID, color);
-      inletsStrokeMatchExpression.push(node.Node_ID, strokeColor);
-      console.log(
-        `Node ${node.Node_ID}: ${node.Vulnerability_Category} -> ${color} / ${strokeColor}`
-      );
-    });
-
-    // Default color for inlets not in vulnerability data
-    inletsMatchExpression.push('#00ca67'); // Original inlets color
-    inletsStrokeMatchExpression.push('#005400'); // Original inlets stroke color
-
-    // Build match expression for storm drains
-    const drainsMatchExpression: (string | number | unknown[])[] = [
-      'match',
-      ['get', 'In_Name'],
-    ];
-    const drainsStrokeMatchExpression: (string | number | unknown[])[] = [
-      'match',
-      ['get', 'In_Name'],
-    ];
-
-    vulnerabilityData.forEach((node) => {
-      const color = getColorForCategory(node.Vulnerability_Category);
-      const strokeColor = getStrokeColorForCategory(
-        node.Vulnerability_Category
-      );
-      drainsMatchExpression.push(node.Node_ID, color);
-      drainsStrokeMatchExpression.push(node.Node_ID, strokeColor);
-    });
-
-    // Default color for drains not in vulnerability data
-    drainsMatchExpression.push('#5687ca'); // Original storm_drains color
-    drainsStrokeMatchExpression.push('#00346c'); // Original storm_drains stroke color
-
-    // Update inlets-layer color and stroke
-    if (map.getLayer('inlets-layer')) {
-      map.setPaintProperty('inlets-layer', 'circle-color', [
-        'case',
-        ['boolean', ['feature-state', 'selected'], false],
-        '#66ed7b', // Selected color (light green)
-        inletsMatchExpression,
-      ]);
-      map.setPaintProperty('inlets-layer', 'circle-stroke-color', [
-        'case',
-        ['boolean', ['feature-state', 'selected'], false],
-        '#307524', // Selected stroke color
-        inletsStrokeMatchExpression,
-      ]);
-      // console.log("Updated inlets-layer color and stroke");
-    }
-
-    // Update storm_drains-layer color and stroke
-    if (map.getLayer('storm_drains-layer')) {
-      map.setPaintProperty('storm_drains-layer', 'circle-color', [
-        'case',
-        ['boolean', ['feature-state', 'selected'], false],
-        '#49a8ff', // Selected color (cyan)
-        drainsMatchExpression,
-      ]);
-      map.setPaintProperty('storm_drains-layer', 'circle-stroke-color', [
-        'case',
-        ['boolean', ['feature-state', 'selected'], false],
-        '#355491', // Selected stroke color
-        drainsStrokeMatchExpression,
-      ]);
-      // console.log("Updated storm_drains-layer color and stroke");
-    }
+    setVulnerabilityMap(applyVulnerabilityColorsOnMap(map, vulnerabilityData));
   };
 
   // Helper function to convert RGB color from flood line to vulnerability category
