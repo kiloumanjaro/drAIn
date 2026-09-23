@@ -110,9 +110,6 @@ export function ControlPanel({
       const COMMON_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 
       const fetchProfile = async () => {
-        console.log(
-          'PROFILE LOAD: Initiating forced database fetch and URL regeneration.'
-        );
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -155,16 +152,6 @@ export function ControlPanel({
                 console.warn(`Fetch failed for ${ext}. Skipping.`);
               }
             }
-
-            if (!publicUrl) {
-              console.log(
-                'AVATAR URL: No valid public URL found after trying common extensions.'
-              );
-            }
-          } else {
-            console.log(
-              "AVATAR URL: The 'avatar_url' column is empty/null in the database."
-            );
           }
 
           setProfile(data);
@@ -173,10 +160,6 @@ export function ControlPanel({
           localStorage.setItem(
             cacheKey,
             JSON.stringify({ profile: data, publicAvatarUrl: publicUrl })
-          );
-        } else {
-          console.log(
-            'PROFILE LOAD: No profile found for user ID. Data is null/undefined.'
           );
         }
       };

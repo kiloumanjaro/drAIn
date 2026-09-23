@@ -328,9 +328,6 @@ export default function SimulationPage() {
         // Add Flood Propagation layers FIRST so they appear below drainage layers
         // Two separate layers: one for nodes, one for lines (allows independent radius/opacity control)
         if (!map.getSource('flood_propagation_nodes')) {
-          console.log(
-            '[Flood Propagation] Creating Flood Propagation layers...'
-          );
           const emptyGeoJSON: GeoJSON.FeatureCollection = {
             type: 'FeatureCollection',
             features: [],
@@ -497,9 +494,6 @@ export default function SimulationPage() {
               ],
             },
           });
-          console.log(
-            '[Flood Propagation] Flood Propagation layers created successfully (nodes + lines)'
-          );
         }
 
         if (!map.getSource('man_pipes')) {

@@ -98,7 +98,6 @@ export default function SubmitTab() {
       //   longitude: 123.927200298236968,
       // };
       //need to fix bug
-      // console.log("Extracted Location:", location);
       if (!location.latitude || !location.longitude) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setIsSubmitting(false);
@@ -136,7 +135,6 @@ export default function SubmitTab() {
         }));
         setComboOptions(options);
 
-        // console.log("Closest Pipes:", Pipedata);
         setCategoryData(Pipedata);
         setIsModalOpen(true);
         setIsSubmitting(false);
@@ -200,7 +198,6 @@ export default function SubmitTab() {
     });
 
     if (error) {
-      // console.log(error);
       return;
     }
 

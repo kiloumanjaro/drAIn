@@ -254,8 +254,6 @@ function MapPageContent() {
   };
 
   const handleFloodScenarioChange = (scenarioId: string) => {
-    // console.log(`Switching to ${scenarioId} flood hazard...`);
-
     if (!mapRef.current) {
       console.error('Map not ready');
       return;
@@ -270,7 +268,6 @@ function MapPageContent() {
 
     if (source) {
       const dataUrl = `/flood-hazard/${scenarioId} Flood Hazard.json`;
-      // console.log(`Loading: ${dataUrl}`);
 
       source.setData(dataUrl);
 
@@ -280,10 +277,6 @@ function MapPageContent() {
     } else {
       console.error('flood_hazard source not found');
       setIsFloodScenarioLoading(false);
-      console.log(
-        'Available sources:',
-        Object.keys(mapRef.current.getStyle().sources)
-      );
     }
   };
 
@@ -380,8 +373,6 @@ function MapPageContent() {
           }
 
           if (!map.getSource('flood_hazard')) {
-            // console.log("🔵 Adding flood_hazard source and layer...");
-
             map.addSource('flood_hazard', {
               type: 'geojson',
               data: `/flood-hazard/${selectedFloodScenario} Flood Hazard.json`,
@@ -628,10 +619,6 @@ function MapPageContent() {
 
         // Move click handler inside here where map is defined
         map.on('click', (e) => {
-          //console.log("=== Map Click Debug ===");
-          //console.log("Current tab from ref:", currentTabRef.current);
-          //console.log("Data consumer tabs:", dataConsumerTabs);
-
           // Query hit area layers for better click detection
           const validHitLayers = [
             'inlets-hit-layer',
@@ -641,7 +628,6 @@ function MapPageContent() {
           ].filter((id) => map.getLayer(id));
 
           if (!validHitLayers.length) {
-            // console.log("No valid hit area layers found");
             return;
           }
 
@@ -650,7 +636,6 @@ function MapPageContent() {
           });
 
           if (!features.length) {
-            //console.log("No features found at click point");
             clearSelections();
             return;
           }
@@ -663,14 +648,12 @@ function MapPageContent() {
           const shouldKeepTab = dataConsumerTabs.includes(
             currentTabRef.current
           );
-          //console.log("Should keep current tab?", shouldKeepTab);
 
           // Map hit layer IDs to their corresponding data
           switch (feature.layer.id) {
             case 'man_pipes-hit-layer': {
               const pipe = pipesRef.current.find((p) => p.id === props.Name);
               if (pipe) {
-                //console.log("Selected pipe:", pipe.id);
                 handleSelectPipe(pipe);
                 if (!shouldKeepTab) {
                   handleTabChange('stats');
@@ -1410,7 +1393,6 @@ function MapPageContent() {
   // Update the tab change handler
   const handleTabChange = useCallback(
     (tab: string) => {
-      //console.log("Tab changing from:", currentTabRef.current, "to:", tab);
       setControlPanelTab(tab);
       currentTabRef.current = tab;
       const newParams = new URLSearchParams(searchParams.toString());

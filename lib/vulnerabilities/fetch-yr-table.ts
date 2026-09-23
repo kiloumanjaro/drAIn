@@ -8,7 +8,6 @@ export const fetchYRTable = async (YR: YearOption): Promise<NodeDetails[]> => {
   try {
     const { data, error } = await client.from(`${YR}YR`).select('*');
 
-    // console.log(data)
     if (error) {
       console.error(`Error fetching ${YR}YR vulnerabilities:`, error);
       throw error;
@@ -70,7 +69,6 @@ export const fetchNodeDeets = async (
       Total_Flood_Volume: data['Total Flood Volume (10^6 ltr)'],
     };
 
-    // console.log(nodeDetails);
     return nodeDetails;
   } catch (error) {
     console.error('Fetch error:', error);

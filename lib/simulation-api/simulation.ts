@@ -102,9 +102,6 @@ export async function runSimulation(
   links: Record<string, LinkData>,
   rainfall: RainfallData
 ): Promise<SimulationResponse> {
-  // console.log(nodes)
-  // console.log(links)
-  // console.log(rainfall)
   try {
     // Ensure proper URL construction (remove trailing slash from base URL if present)
     const baseUrl = API_BASE_URL?.replace(/\/$/, '') || '';

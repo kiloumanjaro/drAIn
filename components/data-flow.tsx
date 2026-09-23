@@ -149,7 +149,6 @@ export default function DataFlowPipeline({
     if (target.tagName === 'path') {
       const pathId = target.getAttribute('data-path-id');
       if (pathId) {
-        console.log('Click detected on:', pathId);
         onPathClick?.(pathId);
       }
     }
@@ -162,8 +161,6 @@ export default function DataFlowPipeline({
     if (target.tagName === 'path') {
       const pathId = target.getAttribute('data-path-id');
       if (pathId && pathId !== hoveredPath) {
-        console.log('Hover detected on:', pathId);
-
         // Set current hovered path immediately
         setHoveredPath(pathId);
         onPathHover?.(pathId);

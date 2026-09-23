@@ -484,21 +484,9 @@ export async function enableFlood3D(
       if (beforeLayerId) {
         map.moveLayer('flood-gradient-layer', beforeLayerId);
       }
-    } else {
     }
-  } catch (_error) {}
-
-  // Log a sample feature for debugging
-  if (floodGeoJSON.features.length > 0) {
-    const sample = floodGeoJSON.features[0];
-    console.log('[3D Flood] Sample feature:', {
-      color: sample.properties?.color,
-      floodVolume: sample.properties?.floodVolume,
-      coordinates:
-        sample.geometry.type === 'LineString'
-          ? sample.geometry.coordinates.length
-          : 0,
-    });
+  } catch {
+    // Layer ordering is cosmetic; the flood still renders if this fails.
   }
 
   // Animate the flood appearing if enabled
@@ -545,7 +533,6 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
 
     if (progress < 1) {
       requestAnimationFrame(animate);
-    } else {
     }
   };
 
