@@ -1,18 +1,5 @@
 import mapboxgl from 'mapbox-gl';
-
-interface NodeDetails {
-  Node_ID: string;
-  Vulnerability_Category: string;
-  Total_Flood_Volume: number;
-  Maximum_Rate: number;
-  Hours_Flooded: number;
-  Time_Before_Overflow: number;
-}
-
-interface NodeCoordinates {
-  id: string;
-  coordinates: [number, number];
-}
+import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
 
 interface PipeFeature {
   type: 'Feature';

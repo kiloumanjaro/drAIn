@@ -18,6 +18,10 @@ import {
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
 import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
+import {
+  buildFloodPropagationFeatures,
+  setFloodPropagationData,
+} from '@/lib/map/effects/flood-propagation';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -48,12 +52,8 @@ import type {
   LinkParams,
 } from '@/components/control-panel/tabs/simulation-models/model3';
 import {
-  getVulnerabilityFromColor,
-  samplePointsFromLine,
-  isPointTooCloseToNodes,
   parseNodeId,
   CAMERA_FLY_DURATION_MS,
-  FLOOD_PROPAGATION_MAX_RETRIES,
   FLOOD_PULSE_AMOUNT,
   FLOOD_PULSE_SPEED_HZ,
 } from './page.helpers';
@@ -73,22 +73,9 @@ import {
   usePersistentPosition,
   useAnchoredPosition,
 } from '@/hooks/use-persistent-position';
+import type { NodeDetails } from '@/types/simulation';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
-
-interface NodeDetails {
-  Node_ID: string;
-  Vulnerability_Category: string;
-  Vulnerability_Rank: number;
-  Cluster: number;
-  Cluster_Score: number;
-  YR: number;
-  Time_Before_Overflow: number;
-  Hours_Flooded: number;
-  Maximum_Rate: number;
-  Time_Of_Max_Occurence: number;
-  Total_Flood_Volume: number;
-}
 
 /** Identifies a feature whose Mapbox `selected` feature-state is set. */
 interface SelectedFeature {
@@ -1043,204 +1030,32 @@ export default function SimulationPage() {
     setVulnerabilityMap(applyVulnerabilityColorsOnMap(map, vulnerabilityData));
   };
 
-  // Helper function to convert RGB color from flood line to vulnerability category
-  // Helper function to update Flood Propagation heatmap
+  /**
+   * Rebuild the flood-propagation heatmap from a set of results and push it
+   * onto the map, starting the pulse animation once the data lands.
+   */
   const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Combine inlet and drain coordinates
-    const allCoordinates = [...inletsRef.current, ...drainsRef.current];
+    const features = await buildFloodPropagationFeatures(vulnerabilityData, [
+      ...inletsRef.current,
+      ...drainsRef.current,
+    ]);
 
-    console.log(
-      '[Flood Propagation] Total vulnerability data:',
-      vulnerabilityData.length
-    );
-    console.log(
-      '[Flood Propagation] Available coordinates:',
-      allCoordinates.length
-    );
-    console.log(
-      '[Flood Propagation] Flooded nodes:',
-      vulnerabilityData.filter((n) => n.Total_Flood_Volume > 0).length
-    );
+    // The animation reads the features through refs on every frame.
+    nodeFloodPropagationFeaturesRef.current = features.nodes;
+    lineFloodPropagationFeaturesRef.current = features.lines;
 
-    // Create GeoJSON features from NODE vulnerability data
-    const nodeFloodPropagationFeatures: GeoJSON.Feature[] = vulnerabilityData
-      .filter((node) => node.Total_Flood_Volume > 0) // Only include flooded nodes
-      .map((node) => {
-        // Find coordinates for this node
-        const nodeCoord = allCoordinates.find((n) => n.id === node.Node_ID);
-        if (!nodeCoord) {
-          console.warn(
-            `[Flood Propagation] No coordinates found for node: ${node.Node_ID}`
-          );
-          return null;
-        }
+    setFloodPropagationData(map, features, () => {
+      setIsFloodPropagationActive(true);
+      shouldAnimateFloodPropagationRef.current = true;
 
-        return {
-          type: 'Feature' as const,
-          properties: {
-            source: 'node', // Mark as coming from node
-            nodeId: node.Node_ID,
-            vulnerability: node.Vulnerability_Category,
-            floodVolume: node.Total_Flood_Volume,
-            maximumRate: node.Maximum_Rate,
-            hoursFlooded: node.Hours_Flooded,
-            phase: Math.random() * Math.PI * 2, // Random phase for animation
-            offsetAngle: Math.random() * Math.PI * 2, // Random wobble direction
-            offsetDistance: Math.random() * 0.00009, // ~9 meters max wobble
-          },
-          geometry: {
-            type: 'Point' as const,
-            coordinates: nodeCoord.coordinates,
-          },
-        } as GeoJSON.Feature;
-      })
-      .filter((f): f is GeoJSON.Feature => f !== null);
-
-    console.log(
-      `[Flood Propagation] Created ${nodeFloodPropagationFeatures.length} node points`
-    );
-
-    // NEW: Load pipes and create LINE points for Flood Propagation
-    let lineFloodPropagationFeatures: GeoJSON.Feature[] = [];
-
-    try {
-      const response = await fetch('/drainage/man_pipes.geojson');
-      const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
-      const pipes = pipesData.features || [];
-
-      console.log(
-        `[Flood Propagation] Loaded ${pipes.length} pipes from GeoJSON`
-      );
-
-      // Generate flood line features (same logic as 3D flood)
-      // Import createFloodAlongPipes from flood-3d-utils.ts
-      const { createFloodAlongPipes } =
-        await import('@/lib/map/effects/flood-3d-utils');
-
-      const floodLines = createFloodAlongPipes(
-        vulnerabilityData,
-        allCoordinates,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pipes is a strongly-typed app-side FeatureCollection but createFloodAlongPipes accepts a looser geojson shape that doesn't align cleanly
-        pipes as any
-      );
-
-      console.log(
-        `[Flood Propagation] Generated ${floodLines.features.length} flood line segments`
-      );
-
-      // Convert line segments to sampled points
-      const allLineSamplePoints = floodLines.features.flatMap(
-        (lineFeature) =>
-          samplePointsFromLine(
-            lineFeature as GeoJSON.Feature<GeoJSON.LineString>,
-            1
-          ) // 1 point per segment (midpoint only)
-      );
-
-      console.log(
-        `[Flood Propagation] Sampled ${allLineSamplePoints.length} points from lines`
-      );
-
-      // Filter out points too close to nodes
-      lineFloodPropagationFeatures = allLineSamplePoints.filter((point) => {
-        const coords = (point.geometry as GeoJSON.Point).coordinates as [
-          number,
-          number,
-        ];
-        return !isPointTooCloseToNodes(
-          coords,
-          nodeFloodPropagationFeatures,
-          0.00008
-        );
-      });
-
-      console.log(
-        `[Flood Propagation] After filtering: ${lineFloodPropagationFeatures.length} line points ` +
-          `(removed ${allLineSamplePoints.length - lineFloodPropagationFeatures.length} overlaps)`
-      );
-    } catch (error) {
-      console.error(
-        '[Flood Propagation] Error loading/processing pipe data:',
-        error
-      );
-      // Continue with just node points if pipe loading fails
-    }
-
-    console.log(
-      `[Flood Propagation] Total Flood Propagation points: ${nodeFloodPropagationFeatures.length + lineFloodPropagationFeatures.length} ` +
-        `(${nodeFloodPropagationFeatures.length} nodes + ${lineFloodPropagationFeatures.length} lines)`
-    );
-
-    // Store features in refs for animation
-    nodeFloodPropagationFeaturesRef.current = nodeFloodPropagationFeatures;
-    lineFloodPropagationFeaturesRef.current = lineFloodPropagationFeatures;
-
-    const nodeData: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: nodeFloodPropagationFeatures,
-    };
-
-    const lineData: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: lineFloodPropagationFeatures,
-    };
-
-    // Update both Flood Propagation sources with retry logic
-    let retryCount = 0;
-    const maxRetries = FLOOD_PROPAGATION_MAX_RETRIES;
-
-    const updateFloodPropagationData = () => {
-      const nodeSource = map.getSource(
-        'flood_propagation_nodes'
-      ) as mapboxgl.GeoJSONSource;
-      const lineSource = map.getSource(
-        'flood_propagation_lines'
-      ) as mapboxgl.GeoJSONSource;
-      const nodeLayer = map.getLayer('flood_propagation-nodes-layer');
-      const lineLayer = map.getLayer('flood_propagation-lines-layer');
-
-      if (nodeSource && nodeLayer && lineSource && lineLayer) {
-        console.log(
-          '[Flood Propagation] Sources and layers found, setting data...'
-        );
-
-        nodeSource.setData(nodeData);
-        lineSource.setData(lineData);
-
-        setIsFloodPropagationActive(true);
-        shouldAnimateFloodPropagationRef.current = true;
-
-        // Start animation if not already running
-        if (!isFloodPropagationAnimating) {
-          setIsFloodPropagationAnimating(true);
-          animateFloodPropagationIntensity();
-        }
-
-        console.log(
-          '[Flood Propagation] Flood Propagation data set successfully (nodes + lines)'
-        );
-      } else {
-        retryCount++;
-        if (retryCount < maxRetries) {
-          console.warn(
-            `[Flood Propagation] Sources or layers not ready (attempt ${retryCount}/${maxRetries}), retrying...`
-          );
-          setTimeout(updateFloodPropagationData, 300);
-        } else {
-          console.error(
-            '[Flood Propagation] Failed to update after max retries'
-          );
-        }
+      if (!isFloodPropagationAnimating) {
+        setIsFloodPropagationAnimating(true);
+        animateFloodPropagationIntensity();
       }
-    };
-
-    // Always use a slight delay to ensure map is fully ready
-    setTimeout(() => {
-      updateFloodPropagationData();
-    }, 500);
+    });
   };
 
   const handleClosePopUps = () => {

@@ -5,22 +5,9 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NodeMetricComparisonChart } from '@/components/node-metric-comparison-chart';
+import type { NodeDetails } from '@/types/simulation';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
-
-interface NodeDetails {
-  Node_ID: string;
-  Vulnerability_Category: string;
-  Vulnerability_Rank: number;
-  Cluster: number;
-  Cluster_Score: number;
-  YR: number;
-  Time_Before_Overflow: number;
-  Hours_Flooded: number;
-  Maximum_Rate: number;
-  Time_Of_Max_Occurence: number;
-  Total_Flood_Volume: number;
-}
 
 interface NodeSimulationSlideshowProps {
   nodeId: string;

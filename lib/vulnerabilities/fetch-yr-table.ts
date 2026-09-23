@@ -1,20 +1,7 @@
 import client from '@/lib/supabase/client';
+import type { NodeDetails } from '@/types/simulation';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
-
-interface NodeDetails {
-  Node_ID: string;
-  Vulnerability_Category: string;
-  Vulnerability_Rank: number;
-  Cluster: number;
-  Cluster_Score: number;
-  YR: number;
-  Time_Before_Overflow: number;
-  Hours_Flooded: number;
-  Maximum_Rate: number;
-  Time_Of_Max_Occurence: number;
-  Total_Flood_Volume: number;
-}
 
 //Accept a YR parameter to fetch the corresponding table
 export const fetchYRTable = async (YR: YearOption): Promise<NodeDetails[]> => {

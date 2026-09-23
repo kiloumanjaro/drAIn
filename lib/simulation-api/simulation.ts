@@ -1,19 +1,7 @@
 // swmmApi.ts
+import type { NodeDetails } from '@/types/simulation';
 
 // Import NodeDetails type from vulnerability data table
-interface NodeDetails {
-  Node_ID: string;
-  Vulnerability_Category: string;
-  Vulnerability_Rank: number;
-  Cluster: number;
-  Cluster_Score: number;
-  YR: number;
-  Time_Before_Overflow: number;
-  Hours_Flooded: number;
-  Maximum_Rate: number;
-  Time_Of_Max_Occurence: number;
-  Total_Flood_Volume: number;
-}
 
 // Type definitions for the API
 export interface NodeData {
