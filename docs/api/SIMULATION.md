@@ -13,7 +13,7 @@ The SWMM API is a FastAPI backend that integrates PySWMM (Python wrapper for EPA
 ## Base URL
 
 ```
-NEXT_PUBLIC_RAILWAY_URL=https://your-app.railway.app
+NEXT_PUBLIC_BACKEND_URL=https://your-app.onrender.com
 ```
 
 ## Authentication
@@ -69,7 +69,7 @@ interface SimulationRequest {
 // lib/simulation-api/simulation.ts
 export async function runSimulation(params: SimulationRequest) {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_RAILWAY_URL}/swmm-simulate`,
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/swmm-simulate`,
     {
       method: 'POST',
       headers: {

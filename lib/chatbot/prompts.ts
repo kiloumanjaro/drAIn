@@ -267,7 +267,7 @@ Frontend: Next.js + Tailwind CSS
 
 Backend: Python (FastAPI) + Supabase
 
-Deployment: Vercel (Frontend), Railway (Backend)
+Deployment: Vercel (Frontend), Render (Backend)
 
 Simulation Engine: SWMM
 

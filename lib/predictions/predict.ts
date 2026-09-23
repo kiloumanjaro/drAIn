@@ -11,7 +11,7 @@ export async function predict(
 ) {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_RAILWAY_URL}${endpoint}`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

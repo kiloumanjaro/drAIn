@@ -103,7 +103,7 @@ export default function TestSimulation() {
           <h3 className="mb-2 font-semibold">📝 What this test does:</h3>
           <ul className="list-inside list-disc space-y-1 text-gray-700">
             <li>
-              Sends sample nodes, links, and rainfall data to your Railway API
+              Sends sample nodes, links, and rainfall data to your backend API
             </li>
             <li>Displays the flooding summary results</li>
             <li>Shows any errors that occur</li>
@@ -112,7 +112,7 @@ export default function TestSimulation() {
           <div className="mt-4 border-t border-gray-300 pt-4">
             <p className="text-sm text-gray-600">
               <strong>API Endpoint:</strong>{' '}
-              https://web-production-2976d.up.railway.app/run-simulation
+              {process.env.NEXT_PUBLIC_BACKEND_URL}/run-simulation
             </p>
           </div>
         </div>

@@ -372,7 +372,7 @@ Complete breakdown of all technologies, libraries, and tools used in the drAIn p
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token
-NEXT_PUBLIC_RAILWAY_URL=your_railway_url
+NEXT_PUBLIC_BACKEND_URL=your_backend_url
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
 ```
 
