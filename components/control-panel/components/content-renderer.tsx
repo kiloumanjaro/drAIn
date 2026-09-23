@@ -162,7 +162,6 @@ interface ContentRendererProps {
   isFloodPropagationActive?: boolean;
   onToggleFloodPropagation?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
-  isFloodPropagationLoading?: boolean;
 }
 
 export function ContentRenderer({
@@ -247,7 +246,6 @@ export function ContentRenderer({
   isFloodPropagationActive = false,
   onToggleFloodPropagation,
   isFloodScenarioLoading = false,
-  isFloodPropagationLoading = false,
 }: ContentRendererProps) {
   // Check for loading states first
   if (loadingInlets)
@@ -278,7 +276,6 @@ export function ContentRenderer({
           floodProneAreas={floodProneAreas}
           onToggleFloodProneArea={onToggleFloodProneArea}
           isFloodScenarioLoading={isFloodScenarioLoading}
-          isFloodPropagationLoading={isFloodPropagationLoading}
         />
       );
 

@@ -3,9 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 const LATEST_HEADLINE = 'Flash Flood of Nov 14, 2025';
+
+/** How long each of the two messages stays on screen. */
+const HEADLINE_ROTATION_MS = 5000;
 
 const comparisonEvent = {
   eventName: 'NEW EVENT: Flash Flood of Nov 14, 2025',
@@ -23,22 +26,17 @@ export default function WidgetTrigger() {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [showHeadline, setShowHeadline] = useState(true);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const scheduleNextSwitch = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setShowHeadline((prev) => !prev);
-      scheduleNextSwitch();
-    }, 5000);
-  }, []);
+  // Bumped to restart the rotation, so switching by hand gives the new
+  // message a full interval rather than whatever was left of the last one.
+  const [rotationEpoch, setRotationEpoch] = useState(0);
 
   useEffect(() => {
-    scheduleNextSwitch();
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [scheduleNextSwitch]);
+    const timer = setInterval(
+      () => setShowHeadline((prev) => !prev),
+      HEADLINE_ROTATION_MS
+    );
+    return () => clearInterval(timer);
+  }, [rotationEpoch]);
 
   const handleHeadlineClick = () => {
     const compareEventParam = encodeURIComponent(
@@ -50,7 +48,7 @@ export default function WidgetTrigger() {
   const handleRefreshClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowHeadline((prev) => !prev);
-    scheduleNextSwitch();
+    setRotationEpoch((epoch) => epoch + 1);
   };
 
   return (

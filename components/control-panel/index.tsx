@@ -92,7 +92,6 @@ export function ControlPanel({
   isFloodPropagationActive = false,
   onToggleFloodPropagation,
   isFloodScenarioLoading = false,
-  isFloodPropagationLoading = false,
 }: ControlPanelProps & { reports: Report[] }) {
   // reports are latest, allReportsData are all
   const router = useRouter();
@@ -361,7 +360,6 @@ export function ControlPanel({
             isFloodPropagationActive={isFloodPropagationActive}
             onToggleFloodPropagation={onToggleFloodPropagation}
             isFloodScenarioLoading={isFloodScenarioLoading}
-            isFloodPropagationLoading={isFloodPropagationLoading}
           />
         </div>
       </div>
