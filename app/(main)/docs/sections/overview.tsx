@@ -38,9 +38,9 @@ export function OverviewSection() {
             icon: Target,
             title: 'AI Clustering',
             description:
-              'ML groups drainage components by how severely they flood in simulation',
+              'Components are scored by how severely they flood, then weighted by how many people are nearby',
             tooltip:
-              'Machine learning clusters drainage components by simulated flood hazard',
+              'Hazard, exposure and combined risk scored per drainage component',
           },
           {
             icon: Users,

@@ -33,11 +33,11 @@ export function LimitationsSection() {
           },
           {
             icon: BarChart3,
-            title: 'Clustering Interpretation',
+            title: 'Unvalidated Ratings',
             description:
-              'K-means provides relative groupings requiring expert validation.',
+              'Ratings come from simulation and have not been checked against field records.',
             tooltip:
-              'Flood hazard classifications should be reviewed by domain experts',
+              'The thresholds that set the hazard scale are provisional and should be reviewed by domain experts',
           },
           {
             icon: Users,

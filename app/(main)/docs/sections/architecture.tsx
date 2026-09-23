@@ -28,7 +28,7 @@ export function ArchitectureSection() {
             icon: Code,
             title: 'Backend Layer',
             description:
-              'Python FastAPI for simulation processing, SWMM hydrological modeling, and K-means ML for flood hazard classification',
+              'Python FastAPI for simulation processing, SWMM hydrological modeling, and flood hazard scoring weighted by population exposure',
             tooltip:
               'API server handling flood simulations, data processing, and machine learning computations',
           },
