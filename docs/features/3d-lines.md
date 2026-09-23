@@ -7,7 +7,7 @@ The 3D Lines feature provides a real-time visualization of flood propagation thr
 ## Location & Implementation
 
 - **Main Logic**: [`lib/map/effects/flood-3d-utils.ts`](../../lib/map/effects/flood-3d-utils.ts)
-- **Integration**: [`app/simulation/page.tsx`](../../app/simulation/page.tsx)
+- **Integration**: [`app/(main)/simulation/page.tsx`](../../app/%28main%29/simulation/page.tsx)
 - **Mapbox Layer ID**: `flood-gradient-layer`
 
 ## Features

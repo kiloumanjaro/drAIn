@@ -6,7 +6,7 @@ Flood Propagation is an animated heatmap visualization that displays flood risk 
 
 ## Location & Implementation
 
-- **Main Logic**: [`app/simulation/page.tsx`](../../app/simulation/page.tsx) (lines 379-550 for layer setup, 1282-1449 for animation)
+- **Main Logic**: [`app/(main)/simulation/page.tsx`](../../app/%28main%29/simulation/page.tsx) (lines 379-550 for layer setup, 1282-1449 for animation)
 - **Animation**: Lines 1720-1830 (`animateFloodPropagationIntensity`)
 - **Toggle Handler**: Lines 1832-1875 (`handleToggleFloodPropagation`)
 - **Mapbox Layer IDs**:
@@ -304,7 +304,7 @@ useEffect(() => {
 
 ### Customizable Parameters
 
-Edit values in `app/simulation/page.tsx`:
+Edit values in `app/(main)/simulation/page.tsx`:
 
 ```typescript
 // Heatmap color gradient (line 389-407)

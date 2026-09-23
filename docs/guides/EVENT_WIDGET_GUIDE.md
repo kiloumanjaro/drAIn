@@ -14,7 +14,7 @@ The event widget is a draggable pop-up card that can display data for a new, inc
 To open the event widget, you can use the `useEventWidget` hook. This hook provides an `openWidget` function that you can call with the new event's data. Make sure your component is a descendant of the `EventWidgetProvider`.
 
 ```tsx
-import { useEventWidget } from '@/components/context/EventWidgetProvider';
+import { useEventWidget } from '@/components/context/event-widget-provider';
 
 const MyComponent = () => {
   const { openWidget, closeWidget, isOpen } = useEventWidget();

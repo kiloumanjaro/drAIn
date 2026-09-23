@@ -37,12 +37,9 @@ Public GeoJSON Files
 
 **Key Files:**
 
-- [hooks/useDrain.ts](../../hooks/useDrain.ts)
-- [hooks/useInlets.ts](../../hooks/useInlets.ts)
-- [hooks/useOutlets.ts](../../hooks/useOutlets.ts)
-- [hooks/usePipes.ts](../../hooks/usePipes.ts)
+- [lib/query/hooks/use-drainage-data.ts](../../lib/query/hooks/use-drainage-data.ts)
 - [lib/map/config.ts](../../lib/map/config.ts)
-- [app/map/page.tsx](../../app/map/page.tsx)
+- [app/(main)/map/page.tsx](../../app/%28main%29/map/page.tsx)
 
 **Data Transformations:**
 
@@ -72,7 +69,7 @@ Public GeoJSON Files
 
 ```
 User Fills Report Form
-  (FloodReportClient component)
+  (SubmitTab, inside the control panel's Reports tab)
          ↓
   Select Photo + Extract EXIF
   (extractEXIF.ts)
@@ -98,10 +95,11 @@ User Fills Report Form
 
 **Key Files:**
 
-- [app/reports/FloodReportClient.tsx](../../app/reports/FloodReportClient.tsx)
-- [lib/report/extractEXIF.ts](../../lib/report/extractEXIF.ts)
+- [components/submit-tab.tsx](../../components/submit-tab.tsx)
+- [components/control-panel/tabs/reports-content.tsx](../../components/control-panel/tabs/reports-content.tsx)
+- [lib/reports/extract-exif.ts](../../lib/reports/extract-exif.ts)
 - [lib/supabase/report.ts](../../lib/supabase/report.ts)
-- [components/context/ReportProvider.tsx](../../components/context/ReportProvider.tsx)
+- [components/context/report-provider.tsx](../../components/context/report-provider.tsx)
 - [components/report-bubble.tsx](../../components/report-bubble.tsx)
 
 **API Call:**
@@ -167,10 +165,10 @@ User Configures Parameters
 
 **Key Files:**
 
-- [app/simulation/page.tsx](../../app/simulation/page.tsx)
+- [app/(main)/simulation/page.tsx](../../app/%28main%29/simulation/page.tsx)
 - [lib/simulation-api/simulation.ts](../../lib/simulation-api/simulation.ts)
 - [components/vulnerability-data-table.tsx](../../components/vulnerability-data-table.tsx)
-- [components/ModelViewer.tsx](../../components/ModelViewer.tsx)
+- [components/model-viewer.tsx](../../components/model-viewer.tsx)
 
 **Request Format:**
 
@@ -249,10 +247,11 @@ Dashboard Page Load
 
 **Key Files:**
 
-- [app/dashboard/page.tsx](../../app/dashboard/page.tsx)
+- [app/(main)/dashboard/page.tsx](../../app/%28main%29/dashboard/page.tsx)
 - [lib/dashboard/queries.ts](../../lib/dashboard/queries.ts)
 - [lib/dashboard/calculations.ts](../../lib/dashboard/calculations.ts)
-- [components/dashboard/overview/OverviewTab.tsx](../../components/dashboard/overview/OverviewTab.tsx)
+- [components/dashboard/analytics/analytics-tab.tsx](../../components/dashboard/analytics/analytics-tab.tsx)
+- [components/dashboard/reports/reports-tab.tsx](../../components/dashboard/reports/reports-tab.tsx)
 
 **Query Examples:**
 
@@ -312,7 +311,7 @@ User Opens Login Page
   Redirect to Dashboard/Map
          ↓
   Protected Routes Check Session
-  (middleware validates JWT)
+  (proxy validates JWT)
 ```
 
 **Key Files:**
@@ -320,7 +319,7 @@ User Opens Login Page
 - [app/(auth)/login/page.tsx](<../../app/(auth)/login/page.tsx>)
 - [components/auth/login-form.tsx](../../components/auth/login-form.tsx)
 - [lib/supabase/profile.ts](../../lib/supabase/profile.ts)
-- [components/context/AuthProvider.tsx](../../components/context/AuthProvider.tsx)
+- [components/context/auth-provider.tsx](../../components/context/auth-provider.tsx)
 
 **Authentication API:**
 

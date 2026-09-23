@@ -119,7 +119,7 @@ Displays key metrics and statistics.
 **Usage:**
 
 ```tsx
-import OverviewTab from '@/components/dashboard/overview/OverviewTab';
+import AnalyticsTab from '@/components/dashboard/analytics/analytics-tab';
 
 <OverviewTab />;
 ```
@@ -178,7 +178,7 @@ import DataFlowPipeline from '@/components/data-flow';
 
 #### Model Viewer
 
-**Location:** [components/ModelViewer.tsx](../../components/ModelViewer.tsx)
+**Location:** [components/model-viewer.tsx](../../components/model-viewer.tsx)
 
 3D visualization using Three.js.
 
@@ -213,7 +213,7 @@ import VulnerabilityDataTable from '@/components/vulnerability-data-table';
 
 #### Flood Report Form
 
-**Location:** [app/reports/FloodReportClient.tsx](../../app/reports/FloodReportClient.tsx)
+**Location:** [components/submit-tab.tsx](../../components/submit-tab.tsx)
 
 Form for submitting flood reports.
 
@@ -280,7 +280,7 @@ User registration form.
 
 #### Sidebar Layout
 
-**Location:** [components/sidebar-layout.tsx](../../components/sidebar-layout.tsx)
+**Location:** [components/app-sidebar.tsx](../../components/app-sidebar.tsx)
 
 Main application layout with collapsible sidebar.
 
@@ -312,14 +312,14 @@ User profile dropdown with settings and logout.
 
 #### AuthProvider
 
-**Location:** [components/context/AuthProvider.tsx](../../components/context/AuthProvider.tsx)
+**Location:** [components/context/auth-provider.tsx](../../components/context/auth-provider.tsx)
 
 Manages authentication state.
 
 **Usage:**
 
 ```tsx
-import { useAuth } from '@/components/context/AuthProvider';
+import { useAuth } from '@/components/context/auth-provider';
 
 function MyComponent() {
   const { user, profile, signOut } = useAuth();
@@ -332,14 +332,14 @@ function MyComponent() {
 
 #### ReportProvider
 
-**Location:** [components/context/ReportProvider.tsx](../../components/context/ReportProvider.tsx)
+**Location:** [components/context/report-provider.tsx](../../components/context/report-provider.tsx)
 
 Manages flood reports with real-time updates.
 
 **Usage:**
 
 ```tsx
-import { useReports } from '@/components/context/ReportProvider';
+import { useReports } from '@/components/context/report-provider';
 
 function ReportsMap() {
   const { reports, latestReports, loading, refreshReports } = useReports();

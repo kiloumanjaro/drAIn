@@ -329,8 +329,8 @@ enableRain(map, 1.0); // Maximum rain
 - [3D Lines](./3d-lines.md) - Detailed gradient line documentation
 - [Flood Propagation](./flood-propagation.md) - Heatmap animation details
 - [Rain Effect](./rain-effect.md) - Weather visualization guide
-- [Simulation Guide](../guides/simulation.md) - Running simulations
-- [Control Panel](../components/control-panel.md) - UI controls
+- [Simulation Guide](../api/SIMULATION.md) - Running simulations
+- [Control Panel](../components/README.md) - UI controls
 
 ## Future Roadmap
 

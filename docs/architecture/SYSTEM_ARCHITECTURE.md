@@ -192,7 +192,7 @@ Component Re-render
 
 **Files:**
 
-- `app/map/page.tsx` - Main map page
+- `app/(main)/map/page.tsx` - Main map page
 - `lib/map/config.ts` - Mapbox configuration
 - `components/report-bubble.tsx` - Report markers
 
@@ -209,9 +209,9 @@ Component Re-render
 
 **Files:**
 
-- `app/simulation/page.tsx` - Simulation UI
+- `app/(main)/simulation/page.tsx` - Simulation UI
 - `lib/simulation-api/simulation.ts` - API client
-- `components/ModelViewer.tsx` - 3D visualization
+- `components/model-viewer.tsx` - 3D visualization
 
 **Flow:**
 
@@ -243,7 +243,7 @@ Component Re-render
 
 **Files:**
 
-- `app/dashboard/page.tsx` - Dashboard page
+- `app/(main)/dashboard/page.tsx` - Dashboard page
 - `lib/dashboard/queries.ts` - Data queries
 - `components/dashboard/` - Tab components
 
@@ -262,7 +262,7 @@ Component Re-render
 - Supabase Auth for user management
 - JWT tokens for API authentication
 - Row-level security (RLS) policies in PostgreSQL
-- Protected routes with middleware
+- Protected routes with proxy
 
 ### Data Validation
 

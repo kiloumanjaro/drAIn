@@ -53,7 +53,7 @@ Developer resources and internal documentation.
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and setup instructions
-- [Contributing Guidelines](../CONTRIBUTING.md) - How to contribute to the project
+- [Contributing Guidelines](../README.md#-contributing) - How to contribute to the project
 - [License](../LICENSE) - GPL-2.0 License information
 
 ## Getting Help
