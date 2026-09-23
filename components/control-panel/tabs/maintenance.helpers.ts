@@ -52,54 +52,109 @@ export interface PhotoExif {
 }
 
 /**
- * Check that a maintenance photo was taken recently and near the asset.
+ * What a photo check concluded.
  *
- * Returns an error message describing the first failed check, or `null` if
- * the photo is acceptable. `assetCoordinates` is every point the photo may
- * be measured against: one for a node, the whole run for a pipe, since a
- * photo anywhere along a pipe is valid evidence for it.
+ * The distinction that matters is between evidence a photo is wrong and an
+ * absence of evidence either way. EXIF is trivially editable, so the check
+ * never stopped anyone determined to fake a submission. What it did stop
+ * was honest ones: iOS strips location when a photo is shared, and most
+ * messaging apps strip EXIF outright, so a worker who photographs a cleaned
+ * drain and sends it to a colleague to upload arrives with nothing to check.
+ *
+ * So a photo is only rejected when its own metadata contradicts the claim.
+ * When there is nothing to check, the submission goes through and is marked
+ * as unverified.
  */
-export function validateMaintenancePhoto(
+export type PhotoCheckOutcome = 'verified' | 'unverifiable' | 'rejected';
+
+export interface PhotoCheck {
+  outcome: PhotoCheckOutcome;
+  /** Why, in words meant for the submitter. Empty when verified. */
+  reason: string;
+}
+
+const VERIFIED: PhotoCheck = { outcome: 'verified', reason: '' };
+
+const unverifiable = (reason: string): PhotoCheck => ({
+  outcome: 'unverifiable',
+  reason,
+});
+
+const rejected = (reason: string): PhotoCheck => ({
+  outcome: 'rejected',
+  reason,
+});
+
+/**
+ * Check a maintenance photo against the asset it claims to show.
+ *
+ * `assetCoordinates` is every point the photo may be measured against: one
+ * for a node, the whole run for a pipe, since a photo anywhere along a pipe
+ * is valid evidence for it.
+ */
+export function checkMaintenancePhoto(
   exif: PhotoExif,
   assetCoordinates: readonly [number, number][],
   measureDistanceM: (from: [number, number], to: [number, number]) => number,
   now: Date = new Date()
-): string | null {
+): PhotoCheck {
   if (!exif.date) {
-    return 'Could not retrieve date from image. Ensure the image has EXIF data.';
+    return unverifiable(
+      'This image carries no timestamp, so the time it was taken could not ' +
+        'be confirmed. It will be submitted and marked unverified.'
+    );
   }
 
   const hoursOld = (now.getTime() - exif.date.getTime()) / (1000 * 60 * 60);
   if (hoursOld > MAINTENANCE_PHOTO_MAX_AGE_HOURS) {
-    return `Image is too old. Must be taken within ${MAINTENANCE_PHOTO_MAX_AGE_HOURS} hours.`;
+    return rejected(
+      `This image was taken ${Math.round(hoursOld)} hours ago. Evidence must ` +
+        `be from within the last ${MAINTENANCE_PHOTO_MAX_AGE_HOURS} hours.`
+    );
   }
   if (hoursOld < 0) {
-    return 'Image appears to be from the future. Check device settings.';
-  }
-
-  if (
-    exif.latitude === null ||
-    exif.latitude === undefined ||
-    exif.longitude === null ||
-    exif.longitude === undefined
-  ) {
-    return 'Could not retrieve coordinates from image.';
-  }
-
-  if (assetCoordinates.length === 0) {
-    return 'Could not determine asset location.';
-  }
-
-  const from: [number, number] = [exif.longitude, exif.latitude];
-  const distances = assetCoordinates.map((to) => measureDistanceM(from, to));
-  const nearest = Math.min(...distances);
-
-  if (nearest > MAINTENANCE_PHOTO_MAX_DISTANCE_M) {
-    return (
-      `Image location is too far from the selected asset ` +
-      `(${nearest.toFixed(0)}m). Must be within ${MAINTENANCE_PHOTO_MAX_DISTANCE_M}m.`
+    return rejected(
+      'This image is dated in the future. Check the device date and retake it.'
     );
   }
 
-  return null;
+  const hasLocation =
+    exif.latitude !== null &&
+    exif.latitude !== undefined &&
+    exif.longitude !== null &&
+    exif.longitude !== undefined;
+
+  if (!hasLocation) {
+    return unverifiable(
+      'This image carries no location, so it could not be matched to the ' +
+        'selected asset. It will be submitted and marked unverified.'
+    );
+  }
+
+  if (assetCoordinates.length === 0) {
+    // Our gap, not the submitter's.
+    return unverifiable(
+      'The selected asset has no recorded location, so the image could not ' +
+        'be matched to it. It will be submitted and marked unverified.'
+    );
+  }
+
+  const from: [number, number] = [exif.longitude!, exif.latitude!];
+  const nearest = Math.min(
+    ...assetCoordinates.map((to) => measureDistanceM(from, to))
+  );
+
+  if (nearest > MAINTENANCE_PHOTO_MAX_DISTANCE_M) {
+    return rejected(
+      `This image was taken ${nearest.toFixed(0)} m from the selected asset. ` +
+        `Evidence must be from within ${MAINTENANCE_PHOTO_MAX_DISTANCE_M} m.`
+    );
+  }
+
+  return VERIFIED;
+}
+
+/** Note appended to a record whose photo could not be checked. */
+export function unverifiedNote(reason: string): string {
+  return `[evidence unverified: ${reason}]`;
 }

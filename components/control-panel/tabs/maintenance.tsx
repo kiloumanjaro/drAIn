@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchAllReports } from '@/lib/supabase/report';
 import {
   DEBUG_MODE,
-  validateMaintenancePhoto,
+  checkMaintenancePhoto,
+  unverifiedNote,
   getStatusStyles,
   type HistoryItem,
 } from './maintenance.helpers';
@@ -46,6 +47,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { SpinnerEmpty } from '@/components/spinner-empty';
+import { toast } from 'sonner';
 import distance from '@turf/distance';
 import { point } from '@turf/helpers';
 
@@ -195,7 +197,8 @@ export default function Maintenance({
 
   const finalRecordMaintenance = async (
     status: 'in-progress' | 'resolved',
-    imagePath?: string
+    imagePath?: string,
+    unverifiedReason?: string
   ) => {
     if (!selectedAsset) {
       setMessage('No asset selected.');
@@ -212,6 +215,17 @@ export default function Maintenance({
         : maintenanceDescription;
     } else if (commentsToSubmit === '') {
       commentsToSubmit = '';
+    }
+
+    // Recorded on the entry itself, so a reviewer can see which evidence
+    // was checked and which merely could not be.
+    if (unverifiedReason) {
+      const note = unverifiedNote(unverifiedReason);
+      commentsToSubmit = commentsToSubmit
+        ? `${commentsToSubmit}
+
+${note}`
+        : note;
     }
 
     const { type, id } = selectedAsset;
@@ -268,14 +282,24 @@ export default function Maintenance({
       // 1. Extract EXIF Data
       const exifData = await extractExifLocation(maintenanceImage);
 
-      // DEBUG MODE: Bypass Validation
+      // The photo is only turned away when its own metadata contradicts
+      // the claim. When there is simply nothing to check -- a stripped
+      // EXIF block, which is the common case for a shared photo -- the
+      // submission goes through marked unverified.
+      let unverifiedReason: string | undefined;
       if (!DEBUG_MODE) {
-        const error = validateMaintenancePhoto(
+        const check = checkMaintenancePhoto(
           exifData,
           assetCoordinates(),
           measureDistanceM
         );
-        if (error) throw new Error(error);
+        if (check.outcome === 'rejected') {
+          throw new Error(check.reason);
+        }
+        if (check.outcome === 'unverifiable') {
+          unverifiedReason = check.reason;
+          toast.warning(check.reason);
+        }
       }
 
       // 2. Upload Image to 'ReportImage' bucket
@@ -292,7 +316,7 @@ export default function Maintenance({
       }
 
       // 3. Record Maintenance with Image Path
-      await finalRecordMaintenance(pendingStatus, filePath);
+      await finalRecordMaintenance(pendingStatus, filePath, unverifiedReason);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Submission failed';
