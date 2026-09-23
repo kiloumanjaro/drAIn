@@ -11,7 +11,8 @@ import {
 import DateBadge from './DateBadge';
 import EventTimeline from './EventTimeline';
 
-interface FloodEvent {
+/** One historical flood event, as served by /api/reports. */
+export interface FloodEvent {
   eventName: string;
   summary: string;
   data: Record<string, string>;
