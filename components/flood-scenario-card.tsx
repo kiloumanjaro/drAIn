@@ -44,7 +44,8 @@ export function FloodScenarioCard({
           <div className="flex flex-col gap-1.5">
             <CardTitle>Flood Scenarios</CardTitle>
             <CardDescription className="text-xs">
-              Select a period to view hazard levels
+              Stored hazard maps by return period. Prepared separately from the
+              live simulation, so the two can disagree.
             </CardDescription>
           </div>
 

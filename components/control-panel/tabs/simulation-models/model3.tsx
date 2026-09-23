@@ -290,8 +290,9 @@ export default function Model3({
         <CardHeader className="mb-6 px-1 py-0">
           <CardTitle>Infrastructure Health Model</CardTitle>
           <CardDescription className="text-xs">
-            Assess structural integrity and maintenance requirements using SWMM
-            simulation
+            Run SWMM against your own node and pipe parameters. Condition and
+            cleaning history are not inputs — changing them here does not model
+            a cleared drain.
           </CardDescription>
         </CardHeader>
 
