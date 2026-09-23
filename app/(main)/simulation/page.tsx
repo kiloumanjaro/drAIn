@@ -796,10 +796,7 @@ export default function SimulationPage() {
       ]);
 
       // Transform the nodes_list to NodeDetails format
-      const transformedData = transformToNodeDetails(
-        response.nodes_list,
-        rainfallParams.duration_hr
-      );
+      const transformedData = transformToNodeDetails(response.nodes_list);
 
       setTableData3(transformedData);
       setIsTable3Minimized(false);
@@ -1127,11 +1124,14 @@ export default function SimulationPage() {
       if (tableData3) {
         const nodeData = tableData3.find((node) => node.Node_ID === nodeId);
         if (nodeData && nodeData.YR) {
-          // Set the year from the node data
+          // Only stored scenarios carry a real return period.
           yearToUse = nodeData.YR as YearOption;
           setSelectedYear(yearToUse);
         } else {
-          toast.error('Unable to determine year for simulation data');
+          toast.error(
+            'These results came from a custom storm, which has no return ' +
+              'period. Pick a return period to compare against historical data.'
+          );
           return;
         }
       } else {

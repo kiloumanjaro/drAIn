@@ -35,33 +35,61 @@ describe('transformToNodeDetails', () => {
   });
 
   it.each([
-    [5, 4],
-    [4.1, 4],
-    [2, 3],
-    [1.1, 3],
-    [0.5, 2],
-    [0, 1],
-    [-1, 1],
-  ])('ranks a score of %s as %s', (score, rank) => {
+    ['High', 4],
+    ['Medium', 3],
+    ['Low', 2],
+    ['No hazard', 1],
+  ])('ranks a %s node as %s', (category, rank) => {
     const [row] = transformToNodeDetails([
-      result({ Vulnerability_Score: score }),
+      result({ Vulnerability_Category: category }),
     ]);
     expect(row.Vulnerability_Rank).toBe(rank);
   });
 
-  it.each([
-    [1, 10],
-    [0.5, 10],
-    [2, 25],
-    [3, 50],
-    [24, 50],
-  ])('approximates a %s-hour storm as a %s-year return period', (hours, yr) => {
-    const [row] = transformToNodeDetails([result()], hours);
-    expect(row.YR).toBe(yr);
+  it('ranks by category, not by the raw score', () => {
+    // The rank used to be thresholded off the score at 4/1/0 — values the
+    // hazard score no longer takes, so everything would come back rank 1-2.
+    const [row] = transformToNodeDetails([
+      result({ Vulnerability_Category: 'High', Vulnerability_Score: 0.9 }),
+    ]);
+    expect(row.Vulnerability_Rank).toBe(4);
   });
 
-  it('defaults to a one-hour storm', () => {
-    expect(transformToNodeDetails([result()])[0].YR).toBe(10);
+  it('tolerates an unrecognised category', () => {
+    const [row] = transformToNodeDetails([
+      result({ Vulnerability_Category: 'N/A' }),
+    ]);
+    expect(row.Vulnerability_Rank).toBe(1);
+  });
+
+  it('carries exposure and risk through when the backend supplies them', () => {
+    const [row] = transformToNodeDetails([
+      result({
+        Barangay: 'Mantuyong',
+        Population_Density: 40480,
+        Exposure_Score: 1,
+        Risk_Score: 0.9,
+      }),
+    ]);
+    expect(row).toMatchObject({
+      Barangay: 'Mantuyong',
+      Population_Density: 40480,
+      Exposure_Score: 1,
+      Risk_Score: 0.9,
+    });
+  });
+
+  it('leaves exposure null for results that predate it', () => {
+    const [row] = transformToNodeDetails([result()]);
+    expect(row.Risk_Score).toBeNull();
+    expect(row.Barangay).toBeNull();
+  });
+
+  it('reports no return period for a custom storm', () => {
+    // It used to guess one from the duration alone, so a 10 mm hour and a
+    // 200 mm hour both came out "10YR" — and that guess was then used to
+    // look up real historical data for that return period.
+    expect(transformToNodeDetails([result()])[0].YR).toBeNull();
   });
 
   it('returns nothing for an empty response', () => {

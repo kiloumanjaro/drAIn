@@ -11,13 +11,29 @@ export interface NodeDetails {
   Vulnerability_Rank: number;
   Cluster: number;
   Cluster_Score: number;
-  /** Rainfall return period, in years. */
-  YR: number;
+  /**
+   * Rainfall return period, in years, when the results came from a stored
+   * scenario built for one. `null` for a custom storm, where the user gave
+   * a depth and duration — those do not imply a return period without
+   * depth-duration-frequency curves for this location.
+   */
+  YR: number | null;
   Time_Before_Overflow: number;
   Hours_Flooded: number;
   Maximum_Rate: number;
   Time_Of_Max_Occurence: number;
   Total_Flood_Volume: number;
+
+  /**
+   * Exposure and risk. Present for results from a live simulation; absent
+   * for the stored per-return-period scenarios, which predate them.
+   */
+  Barangay?: string | null;
+  Population_Density?: number | null;
+  /** 0-1, from the population density of the barangay the node sits in. */
+  Exposure_Score?: number | null;
+  /** Hazard x exposure. Rank work lists on this, not on hazard alone. */
+  Risk_Score?: number | null;
 }
 
 /** A node resolved to its position on the map. */
