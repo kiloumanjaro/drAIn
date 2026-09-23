@@ -535,4 +535,4 @@ try {
 ---
 
 For simulation API, see [Simulation API](SIMULATION.md).
-For report-specific endpoints, see [Report API](REPORTS.md).
+For report-specific endpoints, see [Report API](../guides/FLOOD_REPORTS_GUIDE.md).

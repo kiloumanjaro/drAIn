@@ -266,7 +266,7 @@ For very large networks (10,000+ pipes):
 
 - [Flood Propagation (Heatmap)](./flood-propagation.md) - Animated node/line heatmap
 - [Rain Effect Toggle](./rain-effect.md) - Environmental weather visualization
-- [Vulnerability Data Visualization](./vulnerability-visualization.md) - Node flood metrics
+- [Vulnerability Data Visualization](./VISUALIZATION-SUITE.md) - Node flood metrics
 
 ## Future Enhancements
 

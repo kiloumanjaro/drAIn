@@ -811,7 +811,13 @@ export default function SimulationPage() {
       );
     } catch (error) {
       console.error('Error running simulation:', error);
-      toast.error('Simulation failed. Please try again.');
+      // The client distinguishes a busy queue from a failed run from an
+      // expired result, so show what it said rather than one flat message.
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Simulation failed. Please try again.'
+      );
       setTableData3(null);
     } finally {
       setIsLoadingTable3(false);

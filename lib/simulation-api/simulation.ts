@@ -97,34 +97,115 @@ export function transformToNodeDetails(
   }));
 }
 
+/** Job lifecycle reported by the backend. */
+export type SimulationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+
+interface JobAccepted {
+  job_id: string;
+  status: SimulationJobStatus;
+  poll_url: string;
+}
+
+interface JobState {
+  job_id: string;
+  status: SimulationJobStatus;
+  result: SimulationResponse | null;
+  error: string | null;
+}
+
+/** How often to poll, unless the server asks for something else. */
+const DEFAULT_POLL_INTERVAL_MS = 3000;
+
+/**
+ * Give up after this long. A run is around two minutes; well past that and
+ * something is wrong, and we would rather say so than poll forever.
+ */
+const POLL_TIMEOUT_MS = 10 * 60 * 1000;
+
+function apiBaseUrl(): string {
+  return API_BASE_URL?.replace(/\/$/, '') || '';
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Seconds the server asked us to wait, in ms, or the default. */
+function retryAfterMs(response: Response): number {
+  const header = Number(response.headers.get('Retry-After'));
+  return Number.isFinite(header) && header > 0
+    ? header * 1000
+    : DEFAULT_POLL_INTERVAL_MS;
+}
+
+/**
+ * Run a SWMM simulation and resolve with its results.
+ *
+ * A run takes minutes, so the backend queues it and we poll: the request
+ * that starts it returns straight away. `onStatus` reports each transition
+ * for callers that want to show progress.
+ */
 export async function runSimulation(
   nodes: Record<string, NodeData>,
   links: Record<string, LinkData>,
-  rainfall: RainfallData
+  rainfall: RainfallData,
+  onStatus?: (status: SimulationJobStatus) => void
 ): Promise<SimulationResponse> {
-  try {
-    // Ensure proper URL construction (remove trailing slash from base URL if present)
-    const baseUrl = API_BASE_URL?.replace(/\/$/, '') || '';
-    const response = await fetch(`${baseUrl}/run-simulation`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        nodes,
-        links,
-        rainfall,
-      }),
-    });
+  const created = await fetch(`${apiBaseUrl()}/simulations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nodes, links, rainfall }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  if (created.status === 429) {
+    throw new Error(
+      'The simulation server is busy with other runs. Please try again shortly.'
+    );
+  }
+  if (!created.ok) {
+    throw new Error(`Could not start the simulation (HTTP ${created.status}).`);
+  }
+
+  const job = (await created.json()) as JobAccepted;
+  onStatus?.(job.status);
+
+  let interval = retryAfterMs(created);
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  let lastStatus: SimulationJobStatus = job.status;
+
+  while (Date.now() < deadline) {
+    await delay(interval);
+
+    const polled = await fetch(`${apiBaseUrl()}${job.poll_url}`);
+    if (polled.status === 404) {
+      throw new Error('The simulation result expired before it was read.');
+    }
+    if (!polled.ok) {
+      throw new Error(
+        `Could not read the simulation's progress (HTTP ${polled.status}).`
+      );
     }
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error running simulation:', error);
-    throw error;
+    const state = (await polled.json()) as JobState;
+    if (state.status !== lastStatus) {
+      lastStatus = state.status;
+      onStatus?.(state.status);
+    }
+
+    if (state.status === 'succeeded') {
+      if (!state.result) {
+        throw new Error(
+          'The simulation reported success but returned nothing.'
+        );
+      }
+      return state.result;
+    }
+    if (state.status === 'failed') {
+      throw new Error(state.error ?? 'The simulation failed.');
+    }
+
+    interval = retryAfterMs(polled);
   }
+
+  throw new Error('The simulation did not finish in time.');
 }

@@ -367,7 +367,7 @@ const pulseAmount = 0.35;      // 35% depth
 
 - [3D Lines](./3d-lines.md) - Gradient-colored flood propagation lines
 - [Rain Effect Toggle](./rain-effect.md) - Weather visualization
-- [Vulnerability Data Tables](./vulnerability-visualization.md) - Node metrics
+- [Vulnerability Data Tables](./VISUALIZATION-SUITE.md) - Node metrics
 
 ## Future Enhancements
 
