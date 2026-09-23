@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/components/ui/sidebar';
-import { useNavigationLoading } from '@/components/context/NavigationLoadingProvider';
+import { useNavigationLoading } from '@/components/context/navigation-loading-provider';
 
 export function usePageTransition() {
   const router = useRouter();

@@ -16,9 +16,9 @@ import {
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import StatusBadge from '@/components/dashboard/reports/StatusBadge';
-import PriorityBadge from '@/components/dashboard/reports/PriorityBadge';
-import ComponentTypeBadge from '@/components/dashboard/reports/ComponentTypeBadge';
+import StatusBadge from '@/components/dashboard/reports/status-badge';
+import PriorityBadge from '@/components/dashboard/reports/priority-badge';
+import ComponentTypeBadge from '@/components/dashboard/reports/component-type-badge';
 import { getInitials } from '@/lib/user-initials';
 
 interface ImageViewerProps {

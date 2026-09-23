@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import type { DetailItem, FieldConfig } from '../types';
 import ModelViewer from '../../model-viewer';
-import { DataFieldCard } from './DataFieldCard';
-import { ProgressTimeline } from './ProgressTimeline';
+import { DataFieldCard } from './data-field-card';
+import { ProgressTimeline } from './progress-timeline';
 
 interface DetailViewProps {
   item: DetailItem;

@@ -31,7 +31,7 @@ import {
   useInlets,
   useDrains,
   usePipes,
-} from '@/lib/query/hooks/useDrainageData';
+} from '@/lib/query/hooks/use-drainage-data';
 import { toast } from 'sonner';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 import { on } from 'events';

@@ -1,6 +1,6 @@
 import FloodEventCards, {
   type FloodEvent,
-} from '@/components/docs/FloodEventCards';
+} from '@/components/docs/flood-event-cards';
 
 interface ReportsSectionProps {
   reportEvents: FloodEvent[];

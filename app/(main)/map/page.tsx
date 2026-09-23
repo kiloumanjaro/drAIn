@@ -32,7 +32,7 @@ import {
   useOutlets,
   usePipes,
   useDrains,
-} from '@/lib/query/hooks/useDrainageData';
+} from '@/lib/query/hooks/use-drainage-data';
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import {
   ALL_FLOOD_PRONE_HIDDEN,
@@ -52,7 +52,7 @@ import { ReportBubble, type ReportBubbleRef } from '@/components/report-bubble';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getreportCategoryCount } from '@/lib/supabase/report';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useReports } from '@/components/context/ReportProvider';
+import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------

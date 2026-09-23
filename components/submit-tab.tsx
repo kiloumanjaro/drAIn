@@ -15,7 +15,7 @@ import { Checkbox } from './ui/checkbox';
 import { uploadReport } from '@/lib/supabase/report';
 import { extractExifLocation } from '@/lib/reports/extract-exif';
 import { getClosestPipes } from '@/lib/reports/get-closest-pipe';
-import { useAuth } from '@/components/context/AuthProvider';
+import { useAuth } from '@/components/context/auth-provider';
 import { ComboboxForm } from './combobox-form';
 import type { ComboboxOption } from './combobox-form';
 import { Field, FieldContent } from './ui/field';

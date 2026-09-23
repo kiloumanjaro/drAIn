@@ -5,7 +5,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NavigationLoadingOverlay } from '@/components/navigation-loading-overlay';
-import { EventWidgetProvider } from '@/components/context/EventWidgetProvider';
+import { EventWidgetProvider } from '@/components/context/event-widget-provider';
 import EventWidget from '@/components/event-widget';
 
 const geistSans = Geist({

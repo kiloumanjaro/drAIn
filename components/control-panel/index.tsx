@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthContext } from '@/components/context/AuthProvider';
+import { AuthContext } from '@/components/context/auth-provider';
 import type { ControlPanelProps } from './types';
 import { DETAIL_TITLES } from './constants';
 import { useControlPanelState } from './hooks/use-control-panel-state';
@@ -14,7 +14,7 @@ import {
   useInlets,
   useOutlets,
   useDrains,
-} from '@/lib/query/hooks/useDrainageData';
+} from '@/lib/query/hooks/use-drainage-data';
 import client from '@/lib/supabase/client';
 import type { DateFilterValue } from '../date-sort';
 import type { Report } from '@/lib/supabase/report';

@@ -1,7 +1,7 @@
 'use client';
 
 import { LoadingScreen } from '@/components/loading-screen';
-import { useNavigationLoading } from '@/components/context/NavigationLoadingProvider';
+import { useNavigationLoading } from '@/components/context/navigation-loading-provider';
 import {
   IconMap,
   IconFlask,

@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import PriorityBadge from './PriorityBadge';
-import StatusBadge from './StatusBadge';
-import ComponentTypeBadge from './ComponentTypeBadge';
+import PriorityBadge from './priority-badge';
+import StatusBadge from './status-badge';
+import ComponentTypeBadge from './component-type-badge';
 import { formatDateShort } from '@/lib/dashboard/calculations';
 import type { ReportWithMetadata } from '@/lib/dashboard/queries';
 import { MapPin, MapPinHouse, FileText, Copy } from 'lucide-react';

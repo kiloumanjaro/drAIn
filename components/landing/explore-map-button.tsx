@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { usePageTransition } from '@/hooks/usePageTransition';
+import { usePageTransition } from '@/hooks/use-page-transition';
 
 export function ExploreMapButton() {
   const { navigateTo, isNavigating } = usePageTransition();

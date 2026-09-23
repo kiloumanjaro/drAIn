@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/context/AuthProvider';
+import { useAuth } from '@/components/context/auth-provider';
 import client from '@/lib/supabase/client';
 
 export function Header() {

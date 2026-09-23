@@ -1,9 +1,9 @@
 'use client';
 
-import ZoneMap from './ZoneMap';
-import ComponentTypeChart from './ComponentTypeChart';
-import RepairTimeCards from './RepairTimeCards';
-import { useAnalytics } from '@/lib/query/hooks/useAnalytics';
+import ZoneMap from './zone-map';
+import ComponentTypeChart from './component-type-chart';
+import RepairTimeCards from './repair-time-cards';
+import { useAnalytics } from '@/lib/query/hooks/use-analytics';
 
 interface AnalyticsTabProps {
   onViewReports?: () => void;

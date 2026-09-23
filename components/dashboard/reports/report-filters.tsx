@@ -16,7 +16,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useState } from 'react';
-import DownloadReportsModal from './DownloadReportsModal';
+import DownloadReportsModal from './download-reports-modal';
 
 interface ReportFiltersProps {
   priority: string;

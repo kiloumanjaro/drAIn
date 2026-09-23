@@ -6,10 +6,10 @@ import { BarChart3, FileText, Clock, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 // Import tab components
-import AnalyticsTab from '@/components/dashboard/analytics/AnalyticsTab';
-import ReportsTab from '@/components/dashboard/reports/ReportsTab';
-import StatsCards from '@/components/dashboard/analytics/StatsCards';
-import { useOverviewMetrics } from '@/lib/query/hooks/useOverviewMetrics';
+import AnalyticsTab from '@/components/dashboard/analytics/analytics-tab';
+import ReportsTab from '@/components/dashboard/reports/reports-tab';
+import StatsCards from '@/components/dashboard/analytics/stats-cards';
+import { useOverviewMetrics } from '@/lib/query/hooks/use-overview-metrics';
 
 export default function DashboardPage() {
   const {

@@ -1,5 +1,5 @@
 import { Cloud, Code, Database, Server, Zap } from 'lucide-react';
-import FeatureCards from '@/components/docs/FeatureCards';
+import FeatureCards from '@/components/docs/feature-cards';
 
 export function TechStackSection() {
   return (

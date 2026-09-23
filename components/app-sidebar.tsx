@@ -19,7 +19,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-import { useAuth } from '@/components/context/AuthProvider';
+import { useAuth } from '@/components/context/auth-provider';
 import client from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 

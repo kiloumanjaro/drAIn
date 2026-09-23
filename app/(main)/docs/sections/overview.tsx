@@ -10,8 +10,8 @@ import {
   Users as UsersIcon,
   Zap as ZapIcon,
 } from 'lucide-react';
-import FeatureCards from '@/components/docs/FeatureCards';
-import PrincipleItem from '@/components/docs/PrincipleItem';
+import FeatureCards from '@/components/docs/feature-cards';
+import PrincipleItem from '@/components/docs/principle-item';
 
 export function OverviewSection() {
   return (

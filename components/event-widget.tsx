@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
-import { useEventWidget } from './context/EventWidgetProvider';
+import { useEventWidget } from './context/event-widget-provider';
 import Link from 'next/link';
 
 export default function EventWidget() {

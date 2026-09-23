@@ -8,8 +8,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import DateBadge from './DateBadge';
-import EventTimeline from './EventTimeline';
+import DateBadge from './date-badge';
+import EventTimeline from './event-timeline';
 
 /** One historical flood event, as served by /api/reports. */
 export interface FloodEvent {

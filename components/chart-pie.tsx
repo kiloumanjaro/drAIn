@@ -29,7 +29,7 @@ import {
   useOutlets,
   useDrains,
   usePipes,
-} from '@/lib/query/hooks/useDrainageData';
+} from '@/lib/query/hooks/use-drainage-data';
 
 export const description = 'Drainage infrastructure distribution';
 

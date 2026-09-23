@@ -18,7 +18,7 @@ import {
   useAllReports,
   useLatestReports,
   useRefreshReports,
-} from '@/lib/query/hooks/useReportQueries';
+} from '@/lib/query/hooks/use-report-queries';
 import { reportKeys } from '@/lib/query/keys';
 
 interface ReportContextType {

@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import ReportCard from './ReportCard';
-import ReportFilters from './ReportFilters';
-import { useAllReports } from '@/lib/query/hooks/useReportsData';
+import ReportCard from './report-card';
+import ReportFilters from './report-filters';
+import { useAllReports } from '@/lib/query/hooks/use-reports-data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ReportsTab() {

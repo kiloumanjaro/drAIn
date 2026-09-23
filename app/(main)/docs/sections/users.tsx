@@ -6,7 +6,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import FeatureCards from '@/components/docs/FeatureCards';
+import FeatureCards from '@/components/docs/feature-cards';
 
 export function UsersSection() {
   return (

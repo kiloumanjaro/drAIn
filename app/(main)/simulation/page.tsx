@@ -39,7 +39,7 @@ import {
   useOutlets,
   useDrains,
   usePipes,
-} from '@/lib/query/hooks/useDrainageData';
+} from '@/lib/query/hooks/use-drainage-data';
 import type {
   DatasetType,
   Inlet,

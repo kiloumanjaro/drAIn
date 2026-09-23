@@ -7,7 +7,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover';
-import { useReports } from './context/ReportProvider';
+import { useReports } from './context/report-provider';
 
 export default function NotificationBell() {
   const { notifications, unreadCount, handleOpenNotifications } = useReports();

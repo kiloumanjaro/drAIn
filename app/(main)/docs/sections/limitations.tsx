@@ -1,5 +1,5 @@
 import { BarChart3, CheckCircle, Database, Target, Users } from 'lucide-react';
-import FeatureCards from '@/components/docs/FeatureCards';
+import FeatureCards from '@/components/docs/feature-cards';
 
 export function LimitationsSection() {
   return (

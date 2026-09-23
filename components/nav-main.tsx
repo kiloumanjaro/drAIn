@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { usePageTransition } from '@/hooks/usePageTransition';
+import { usePageTransition } from '@/hooks/use-page-transition';
 import { usePathname } from 'next/navigation';
 
 export function NavMain({
