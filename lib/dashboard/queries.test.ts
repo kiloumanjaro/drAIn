@@ -34,7 +34,12 @@ vi.mock('@/lib/supabase/client', () => ({
   default: { from: supabase.from },
 }));
 
-import { getOverviewMetrics, getTeamPerformance } from './queries';
+import {
+  getOverviewMetrics,
+  getRepairTimeByComponent,
+  getRepairTrendData,
+  getTeamPerformance,
+} from './queries';
 
 type Call = [string, ...unknown[]];
 type Rows = Array<Record<string, unknown>>;
@@ -87,6 +92,107 @@ describe('getOverviewMetrics', () => {
       pendingIssues: 12,
       totalAdmins: 4,
     });
+  });
+
+  it('averages repair time over the rows it can measure', async () => {
+    respondWith(
+      [
+        { component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' },
+        { component_id: 'I-2', created_at: '2026-01-01T00:00:00Z' },
+        { component_id: 'I-3', created_at: 'garbage' },
+      ],
+      {
+        inlets_maintenance: [
+          { in_name: 'I-1', last_cleaned_at: '2026-01-03T00:00:00Z' },
+          { in_name: 'I-2', last_cleaned_at: '2026-01-05T00:00:00Z' },
+          { in_name: 'I-3', last_cleaned_at: '2026-01-05T00:00:00Z' },
+        ],
+      }
+    );
+
+    const metrics = await getOverviewMetrics();
+
+    // (2 + 4) / 2; the unparseable row is left out rather than poisoning it.
+    expect(metrics.averageRepairDays).toBe(3);
+  });
+});
+
+describe('getRepairTrendData', () => {
+  it('keeps the chart when one report has a malformed date', async () => {
+    // new Date('garbage').toISOString() throws. The whole query used to
+    // fall into its catch and return nothing, emptying the chart.
+    respondWith(
+      [
+        { component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' },
+        { component_id: 'I-2', created_at: 'garbage' },
+      ],
+      {
+        inlets_maintenance: [
+          { in_name: 'I-1', last_cleaned_at: '2026-01-03T00:00:00Z' },
+          { in_name: 'I-2', last_cleaned_at: '2026-01-03T00:00:00Z' },
+        ],
+      }
+    );
+
+    await expect(getRepairTrendData()).resolves.toEqual([
+      { date: '2026-01-01', averageDays: 2 },
+    ]);
+  });
+
+  it('averages the repairs per report day, oldest first', async () => {
+    respondWith(
+      [
+        { component_id: 'I-3', created_at: '2026-01-02T00:00:00Z' },
+        { component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' },
+        { component_id: 'I-2', created_at: '2026-01-01T00:00:00Z' },
+      ],
+      {
+        inlets_maintenance: [
+          { in_name: 'I-1', last_cleaned_at: '2026-01-02T00:00:00Z' },
+          { in_name: 'I-2', last_cleaned_at: '2026-01-04T00:00:00Z' },
+          { in_name: 'I-3', last_cleaned_at: '2026-01-03T00:00:00Z' },
+        ],
+      }
+    );
+
+    await expect(getRepairTrendData()).resolves.toEqual([
+      { date: '2026-01-01', averageDays: 2 },
+      { date: '2026-01-02', averageDays: 1 },
+    ]);
+  });
+});
+
+describe('getRepairTimeByComponent', () => {
+  it('averages per component type, skipping unusable rows', async () => {
+    respondWith(
+      [
+        {
+          category: 'inlets',
+          component_id: 'I-1',
+          created_at: '2026-01-01T00:00:00Z',
+        },
+        { category: 'inlets', component_id: 'I-2', created_at: 'garbage' },
+        {
+          category: 'man_pipes',
+          component_id: 'P-1',
+          created_at: '2026-01-05T00:00:00Z',
+        },
+      ],
+      {
+        inlets_maintenance: [
+          { in_name: 'I-1', last_cleaned_at: '2026-01-04T00:00:00Z' },
+          { in_name: 'I-2', last_cleaned_at: '2026-01-04T00:00:00Z' },
+        ],
+        // Cleaned before it was reported: a wrong link, not a fast fix.
+        man_pipes_maintenance: [
+          { name: 'P-1', last_cleaned_at: '2026-01-01T00:00:00Z' },
+        ],
+      }
+    );
+
+    await expect(getRepairTimeByComponent()).resolves.toEqual([
+      { type: 'inlets', averageDays: 3, resolvedCount: 1 },
+    ]);
   });
 });
 

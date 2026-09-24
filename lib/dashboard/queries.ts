@@ -1,4 +1,9 @@
 import client from '@/lib/supabase/client';
+import {
+  calculateAverageDays,
+  calculateRepairDays,
+  groupRepairDataByDate,
+} from './calculations';
 import { daysBetween, median } from './metrics';
 import type { Report } from '@/lib/supabase/report';
 
@@ -186,30 +191,22 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
         .limit(1000), // Capped: repair time is an average, not a total.
     ]);
 
-    let totalDays = 0;
-    let resolvedCount = 0;
+    const repairDays: number[] = [];
 
     if (allReports) {
       const maintenanceMap = await fetchLastCleanedByComponent();
 
-      // Calculate repair days
       allReports.forEach((report: ReportRecord) => {
         const maintenanceDate = maintenanceMap.get(report.component_id);
-        if (maintenanceDate) {
-          const days =
-            (new Date(maintenanceDate).getTime() -
-              new Date(report.created_at).getTime()) /
-            (1000 * 60 * 60 * 24);
-          if (days >= 0) {
-            totalDays += days;
-            resolvedCount++;
-          }
-        }
+        if (!maintenanceDate) return;
+        // Null for an unparseable date or work predating the report, both
+        // of which are skipped rather than averaged in.
+        const days = calculateRepairDays(report.created_at, maintenanceDate);
+        if (days !== null) repairDays.push(days);
       });
     }
 
-    const averageRepairDays =
-      resolvedCount > 0 ? Math.round((totalDays / resolvedCount) * 10) / 10 : 0;
+    const averageRepairDays = calculateAverageDays(repairDays);
 
     return {
       fixedThisMonth: fixedCount ?? 0,
@@ -251,40 +248,16 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
     // Fetch maintenance records
     const maintenanceMap = await fetchLastCleanedByComponent();
 
-    // Group by date and calculate average
-    const dateMap = new Map<string, { totalDays: number; count: number }>();
-
-    reports.forEach((report: ReportRecord) => {
-      const maintenanceDate = maintenanceMap.get(report.component_id);
-      if (maintenanceDate) {
-        const createdDate = new Date(report.created_at);
-        const dateKey = createdDate.toISOString().split('T')[0];
-
-        const days =
-          (new Date(maintenanceDate).getTime() -
-            new Date(report.created_at).getTime()) /
-          (1000 * 60 * 60 * 24);
-
-        if (days >= 0) {
-          const existing = dateMap.get(dateKey) ?? {
-            totalDays: 0,
-            count: 0,
-          };
-          dateMap.set(dateKey, {
-            totalDays: existing.totalDays + days,
-            count: existing.count + 1,
-          });
-        }
-      }
-    });
-
-    // Convert to array and sort
-    const trend = Array.from(dateMap.entries())
-      .map(([date, data]) => ({
-        date,
-        averageDays: Math.round((data.totalDays / data.count) * 10) / 10,
+    // groupRepairDataByDate skips a row whose report date will not parse.
+    // Calling toISOString on it here used to throw, and the catch below
+    // then emptied the whole chart over one bad row.
+    const trend = groupRepairDataByDate(
+      reports.map((report) => ({
+        created_at: report.created_at,
+        component_id: report.component_id,
+        last_cleaned_at: maintenanceMap.get(report.component_id),
       }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    ).map(({ date, averageDays }) => ({ date, averageDays }));
 
     return trend;
   } catch (error) {
@@ -383,39 +356,26 @@ export async function getRepairTimeByComponent(): Promise<
     // Fetch maintenance records
     const maintenanceMap = await fetchLastCleanedByComponent();
 
-    // Group by component type
-    const componentMap = new Map<
-      string,
-      { totalDays: number; count: number }
-    >();
+    // Repair days per component type
+    const daysByType = new Map<string, number[]>();
 
     reports.forEach((report: ReportRecord) => {
       const type = report.category || 'inlets'; // Use category column directly
       const maintenanceDate = maintenanceMap.get(report.component_id);
+      if (!maintenanceDate) return;
 
-      if (maintenanceDate) {
-        const days =
-          (new Date(maintenanceDate).getTime() -
-            new Date(report.created_at).getTime()) /
-          (1000 * 60 * 60 * 24);
+      const days = calculateRepairDays(report.created_at, maintenanceDate);
+      if (days === null) return;
 
-        if (days >= 0) {
-          const existing = componentMap.get(type) ?? {
-            totalDays: 0,
-            count: 0,
-          };
-          componentMap.set(type, {
-            totalDays: existing.totalDays + days,
-            count: existing.count + 1,
-          });
-        }
-      }
+      const existing = daysByType.get(type) ?? [];
+      existing.push(days);
+      daysByType.set(type, existing);
     });
 
-    return Array.from(componentMap.entries()).map(([type, data]) => ({
+    return Array.from(daysByType.entries()).map(([type, days]) => ({
       type: type as 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes',
-      averageDays: Math.round((data.totalDays / data.count) * 10) / 10,
-      resolvedCount: data.count,
+      averageDays: calculateAverageDays(days),
+      resolvedCount: days.length,
     }));
   } catch (error) {
     console.error('Error fetching repair time by component:', error);
