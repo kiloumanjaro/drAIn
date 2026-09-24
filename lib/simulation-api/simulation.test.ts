@@ -20,6 +20,10 @@ function result(
     Time_After_Raining_min: 120,
     Vulnerability_Category: 'Medium',
     Vulnerability_Score: 0.6,
+    Barangay: 'Mantuyong',
+    Population_Density: 40480,
+    Exposure_Score: 1,
+    Risk_Score: 0.6,
     ...overrides,
   };
 }
@@ -99,7 +103,15 @@ describe('transformToNodeDetails', () => {
   });
 
   it('leaves exposure null for results that predate it', () => {
-    const [row] = transformToNodeDetails([result()]);
+    // Defensive: the backend always sends these now.
+    const {
+      Barangay: _b,
+      Population_Density: _p,
+      Exposure_Score: _e,
+      Risk_Score: _r,
+      ...older
+    } = result();
+    const [row] = transformToNodeDetails([older as NodeSimulationResult]);
     expect(row.Risk_Score).toBeNull();
     expect(row.Barangay).toBeNull();
   });

@@ -80,12 +80,16 @@ export interface NodeSimulationResult {
   /** Flood hazard: how badly this node floods. 0-1. */
   Vulnerability_Category: string;
   Vulnerability_Score: number;
-  /** Exposure: roughly how many people are around it. */
-  Barangay?: string | null;
-  Population_Density?: number | null;
-  Exposure_Score?: number;
+  /**
+   * Exposure: roughly how many people are around it. Always sent; the
+   * barangay and its density are null for a node outside every barangay.
+   */
+  Barangay: string | null;
+  Population_Density: number | null;
+  /** 0-1. Never null. */
+  Exposure_Score: number;
   /** Hazard x exposure. What a work list should rank on. */
-  Risk_Score?: number;
+  Risk_Score: number;
 }
 
 export interface SimulationResponse {
