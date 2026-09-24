@@ -18,7 +18,8 @@ export interface NodeDetails {
    * depth-duration-frequency curves for this location.
    */
   YR: number | null;
-  Time_Before_Overflow: number;
+  /** Minutes until first overflow, or null if it never overflowed. */
+  Time_Before_Overflow: number | null;
   Hours_Flooded: number;
   Maximum_Rate: number;
   Time_Of_Max_Occurence: number;

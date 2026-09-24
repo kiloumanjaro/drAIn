@@ -271,3 +271,29 @@ describe('runSimulation', () => {
     await expect(settled).resolves.toBe('done');
   });
 });
+
+describe('the never-overflowed sentinel', () => {
+  it('becomes null rather than a 9999 minute measurement', () => {
+    // Stored scenarios predate the backend emitting null, so the client
+    // still has to translate. Served as-is it renders as "9,999" in the
+    // results table for three quarters of all nodes.
+    const [row] = transformToNodeDetails([
+      result({ Time_After_Raining_min: 9999 }),
+    ]);
+    expect(row.Time_Before_Overflow).toBeNull();
+  });
+
+  it('passes a real overflow time through untouched', () => {
+    const [row] = transformToNodeDetails([
+      result({ Time_After_Raining_min: 120 }),
+    ]);
+    expect(row.Time_Before_Overflow).toBe(120);
+  });
+
+  it('accepts null straight from the backend', () => {
+    const [row] = transformToNodeDetails([
+      result({ Time_After_Raining_min: null }),
+    ]);
+    expect(row.Time_Before_Overflow).toBeNull();
+  });
+});

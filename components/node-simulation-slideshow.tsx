@@ -29,7 +29,11 @@ const METRIC_SLIDES: MetricSlide[] = [
   {
     id: 'time_before_overflow',
     title: 'Time Before Overflow',
-    value: (details) => details.Time_Before_Overflow.toFixed(2),
+    // Null means the node never overflowed. It used to read "9999.00 min".
+    value: (details) =>
+      details.Time_Before_Overflow === null
+        ? '—'
+        : details.Time_Before_Overflow.toFixed(2),
     unit: 'min',
     description: 'Time elapsed before flooding occurs',
   },

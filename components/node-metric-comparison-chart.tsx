@@ -53,10 +53,18 @@ export function NodeMetricComparisonChart({
   useEffect(() => {
     const processData = () => {
       try {
-        setTotalNodes(allNodesData.length);
+        // Nodes with no value for this metric are left out entirely. They
+        // used to arrive carrying the 9999 "never overflowed" sentinel, so
+        // a descending sort on time-to-overflow filled the whole chart with
+        // the nodes that never flooded.
+        const measured = allNodesData.filter(
+          (node): node is NodeDetails & Record<typeof metricKey, number> =>
+            typeof node[metricKey] === 'number'
+        );
+        setTotalNodes(measured.length);
 
         // Sort by the specified metric descending
-        const sortedNodes = [...allNodesData].sort(
+        const sortedNodes = [...measured].sort(
           (a, b) => b[metricKey] - a[metricKey]
         );
 

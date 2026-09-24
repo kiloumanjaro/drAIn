@@ -36,7 +36,8 @@ export interface NodeSimulationResult {
   Time_of_Max_days: number;
   Time_of_Max_hr_min: number;
   Total_Flood_Volume_10e6_ltr: number;
-  Time_After_Raining_min: number;
+  /** Minutes until first overflow, or null if it never overflowed. */
+  Time_After_Raining_min: number | null;
   /** Flood hazard: how badly this node floods. 0-1. */
   Vulnerability_Category: string;
   Vulnerability_Score: number;
@@ -88,7 +89,12 @@ export function transformToNodeDetails(
     // duration alone, which made a 10 mm hour and a 200 mm hour both "10YR"
     // — and that guess was then used to look up real historical data.
     YR: null,
-    Time_Before_Overflow: node.Time_After_Raining_min,
+    // Defensive: the stored scenarios predate the change and may still
+    // carry the 9999 sentinel rather than null.
+    Time_Before_Overflow:
+      node.Time_After_Raining_min === NEVER_OVERFLOWED
+        ? null
+        : node.Time_After_Raining_min,
     Hours_Flooded: node.Hours_Flooded,
     Maximum_Rate: node.Maximum_Rate_CMS,
     Time_Of_Max_Occurence: node.Time_of_Max_hr_min,
@@ -99,6 +105,9 @@ export function transformToNodeDetails(
     Risk_Score: node.Risk_Score ?? null,
   }));
 }
+
+/** The sentinel older stored scenarios use for "never overflowed". */
+const NEVER_OVERFLOWED = 9999;
 
 /** Job lifecycle reported by the backend. */
 export type SimulationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
