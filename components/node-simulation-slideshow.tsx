@@ -12,7 +12,8 @@ type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 interface NodeSimulationSlideshowProps {
   nodeId: string;
   onClose: () => void;
-  selectedYear: YearOption;
+  /** The return period, for stored scenarios. A custom storm has none. */
+  selectedYear?: YearOption;
   nodeData: NodeDetails;
   allNodesData: NodeDetails[];
 }

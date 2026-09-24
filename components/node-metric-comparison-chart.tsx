@@ -23,7 +23,8 @@ type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
 interface NodeMetricComparisonChartProps {
   nodeId: string;
-  year: YearOption;
+  /** The return period, for stored scenarios. A custom storm has none. */
+  year?: YearOption;
   metricKey: MetricKey;
   metricLabel: string;
   maxNodes?: number;

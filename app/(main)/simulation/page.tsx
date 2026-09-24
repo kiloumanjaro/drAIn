@@ -1117,28 +1117,9 @@ export default function SimulationPage() {
       return;
     }
 
-    // If selectedYear is not set (model 2 scenario), try to extract it from table data
-    let yearToUse = selectedYear;
-    if (!yearToUse) {
-      // Try to find the year from model 2 table data
-      if (tableData3) {
-        const nodeData = tableData3.find((node) => node.Node_ID === nodeId);
-        if (nodeData && nodeData.YR) {
-          // Only stored scenarios carry a real return period.
-          yearToUse = nodeData.YR as YearOption;
-          setSelectedYear(yearToUse);
-        } else {
-          toast.error(
-            'These results came from a custom storm, which has no return ' +
-              'period. Pick a return period to compare against historical data.'
-          );
-          return;
-        }
-      } else {
-        toast.error('Please select a year or generate simulation data first');
-        return;
-      }
-    }
+    // No return period is needed: the slideshow compares this node against
+    // the others in the same results. It used to insist on one, so a custom
+    // storm, which has none, could not open it at all.
 
     // Step 1: Extract node data and all data from the appropriate table
     const activeTableData = tableData3 || tableData;
@@ -1374,18 +1355,15 @@ export default function SimulationPage() {
         )}
 
         {/* Node Simulation Slideshow */}
-        {slideshowNode &&
-          selectedYear &&
-          slideshowNodeData &&
-          slideshowAllData && (
-            <NodeSimulationSlideshow
-              nodeId={slideshowNode}
-              onClose={handleCloseSlideshowNode}
-              selectedYear={selectedYear}
-              nodeData={slideshowNodeData}
-              allNodesData={slideshowAllData}
-            />
-          )}
+        {slideshowNode && slideshowNodeData && slideshowAllData && (
+          <NodeSimulationSlideshow
+            nodeId={slideshowNode}
+            onClose={handleCloseSlideshowNode}
+            selectedYear={selectedYear ?? undefined}
+            nodeData={slideshowNodeData}
+            allNodesData={slideshowAllData}
+          />
+        )}
 
         {/* Node Parameters Panel - Draggable */}
         {activePanel === 'node' && selectedComponentIds.length > 0 && (
