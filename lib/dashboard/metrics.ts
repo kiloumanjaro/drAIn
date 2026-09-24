@@ -24,15 +24,18 @@ export function daysBetween(
 }
 
 /**
- * The middle value, or null for an empty set.
+ * The middle value, or null for an empty set. Non-finite values are
+ * left out.
  *
  * Median rather than mean throughout: one report left open for a year
  * should not swamp fifty closed the next day.
  */
 export function median(values: number[]): number | null {
-  if (values.length === 0) return null;
+  // Anything non-finite is not a measurement, and NaN would also leave the
+  // sort order, and so the middle, undefined.
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
 
-  const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
 
   return sorted.length % 2 === 0

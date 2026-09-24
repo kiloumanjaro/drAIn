@@ -58,6 +58,17 @@ describe('median', () => {
     expect(median([])).toBeNull();
   });
 
+  it('leaves out values that are not numbers', () => {
+    // NaN makes the sort comparator return NaN, which leaves the order, and
+    // so the middle value, up to the engine.
+    expect(median([NaN, 5, 1, NaN, 3])).toBe(3);
+    expect(median([Infinity, 2, 4])).toBe(3);
+  });
+
+  it('returns null when nothing in the set is a number', () => {
+    expect(median([NaN, NaN])).toBeNull();
+  });
+
   it('does not reorder its input', () => {
     const values = [5, 1, 3];
     median(values);
