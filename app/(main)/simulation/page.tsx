@@ -481,8 +481,8 @@ export default function SimulationPage() {
     const newParams = new Map(componentParams);
     const current =
       newParams.get(id) ??
+      // No invert elevation: left unset, the model keeps its own.
       ({
-        inv_elev: 0,
         init_depth: 0,
         ponding_area: 0,
         surcharge_depth: 0,

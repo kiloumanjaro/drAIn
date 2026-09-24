@@ -36,7 +36,8 @@ import { toast } from 'sonner';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 
 export interface NodeParams {
-  inv_elev: number;
+  /** Unset when the asset data has none; the model's own value is used. */
+  inv_elev?: number;
   init_depth: number;
   ponding_area: number;
   surcharge_depth: number;
@@ -87,6 +88,17 @@ interface Model3Props {
   onToggleRain?: (enabled: boolean) => void;
   isFloodPropagationActive?: boolean;
   onToggleFloodPropagation?: (enabled: boolean) => void;
+}
+
+/**
+ * An asset's recorded invert elevation, or undefined when it has none. A
+ * missing one used to become 0 m, which was then sent to the model as a
+ * real elevation.
+ */
+function knownElevation(value: number | null | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 export const DEFAULT_NODE_PARAMS: NodeParams = {
@@ -172,7 +184,7 @@ export default function Model3({
 
         if (inlet) {
           newParams.set(id, {
-            inv_elev: inlet.Inv_Elev || 0,
+            inv_elev: knownElevation(inlet.Inv_Elev),
             init_depth: 0,
             ponding_area: 0,
             surcharge_depth: 0,
@@ -181,7 +193,7 @@ export default function Model3({
           paramsChanged = true;
         } else if (drain) {
           newParams.set(id, {
-            inv_elev: drain.InvElev || 0,
+            inv_elev: knownElevation(drain.InvElev),
             init_depth: 0,
             ponding_area: 0,
             surcharge_depth: 0,

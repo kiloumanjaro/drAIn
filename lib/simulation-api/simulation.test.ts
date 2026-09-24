@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runSimulation, transformToNodeDetails } from './simulation';
+import {
+  buildSimulationRequest,
+  runSimulation,
+  transformToNodeDetails,
+} from './simulation';
 import type { NodeSimulationResult } from './simulation';
 
 function result(
@@ -112,6 +116,42 @@ describe('transformToNodeDetails', () => {
   });
 });
 
+describe('buildSimulationRequest', () => {
+  it('passes set values through, zeros included', () => {
+    expect(
+      buildSimulationRequest(
+        { 'I-1': { inv_elev: 3.2, init_depth: 0 } },
+        { 'C-1': { init_flow: 0.4 } },
+        { total_precip: 120, duration_hr: 6 }
+      )
+    ).toEqual({
+      nodes: { 'I-1': { inv_elev: 3.2, init_depth: 0 } },
+      links: { 'C-1': { init_flow: 0.4 } },
+      rainfall: { total_precip: 120, duration_hr: 6 },
+    });
+  });
+
+  it('leaves out values that are not set rather than sending them', () => {
+    // A missing invert elevation used to be filled in as 0 m, which the
+    // model then took literally.
+    const request = buildSimulationRequest(
+      {
+        'I-1': {
+          inv_elev: undefined,
+          init_depth: NaN,
+          ponding_area: null as unknown as number,
+          surcharge_depth: 1,
+        },
+      },
+      {},
+      { total_precip: 50, duration_hr: undefined }
+    );
+    expect(request.nodes).toEqual({ 'I-1': { surcharge_depth: 1 } });
+    expect(request.rainfall).toEqual({ total_precip: 50 });
+    expect(JSON.stringify(request)).not.toMatch(/null|NaN/);
+  });
+});
+
 describe('runSimulation', () => {
   const NODES = {};
   const LINKS = {};
@@ -200,6 +240,27 @@ describe('runSimulation', () => {
       nodes: NODES,
       links: LINKS,
       rainfall: RAINFALL,
+    });
+  });
+
+  it('sends only the values that are set', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(
+        state('succeeded', { result: { nodes_list: [] } })
+      );
+
+    await runToCompletion(
+      runSimulation({ 'I-1': { inv_elev: undefined, init_depth: 2 } }, LINKS, {
+        total_precip: 400,
+        duration_hr: NaN,
+      })
+    );
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      nodes: { 'I-1': { init_depth: 2 } },
+      links: {},
+      rainfall: { total_precip: 400 },
     });
   });
 
