@@ -42,7 +42,7 @@ Explain underlying datasets, AI processes, and simulation mechanics accurately.
 
 🌐 Overview of drAin
 
-drAin models and visualizes how rainfall interacts with drainage networks using satellite data, SWMM simulations, and AI clustering to identify vulnerabilities.
+drAin models and visualizes how rainfall interacts with drainage networks using satellite data, SWMM simulations, and flood hazard scoring weighted by population exposure to identify vulnerabilities.
 It helps cities predict flood risks, test design changes, and prioritize maintenance through data-driven simulation and visualization.
 
 Tagline: Where AI Meets the Flow — Predict, Simulate, and Strengthen Urban Drainage Systems.
@@ -97,7 +97,7 @@ It includes two major simulation models:
 
 Displays pre-simulated SWMM rainfall–runoff analyses for the Mandaue drainage network.
 
-Presents flooding summaries, overflow times, and AI-based vulnerability classifications (No Risk → High).
+Presents flooding summaries, overflow times, and flood hazard ratings (No Risk → High Risk).
 
 Users can select rainfall return periods (5, 15, 25, 50, 100 years).
 
@@ -255,7 +255,7 @@ Data Integration: Combines DEM, rainfall, land cover, and drainage datasets.
 
 Simulation Engine (SWMM): Performs rainfall–runoff–flood modeling.
 
-AI Model (K-Means): Classifies drainage assets by vulnerability.
+Hazard and Risk Scoring: Scores each drainage asset by how severely it floods, with a transparent hazard score, then weights it by how many people are nearby.
 
 Visualization Layer: Displays simulation results and overlays.
 
@@ -271,7 +271,7 @@ Deployment: Vercel (Frontend), Render (Backend)
 
 Simulation Engine: SWMM
 
-AI Component: K-Means clustering
+Rating: transparent flood hazard score weighted by population exposure (K-Means kept only for legacy comparison)
 
 Build Tool: Turbopack
 

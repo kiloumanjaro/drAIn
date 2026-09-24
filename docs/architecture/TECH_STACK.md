@@ -229,7 +229,9 @@ Complete breakdown of all technologies, libraries, and tools used in the drAIn p
 ### Custom ML Models (Railway Backend)
 
 - **Framework**: scikit-learn (Python)
-- **Models**: K-Means clustering for vulnerability ranking
+- **Models**: K-Means clustering, kept only for the legacy `Legacy_Cluster_*`
+  fields. It no longer does the rating: that is a transparent hazard score
+  (flood volume, duration, peak rate) weighted by population exposure.
 - **Purpose**: Flood prediction and risk assessment
 - **Why**: Industry standard, well-documented
 

@@ -63,7 +63,7 @@ The project moves beyond simple hazard mapping by integrating **SWMM-based (Stor
 
 Urban flooding is a critical problem, often caused by heavy rainfall and poor drainage maintenance. While many existing tools focus on flood hazard mapping or risk assessment, they often remain theoretical. They typically lack real-time data integration, community participation, and operational decision support.
 
-- 🧠 **Machine learning - Driven Vulnerability Ranking:** Assesses each drainage component using metrics like flooding volume and overflow duration. It then applies machine learning (K-Means clustering) to classify and rank structural vulnerabilities.
+- 🧠 **Flood Hazard and Risk Ranking:** Scores each drainage component by how severely it floods in simulation (flood volume, how long it stays flooded, peak rate), using a transparent hazard score rather than clustering. That hazard is then weighted by how many people live nearby, so work lists rank on risk, not on flooding alone.
 - 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to simulate the impact of rainfall or structural changes in real time.
 - 👥 **Community Participation:** Incorporates citizen reporting, allowing communities to contribute real-world drainage data for model validation and maintenance tracking.
 - 📊 **Actionable Intelligence:** Converts complex simulation data into clear, actionable intelligence for engineers and planners to make informed decisions.

@@ -82,7 +82,8 @@ export function SimulationSection() {
             title: 'No Risk',
             description:
               'Drainage nodes with no predicted flooding under simulated rainfall conditions',
-            tooltip: 'Safe zones with adequate drainage capacity',
+            tooltip:
+              'No overflow under this storm. Not a guarantee the location is safe',
             iconColor: 'text-green-500',
           },
           {
