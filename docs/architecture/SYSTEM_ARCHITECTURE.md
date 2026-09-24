@@ -194,7 +194,7 @@ Component Re-render
 
 - `app/(main)/map/page.tsx` - Main map page
 - `lib/map/config.ts` - Mapbox configuration
-- `components/report-bubble.tsx` - Report markers
+- `components/map/report-bubble.tsx` - Report markers
 
 **Flow:**
 
@@ -211,7 +211,7 @@ Component Re-render
 
 - `app/(main)/simulation/page.tsx` - Simulation UI
 - `lib/simulation-api/simulation.ts` - API client
-- `components/model-viewer.tsx` - 3D visualization
+- `components/simulation/model-viewer.tsx` - 3D visualization
 
 **Flow:**
 

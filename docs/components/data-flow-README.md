@@ -18,7 +18,8 @@ An animated SVG component that displays a flowing data pipeline with an optional
 The component is already included in the project at:
 
 ```
-components/data-flow.tsx
+components/landing/data-flow.tsx        # the component
+components/landing/data-flow.paths.ts   # the traced map geometry
 ```
 
 ## Usage
@@ -26,7 +27,7 @@ components/data-flow.tsx
 ### Basic Usage (No Map)
 
 ```tsx
-import DataFlowPipeline from '@/components/data-flow';
+import DataFlowPipeline from '@/components/landing/data-flow';
 
 export default function MyPage() {
   return (

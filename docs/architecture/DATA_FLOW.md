@@ -95,12 +95,12 @@ User Fills Report Form
 
 **Key Files:**
 
-- [components/submit-tab.tsx](../../components/submit-tab.tsx)
+- [components/reports/submit-tab.tsx](../../components/reports/submit-tab.tsx)
 - [components/control-panel/tabs/reports-content.tsx](../../components/control-panel/tabs/reports-content.tsx)
 - [lib/reports/extract-exif.ts](../../lib/reports/extract-exif.ts)
 - [lib/supabase/report.ts](../../lib/supabase/report.ts)
 - [components/context/report-provider.tsx](../../components/context/report-provider.tsx)
-- [components/report-bubble.tsx](../../components/report-bubble.tsx)
+- [components/map/report-bubble.tsx](../../components/map/report-bubble.tsx)
 
 **API Call:**
 
@@ -167,8 +167,8 @@ User Configures Parameters
 
 - [app/(main)/simulation/page.tsx](../../app/%28main%29/simulation/page.tsx)
 - [lib/simulation-api/simulation.ts](../../lib/simulation-api/simulation.ts)
-- [components/vulnerability-data-table.tsx](../../components/vulnerability-data-table.tsx)
-- [components/model-viewer.tsx](../../components/model-viewer.tsx)
+- [components/simulation/vulnerability-data-table.tsx](../../components/simulation/vulnerability-data-table.tsx)
+- [components/simulation/model-viewer.tsx](../../components/simulation/model-viewer.tsx)
 
 **Request Format:**
 
