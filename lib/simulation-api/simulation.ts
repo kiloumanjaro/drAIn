@@ -2,6 +2,7 @@
 import type { NodeDetails } from '@/types/simulation';
 
 import { type HazardLevel, normaliseHazardCategory } from './hazard-category';
+import { normaliseOverflowMinutes } from './overflow';
 
 // Import NodeDetails type from vulnerability data table
 
@@ -96,10 +97,7 @@ export function transformToNodeDetails(
     YR: null,
     // Defensive: the stored scenarios predate the change and may still
     // carry the 9999 sentinel rather than null.
-    Time_Before_Overflow:
-      node.Time_After_Raining_min === NEVER_OVERFLOWED
-        ? null
-        : node.Time_After_Raining_min,
+    Time_Before_Overflow: normaliseOverflowMinutes(node.Time_After_Raining_min),
     Hours_Flooded: node.Hours_Flooded,
     Maximum_Rate: node.Maximum_Rate_CMS,
     Time_Of_Max_Occurence: node.Time_of_Max_hr_min,
@@ -110,9 +108,6 @@ export function transformToNodeDetails(
     Risk_Score: node.Risk_Score ?? null,
   }));
 }
-
-/** The sentinel older stored scenarios use for "never overflowed". */
-const NEVER_OVERFLOWED = 9999;
 
 /** Job lifecycle reported by the backend. */
 export type SimulationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
