@@ -4,7 +4,13 @@ import {
   calculateRepairDays,
   groupRepairDataByDate,
 } from './calculations';
-import { daysBetween, median } from './metrics';
+import {
+  daysBetween,
+  indexMaintenanceDates,
+  lookupMaintenanceDate,
+  median,
+  type MaintenanceDateIndex,
+} from './metrics';
 import type { Report } from '@/lib/supabase/report';
 
 export interface OverviewMetrics {
@@ -55,8 +61,8 @@ export interface TeamPerformanceData {
   medianDaysToResolve: number | null;
 }
 
-/** When each maintenance record was carried out, keyed by its id. */
-async function fetchMaintenanceDates(): Promise<Map<string, string>> {
+/** When each maintenance record was carried out, by table and id. */
+async function fetchMaintenanceDates(): Promise<MaintenanceDateIndex> {
   const results = await Promise.all(
     MAINTENANCE_TABLES.map(
       ({ table }) =>
@@ -66,13 +72,12 @@ async function fetchMaintenanceDates(): Promise<Map<string, string>> {
     )
   );
 
-  const dates = new Map<string, string>();
-  for (const { data } of results) {
-    for (const record of data ?? []) {
-      if (record.id) dates.set(String(record.id), record.last_cleaned_at);
-    }
-  }
-  return dates;
+  return indexMaintenanceDates(
+    results.map(({ data }, i) => ({
+      table: MAINTENANCE_TABLES[i].table,
+      rows: data ?? [],
+    }))
+  );
 }
 
 export interface ReportWithMetadata extends Report {
@@ -409,7 +414,9 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
     const { data: reports } = (await client
       .from('reports')
-      .select('id, status, user_id, created_at, resolved_by_maintenance_id')
+      .select(
+        'id, status, user_id, created_at, resolved_by_maintenance_id, resolved_by_maintenance_type'
+      )
       .in('user_id', [...agencyIdByUser.keys()])) as {
       data: Array<{
         id: string;
@@ -417,6 +424,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
         user_id: string;
         created_at: string | null;
         resolved_by_maintenance_id: string | null;
+        resolved_by_maintenance_type: string | null;
       }> | null;
     };
 
@@ -441,10 +449,12 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
         // Time to resolve comes from the maintenance record that closed the
         // report, which is the only timestamp for when work actually
         // happened.
-        const closedAt = report.resolved_by_maintenance_id
-          ? maintenanceDates.get(String(report.resolved_by_maintenance_id))
-          : null;
-        const days = daysBetween(report.created_at, closedAt ?? null);
+        const closedAt = lookupMaintenanceDate(
+          maintenanceDates,
+          report.resolved_by_maintenance_id,
+          report.resolved_by_maintenance_type
+        );
+        const days = daysBetween(report.created_at, closedAt);
         if (days !== null) tally.durations.push(days);
       }
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { daysBetween, median } from './metrics';
+import {
+  daysBetween,
+  indexMaintenanceDates,
+  lookupMaintenanceDate,
+  median,
+} from './metrics';
 
 describe('daysBetween', () => {
   it('measures whole days', () => {
@@ -57,5 +62,48 @@ describe('median', () => {
     const values = [5, 1, 3];
     median(values);
     expect(values).toEqual([5, 1, 3]);
+  });
+});
+
+describe('maintenance date lookup', () => {
+  const index = indexMaintenanceDates([
+    {
+      table: 'inlets_maintenance',
+      rows: [{ id: 1, last_cleaned_at: '2026-01-02T00:00:00Z' }],
+    },
+    {
+      table: 'outlets_maintenance',
+      rows: [
+        { id: 1, last_cleaned_at: '2026-03-09T00:00:00Z' },
+        { id: 2, last_cleaned_at: '2026-03-10T00:00:00Z' },
+      ],
+    },
+  ]);
+
+  it('finds the record in the table the report names', () => {
+    // Each maintenance table numbers its own rows, so id 1 exists in both.
+    // Keyed by id alone, the last table read won and the inlet report
+    // was measured against the outlet's date.
+    expect(lookupMaintenanceDate(index, '1', 'inlets_maintenance')).toBe(
+      '2026-01-02T00:00:00Z'
+    );
+    expect(lookupMaintenanceDate(index, 1, 'outlets_maintenance')).toBe(
+      '2026-03-09T00:00:00Z'
+    );
+  });
+
+  it('falls back to the id alone when the report names no table', () => {
+    expect(lookupMaintenanceDate(index, '2', null)).toBe(
+      '2026-03-10T00:00:00Z'
+    );
+  });
+
+  it('refuses to guess when the id alone is ambiguous', () => {
+    expect(lookupMaintenanceDate(index, '1', null)).toBeNull();
+  });
+
+  it('returns null for no id or an unknown one', () => {
+    expect(lookupMaintenanceDate(index, null, 'inlets_maintenance')).toBeNull();
+    expect(lookupMaintenanceDate(index, '9', 'inlets_maintenance')).toBeNull();
   });
 });

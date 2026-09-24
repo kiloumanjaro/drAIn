@@ -277,4 +277,31 @@ describe('getTeamPerformance', () => {
 
     expect(alpha.medianDaysToResolve).toBe(2);
   });
+
+  it('reads the closing date from the table the report names', async () => {
+    // Two tables with a record numbered 1. Keyed by id alone, the outlet
+    // record (read later) answered for the inlet report too.
+    respondWith(
+      [
+        report('u1', 'resolved', {
+          created_at: '2026-01-01T00:00:00Z',
+          resolved_by_maintenance_id: 1,
+          resolved_by_maintenance_type: 'inlets_maintenance',
+        }),
+      ],
+      {
+        ...AGENCIES,
+        inlets_maintenance: [
+          { id: 1, last_cleaned_at: '2026-01-03T00:00:00Z' },
+        ],
+        outlets_maintenance: [
+          { id: 1, last_cleaned_at: '2026-03-01T00:00:00Z' },
+        ],
+      }
+    );
+
+    const [alpha] = await getTeamPerformance();
+
+    expect(alpha.medianDaysToResolve).toBe(2);
+  });
 });
