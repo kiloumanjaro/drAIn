@@ -116,6 +116,14 @@ describe('transformToNodeDetails', () => {
     expect(row.Barangay).toBeNull();
   });
 
+  it('reports no cluster for a live run, rather than cluster 0', () => {
+    // The k-means clusters belong to the stored scenarios. Zero used to
+    // show in both cluster columns for every node of a live run.
+    const [row] = transformToNodeDetails([result()]);
+    expect(row.Cluster).toBeNull();
+    expect(row.Cluster_Score).toBeNull();
+  });
+
   it('reports no return period for a custom storm', () => {
     // It used to guess one from the duration alone, so a 10 mm hour and a
     // 200 mm hour both came out "10YR" — and that guess was then used to
