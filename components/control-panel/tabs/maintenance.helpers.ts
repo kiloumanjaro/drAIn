@@ -98,14 +98,57 @@ export function checkMaintenancePhoto(
   measureDistanceM: (from: [number, number], to: [number, number]) => number,
   now: Date = new Date()
 ): PhotoCheck {
-  if (!exif.date) {
+  // The time and the place are checked independently. A missing timestamp
+  // used to end the check before the distance was looked at, so a photo
+  // taken 5 km away passed as merely unverified.
+  const findings = [
+    checkPhotoAge(exif.date, now),
+    checkPhotoPlace(exif, assetCoordinates, measureDistanceM),
+  ];
+
+  // Evidence of a problem outranks absence of evidence.
+  const rejections = findings.filter((f) => f?.outcome === 'rejected');
+  if (rejections.length > 0) {
+    return rejected(rejections.map((f) => f!.reason).join(' '));
+  }
+
+  const gaps = findings.filter((f) => f?.outcome === 'unverifiable');
+  if (gaps.length > 0) {
     return unverifiable(
-      'This image carries no timestamp, so the time it was taken could not ' +
-        'be confirmed. It will be submitted and marked unverified.'
+      gaps.map((f) => f!.reason).join(' ') +
+        ' It will be submitted and marked unverified.'
     );
   }
 
-  const hoursOld = (now.getTime() - exif.date.getTime()) / (1000 * 60 * 60);
+  return VERIFIED;
+}
+
+/**
+ * A timestamp worth checking: a real date, and not the EXIF zero date
+ * ("0000:00:00") that a camera with an unset clock writes, which parses
+ * to 1899.
+ */
+function isUsablePhotoDate(date: Date | null | undefined): date is Date {
+  return (
+    date instanceof Date &&
+    !Number.isNaN(date.getTime()) &&
+    date.getFullYear() >= 2000
+  );
+}
+
+/** Null when the photo's age is fine. */
+function checkPhotoAge(
+  date: Date | null | undefined,
+  now: Date
+): PhotoCheck | null {
+  if (!isUsablePhotoDate(date)) {
+    return unverifiable(
+      'This image carries no timestamp, so the time it was taken could not ' +
+        'be confirmed.'
+    );
+  }
+
+  const hoursOld = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
   if (hoursOld > MAINTENANCE_PHOTO_MAX_AGE_HOURS) {
     return rejected(
       `This image was taken ${Math.round(hoursOld)} hours ago. Evidence must ` +
@@ -117,17 +160,25 @@ export function checkMaintenancePhoto(
       'This image is dated in the future. Check the device date and retake it.'
     );
   }
+  return null;
+}
 
-  const hasLocation =
-    exif.latitude !== null &&
-    exif.latitude !== undefined &&
-    exif.longitude !== null &&
-    exif.longitude !== undefined;
-
-  if (!hasLocation) {
+/** Null when the photo was taken close enough to the asset. */
+function checkPhotoPlace(
+  exif: PhotoExif,
+  assetCoordinates: readonly [number, number][],
+  measureDistanceM: (from: [number, number], to: [number, number]) => number
+): PhotoCheck | null {
+  const { latitude, longitude } = exif;
+  if (
+    typeof latitude !== 'number' ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
     return unverifiable(
       'This image carries no location, so it could not be matched to the ' +
-        'selected asset. It will be submitted and marked unverified.'
+        'selected asset.'
     );
   }
 
@@ -135,11 +186,11 @@ export function checkMaintenancePhoto(
     // Our gap, not the submitter's.
     return unverifiable(
       'The selected asset has no recorded location, so the image could not ' +
-        'be matched to it. It will be submitted and marked unverified.'
+        'be matched to it.'
     );
   }
 
-  const from: [number, number] = [exif.longitude!, exif.latitude!];
+  const from: [number, number] = [longitude, latitude];
   const nearest = Math.min(
     ...assetCoordinates.map((to) => measureDistanceM(from, to))
   );
@@ -150,8 +201,7 @@ export function checkMaintenancePhoto(
         `Evidence must be from within ${MAINTENANCE_PHOTO_MAX_DISTANCE_M} m.`
     );
   }
-
-  return VERIFIED;
+  return null;
 }
 
 /** Note appended to a record whose photo could not be checked. */
