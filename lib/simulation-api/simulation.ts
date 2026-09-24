@@ -1,6 +1,8 @@
 // swmmApi.ts
 import type { NodeDetails } from '@/types/simulation';
 
+import { type HazardLevel, normaliseHazardCategory } from './hazard-category';
+
 // Import NodeDetails type from vulnerability data table
 
 // Type definitions for the API
@@ -71,13 +73,14 @@ export function transformToNodeDetails(
   // Rank follows the category, which is authoritative. It used to be
   // thresholded off the raw score at 4/1/0, values the score no longer
   // takes — every node would now come back rank 1 or 2.
-  const RANK_BY_CATEGORY: Record<string, number> = {
+  const RANK_BY_LEVEL: Record<HazardLevel, number> = {
     high: 4,
     medium: 3,
     low: 2,
+    none: 1,
   };
   const getHazardRank = (category: string): number =>
-    RANK_BY_CATEGORY[category.trim().toLowerCase()] ?? 1;
+    RANK_BY_LEVEL[normaliseHazardCategory(category)];
 
   return nodesList.map((node) => ({
     Node_ID: node.Node,

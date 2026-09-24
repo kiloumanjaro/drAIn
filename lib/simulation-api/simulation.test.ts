@@ -55,6 +55,21 @@ describe('transformToNodeDetails', () => {
     expect(row.Vulnerability_Rank).toBe(4);
   });
 
+  it.each([
+    ['High Risk', 4],
+    ['Medium Risk', 3],
+    ['Low Risk', 2],
+    ['No Risk', 1],
+    ['  HIGH ', 4],
+    ['medium', 3],
+    ['low	', 2],
+  ])('ranks %j the same as the live label', (category, rank) => {
+    const [row] = transformToNodeDetails([
+      result({ Vulnerability_Category: category }),
+    ]);
+    expect(row.Vulnerability_Rank).toBe(rank);
+  });
+
   it('tolerates an unrecognised category', () => {
     const [row] = transformToNodeDetails([
       result({ Vulnerability_Category: 'N/A' }),

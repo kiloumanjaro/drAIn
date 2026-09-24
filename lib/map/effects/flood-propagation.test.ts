@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildNodeFloodFeatures } from './flood-propagation';
+import {
+  buildNodeFloodFeatures,
+  floodHeatmapWeight,
+} from './flood-propagation';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
 
 function node(id: string, floodVolume: number): NodeDetails {
@@ -83,5 +86,28 @@ describe('buildNodeFloodFeatures', () => {
 
   it('returns nothing for no results', () => {
     expect(buildNodeFloodFeatures([], locations)).toEqual([]);
+  });
+});
+
+describe('floodHeatmapWeight', () => {
+  it.each([
+    // A live simulation's categories. These used to all fall through to the
+    // 0.2 floor, because the heatmap only knew the stored "X Risk" labels.
+    ['High', 5],
+    ['Medium', 1.5],
+    ['Low', 0.6],
+    ['No hazard', 0.2],
+    // The stored scenarios' categories.
+    ['High Risk', 5],
+    ['Medium Risk', 1.5],
+    ['Low Risk', 0.6],
+    ['No Risk', 0.2],
+  ])('weights a %s node at %s', (category, weight) => {
+    expect(floodHeatmapWeight(category)).toBe(weight);
+  });
+
+  it('puts the weight on each point for the heatmap to read', () => {
+    const [feature] = buildNodeFloodFeatures([node('I-1', 5)], locations);
+    expect(feature.properties?.hazardWeight).toBe(5);
   });
 });

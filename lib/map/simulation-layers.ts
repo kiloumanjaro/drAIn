@@ -149,16 +149,9 @@ export function addSimulationLayers(map: mapboxgl.Map): void {
         'heatmap-weight': [
           '*',
           ['coalesce', ['get', 'pulseMultiplier'], 1],
-          [
-            'case',
-            ['==', ['get', 'vulnerability'], 'High Risk'],
-            5.0,
-            ['==', ['get', 'vulnerability'], 'Medium Risk'],
-            1.5,
-            ['==', ['get', 'vulnerability'], 'Low Risk'],
-            0.6,
-            0.2,
-          ],
+          // Set per point by floodHeatmapWeight, which reads both the live
+          // and the stored category labels.
+          ['coalesce', ['get', 'hazardWeight'], 0.2],
         ],
         'heatmap-intensity': [
           'interpolate',

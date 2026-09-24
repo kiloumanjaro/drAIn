@@ -5,6 +5,10 @@ import {
   isPointTooCloseToNodes,
   samplePointsFromLine,
 } from '@/app/(main)/simulation/page.helpers';
+import {
+  type HazardLevel,
+  normaliseHazardCategory,
+} from '@/lib/simulation-api/hazard-category';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
 
 export interface FloodPropagationFeatures {
@@ -33,6 +37,25 @@ const LAYERS = {
 /** Mapbox needs a moment after a style change before sources resolve. */
 const INITIAL_DELAY_MS = 500;
 const RETRY_DELAY_MS = 300;
+
+/** How strongly each hazard band pulls the flood heatmap. */
+const HEATMAP_WEIGHT_BY_LEVEL: Record<HazardLevel, number> = {
+  high: 5,
+  medium: 1.5,
+  low: 0.6,
+  none: 0.2,
+};
+
+/**
+ * Heatmap weight for a node's hazard category.
+ *
+ * Works on either vocabulary: a live run's "High" and a stored scenario's
+ * "High Risk" weigh the same. The heatmap used to match the stored labels
+ * exactly, so every node of a live run got the 0.2 floor.
+ */
+export function floodHeatmapWeight(category: string): number {
+  return HEATMAP_WEIGHT_BY_LEVEL[normaliseHazardCategory(category)];
+}
 
 function asFeatureCollection(
   features: GeoJSON.Feature[]
@@ -71,6 +94,7 @@ export function buildNodeFloodFeatures(
           source: 'node',
           nodeId: node.Node_ID,
           vulnerability: node.Vulnerability_Category,
+          hazardWeight: floodHeatmapWeight(node.Vulnerability_Category),
           floodVolume: node.Total_Flood_Volume,
           maximumRate: node.Maximum_Rate,
           hoursFlooded: node.Hours_Flooded,
