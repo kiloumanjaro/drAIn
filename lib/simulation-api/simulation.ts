@@ -83,8 +83,10 @@ export function transformToNodeDetails(
     Node_ID: node.Node,
     Vulnerability_Category: node.Vulnerability_Category,
     Vulnerability_Rank: getHazardRank(node.Vulnerability_Category),
-    Cluster: 0, // Not provided by Model 2 API
-    Cluster_Score: 0, // Not provided by Model 2 API
+    // The k-means clusters belong to the stored per-return-period
+    // scenarios. A live simulation has none, and zero read as a value.
+    Cluster: null,
+    Cluster_Score: null,
     // A custom storm has no return period. It used to be guessed from the
     // duration alone, which made a 10 mm hour and a 200 mm hour both "10YR"
     // — and that guess was then used to look up real historical data.

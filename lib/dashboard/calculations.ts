@@ -5,14 +5,19 @@
 export function calculateRepairDays(
   createdAt: string | Date,
   lastCleanedAt: string | Date
-): number {
+): number | null {
   const created = new Date(createdAt).getTime();
   const cleaned = new Date(lastCleanedAt).getTime();
 
-  const differenceMs = cleaned - created;
-  const days = differenceMs / (1000 * 60 * 60 * 24);
+  // An unparseable date used to yield NaN, which then poisoned every
+  // average it was summed into.
+  if (Number.isNaN(created) || Number.isNaN(cleaned)) return null;
 
-  // Round to 1 decimal place
+  // Work recorded before the report it closes means the link is wrong, not
+  // that it was fixed in advance. Counting it would drag averages down.
+  if (cleaned < created) return null;
+
+  const days = (cleaned - created) / (1000 * 60 * 60 * 24);
   return Math.round(days * 10) / 10;
 }
 
@@ -62,12 +67,16 @@ export function groupRepairDataByDate(
     if (!report.last_cleaned_at) return;
 
     const createdDate = new Date(report.created_at);
+    // toISOString throws on an invalid date rather than returning NaN, so
+    // one malformed row would take the whole chart down.
+    if (Number.isNaN(createdDate.getTime())) return;
     const dateKey = createdDate.toISOString().split('T')[0];
 
     const repairDays = calculateRepairDays(
       report.created_at,
       report.last_cleaned_at
     );
+    if (repairDays === null) return;
 
     const existing = dateMap.get(dateKey);
 

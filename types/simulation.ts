@@ -9,8 +9,12 @@ export interface NodeDetails {
   Node_ID: string;
   Vulnerability_Category: string;
   Vulnerability_Rank: number;
-  Cluster: number;
-  Cluster_Score: number;
+  /**
+   * k-means cluster from the stored per-return-period scenarios. `null` for
+   * a live simulation, which does not produce one.
+   */
+  Cluster: number | null;
+  Cluster_Score: number | null;
   /**
    * Rainfall return period, in years, when the results came from a stored
    * scenario built for one. `null` for a custom storm, where the user gave
