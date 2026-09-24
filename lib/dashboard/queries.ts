@@ -157,10 +157,12 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
 
     // These four are independent, so they go out together rather than one
     // after another.
+    // The first three are head-only counts: they return no rows, only a
+    // count. Reading data?.length off them always gave 0.
     const [
-      { data: fixedData },
-      { data: pendingData },
-      { data: adminData },
+      { count: fixedCount },
+      { count: pendingCount },
+      { count: adminCount },
       { data: allReports },
     ] = await Promise.all([
       client
@@ -210,10 +212,10 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
       resolvedCount > 0 ? Math.round((totalDays / resolvedCount) * 10) / 10 : 0;
 
     return {
-      fixedThisMonth: fixedData?.length ?? 0,
-      pendingIssues: pendingData?.length ?? 0,
+      fixedThisMonth: fixedCount ?? 0,
+      pendingIssues: pendingCount ?? 0,
       averageRepairDays,
-      totalAdmins: adminData?.length ?? 0,
+      totalAdmins: adminCount ?? 0,
     };
   } catch (error) {
     console.error('Error fetching overview metrics:', error);
