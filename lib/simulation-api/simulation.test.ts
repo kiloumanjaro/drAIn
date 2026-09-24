@@ -285,6 +285,112 @@ describe('runSimulation', () => {
     await vi.advanceTimersByTimeAsync(25_000);
     await expect(settled).resolves.toBe('done');
   });
+  it('keeps polling a job that sits in the queue for a quarter of an hour', async () => {
+    // The backend queue can hold a job for 16-30 minutes. The client used
+    // to give up after 10 and report a run that was still coming.
+    const result = { nodes_list: [] };
+    let polls = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith('/simulations')) return accepted();
+      polls += 1;
+      const elapsedMin = (polls * 3) / 60;
+      return elapsedMin < 20 ? state('queued') : state('succeeded', { result });
+    });
+
+    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const settled = promise.then(
+      (value) => ({ ok: true as const, value }),
+      (error) => ({ ok: false as const, error })
+    );
+    await vi.advanceTimersByTimeAsync(21 * 60 * 1000);
+
+    await expect(settled).resolves.toEqual({ ok: true, value: result });
+  });
+
+  it('gives up once the job has had half an hour', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/simulations') ? accepted() : state('running')
+    );
+
+    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const settled = promise.then(
+      () => 'resolved',
+      (error: Error) => error.message
+    );
+    await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
+    await expect(
+      Promise.race([settled, Promise.resolve('pending')])
+    ).resolves.toBe('pending');
+
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+    await expect(settled).resolves.toMatch(/did not finish in time/i);
+  });
+
+  it('reports a failed poll other than an expired result', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(jsonResponse({ detail: 'oops' }, { status: 502 }));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow(/progress \(HTTP 502\)/);
+  });
+
+  it('gives a generic reason when a failed run carries none', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(state('failed', { error: null }));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow('The simulation failed.');
+  });
+
+  it('rejects when the network request itself fails', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow('Failed to fetch');
+  });
+
+  it('rejects when a poll cannot reach the server', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow('Failed to fetch');
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['zero', '0'],
+    ['not a number', 'soon'],
+    ['an HTTP date', 'Wed, 21 Oct 2026 07:28:00 GMT'],
+  ])(
+    'polls every 3 seconds when Retry-After is %s',
+    async (_case, retryAfter) => {
+      fetchMock
+        .mockResolvedValueOnce(
+          accepted(
+            retryAfter === undefined ? {} : { 'Retry-After': retryAfter }
+          )
+        )
+        .mockResolvedValueOnce(
+          state('succeeded', { result: { nodes_list: [] } })
+        );
+
+      const settled = runSimulation(NODES, LINKS, RAINFALL).then(() => 'done');
+
+      await vi.advanceTimersByTimeAsync(2_900);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      await expect(settled).resolves.toBe('done');
+    }
+  );
 });
 
 describe('the never-overflowed sentinel', () => {

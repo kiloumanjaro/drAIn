@@ -129,10 +129,12 @@ interface JobState {
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 
 /**
- * Give up after this long. A run is around two minutes; well past that and
+ * Give up after this long. A run is around two minutes, but a job can sit
+ * in the backend's queue behind others for 16-30 minutes first; stopping at
+ * 10 reported a failure for runs that were still coming. Well past 30 and
  * something is wrong, and we would rather say so than poll forever.
  */
-const POLL_TIMEOUT_MS = 10 * 60 * 1000;
+const POLL_TIMEOUT_MS = 30 * 60 * 1000;
 
 function apiBaseUrl(): string {
   return API_BASE_URL?.replace(/\/$/, '') || '';
