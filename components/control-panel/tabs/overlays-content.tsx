@@ -19,12 +19,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { OverlayLegend } from '../../overlay-legend';
-import { ChartPieDonutText } from '../../chart-pie';
-import { ReportsToggle } from '../../reports-toggle';
-import { FloodScenarioCard } from '../../flood-scenario-card';
-import { PopulationToggle } from '../../population-toggle';
-import { FloodProneToggle } from '../../flood-prone-toggle';
+import { OverlayLegend } from '@/components/map/overlay-legend';
+import { ChartPieDonutText } from '@/components/control-panel/components/chart-pie';
+import { ReportsToggle } from '@/components/map/reports-toggle';
+import { FloodScenarioCard } from '@/components/map/flood-scenario-card';
+import { PopulationToggle } from '@/components/map/population-toggle';
+import { FloodProneToggle } from '@/components/map/flood-prone-toggle';
 
 interface OverlayContentProps {
   overlays: {

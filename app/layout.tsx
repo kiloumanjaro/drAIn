@@ -4,9 +4,9 @@ import localFont from 'next/font/local';
 import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
-import { NavigationLoadingOverlay } from '@/components/navigation-loading-overlay';
+import { NavigationLoadingOverlay } from '@/components/shell/navigation-loading-overlay';
 import { EventWidgetProvider } from '@/components/context/event-widget-provider';
-import EventWidget from '@/components/event-widget';
+import EventWidget from '@/components/shell/event-widget';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

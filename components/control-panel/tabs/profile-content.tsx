@@ -12,9 +12,9 @@ import {
   linkAgencyToProfile,
   unlinkAgencyFromProfile,
 } from '@/lib/supabase/profile';
-import EditProfile from '@/components/edit-profile';
-import UserLinks from '@/components/user-links';
-import UserReportsList from '@/components/user-reports-list';
+import EditProfile from '@/components/profile/edit-profile';
+import UserLinks from '@/components/profile/user-links';
+import UserReportsList from '@/components/reports/user-reports-list';
 import type { ProfileView } from '../hooks/use-control-panel-state';
 import Image from 'next/image';
 

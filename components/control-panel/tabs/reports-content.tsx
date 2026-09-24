@@ -1,8 +1,8 @@
 'use client';
 
-import SubmitTab from '../../submit-tab';
-import AllReportsList from '../../all-reports-list';
-import type { DateFilterValue } from '../../date-sort';
+import SubmitTab from '@/components/reports/submit-tab';
+import AllReportsList from '@/components/reports/all-reports-list';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import type { Report } from '@/lib/supabase/report';
 

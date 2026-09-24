@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MAP_PATHS } from './data-flow.paths';
+import { MAP_PATHS } from '@/components/landing/data-flow.paths';
 
 describe('MAP_PATHS', () => {
   it('holds the full traced drawing', () => {

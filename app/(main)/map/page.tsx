@@ -1,7 +1,7 @@
 'use client';
 
 import { ControlPanel } from '@/components/control-panel';
-import { CameraControls } from '@/components/camera-controls';
+import { CameraControls } from '@/components/map/camera-controls';
 import {
   useRef,
   useEffect,
@@ -48,7 +48,10 @@ import type {
   DatasetType,
 } from '@/components/control-panel/types';
 import ReactDOM from 'react-dom/client';
-import { ReportBubble, type ReportBubbleRef } from '@/components/report-bubble';
+import {
+  ReportBubble,
+  type ReportBubbleRef,
+} from '@/components/map/report-bubble';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getreportCategoryCount } from '@/lib/supabase/report';
 import 'mapbox-gl/dist/mapbox-gl.css';

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { NodeMetricComparisonChart } from '@/components/node-metric-comparison-chart';
+import { NodeMetricComparisonChart } from '@/components/simulation/node-metric-comparison-chart';
 import type { NodeDetails } from '@/types/simulation';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;

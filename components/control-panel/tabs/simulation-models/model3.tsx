@@ -26,7 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
-import { LoadingScreen } from '@/components/loading-screen';
+import { LoadingScreen } from '@/components/common/loading-screen';
 import {
   useInlets,
   useDrains,

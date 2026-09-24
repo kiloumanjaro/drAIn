@@ -1,4 +1,4 @@
-import DataFlowPipeline from '@/components/data-flow';
+import DataFlowPipeline from '@/components/landing/data-flow';
 import Image from 'next/image';
 import { FullscreenButton } from '@/components/landing/fullscreen-button';
 import { ExploreMapButton } from '@/components/landing/explore-map-button';

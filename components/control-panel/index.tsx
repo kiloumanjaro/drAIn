@@ -16,7 +16,7 @@ import {
   useDrains,
 } from '@/lib/query/hooks/use-drainage-data';
 import client from '@/lib/supabase/client';
-import type { DateFilterValue } from '../date-sort';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import type { Report } from '@/lib/supabase/report';
 
 interface RainfallParams {

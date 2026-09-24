@@ -42,7 +42,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ['components/model-viewer.tsx'],
+    files: ['components/simulation/model-viewer.tsx'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
       'react-hooks/exhaustive-deps': 'off',

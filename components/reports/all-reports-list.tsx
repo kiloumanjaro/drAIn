@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Report } from '@/lib/supabase/report';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SpinnerEmpty } from '@/components/spinner-empty';
+import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { format, subWeeks, subMonths, startOfDay } from 'date-fns';
-import type { DateFilterValue } from './date-sort';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import { RefreshCw } from 'lucide-react';
 import type {
   Inlet,

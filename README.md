@@ -186,11 +186,18 @@ drAIn/
 │   │   ├── dashboard/     # Analytics dashboard
 │   │   └── docs/          # In-app documentation, one file per section
 │   └── api/               # Route handlers
-├── components/            # React components
+├── components/            # React components, grouped by feature
 │   ├── ui/               # Base UI components (shadcn/ui)
+│   ├── common/           # Shared across features
+│   ├── shell/            # App chrome: sidebar, nav, notifications
+│   ├── map/              # Map controls and overlays
+│   ├── simulation/       # Simulation setup and results
+│   ├── reports/          # Citizen reporting flow
+│   ├── profile/          # User and agency
 │   ├── control-panel/    # Control panel feature
 │   ├── dashboard/        # Dashboard components
 │   ├── docs/             # Documentation page components
+│   ├── landing/          # Landing page
 │   └── context/          # Context providers
 ├── lib/                   # Utilities and libraries
 │   ├── map/              # Map config, layer setup and visual effects

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Session } from '@supabase/supabase-js';
-import ImageUploader from '@/components/image-uploader';
+import ImageUploader from '@/components/common/image-uploader';
 import { Label } from '@/components/ui/label';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 

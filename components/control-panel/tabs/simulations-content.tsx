@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { SimulationGateway } from '@/components/simulation-gateway';
+import { SimulationGateway } from '@/components/simulation/simulation-gateway';
 import { ModelSelector, type ModelType } from './model-selector';
 import Model2 from './simulation-models/model2';
 import Model3, {

@@ -11,8 +11,8 @@ import {
   ChartPieIcon,
 } from '@heroicons/react/24/solid';
 
-import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
+import { NavMain } from '@/components/shell/nav-main';
+import { NavUser } from '@/components/shell/nav-user';
 import {
   Sidebar,
   SidebarContent,
@@ -23,7 +23,7 @@ import { useAuth } from '@/components/context/auth-provider';
 import client from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 
-import NotificationBell from '@/components/report-notif';
+import NotificationBell from '@/components/shell/report-notif';
 
 // This is the data structure for the sidebar
 const data = {

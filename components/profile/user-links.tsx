@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import AgencyLink from '@/components/agency-link';
+import AgencyLink from '@/components/profile/agency-link';
 import { toast } from 'sonner';
 
 interface UserLinksProps {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Toggle } from '@/components/ui/toggle';
-import { FloodScenarioSelector } from '@/components/flood-scenario-selector';
+import { FloodScenarioSelector } from '@/components/map/flood-scenario-selector';
 import {
   Card,
   CardContent,
@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from './ui/spinner';
+import { Spinner } from '@/components/ui/spinner';
 
 interface FloodScenarioCardProps {
   isVisible: boolean;

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { DetailItem, FieldConfig } from '../types';
-import ModelViewer from '../../model-viewer';
+import ModelViewer from '@/components/simulation/model-viewer';
 import { DataFieldCard } from './data-field-card';
 import { ProgressTimeline } from './progress-timeline';
 

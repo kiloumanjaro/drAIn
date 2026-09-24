@@ -11,7 +11,7 @@ import { getInitials } from '@/lib/user-initials';
 import { X, History, Link } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type mapboxgl from 'mapbox-gl';
-import { ImageViewer } from '@/components/image-viewer';
+import { ImageViewer } from '@/components/common/image-viewer';
 
 interface Report {
   reporterName: string;

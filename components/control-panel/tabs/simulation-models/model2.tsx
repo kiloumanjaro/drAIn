@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { Loader2, Minimize2, Maximize2, CloudRain, Flame } from 'lucide-react';
-import { LoadingScreen } from '@/components/loading-screen';
+import { LoadingScreen } from '@/components/common/loading-screen';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 import { useState } from 'react';
 

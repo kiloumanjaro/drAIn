@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Image from 'next/image';
-import { AddIcon } from './add-icon';
+import { AddIcon } from '@/components/common/add-icon';
 
 interface ImageUploaderProps {
   onImageChange?: (file: File | null) => void;

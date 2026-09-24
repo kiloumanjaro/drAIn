@@ -5,9 +5,9 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import type { Report as SupabaseReport } from '@/lib/supabase/report'; // Renamed to avoid conflict
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SpinnerEmpty } from '@/components/spinner-empty';
+import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { format, subWeeks, subMonths, startOfDay } from 'date-fns';
-import type { DateFilterValue } from './date-sort';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import { RefreshCw, MapPin, History, ArrowRight } from 'lucide-react';
 import type {
   Inlet,
@@ -15,7 +15,7 @@ import type {
   Pipe,
   Drain,
 } from '@/components/control-panel/types';
-import { ImageViewer } from '@/components/image-viewer'; // Import ImageViewer
+import { ImageViewer } from '@/components/common/image-viewer'; // Import ImageViewer
 
 interface Report extends SupabaseReport {
   coordinates: [number, number];

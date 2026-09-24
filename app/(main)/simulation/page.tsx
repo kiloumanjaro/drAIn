@@ -1,7 +1,7 @@
 'use client';
 
 import { ControlPanel } from '@/components/control-panel';
-import { CameraControls } from '@/components/camera-controls';
+import { CameraControls } from '@/components/map/camera-controls';
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -64,11 +64,11 @@ import {
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useSidebar } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
-import { VulnerabilityDataTable } from '@/components/vulnerability-data-table';
+import { VulnerabilityDataTable } from '@/components/simulation/vulnerability-data-table';
 import { fetchYRTable } from '@/lib/vulnerabilities/fetch-yr-table';
-import { NodeSimulationSlideshow } from '@/components/node-simulation-slideshow';
-import { NodeParametersPanel } from '@/components/node-parameters-panel';
-import { LinkParametersPanel } from '@/components/link-parameters-panel';
+import { NodeSimulationSlideshow } from '@/components/simulation/node-simulation-slideshow';
+import { NodeParametersPanel } from '@/components/simulation/node-parameters-panel';
+import { LinkParametersPanel } from '@/components/simulation/link-parameters-panel';
 import { Spinner } from '@/components/ui/spinner';
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import {

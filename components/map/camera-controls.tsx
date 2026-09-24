@@ -2,7 +2,7 @@
 
 import { FC } from 'react';
 import { Plus, Minus, Crosshair, Map as MapIcon, X } from 'lucide-react';
-import WidgetTrigger from '@/components/widget-trigger';
+import WidgetTrigger from '@/components/shell/widget-trigger';
 
 type CameraControlsProps = {
   onZoomIn: () => void;

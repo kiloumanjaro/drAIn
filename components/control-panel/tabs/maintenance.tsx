@@ -35,7 +35,7 @@ import { RefreshCw } from 'lucide-react';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldContent } from '@/components/ui/field';
-import ImageUploader from '@/components/image-uploader';
+import ImageUploader from '@/components/common/image-uploader';
 import { extractExifLocation } from '@/lib/reports/extract-exif';
 import { useAuth } from '@/components/context/auth-provider';
 import {
@@ -46,7 +46,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { SpinnerEmpty } from '@/components/spinner-empty';
+import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { toast } from 'sonner';
 import distance from '@turf/distance';
 import { point } from '@turf/helpers';

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import ImageUploader from './image-uploader';
-import { Button } from './ui/button';
+import ImageUploader from '@/components/common/image-uploader';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -10,18 +10,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Checkbox } from './ui/checkbox';
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { uploadReport } from '@/lib/supabase/report';
 import { extractExifLocation } from '@/lib/reports/extract-exif';
 import { getClosestPipes } from '@/lib/reports/get-closest-pipe';
 import { useAuth } from '@/components/context/auth-provider';
-import { ComboboxForm } from './combobox-form';
-import type { ComboboxOption } from './combobox-form';
-import { Field, FieldContent } from './ui/field';
-import { Textarea } from './ui/textarea';
-import { CardDescription, CardHeader, CardTitle } from './ui/card';
-import { SpinnerEmpty } from './spinner-empty';
+import { ComboboxForm } from '@/components/common/combobox-form';
+import type { ComboboxOption } from '@/components/common/combobox-form';
+import { Field, FieldContent } from '@/components/ui/field';
+import { Textarea } from '@/components/ui/textarea';
+import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { AlertCircle, CheckCircle2Icon } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import client from '@/lib/supabase/client';

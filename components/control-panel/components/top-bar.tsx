@@ -13,9 +13,9 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
-import { SearchBar } from '../../search-bar';
-import { ComboboxForm } from '../../combobox-form';
-import { OverlayToggle } from '../../overlay-toggle';
+import { SearchBar } from '@/components/common/search-bar';
+import { ComboboxForm } from '@/components/common/combobox-form';
+import { OverlayToggle } from '@/components/map/overlay-toggle';
 import {
   ProfileProgress,
   type ProfileStep,
@@ -38,10 +38,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import type { DatasetType } from '../types';
-import { LinkBar } from '@/components/link-bar';
-import { ReportsTabControl } from '../../reports-tab-control';
-import { DateSort, type DateFilterValue } from '../../date-sort';
-import { AdminTabControl } from '@/components/admin-tab-control';
+import { LinkBar } from '@/components/control-panel/components/link-bar';
+import { ReportsTabControl } from '@/components/reports/reports-tab-control';
+import { DateSort, type DateFilterValue } from '@/components/common/date-sort';
+import { AdminTabControl } from '@/components/profile/admin-tab-control';
 
 interface TopBarProps {
   activeTab: string;

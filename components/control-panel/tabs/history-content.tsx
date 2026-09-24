@@ -1,8 +1,8 @@
 'use client';
 
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
-import ReportHistoryList from '../../report-history-list';
-import type { DateFilterValue } from '../../date-sort';
+import ReportHistoryList from '@/components/reports/report-history-list';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import Maintenance from './maintenance';
 import type { Report } from '@/lib/supabase/report';
 

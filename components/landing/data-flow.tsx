@@ -52,7 +52,7 @@
 
 import { motion } from 'framer-motion';
 
-import { MAP_PATHS } from './data-flow.paths';
+import { MAP_PATHS } from '@/components/landing/data-flow.paths';
 import React, { useEffect, useState } from 'react';
 
 // ---------------------------------------------------------------------------

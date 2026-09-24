@@ -5,7 +5,7 @@ import { DetailView } from './detail-view';
 import OverlaysContent from '../tabs/overlays-content';
 import { ReportsTab } from '../tabs/reports-content';
 import { ChatbotView } from '../tabs/chatbot-content';
-import type { DateFilterValue } from '../../date-sort';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import {
   PipeTable,
   InletTable,
