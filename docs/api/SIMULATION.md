@@ -31,7 +31,10 @@ Queue a run. Returns `202` straight away.
 
 **Request** — all three sections are optional. Sending none of them asks for
 the unmodified network, whose results are pre-computed and return almost
-immediately.
+immediately. Every field inside them is optional too: one left out keeps the
+model's own value. The client sends only the values that are set
+(`buildSimulationRequest`), since a zero, an invert elevation of 0 m say, is
+taken literally.
 
 ```jsonc
 {
@@ -69,6 +72,12 @@ immediately.
 not a live reading. A `Location` header carries the same poll URL, and
 `Retry-After` suggests how long to wait between polls.
 
+A browser only lets the page read a cross-origin response header the
+server lists in `Access-Control-Expose-Headers`. Until the backend exposes
+`Retry-After` that way (a fix is landing), `runSimulation` cannot see it
+and polls every 3 seconds; it reads the header as soon as it is exposed. A
+missing, zero or non-numeric value also falls back to 3 seconds.
+
 **Other responses**
 
 | Status | Meaning                                                                                                          |
@@ -99,7 +108,9 @@ megabyte.
 
 ### `GET /health`
 
-Liveness probe. Also reports whether vulnerability scoring is available.
+Liveness probe. Its model flag says whether the legacy k-means model is
+loaded, which only affects the `Legacy_Cluster_*` fields. Hazard, exposure
+and risk scoring do not depend on it.
 
 ### `POST /run-simulation` — deprecated
 
@@ -115,22 +126,42 @@ interface SimulationResponse {
     total_nodes: number;
     flooded_nodes: number;
     non_flooded_nodes: number;
+    rpt_file: string; // the SWMM report file the figures were read from
+    out_file: string; // the SWMM binary output file
+    model_file: string; // the network model (.inp) that was run
+    event_hours: number; // length of the simulated event, in hours
+    inconsistent_nodes: unknown; // nodes whose figures did not agree
+    scoring: unknown; // the settings behind the three ratings
+    structure_info: unknown; // about the network that was run
   };
   nodes_list: NodeSimulationResult[]; // for iteration
   nodes_dict: Record<string, NodeSimulationResult>; // for lookup by node ID
 }
 ```
 
+The frontend reads only `nodes_list`. The metadata fields past the node
+counts are diagnostic; their exact shape is the backend's, so check its
+README before relying on one.
+
 Each entry carries the raw flooding figures — `Hours_Flooded`,
 `Maximum_Rate_CMS`, `Time_of_Max_days`, `Time_of_Max_hr_min`,
 `Total_Flood_Volume_10e6_ltr`, `Time_After_Raining_min` — plus three ratings.
+
+`Time_After_Raining_min` is `null` for a node that never overflowed. The
+stored per-return-period scenarios predate that and use `9999` instead;
+the client turns both into `null` (`normaliseOverflowMinutes`).
+
+`Vulnerability_Category` is `High`, `Medium`, `Low` or `No hazard`. The
+stored scenarios say `High Risk`, `Medium Risk`, `Low Risk` and `No Risk`,
+so compare categories through `normaliseHazardCategory`, never by exact
+string.
 
 ### The three ratings
 
 | Field                                              | What it knows                                                                                                                                        |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Vulnerability_Score` / `Vulnerability_Category`   | **Hazard.** How badly the node floods: volume, duration as a share of the event, peak rate. 0–1, monotonic. A node that floods can never score zero. |
-| `Exposure_Score`, `Barangay`, `Population_Density` | **Exposure.** Roughly how many people are around it, from the density of the barangay it sits in. 0–1.                                               |
+| `Exposure_Score`, `Barangay`, `Population_Density` | **Exposure.** Roughly how many people are around it, from the density of the barangay it sits in. 0–1, never null.                                   |
 | `Risk_Score`                                       | **Hazard × exposure.** Rank work lists on this.                                                                                                      |
 | `Legacy_Cluster_Category` / `Legacy_Cluster_Score` | The superseded k-means output, kept for comparison.                                                                                                  |
 
@@ -189,7 +220,9 @@ const results = await runSimulation(nodes, links, rainfall, (status) => {
 ```
 
 `runSimulation` throws an `Error` whose message is safe to show the user —
-it distinguishes a busy queue, a failed run and an expired result. The
+it distinguishes a busy queue, a failed run and an expired result. It gives
+up after 30 minutes: a run takes about two, but a job can wait in the queue
+behind others for 16-30 minutes first. The
 simulation page surfaces `error.message` directly in a toast.
 
 ## Performance

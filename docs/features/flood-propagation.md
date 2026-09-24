@@ -35,9 +35,12 @@ Two separate heatmap layers allow independent control:
 
 1. **Nodes Layer** (`flood_propagation-nodes-layer`)
    - Displays intensity at inlet and drain points
-   - Higher weight for "High Risk" nodes (5.0x multiplier)
-   - Medium weight for "Medium Risk" (1.5x multiplier)
-   - Low weight for "Low Risk" (0.6x multiplier)
+   - Higher weight for high-hazard nodes (5.0x multiplier)
+   - Medium weight for medium-hazard nodes (1.5x multiplier)
+   - Low weight for low-hazard nodes (0.6x multiplier)
+   - Everything else, "No hazard" included, weighs 0.2
+   - The category is read in either vocabulary: a live run's `High` and a
+     stored scenario's `High Risk` weigh the same (`floodHeatmapWeight`)
    - Zoom-dependent radius: 3px → 80px (zoom 0 → 15)
 
 2. **Lines Layer** (`flood_propagation-lines-layer`)
@@ -91,7 +94,8 @@ Simulation Output
      ↓
 NodeDetails[] with:
   - Node_ID
-  - Vulnerability_Category (High/Medium/Low/None Risk)
+  - Vulnerability_Category (live: High/Medium/Low/No hazard;
+    stored scenarios: High/Medium/Low/No Risk)
   - Total_Flood_Volume
   - Maximum_Rate
   - Hours_Flooded
@@ -316,17 +320,14 @@ const heatmapColor = [
   // ... color stops
 ];
 
-// Node heatmap weight (line 489-501)
+// Node heatmap weight (lib/map/simulation-layers.ts). Each point carries
+// its weight as `hazardWeight`, set by floodHeatmapWeight() in
+// lib/map/effects/flood-propagation.ts. Customize the weights there, in
+// HEATMAP_WEIGHT_BY_LEVEL: { high: 5, medium: 1.5, low: 0.6, none: 0.2 }.
 'heatmap-weight': [
   '*',
   ['coalesce', ['get', 'pulseMultiplier'], 1],
-  [
-    'case',
-    ['==', ['get', 'vulnerability'], 'High Risk'], 5.0,    // Customize
-    ['==', ['get', 'vulnerability'], 'Medium Risk'], 1.5,  // Customize
-    ['==', ['get', 'vulnerability'], 'Low Risk'], 0.6,     // Customize
-    0.2,
-  ],
+  ['coalesce', ['get', 'hazardWeight'], 0.2],
 ];
 
 // Animation parameters (line 1748-1750)

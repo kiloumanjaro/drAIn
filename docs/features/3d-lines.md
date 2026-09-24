@@ -251,7 +251,10 @@ For very large networks (10,000+ pipes):
 
 ### Lines appearing in wrong colors
 
-- Verify vulnerability categories match expected values: 'High Risk', 'Medium Risk', 'Low Risk', 'No Risk'
+- Verify the hazard categories are ones the colouring recognises. A live
+  simulation sends `High`, `Medium`, `Low` and `No hazard`; the stored
+  per-return-period scenarios use `High Risk`, `Medium Risk`, `Low Risk` and
+  `No Risk`. `getFloodColorRGB()` matches by substring, so both work.
 - Check color interpolation logic in `getFloodColorRGB()`
 - Ensure data isn't malformed
 
