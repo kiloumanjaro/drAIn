@@ -7,7 +7,7 @@ import {
   Layers,
   Map,
 } from 'lucide-react';
-import FeatureCards from '@/components/docs/feature-cards';
+import FeatureCards from '@/components/docs-page/feature-cards';
 
 export function DataSourcesSection() {
   return (

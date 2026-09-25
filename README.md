@@ -196,7 +196,7 @@ drAIn/
 │   ├── profile/          # User and agency
 │   ├── control-panel/    # Control panel feature
 │   ├── dashboard/        # Dashboard components
-│   ├── docs/             # Documentation page components
+│   ├── docs-page/        # Building blocks for the /docs route
 │   ├── landing/          # Landing page
 │   └── context/          # Context providers
 ├── lib/                   # Utilities and libraries

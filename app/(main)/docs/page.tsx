@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import { type FloodEvent } from '@/components/docs/flood-event-cards';
+import { type FloodEvent } from '@/components/docs-page/flood-event-cards';
 import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 import { OverviewSection } from './sections/overview';
 import { ArchitectureSection } from './sections/architecture';
