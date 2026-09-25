@@ -123,6 +123,45 @@ describe('checkMaintenancePhoto', () => {
     it('gives a reason a submitter can act on', () => {
       expect(check({ date: null }).reason).toMatch(/submitted and marked/i);
     });
+
+    it('says what is missing when both the time and place are', () => {
+      const result = check({ date: null, latitude: null });
+      expect(result.outcome).toBe('unverifiable');
+      expect(result.reason).toMatch(/timestamp/i);
+      expect(result.reason).toMatch(/location/i);
+    });
+  });
+
+  describe('checking the time and place independently', () => {
+    it('rejects a photo taken far away even when it has no timestamp', () => {
+      // A missing timestamp used to end the check before the distance was
+      // looked at, so a photo from 5 km away passed as merely unverified.
+      const result = check({ date: null, longitude: 124.0 });
+      expect(result.outcome).toBe('rejected');
+      expect(result.reason).toMatch(/m from the selected asset/);
+    });
+
+    it('treats an unparseable date as missing, not as a pass', () => {
+      // Invalid Date is truthy and every comparison against NaN is false,
+      // so it used to slip through both age checks as verified.
+      const result = check({ date: new Date(NaN) });
+      expect(result.outcome).toBe('unverifiable');
+      expect(result.reason).toMatch(/timestamp/i);
+    });
+
+    it('treats the EXIF zero date as missing, not as 126 years old', () => {
+      // "0000:00:00 00:00:00" is what cameras write when the clock was
+      // never set. Parsed, it lands in 1899.
+      const zero = new Date(0, -1, 0, 0, 0, 0);
+      expect(zero.getFullYear()).toBeLessThan(2000);
+      expect(check({ date: zero }).outcome).toBe('unverifiable');
+    });
+
+    it('still rejects a photo far away with an unset camera clock', () => {
+      expect(
+        check({ date: new Date(0, -1, 0), longitude: 124.0 }).outcome
+      ).toBe('rejected');
+    });
   });
 });
 

@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 import type { Inlet, Drain } from '@/components/control-panel/types';
 
 interface NodeParams {
-  inv_elev: number;
+  /** Unset when the asset data has none; the model's own value is used. */
+  inv_elev?: number;
   init_depth: number;
   ponding_area: number;
   surcharge_depth: number;
@@ -268,11 +269,13 @@ export function NodeParametersPanel({
                         Inversion Elevation
                       </Label>
                       <span className="text-muted-foreground text-xs">
-                        {params.inv_elev.toFixed(1)} m
+                        {params.inv_elev === undefined
+                          ? 'Model default'
+                          : `${params.inv_elev.toFixed(1)} m`}
                       </span>
                     </div>
                     <Slider
-                      value={[params.inv_elev]}
+                      value={[params.inv_elev ?? 0]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'inv_elev', value[0])
                       }

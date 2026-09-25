@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runSimulation, transformToNodeDetails } from './simulation';
+import {
+  buildSimulationRequest,
+  runSimulation,
+  transformToNodeDetails,
+} from './simulation';
 import type { NodeSimulationResult } from './simulation';
 
 function result(
@@ -16,6 +20,10 @@ function result(
     Time_After_Raining_min: 120,
     Vulnerability_Category: 'Medium',
     Vulnerability_Score: 0.6,
+    Barangay: 'Mantuyong',
+    Population_Density: 40480,
+    Exposure_Score: 1,
+    Risk_Score: 0.6,
     ...overrides,
   };
 }
@@ -55,6 +63,21 @@ describe('transformToNodeDetails', () => {
     expect(row.Vulnerability_Rank).toBe(4);
   });
 
+  it.each([
+    ['High Risk', 4],
+    ['Medium Risk', 3],
+    ['Low Risk', 2],
+    ['No Risk', 1],
+    ['  HIGH ', 4],
+    ['medium', 3],
+    ['low	', 2],
+  ])('ranks %j the same as the live label', (category, rank) => {
+    const [row] = transformToNodeDetails([
+      result({ Vulnerability_Category: category }),
+    ]);
+    expect(row.Vulnerability_Rank).toBe(rank);
+  });
+
   it('tolerates an unrecognised category', () => {
     const [row] = transformToNodeDetails([
       result({ Vulnerability_Category: 'N/A' }),
@@ -80,9 +103,25 @@ describe('transformToNodeDetails', () => {
   });
 
   it('leaves exposure null for results that predate it', () => {
-    const [row] = transformToNodeDetails([result()]);
+    // Defensive: the backend always sends these now.
+    const {
+      Barangay: _b,
+      Population_Density: _p,
+      Exposure_Score: _e,
+      Risk_Score: _r,
+      ...older
+    } = result();
+    const [row] = transformToNodeDetails([older as NodeSimulationResult]);
     expect(row.Risk_Score).toBeNull();
     expect(row.Barangay).toBeNull();
+  });
+
+  it('reports no cluster for a live run, rather than cluster 0', () => {
+    // The k-means clusters belong to the stored scenarios. Zero used to
+    // show in both cluster columns for every node of a live run.
+    const [row] = transformToNodeDetails([result()]);
+    expect(row.Cluster).toBeNull();
+    expect(row.Cluster_Score).toBeNull();
   });
 
   it('reports no return period for a custom storm', () => {
@@ -94,6 +133,42 @@ describe('transformToNodeDetails', () => {
 
   it('returns nothing for an empty response', () => {
     expect(transformToNodeDetails([])).toEqual([]);
+  });
+});
+
+describe('buildSimulationRequest', () => {
+  it('passes set values through, zeros included', () => {
+    expect(
+      buildSimulationRequest(
+        { 'I-1': { inv_elev: 3.2, init_depth: 0 } },
+        { 'C-1': { init_flow: 0.4 } },
+        { total_precip: 120, duration_hr: 6 }
+      )
+    ).toEqual({
+      nodes: { 'I-1': { inv_elev: 3.2, init_depth: 0 } },
+      links: { 'C-1': { init_flow: 0.4 } },
+      rainfall: { total_precip: 120, duration_hr: 6 },
+    });
+  });
+
+  it('leaves out values that are not set rather than sending them', () => {
+    // A missing invert elevation used to be filled in as 0 m, which the
+    // model then took literally.
+    const request = buildSimulationRequest(
+      {
+        'I-1': {
+          inv_elev: undefined,
+          init_depth: NaN,
+          ponding_area: null as unknown as number,
+          surcharge_depth: 1,
+        },
+      },
+      {},
+      { total_precip: 50, duration_hr: undefined }
+    );
+    expect(request.nodes).toEqual({ 'I-1': { surcharge_depth: 1 } });
+    expect(request.rainfall).toEqual({ total_precip: 50 });
+    expect(JSON.stringify(request)).not.toMatch(/null|NaN/);
   });
 });
 
@@ -188,6 +263,27 @@ describe('runSimulation', () => {
     });
   });
 
+  it('sends only the values that are set', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(
+        state('succeeded', { result: { nodes_list: [] } })
+      );
+
+    await runToCompletion(
+      runSimulation({ 'I-1': { inv_elev: undefined, init_depth: 2 } }, LINKS, {
+        total_precip: 400,
+        duration_hr: NaN,
+      })
+    );
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      nodes: { 'I-1': { init_depth: 2 } },
+      links: {},
+      rainfall: { total_precip: 400 },
+    });
+  });
+
   it('reports each status transition', async () => {
     fetchMock
       .mockResolvedValueOnce(accepted())
@@ -270,6 +366,112 @@ describe('runSimulation', () => {
     await vi.advanceTimersByTimeAsync(25_000);
     await expect(settled).resolves.toBe('done');
   });
+  it('keeps polling a job that sits in the queue for a quarter of an hour', async () => {
+    // The backend queue can hold a job for 16-30 minutes. The client used
+    // to give up after 10 and report a run that was still coming.
+    const result = { nodes_list: [] };
+    let polls = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith('/simulations')) return accepted();
+      polls += 1;
+      const elapsedMin = (polls * 3) / 60;
+      return elapsedMin < 20 ? state('queued') : state('succeeded', { result });
+    });
+
+    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const settled = promise.then(
+      (value) => ({ ok: true as const, value }),
+      (error) => ({ ok: false as const, error })
+    );
+    await vi.advanceTimersByTimeAsync(21 * 60 * 1000);
+
+    await expect(settled).resolves.toEqual({ ok: true, value: result });
+  });
+
+  it('gives up once the job has had half an hour', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/simulations') ? accepted() : state('running')
+    );
+
+    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const settled = promise.then(
+      () => 'resolved',
+      (error: Error) => error.message
+    );
+    await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
+    await expect(
+      Promise.race([settled, Promise.resolve('pending')])
+    ).resolves.toBe('pending');
+
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+    await expect(settled).resolves.toMatch(/did not finish in time/i);
+  });
+
+  it('reports a failed poll other than an expired result', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(jsonResponse({ detail: 'oops' }, { status: 502 }));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow(/progress \(HTTP 502\)/);
+  });
+
+  it('gives a generic reason when a failed run carries none', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(state('failed', { error: null }));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow('The simulation failed.');
+  });
+
+  it('rejects when the network request itself fails', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow('Failed to fetch');
+  });
+
+  it('rejects when a poll cannot reach the server', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+    ).rejects.toThrow('Failed to fetch');
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['zero', '0'],
+    ['not a number', 'soon'],
+    ['an HTTP date', 'Wed, 21 Oct 2026 07:28:00 GMT'],
+  ])(
+    'polls every 3 seconds when Retry-After is %s',
+    async (_case, retryAfter) => {
+      fetchMock
+        .mockResolvedValueOnce(
+          accepted(
+            retryAfter === undefined ? {} : { 'Retry-After': retryAfter }
+          )
+        )
+        .mockResolvedValueOnce(
+          state('succeeded', { result: { nodes_list: [] } })
+        );
+
+      const settled = runSimulation(NODES, LINKS, RAINFALL).then(() => 'done');
+
+      await vi.advanceTimersByTimeAsync(2_900);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      await expect(settled).resolves.toBe('done');
+    }
+  );
 });
 
 describe('the never-overflowed sentinel', () => {

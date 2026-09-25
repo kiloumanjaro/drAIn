@@ -36,7 +36,7 @@ export function OverviewSection() {
           },
           {
             icon: Target,
-            title: 'AI Clustering',
+            title: 'Hazard Scoring',
             description:
               'Components are scored by how severely they flood, then weighted by how many people are nearby',
             tooltip:

@@ -132,7 +132,7 @@ Each visualization uses different node properties:
 ```json
 {
   "Node_ID": "string",
-  "Vulnerability_Category": "High Risk|Medium Risk|Low Risk|No Risk",
+  "Vulnerability_Category": "High|Medium|Low|No hazard (live) or High Risk|Medium Risk|Low Risk|No Risk (stored scenarios)",
   "Total_Flood_Volume": "number"
 }
 ```

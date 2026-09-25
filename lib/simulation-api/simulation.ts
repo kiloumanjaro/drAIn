@@ -1,32 +1,71 @@
 // swmmApi.ts
 import type { NodeDetails } from '@/types/simulation';
 
+import { type HazardLevel, normaliseHazardCategory } from './hazard-category';
+import { normaliseOverflowMinutes } from './overflow';
+
 // Import NodeDetails type from vulnerability data table
 
-// Type definitions for the API
+// Type definitions for the API. Every field is optional, as it is on the
+// backend: a field left out keeps the value in the drainage model, so only
+// what the user actually set should be sent.
 export interface NodeData {
-  inv_elev: number;
-  init_depth: number;
-  ponding_area: number;
-  surcharge_depth: number;
+  inv_elev?: number;
+  init_depth?: number;
+  ponding_area?: number;
+  surcharge_depth?: number;
 }
 
 export interface LinkData {
-  init_flow: number;
-  upstrm_offset_depth: number;
-  downstrm_offset_depth: number;
-  avg_conduit_loss: number;
+  init_flow?: number;
+  upstrm_offset_depth?: number;
+  downstrm_offset_depth?: number;
+  avg_conduit_loss?: number;
 }
 
 export interface RainfallData {
-  total_precip: number;
-  duration_hr: number;
+  total_precip?: number;
+  duration_hr?: number;
 }
 
 export interface SimulationRequest {
-  nodes: Record<string, NodeData>;
-  links: Record<string, LinkData>;
-  rainfall: RainfallData;
+  nodes?: Record<string, NodeData>;
+  links?: Record<string, LinkData>;
+  rainfall?: RainfallData;
+}
+
+/** Keep only the fields that hold a real number. */
+function definedFields<T extends object>(values: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(values).filter(
+      ([, value]) => typeof value === 'number' && Number.isFinite(value)
+    )
+  ) as Partial<T>;
+}
+
+/**
+ * The request body for a run, carrying only the values that are set.
+ *
+ * A missing value is left out rather than sent as null or zero: the backend
+ * would take a zero literally, and an invert elevation of 0 m is a real,
+ * and badly wrong, elevation. NaN is dropped too, since JSON has no NaN and
+ * would send it as null.
+ */
+export function buildSimulationRequest(
+  nodes: Record<string, NodeData>,
+  links: Record<string, LinkData>,
+  rainfall: RainfallData
+): SimulationRequest {
+  const mapValues = <T extends object>(records: Record<string, T>) =>
+    Object.fromEntries(
+      Object.entries(records).map(([id, values]) => [id, definedFields(values)])
+    );
+
+  return {
+    nodes: mapValues(nodes),
+    links: mapValues(links),
+    rainfall: definedFields(rainfall),
+  };
 }
 
 export interface NodeSimulationResult {
@@ -41,12 +80,16 @@ export interface NodeSimulationResult {
   /** Flood hazard: how badly this node floods. 0-1. */
   Vulnerability_Category: string;
   Vulnerability_Score: number;
-  /** Exposure: roughly how many people are around it. */
-  Barangay?: string | null;
-  Population_Density?: number | null;
-  Exposure_Score?: number;
+  /**
+   * Exposure: roughly how many people are around it. Always sent; the
+   * barangay and its density are null for a node outside every barangay.
+   */
+  Barangay: string | null;
+  Population_Density: number | null;
+  /** 0-1. Never null. */
+  Exposure_Score: number;
   /** Hazard x exposure. What a work list should rank on. */
-  Risk_Score?: number;
+  Risk_Score: number;
 }
 
 export interface SimulationResponse {
@@ -71,13 +114,14 @@ export function transformToNodeDetails(
   // Rank follows the category, which is authoritative. It used to be
   // thresholded off the raw score at 4/1/0, values the score no longer
   // takes — every node would now come back rank 1 or 2.
-  const RANK_BY_CATEGORY: Record<string, number> = {
+  const RANK_BY_LEVEL: Record<HazardLevel, number> = {
     high: 4,
     medium: 3,
     low: 2,
+    none: 1,
   };
   const getHazardRank = (category: string): number =>
-    RANK_BY_CATEGORY[category.trim().toLowerCase()] ?? 1;
+    RANK_BY_LEVEL[normaliseHazardCategory(category)];
 
   return nodesList.map((node) => ({
     Node_ID: node.Node,
@@ -93,10 +137,7 @@ export function transformToNodeDetails(
     YR: null,
     // Defensive: the stored scenarios predate the change and may still
     // carry the 9999 sentinel rather than null.
-    Time_Before_Overflow:
-      node.Time_After_Raining_min === NEVER_OVERFLOWED
-        ? null
-        : node.Time_After_Raining_min,
+    Time_Before_Overflow: normaliseOverflowMinutes(node.Time_After_Raining_min),
     Hours_Flooded: node.Hours_Flooded,
     Maximum_Rate: node.Maximum_Rate_CMS,
     Time_Of_Max_Occurence: node.Time_of_Max_hr_min,
@@ -107,9 +148,6 @@ export function transformToNodeDetails(
     Risk_Score: node.Risk_Score ?? null,
   }));
 }
-
-/** The sentinel older stored scenarios use for "never overflowed". */
-const NEVER_OVERFLOWED = 9999;
 
 /** Job lifecycle reported by the backend. */
 export type SimulationJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
@@ -131,10 +169,12 @@ interface JobState {
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 
 /**
- * Give up after this long. A run is around two minutes; well past that and
+ * Give up after this long. A run is around two minutes, but a job can sit
+ * in the backend's queue behind others for 16-30 minutes first; stopping at
+ * 10 reported a failure for runs that were still coming. Well past 30 and
  * something is wrong, and we would rather say so than poll forever.
  */
-const POLL_TIMEOUT_MS = 10 * 60 * 1000;
+const POLL_TIMEOUT_MS = 30 * 60 * 1000;
 
 function apiBaseUrl(): string {
   return API_BASE_URL?.replace(/\/$/, '') || '';
@@ -168,7 +208,7 @@ export async function runSimulation(
   const created = await fetch(`${apiBaseUrl()}/simulations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nodes, links, rainfall }),
+    body: JSON.stringify(buildSimulationRequest(nodes, links, rainfall)),
   });
 
   if (created.status === 429) {

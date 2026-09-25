@@ -10,31 +10,25 @@ import {
   Cell,
 } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
+import {
+  buildMetricComparison,
+  type ChartDataPoint,
+  METRIC_HIGHER_IS_WORSE,
+  type MetricKey,
+  metricBarHue,
+} from '@/lib/vulnerabilities/metric-comparison';
 import type { NodeDetails } from '@/types/simulation';
 
 type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
-type MetricKey =
-  | 'Time_Before_Overflow'
-  | 'Hours_Flooded'
-  | 'Maximum_Rate'
-  | 'Time_Of_Max_Occurence'
-  | 'Total_Flood_Volume';
-
 interface NodeMetricComparisonChartProps {
   nodeId: string;
-  year: YearOption;
+  /** The return period, for stored scenarios. A custom storm has none. */
+  year?: YearOption;
   metricKey: MetricKey;
   metricLabel: string;
   maxNodes?: number;
   allNodesData: NodeDetails[];
-}
-
-interface ChartDataPoint {
-  nodeId: string;
-  value: number;
-  isSelected: boolean;
-  rank: number;
 }
 
 export function NodeMetricComparisonChart({
@@ -53,58 +47,19 @@ export function NodeMetricComparisonChart({
   useEffect(() => {
     const processData = () => {
       try {
-        // Nodes with no value for this metric are left out entirely. They
-        // used to arrive carrying the 9999 "never overflowed" sentinel, so
-        // a descending sort on time-to-overflow filled the whole chart with
-        // the nodes that never flooded.
-        const measured = allNodesData.filter(
-          (node): node is NodeDetails & Record<typeof metricKey, number> =>
-            typeof node[metricKey] === 'number'
+        // Ranked worst first, in the metric's own direction, with nodes
+        // that have no value for it left out.
+        const { chartData, selected, totalNodes } = buildMetricComparison(
+          allNodesData,
+          nodeId,
+          metricKey,
+          maxNodes
         );
-        setTotalNodes(measured.length);
-
-        // Sort by the specified metric descending
-        const sortedNodes = [...measured].sort(
-          (a, b) => b[metricKey] - a[metricKey]
-        );
-
-        // Find the selected node
-        const selectedNode = sortedNodes.find(
-          (node) => node.Node_ID === nodeId
-        );
-        const selectedNodeIndex = sortedNodes.findIndex(
-          (node) => node.Node_ID === nodeId
-        );
-
-        // Take top N nodes or ensure selected node is included
-        let nodesToShow = sortedNodes.slice(0, maxNodes);
-
-        // If selected node is not in top N, add it
-        if (selectedNode && selectedNodeIndex >= maxNodes) {
-          nodesToShow = [...nodesToShow, selectedNode];
-        }
-
-        // Transform to chart format
-        const transformed: ChartDataPoint[] = nodesToShow.map((node) => ({
-          nodeId: node.Node_ID,
-          value: node[metricKey],
-          isSelected: node.Node_ID === nodeId,
-          rank: sortedNodes.findIndex((n) => n.Node_ID === node.Node_ID) + 1,
-        }));
-
-        // Sort again by value for consistent display
-        transformed.sort((a, b) => b.value - a.value);
-
-        setChartData(transformed);
-
-        if (selectedNode) {
-          setSelectedNodeData({
-            nodeId: selectedNode.Node_ID,
-            value: selectedNode[metricKey],
-            isSelected: true,
-            rank: selectedNodeIndex + 1,
-          });
-        }
+        setTotalNodes(totalNodes);
+        setChartData(chartData);
+        // Cleared when the node has no value for this metric, rather than
+        // keeping the rank of a previously selected node.
+        setSelectedNodeData(selected);
       } catch (error) {
         console.error('Error processing chart data:', error);
       }
@@ -174,11 +129,11 @@ export function NodeMetricComparisonChart({
               {chartData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={`hsl(${
-                    240 -
-                    (entry.value / Math.max(...chartData.map((d) => d.value))) *
-                      240
-                  }, 70%, 50%)`}
+                  fill={`hsl(${metricBarHue(
+                    entry.value,
+                    chartData.map((d) => d.value),
+                    METRIC_HIGHER_IS_WORSE[metricKey]
+                  )}, 70%, 50%)`}
                 />
               ))}
             </Bar>
