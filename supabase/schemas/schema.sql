@@ -265,6 +265,22 @@ $$;
 
 ALTER FUNCTION "public"."sync_reporter_name"() OWNER TO "postgres";
 
+
+-- Stamps updated_at on every change, so clients don't have to (and can't
+-- write a misleading one).
+CREATE OR REPLACE FUNCTION "public"."set_updated_at"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -379,6 +395,10 @@ ALTER SEQUENCE "public"."barangay_boundaries_id_seq" OWNED BY "public"."barangay
 
 
 
+-- A one-row lock for the geocodeWorker edge function, so only one run
+-- geocodes at a time. RLS is on with no policies on purpose: only the
+-- service role (the edge function) touches it. The function's source is
+-- not in this repo yet (see DATABASE_AUDIT.md, D7).
 CREATE TABLE IF NOT EXISTS "public"."geocode_worker_lock" (
     "id" integer DEFAULT 1 NOT NULL,
     "is_running" boolean DEFAULT false,
@@ -589,7 +609,7 @@ COMMENT ON COLUMN "public"."reports"."resolved_at" IS 'When the maintenance that
 
 
 
-COMMENT ON COLUMN "public"."reports"."zone" IS 'Barangay/zone extracted from address for GeoJSON matching';
+COMMENT ON COLUMN "public"."reports"."zone" IS 'The barangay containing the report''s coordinates, set by update_report_zone from barangay_boundaries ("Outside Mandaue" if none). Matches the barangay names in the map GeoJSON.';
 
 
 
@@ -744,6 +764,14 @@ CREATE INDEX "idx_reports_component_id" ON "public"."reports" USING "btree" ("co
 
 
 
+CREATE INDEX "idx_profiles_agency_id" ON "public"."profiles" USING "btree" ("agency_id");
+
+
+
+CREATE INDEX "idx_reports_user_id" ON "public"."reports" USING "btree" ("user_id");
+
+
+
 CREATE INDEX "idx_reports_created_at" ON "public"."reports" USING "btree" ("created_at" DESC);
 
 
@@ -773,6 +801,10 @@ CREATE INDEX "outlets_geom_geom_idx" ON "public"."outlets" USING "gist" ("geom")
 
 
 CREATE INDEX "storm_drains_geom_geom_idx" ON "public"."storm_drains" USING "gist" ("geom");
+
+
+
+CREATE OR REPLACE TRIGGER "set_updated_at" BEFORE UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 
 
 
@@ -1256,6 +1288,12 @@ GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "anon";
 GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
 
 
 

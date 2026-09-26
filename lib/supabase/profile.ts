@@ -88,7 +88,6 @@ export const updateUserProfile = async (
         .update({
           full_name: fullName,
           avatar_url: avatar_url,
-          updated_at: new Date().toISOString(),
           ...(showNameOnReports === undefined
             ? {}
             : { show_name_on_reports: showNameOnReports }),

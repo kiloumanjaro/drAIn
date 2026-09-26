@@ -236,10 +236,10 @@ Needs: step 4.
 
 ## Step 8 — Cleanup (D8, D9)
 
-- [ ] Drop `idx_report_category`. The duplicate YR indexes go with step 7.
-- [ ] Comment `geocode_worker_lock`: it is service-role only by design.
-- [ ] `profiles.updated_at` set by a trigger, and removed from the client update in `lib/supabase/profile.ts:82`.
-- [ ] Fix the `reports.zone` comment and the one at `lib/dashboard/queries.ts:277`.
+- [x] Drop `idx_report_category`. The duplicate YR indexes go with step 7.
+- [x] Comment `geocode_worker_lock`: it is service-role only by design.
+- [x] `profiles.updated_at` set by a trigger, and removed from the client update in `lib/supabase/profile.ts:82`.
+- [x] Fix the `reports.zone` comment and the one at `lib/dashboard/queries.ts:277`.
 
 ## Step 9 — Wrap-up
 
@@ -275,3 +275,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 5 (vocabulary): advisors 0 error / 0 warn / 27 info. 8 new pgTAP tests (66 total); vitest 214. Migration hand-edited (premature SET DEFAULT again; fill null priorities before NOT NULL), dry-run on existing rows OK. Verified over the API: status "unresolved" rejected (22P02); realtime INSERT event received after "Subscribed to PostgreSQL". Also dropped idx_report_category (step 8 item) because the enum made its predicate invalid, and deleted the uncalled deleteReportsByComponentId.
 - Step 6 (dashboard in SQL): advisors 0 error / 0 warn / 24 info. 13 new pgTAP tests (79 total). vitest 190: the tests of the removed JS arithmetic (calculations/metrics, 35 tests) went with it, their rules are now pgTAP tests; +3 fetchAllRows, +8 mapping tests. Deviations: no `component_last_maintained` view (resolved_at made it unnecessary); the app still derives latest-per-component from the list it has already loaded (no extra request), the view is there for other readers. Added `maintenance_history` RPC so staff see colleagues' names (the step 4 limit). fetchAllReports and the dashboard list now page past 1,000 rows.
 - Step 7 (flood results, components): advisors 0 error / 0 warn / 15 info. 11 new pgTAP tests (90 total); vitest 190. Migration hand-edited to copy the 8 flood tables and fill components before the drops and FKs (dry-run on existing data: 8x1369 rows, 1555 components). flood_results metrics made NOT NULL (no nulls in data) in a second small migration. Verified: nearest_components uses idx_components_location; over the real API a single select returns 1000/1369 flood rows and 1000/1231 storm drains, paged reads return all; /api/closest-pipe works on a dev server. Not done: generating the map GeoJSON from the database.
+- Step 8 (cleanup): advisors 0 error / 0 warn / 14 info (12 unused_index, which on an idle local database means nothing; 2 rls_enabled_no_policy, both intended). 3 new pgTAP tests (93 total). Also indexed the last two foreign keys (profiles.agency_id, reports.user_id). idx_report_category had already gone in step 5.
