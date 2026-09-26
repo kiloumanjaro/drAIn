@@ -1,6 +1,10 @@
 import client from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
-import type { ComponentType, MaintenanceStatus } from '@/lib/supabase/enums';
+import type {
+  ComponentType,
+  MaintenanceStatus,
+  ReviewVerdict,
+} from '@/lib/supabase/enums';
 
 export type { ComponentType, MaintenanceStatus };
 
@@ -56,6 +60,11 @@ export async function getMaintenanceHistory(componentName: string) {
 
   return {
     data: data.map((row) => ({
+      id: row.id,
+      verification_status: row.verification_status,
+      can_review: row.can_review,
+      my_verdict: row.my_verdict,
+      latest_dispute: row.latest_dispute,
       last_cleaned_at: row.performed_at,
       agencies: [{ name: row.agency_name }],
       profiles: row.performed_by_name
@@ -66,4 +75,24 @@ export async function getMaintenanceHistory(componentName: string) {
       evidence_image: row.evidence_image,
     })),
   };
+}
+
+/**
+ * Check a colleague's finished work: it holds, or it doesn't (with what is
+ * still wrong). A dispute puts the component's reports back on the work
+ * list. The database refuses a check of your own work
+ * (review_maintenance in supabase/schemas/schema_trust.sql).
+ */
+export async function reviewMaintenance(
+  maintenanceId: string,
+  verdict: ReviewVerdict,
+  note?: string
+): Promise<Tables<'maintenance'>> {
+  const { data, error } = await client.rpc('review_maintenance', {
+    p_maintenance_id: maintenanceId,
+    p_verdict: verdict,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+  return data;
 }

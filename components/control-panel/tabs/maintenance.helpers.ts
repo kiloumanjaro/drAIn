@@ -23,7 +23,16 @@ export const MAINTENANCE_PHOTO_MAX_DISTANCE_M = 50;
  * `last_cleaned_at` is `maintenance.performed_at`, aliased in the query.
  */
 export type HistoryItem = {
+  id: string;
   last_cleaned_at: string;
+  /** Whether someone other than the crew has checked the work. */
+  verification_status: 'unverified' | 'verified' | 'disputed';
+  /** Finished work the viewer didn't do, so they may check it. */
+  can_review: boolean;
+  /** The viewer's own check, if they made one. */
+  my_verdict: 'confirmed' | 'disputed' | null;
+  /** Why the most recent dispute says it isn't fixed. */
+  latest_dispute: string | null;
   agencies: { name: string }[] | null;
   profiles: { full_name: string }[] | null;
   status: string | null;

@@ -6,6 +6,7 @@ import type {
   PhotoLocationCheck,
   ReportPriority,
   ReportReview,
+  ReviewVerdict,
 } from '@/lib/supabase/enums';
 import type { ExifData } from '@/lib/reports/extract-exif';
 
@@ -163,6 +164,48 @@ export const reviewReport = async (
   });
   if (error) throw new Error(error.message);
   return data;
+};
+
+/**
+ * The reporter says whether the work that closed their report fixed it. "Not
+ * fixed" needs a reason and reopens the report (respond_to_resolution in
+ * supabase/schemas/schema_trust.sql).
+ */
+export const respondToResolution = async (
+  reportId: string,
+  verdict: ReviewVerdict,
+  note?: string
+): Promise<ReportRow> => {
+  const { data, error } = await client.rpc('respond_to_resolution', {
+    p_report_id: reportId,
+    p_verdict: verdict,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * The signed-in person's answers to "was it fixed?", by the report they
+ * answered for. Row-level security returns only their own.
+ */
+export const fetchMyResolutionVerdicts = async (
+  userId: string
+): Promise<Map<string, ReviewVerdict>> => {
+  const { data, error } = await client
+    .from('maintenance_reviews')
+    .select('report_id, verdict')
+    .eq('reviewer_id', userId)
+    .not('report_id', 'is', null);
+  if (error) {
+    console.error('Error fetching your answers:', error);
+    return new Map();
+  }
+  return new Map(
+    (data ?? []).flatMap((row) =>
+      row.report_id ? [[row.report_id, row.verdict] as const] : []
+    )
+  );
 };
 
 /** The reports filed against one component, oldest first. */

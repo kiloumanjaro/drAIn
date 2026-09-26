@@ -126,6 +126,29 @@ CREATE TYPE "public"."photo_location_check" AS ENUM (
 ALTER TYPE "public"."photo_location_check" OWNER TO "postgres";
 
 
+-- Whether finished work has been checked by someone other than the person
+-- who did it (see maintenance_reviews in schema_trust.sql). Only resolved
+-- maintenance is checked; in-progress work stays unverified.
+CREATE TYPE "public"."verification_status" AS ENUM (
+    'unverified',
+    'verified',
+    'disputed'
+);
+
+
+ALTER TYPE "public"."verification_status" OWNER TO "postgres";
+
+
+-- One reviewer's word on a fix: it holds, or it doesn't.
+CREATE TYPE "public"."review_verdict" AS ENUM (
+    'confirmed',
+    'disputed'
+);
+
+
+ALTER TYPE "public"."review_verdict" OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) RETURNS character varying
     LANGUAGE "plpgsql" STABLE
     SET "search_path" TO 'public', 'extensions'
@@ -528,6 +551,7 @@ CREATE TABLE IF NOT EXISTS "public"."maintenance" (
     "status" "public"."maintenance_status" NOT NULL,
     "description" "text",
     "evidence_image" "text",
+    "verification_status" "public"."verification_status" DEFAULT 'unverified'::"public"."verification_status" NOT NULL,
     CONSTRAINT "maintenance_pkey" PRIMARY KEY ("id")
 );
 
@@ -540,6 +564,10 @@ COMMENT ON COLUMN "public"."maintenance"."component_name" IS 'The component''s n
 
 
 COMMENT ON COLUMN "public"."maintenance"."performed_by" IS 'The staff member who recorded it. Null once their account is deleted; agency_id still says who did the work.';
+
+
+
+COMMENT ON COLUMN "public"."maintenance"."verification_status" IS 'Kept by review_maintenance and respond_to_resolution from maintenance_reviews: disputed if anyone disputed it, verified if someone other than the person who did it confirmed it, else unverified.';
 
 
 

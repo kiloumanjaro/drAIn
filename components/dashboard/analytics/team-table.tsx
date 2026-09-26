@@ -54,6 +54,12 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
             <th className="px-4 py-3 text-center font-semibold text-gray-700">
               Resolved
             </th>
+            <th
+              className="px-4 py-3 text-center font-semibold text-gray-700"
+              title="Resolved issues whose fix someone other than the crew confirmed"
+            >
+              Checked
+            </th>
             <th className="px-4 py-3 text-center font-semibold text-gray-700">
               Median days to resolve
             </th>
@@ -84,6 +90,9 @@ export default function TeamTable({ data, loading = false }: TeamTableProps) {
                     %)
                   </span>
                 </div>
+              </td>
+              <td className="px-4 py-3 text-center text-gray-700">
+                {team.verifiedIssues} of {team.resolvedIssues}
               </td>
               <td className="px-4 py-3 text-center font-semibold text-blue-600">
                 {team.medianDaysToResolve === null

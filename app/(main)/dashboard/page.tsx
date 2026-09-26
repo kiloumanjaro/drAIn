@@ -70,6 +70,8 @@ export default function DashboardPage() {
               pendingIssues={metrics?.pendingIssues ?? 0}
               averageRepairDays={metrics?.averageRepairDays ?? 0}
               totalAdmins={metrics?.totalAdmins ?? 0}
+              verifiedFixedThisMonth={metrics?.verifiedFixedThisMonth}
+              awaitingVerification={metrics?.awaitingVerification}
               loading={metricsLoading}
             />
           </div>

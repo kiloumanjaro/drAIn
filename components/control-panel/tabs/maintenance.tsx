@@ -10,6 +10,7 @@ import {
   type HistoryItem,
 } from './maintenance.helpers';
 import { assetActions } from './maintenance.actions';
+import MaintenanceVerification from './maintenance-verification';
 import type { Report } from '@/lib/supabase/report';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import {
@@ -502,6 +503,16 @@ ${note}`
                                 </div>
                               )}
                             </div>
+                            <MaintenanceVerification
+                              record={record}
+                              onChanged={() =>
+                                selectedAsset &&
+                                handleViewHistory(
+                                  selectedAsset.type,
+                                  selectedAsset.id
+                                )
+                              }
+                            />
                           </div>
                         </div>
                       </div>
@@ -557,6 +568,16 @@ ${note}`
                               </div>
                             )}
                           </div>
+                          <MaintenanceVerification
+                            record={record}
+                            onChanged={() =>
+                              selectedAsset &&
+                              handleViewHistory(
+                                selectedAsset.type,
+                                selectedAsset.id
+                              )
+                            }
+                          />
                         </div>
                       </div>
                     </div>

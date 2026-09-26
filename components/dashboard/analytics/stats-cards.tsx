@@ -11,15 +11,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface StatsCardsProps {
   fixedThisMonth: number;
   pendingIssues: number;
   averageRepairDays: number;
   totalAdmins: number;
+  /** Of fixedThisMonth, those someone other than the crew confirmed. */
+  verifiedFixedThisMonth?: number;
+  /** Finished work nobody has checked yet. */
+  awaitingVerification?: number;
   loading?: boolean;
-  // Mock trend data for now - in real implementation, these would come from queries
+  // Past values, oldest first. A trend line and change are shown only when
+  // these are passed. They used to default to made-up numbers, so every
+  // card showed a trend and a percentage change that meant nothing.
   fixedTrend?: number[];
   pendingTrend?: number[];
   repairTimeTrend?: number[];
@@ -62,16 +67,39 @@ function calculatePercentageChange(data: number[]): number {
   return ((data[data.length - 1] - firstValue) / firstValue) * 100;
 }
 
+interface StatCard {
+  id: string;
+  label: string;
+  value: string | number;
+  tooltipText: string;
+  trendData?: number[];
+  note?: string;
+}
+
+/** e.g. "3 checked · 2 jobs awaiting a check". */
+function verificationNote(
+  verified: number | undefined,
+  awaiting: number | undefined
+): string | undefined {
+  if (verified === undefined) return undefined;
+  const waiting = awaiting
+    ? ` · ${awaiting} job${awaiting === 1 ? '' : 's'} awaiting a check`
+    : '';
+  return `${verified} checked${waiting}`;
+}
+
 export default function StatsCards({
   fixedThisMonth,
   pendingIssues,
   averageRepairDays,
   totalAdmins,
+  verifiedFixedThisMonth,
+  awaitingVerification,
   loading = false,
-  fixedTrend = [12, 8, 15, 18, fixedThisMonth], // Mock data
-  pendingTrend = [45, 52, 38, 41, pendingIssues], // Mock data
-  repairTimeTrend = [7.2, 6.8, 7.5, 6.9, averageRepairDays], // Mock data
-  adminTrend = [8, 10, 9, 11, totalAdmins], // Mock data
+  fixedTrend,
+  pendingTrend,
+  repairTimeTrend,
+  adminTrend,
 }: StatsCardsProps) {
   const router = useRouter();
 
@@ -109,8 +137,10 @@ export default function StatsCards({
       id: 'fixed',
       label: 'Fixed This Month',
       value: fixedThisMonth,
-      tooltipText: 'The number of reports resolved for the month',
+      tooltipText:
+        'Reports resolved this month. "Checked" counts fixes confirmed by someone other than the crew that did the work: a colleague, or the person who reported it.',
       trendData: fixedTrend,
+      note: verificationNote(verifiedFixedThisMonth, awaitingVerification),
     },
     {
       id: 'pending',
@@ -128,20 +158,35 @@ export default function StatsCards({
     },
     {
       id: 'admins',
-      label: 'Total Admins',
+      label: 'Agency Staff',
       value: totalAdmins,
-      tooltipText: 'Users linked to an agency with administrative access',
+      tooltipText: 'People who have joined an agency with its join code',
       trendData: adminTrend,
     },
-  ];
+  ] as StatCard[];
 
   return (
     <TooltipProvider>
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
         {stats.map((stat) => {
           const isAdminCard = stat.id === 'admins';
-          const percentageChange = calculatePercentageChange(stat.trendData);
+          const hasTrend = !!stat.trendData && stat.trendData.length >= 2;
+          const percentageChange = hasTrend
+            ? calculatePercentageChange(stat.trendData!)
+            : 0;
           const isPositive = percentageChange >= 0;
+          const change = hasTrend && (
+            <span
+              className={`rounded px-1.5 py-1 text-[9px] font-semibold ${
+                isPositive
+                  ? 'bg-[#f1f7f7] text-green-700'
+                  : 'bg-red-100 text-red-700'
+              }`}
+            >
+              {isPositive ? '+' : ''}
+              {percentageChange.toFixed(1)}%
+            </span>
+          );
 
           return (
             <div
@@ -165,55 +210,19 @@ export default function StatsCards({
               >
                 {isAdminCard ? (
                   <div className="flex items-start justify-between px-8 py-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {stat.value}
-                        </p>
-                        <span
-                          className={`rounded px-1.5 py-1 text-[9px] font-semibold ${
-                            isPositive
-                              ? 'bg-[#f1f7f7] text-green-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {isPositive ? '+' : ''}
-                          {percentageChange.toFixed(1)}%
-                        </span>
-                      </div>
+                    <div className="flex flex-1 items-center gap-3">
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {stat.value}
+                      </p>
+                      {change}
                     </div>
-                    <div className="ml-4 flex items-center">
-                      {/* Avatar Group with 3 placeholder avatars and plus button */}
-                      <div className="flex items-center -space-x-2">
-                        <Avatar className="border-2 border-white">
-                          <AvatarImage
-                            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop"
-                            alt="Admin 1"
-                          />
-                          <AvatarFallback>A1</AvatarFallback>
-                        </Avatar>
-                        <Avatar className="border-2 border-white">
-                          <AvatarImage
-                            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop"
-                            alt="Admin 2"
-                          />
-                          <AvatarFallback>A2</AvatarFallback>
-                        </Avatar>
-                        <Avatar className="border-2 border-white">
-                          <AvatarImage
-                            src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop"
-                            alt="Admin 3"
-                          />
-                          <AvatarFallback>A3</AvatarFallback>
-                        </Avatar>
-                        <button
-                          onClick={handleAddAdmin}
-                          className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-gray-600 hover:bg-gray-300"
-                        >
-                          <Plus className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
+                    <button
+                      onClick={handleAddAdmin}
+                      title="Join an agency from your profile"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-start justify-between px-8">
@@ -222,21 +231,19 @@ export default function StatsCards({
                         <p className="text-2xl font-semibold text-gray-900">
                           {stat.value}
                         </p>
-                        <span
-                          className={`rounded px-1.5 py-1 text-[9px] font-semibold ${
-                            isPositive
-                              ? 'bg-[#f1f7f7] text-green-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {isPositive ? '+' : ''}
-                          {percentageChange.toFixed(1)}%
-                        </span>
+                        {change}
                       </div>
+                      {stat.note && (
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          {stat.note}
+                        </p>
+                      )}
                     </div>
-                    <div className="ml-4 flex items-end">
-                      <TrendLine data={stat.trendData} />
-                    </div>
+                    {hasTrend && (
+                      <div className="ml-4 flex items-end">
+                        <TrendLine data={stat.trendData!} />
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>

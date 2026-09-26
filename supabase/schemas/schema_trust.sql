@@ -238,3 +238,218 @@ GRANT EXECUTE ON FUNCTION "public"."review_report"("p_report_id" "uuid", "p_verd
 -- Trigger functions are not meant to be called directly.
 REVOKE ALL ON FUNCTION "public"."check_report_submission"() FROM PUBLIC, "anon", "authenticated";
 REVOKE ALL ON FUNCTION "public"."record_report_source"() FROM PUBLIC, "anon", "authenticated";
+
+
+-- ---------------------------------------------------------------------------
+-- Checking finished work
+-- ---------------------------------------------------------------------------
+--
+-- Resolving a report used to be self-attested: the crew that did the work
+-- said it was done, and that was the end of it. Now a resolved maintenance
+-- record stays 'unverified' until someone other than the person who did it
+-- looks: another staff member (review_maintenance), or a citizen whose
+-- report it closed (respond_to_resolution). A dispute reopens the reports,
+-- so the component goes back on the work list.
+
+-- One reviewer's verdict on one piece of finished work. A reviewer may
+-- change their mind; their latest verdict replaces the earlier one.
+CREATE TABLE IF NOT EXISTS "public"."maintenance_reviews" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "maintenance_id" "uuid" NOT NULL,
+    "reviewer_id" "uuid",
+    "reviewer_kind" "text" NOT NULL,
+    "report_id" "uuid",
+    "verdict" "public"."review_verdict" NOT NULL,
+    "note" "text",
+    "evidence_image" "text",
+    CONSTRAINT "maintenance_reviews_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "maintenance_reviews_one_per_reviewer" UNIQUE ("maintenance_id", "reviewer_id"),
+    CONSTRAINT "maintenance_reviews_reviewer_kind_check" CHECK (("reviewer_kind" = ANY (ARRAY['staff'::"text", 'reporter'::"text"]))),
+    CONSTRAINT "maintenance_reviews_maintenance_id_fkey" FOREIGN KEY ("maintenance_id") REFERENCES "public"."maintenance"("id") ON DELETE CASCADE,
+    CONSTRAINT "maintenance_reviews_reviewer_id_fkey" FOREIGN KEY ("reviewer_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL,
+    CONSTRAINT "maintenance_reviews_report_id_fkey" FOREIGN KEY ("report_id") REFERENCES "public"."reports"("id") ON DELETE SET NULL
+);
+
+
+ALTER TABLE "public"."maintenance_reviews" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."maintenance_reviews"."reviewer_kind" IS 'staff: another agency member checked the work. reporter: the citizen whose report it closed.';
+
+
+
+COMMENT ON COLUMN "public"."maintenance_reviews"."report_id" IS 'For a reporter''s review, the report they answered for.';
+
+
+
+CREATE INDEX "idx_maintenance_reviews_reviewer_id" ON "public"."maintenance_reviews" USING "btree" ("reviewer_id");
+
+
+CREATE INDEX "idx_maintenance_reviews_report_id" ON "public"."maintenance_reviews" USING "btree" ("report_id");
+
+
+ALTER TABLE "public"."maintenance_reviews" ENABLE ROW LEVEL SECURITY;
+
+
+-- Staff see every review; a citizen sees their own. Written only through
+-- the two functions below.
+CREATE POLICY "Staff and the reviewer can read reviews" ON "public"."maintenance_reviews" FOR SELECT TO "authenticated" USING (((( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL) OR ("reviewer_id" = ( SELECT "auth"."uid"() AS "uid"))));
+
+
+GRANT SELECT ON TABLE "public"."maintenance_reviews" TO "authenticated";
+GRANT ALL ON TABLE "public"."maintenance_reviews" TO "service_role";
+REVOKE ALL ON TABLE "public"."maintenance_reviews" FROM "anon";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."maintenance_reviews" FROM "authenticated";
+
+
+-- Recomputes a record's verification_status from its reviews: any dispute
+-- wins, then any confirmation.
+CREATE OR REPLACE FUNCTION "private"."refresh_verification"("p_maintenance_id" "uuid") RETURNS "void"
+    LANGUAGE "sql"
+    SET "search_path" TO ''
+    AS $$
+  update public.maintenance m
+  set verification_status = case
+    when exists (select 1 from public.maintenance_reviews r
+                 where r.maintenance_id = m.id and r.verdict = 'disputed') then 'disputed'
+    when exists (select 1 from public.maintenance_reviews r
+                 where r.maintenance_id = m.id and r.verdict = 'confirmed') then 'verified'
+    else 'unverified'
+  end::public.verification_status
+  where m.id = p_maintenance_id
+$$;
+
+
+ALTER FUNCTION "private"."refresh_verification"("p_maintenance_id" "uuid") OWNER TO "postgres";
+
+
+-- Puts reports this work closed back on the work list: all of them, or only
+-- one reporter's. The review keeps the link to the disputed work.
+CREATE OR REPLACE FUNCTION "private"."reopen_resolved_reports"("p_maintenance_id" "uuid", "p_reporter" "uuid" DEFAULT NULL::"uuid") RETURNS "void"
+    LANGUAGE "sql"
+    SET "search_path" TO ''
+    AS $$
+  update public.reports
+  set status = 'pending',
+      resolved_at = null,
+      resolved_image = null,
+      resolved_by_maintenance_id = null
+  where resolved_by_maintenance_id = p_maintenance_id
+    and status = 'resolved'
+    and (p_reporter is null or user_id = p_reporter)
+$$;
+
+
+ALTER FUNCTION "private"."reopen_resolved_reports"("p_maintenance_id" "uuid", "p_reporter" "uuid") OWNER TO "postgres";
+
+
+-- A staff member checks a colleague's finished work: confirmed, or disputed
+-- with a reason (and optionally a photo). Not their own work. A dispute
+-- reopens every report the work closed.
+CREATE OR REPLACE FUNCTION "public"."review_maintenance"("p_maintenance_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  note text := nullif(btrim(p_note), '');
+  work public.maintenance;
+BEGIN
+  IF private.current_agency_id() IS NULL THEN
+    RAISE EXCEPTION 'Only agency staff can check maintenance.' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO work FROM public.maintenance WHERE id = p_maintenance_id;
+  IF work.id IS NULL THEN
+    RAISE EXCEPTION 'No such maintenance record.' USING ERRCODE = 'P0002';
+  END IF;
+  IF work.status <> 'resolved' THEN
+    RAISE EXCEPTION 'Only finished work can be checked.' USING ERRCODE = 'P0001';
+  END IF;
+  IF work.performed_by = auth.uid() THEN
+    RAISE EXCEPTION 'Someone other than the person who did the work has to check it.'
+      USING ERRCODE = '42501';
+  END IF;
+  IF p_verdict = 'disputed' AND note IS NULL THEN
+    RAISE EXCEPTION 'Say what is still wrong.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.maintenance_reviews
+    (maintenance_id, reviewer_id, reviewer_kind, verdict, note, evidence_image)
+  VALUES (work.id, auth.uid(), 'staff', p_verdict, note, p_evidence_image)
+  ON CONFLICT (maintenance_id, reviewer_id) DO UPDATE
+    SET verdict = excluded.verdict, note = excluded.note,
+        evidence_image = excluded.evidence_image, created_at = now();
+
+  IF p_verdict = 'disputed' THEN
+    PERFORM private.reopen_resolved_reports(work.id);
+  END IF;
+  PERFORM private.refresh_verification(work.id);
+
+  SELECT * INTO work FROM public.maintenance WHERE id = p_maintenance_id;
+  RETURN work;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."review_maintenance"("p_maintenance_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text", "p_evidence_image" "text") OWNER TO "postgres";
+
+
+-- The citizen whose report was marked fixed says whether it is. Within 30
+-- days of the fix. "Not fixed" (with a reason) reopens their report.
+CREATE OR REPLACE FUNCTION "public"."respond_to_resolution"("p_report_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text" DEFAULT NULL::"text") RETURNS "public"."reports"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  note text := nullif(btrim(p_note), '');
+  report public.reports;
+  work public.maintenance;
+BEGIN
+  SELECT * INTO report FROM public.reports WHERE id = p_report_id;
+  IF auth.uid() IS NULL OR report.user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Only the person who filed this report can say whether it was fixed.'
+      USING ERRCODE = '42501';
+  END IF;
+  IF report.status <> 'resolved' OR report.resolved_by_maintenance_id IS NULL THEN
+    RAISE EXCEPTION 'This report has not been marked fixed.' USING ERRCODE = 'P0001';
+  END IF;
+  IF report.resolved_at < now() - interval '30 days' THEN
+    RAISE EXCEPTION 'This was marked fixed more than 30 days ago. File a new report instead.'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  SELECT * INTO work FROM public.maintenance WHERE id = report.resolved_by_maintenance_id;
+  IF work.performed_by = auth.uid() THEN
+    RAISE EXCEPTION 'Someone other than the person who did the work has to check it.'
+      USING ERRCODE = '42501';
+  END IF;
+  IF p_verdict = 'disputed' AND note IS NULL THEN
+    RAISE EXCEPTION 'Say what is still wrong.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.maintenance_reviews
+    (maintenance_id, reviewer_id, reviewer_kind, report_id, verdict, note)
+  VALUES (work.id, auth.uid(), 'reporter', report.id, p_verdict, note)
+  ON CONFLICT (maintenance_id, reviewer_id) DO UPDATE
+    SET verdict = excluded.verdict, note = excluded.note,
+        report_id = excluded.report_id, created_at = now();
+
+  IF p_verdict = 'disputed' THEN
+    PERFORM private.reopen_resolved_reports(work.id, auth.uid());
+  END IF;
+  PERFORM private.refresh_verification(work.id);
+
+  SELECT * INTO report FROM public.reports WHERE id = p_report_id;
+  RETURN report;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."respond_to_resolution"("p_report_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text") OWNER TO "postgres";
+
+
+REVOKE ALL ON FUNCTION "public"."review_maintenance"("p_maintenance_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text", "p_evidence_image" "text") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."review_maintenance"("p_maintenance_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text", "p_evidence_image" "text") TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."respond_to_resolution"("p_report_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."respond_to_resolution"("p_report_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text") TO "authenticated", "service_role";

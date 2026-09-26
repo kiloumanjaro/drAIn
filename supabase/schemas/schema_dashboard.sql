@@ -93,13 +93,15 @@ ALTER VIEW "public"."repair_time_by_component" OWNER TO "postgres";
 -- Per agency: the reports its maintenance has moved along (the maintenance
 -- that last touched a report decides which agency it belongs to), how many
 -- are resolved, and the median days to resolve. Reports nobody has worked on
--- belong to no agency yet and aren't counted here.
+-- belong to no agency yet and aren't counted here. verified_issues: resolved
+-- reports whose fix someone other than the crew has confirmed.
 CREATE OR REPLACE VIEW "public"."team_performance" WITH ("security_invoker"='true') AS
  SELECT "a"."name" AS "agency_name",
     ("count"("r"."id"))::integer AS "total_issues",
     ("count"("r"."id") FILTER (WHERE ("r"."status" = 'resolved'::"public"."report_status")))::integer AS "resolved_issues",
     ("count"("r"."id") FILTER (WHERE ("r"."status" <> 'resolved'::"public"."report_status")))::integer AS "outstanding_issues",
-    "round"((percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY (("d"."repair_days")::double precision)))::numeric, 1) AS "median_days_to_resolve"
+    "round"((percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY (("d"."repair_days")::double precision)))::numeric, 1) AS "median_days_to_resolve",
+    ("count"("r"."id") FILTER (WHERE (("r"."status" = 'resolved'::"public"."report_status") AND ("m"."verification_status" = 'verified'::"public"."verification_status"))))::integer AS "verified_issues"
    FROM ((("public"."agencies" "a"
      JOIN "public"."maintenance" "m" ON (("m"."agency_id" = "a"."id")))
      JOIN "public"."reports" "r" ON ((("r"."resolved_by_maintenance_id" = "m"."id") AND ("r"."review_status" <> 'rejected'::"public"."report_review"))))
@@ -129,7 +131,10 @@ ALTER FUNCTION "public"."repair_trend"("p_days" integer) OWNER TO "postgres";
 -- The dashboard's headline numbers. SECURITY DEFINER only so it can count
 -- staff, whose profiles other users can't read; it returns counts, never
 -- rows. p_month_start is the caller's local start of the month.
-CREATE OR REPLACE FUNCTION "public"."dashboard_overview"("p_month_start" timestamp with time zone DEFAULT "date_trunc"('month'::"text", "now"())) RETURNS TABLE("fixed_this_month" integer, "pending_issues" integer, "average_repair_days" numeric, "total_staff" integer)
+-- verified_fixed_this_month: of the fixes, those someone other than the
+-- crew has confirmed. awaiting_verification: finished work nobody has
+-- checked yet.
+CREATE OR REPLACE FUNCTION "public"."dashboard_overview"("p_month_start" timestamp with time zone DEFAULT "date_trunc"('month'::"text", "now"())) RETURNS TABLE("fixed_this_month" integer, "pending_issues" integer, "average_repair_days" numeric, "total_staff" integer, "verified_fixed_this_month" integer, "awaiting_verification" integer)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -140,7 +145,13 @@ CREATE OR REPLACE FUNCTION "public"."dashboard_overview"("p_month_start" timesta
     (select count(*) from public.reports
       where status = 'pending' and review_status <> 'rejected')::integer,
     (select coalesce(round(avg(repair_days), 1), 0) from public.report_repair_days),
-    (select count(*) from public.profiles where role in ('staff', 'admin'))::integer
+    (select count(*) from public.profiles where role in ('staff', 'admin'))::integer,
+    (select count(*) from public.reports r
+      join public.maintenance m on m.id = r.resolved_by_maintenance_id
+      where r.status = 'resolved' and r.resolved_at >= p_month_start
+        and r.review_status <> 'rejected' and m.verification_status = 'verified')::integer,
+    (select count(*) from public.maintenance
+      where status = 'resolved' and verification_status = 'unverified')::integer
 $$;
 
 
@@ -149,7 +160,10 @@ ALTER FUNCTION "public"."dashboard_overview"("p_month_start" timestamp with time
 
 -- A component's maintenance, newest first, naming who did it. Staff only:
 -- it reads staff names, which other users can't see in profiles.
-CREATE OR REPLACE FUNCTION "public"."maintenance_history"("p_component_name" "text") RETURNS TABLE("performed_at" timestamp with time zone, "agency_name" "text", "performed_by_name" "text", "status" "public"."maintenance_status", "description" "text", "evidence_image" "text")
+-- can_review: finished work the caller didn't do, so they may check it.
+-- my_verdict: the caller's own check, if any. latest_dispute: why the most
+-- recent dispute says it isn't fixed.
+CREATE OR REPLACE FUNCTION "public"."maintenance_history"("p_component_name" "text") RETURNS TABLE("id" "uuid", "performed_at" timestamp with time zone, "agency_name" "text", "performed_by_name" "text", "status" "public"."maintenance_status", "description" "text", "evidence_image" "text", "verification_status" "public"."verification_status", "can_review" boolean, "my_verdict" "public"."review_verdict", "latest_dispute" "text")
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -159,7 +173,14 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT m.performed_at, a.name, p.full_name, m.status, m.description, m.evidence_image
+  SELECT m.id, m.performed_at, a.name, p.full_name, m.status, m.description, m.evidence_image,
+         m.verification_status,
+         m.status = 'resolved' AND m.performed_by IS DISTINCT FROM auth.uid(),
+         (SELECT r.verdict FROM public.maintenance_reviews r
+          WHERE r.maintenance_id = m.id AND r.reviewer_id = auth.uid()),
+         (SELECT r.note FROM public.maintenance_reviews r
+          WHERE r.maintenance_id = m.id AND r.verdict = 'disputed'
+          ORDER BY r.created_at DESC LIMIT 1)
   FROM public.maintenance m
   JOIN public.agencies a ON a.id = m.agency_id
   LEFT JOIN public.profiles p ON p.id = m.performed_by

@@ -1,9 +1,26 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { fetchMyReports, type Report } from '@/lib/supabase/report';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  fetchMyReports,
+  fetchMyResolutionVerdicts,
+  respondToResolution,
+  type Report,
+} from '@/lib/supabase/report';
+import type { ReviewVerdict } from '@/lib/supabase/enums';
 import { TONE_CLASSES, reviewLabel } from '@/lib/reports/trust-labels';
 import { format } from 'date-fns';
 
@@ -21,26 +38,55 @@ const STATUS_STYLES: Record<string, string> = {
     'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20',
 };
 
+/** How long after a fix the reporter may still say whether it held. */
+const ANSWER_WINDOW_DAYS = 30;
+
+function canStillAnswer(report: Report): boolean {
+  if (report.status !== 'resolved' || !report.resolvedByMaintenanceId) {
+    return false;
+  }
+  if (!report.resolvedAt) return true;
+  const ageDays =
+    (Date.now() - new Date(report.resolvedAt).getTime()) / 86_400_000;
+  return ageDays <= ANSWER_WINDOW_DAYS;
+}
+
 /**
  * The signed-in person's own reports, newest first, with where each one
- * stands and what staff made of it. It used to match reports on the
- * reporter's name against their user id, so it was always empty.
+ * stands and what staff made of it. When a report is marked fixed, its
+ * reporter is asked whether it really is: "not fixed" reopens it. That is
+ * the independent check on the crew's own word that the job is done.
+ *
+ * It used to match reports on the reporter's name against their user id,
+ * so it was always empty.
  */
 export default function UserReportsList({
   userId,
   isGuest = false,
 }: UserReportsListProps) {
   const [reports, setReports] = useState<Report[]>([]);
+  const [verdicts, setVerdicts] = useState<Map<string, ReviewVerdict>>(
+    new Map()
+  );
   const [loading, setLoading] = useState(false);
+  const [disputing, setDisputing] = useState<Report | null>(null);
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) {
       setReports([]);
+      setVerdicts(new Map());
       return;
     }
     setLoading(true);
     try {
-      setReports(await fetchMyReports(userId));
+      const [mine, answers] = await Promise.all([
+        fetchMyReports(userId),
+        fetchMyResolutionVerdicts(userId),
+      ]);
+      setReports(mine);
+      setVerdicts(answers);
     } catch {
       setReports([]);
     } finally {
@@ -51,6 +97,29 @@ export default function UserReportsList({
   useEffect(() => {
     load();
   }, [load]);
+
+  const answer = async (
+    report: Report,
+    verdict: ReviewVerdict,
+    reason?: string
+  ) => {
+    setSaving(true);
+    try {
+      await respondToResolution(report.id, verdict, reason);
+      toast.success(
+        verdict === 'confirmed'
+          ? 'Thanks for confirming'
+          : 'Thanks. Your report is open again.'
+      );
+      setDisputing(null);
+      setNote('');
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card className="flex h-full max-h-[350px] flex-col gap-0 overflow-hidden rounded-none border-none py-0">
@@ -69,6 +138,7 @@ export default function UserReportsList({
           <div className="space-y-3">
             {reports.map((item) => {
               const review = reviewLabel(item.reviewStatus, item.reviewNote);
+              const verdict = verdicts.get(item.id);
               return (
                 <div
                   key={item.id}
@@ -104,12 +174,81 @@ export default function UserReportsList({
                       {review.text}
                     </div>
                   </div>
+
+                  {verdict === 'confirmed' && item.status === 'resolved' && (
+                    <p className="text-[11px] text-green-700">
+                      You confirmed it was fixed.
+                    </p>
+                  )}
+                  {verdict === 'disputed' && item.status !== 'resolved' && (
+                    <p className="text-[11px] text-red-700">
+                      You said it wasn&apos;t fixed, so it is open again.
+                    </p>
+                  )}
+                  {!verdict && canStillAnswer(item) && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-medium">
+                        Marked fixed. Is it?
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[11px]"
+                        disabled={saving}
+                        onClick={() => answer(item, 'confirmed')}
+                      >
+                        Yes
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[11px] text-red-700"
+                        disabled={saving}
+                        onClick={() => setDisputing(item)}
+                      >
+                        No
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
       </CardContent>
+
+      <Dialog
+        open={disputing !== null}
+        onOpenChange={(open) => !open && setDisputing(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>What is still wrong?</DialogTitle>
+            <DialogDescription>
+              Your report goes back on the work list, and the agency sees that
+              the fix was disputed.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Still floods when it rains"
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisputing(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={saving || !note.trim()}
+              onClick={() => disputing && answer(disputing, 'disputed', note)}
+            >
+              It&apos;s not fixed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

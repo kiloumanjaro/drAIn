@@ -15,6 +15,8 @@ export type MaintenanceStatus = Enums['maintenance_status'];
 export type UserRole = Enums['user_role'];
 export type ReportReview = Enums['report_review'];
 export type PhotoLocationCheck = Enums['photo_location_check'];
+export type VerificationStatus = Enums['verification_status'];
+export type ReviewVerdict = Enums['review_verdict'];
 
 const oneOf =
   <T extends string>(values: readonly T[]) =>

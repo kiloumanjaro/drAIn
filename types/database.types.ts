@@ -229,6 +229,7 @@ export type Database = {
           performed_at: string;
           performed_by: string | null;
           status: Database['public']['Enums']['maintenance_status'];
+          verification_status: Database['public']['Enums']['verification_status'];
         };
         Insert: {
           agency_id: string;
@@ -241,6 +242,7 @@ export type Database = {
           performed_at?: string;
           performed_by?: string | null;
           status: Database['public']['Enums']['maintenance_status'];
+          verification_status?: Database['public']['Enums']['verification_status'];
         };
         Update: {
           agency_id?: string;
@@ -253,6 +255,7 @@ export type Database = {
           performed_at?: string;
           performed_by?: string | null;
           status?: Database['public']['Enums']['maintenance_status'];
+          verification_status?: Database['public']['Enums']['verification_status'];
         };
         Relationships: [
           {
@@ -279,6 +282,78 @@ export type Database = {
           {
             foreignKeyName: 'maintenance_performed_by_fkey';
             columns: ['performed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      maintenance_reviews: {
+        Row: {
+          created_at: string;
+          evidence_image: string | null;
+          id: string;
+          maintenance_id: string;
+          note: string | null;
+          report_id: string | null;
+          reviewer_id: string | null;
+          reviewer_kind: string;
+          verdict: Database['public']['Enums']['review_verdict'];
+        };
+        Insert: {
+          created_at?: string;
+          evidence_image?: string | null;
+          id?: string;
+          maintenance_id: string;
+          note?: string | null;
+          report_id?: string | null;
+          reviewer_id?: string | null;
+          reviewer_kind: string;
+          verdict: Database['public']['Enums']['review_verdict'];
+        };
+        Update: {
+          created_at?: string;
+          evidence_image?: string | null;
+          id?: string;
+          maintenance_id?: string;
+          note?: string | null;
+          report_id?: string | null;
+          reviewer_id?: string | null;
+          reviewer_kind?: string;
+          verdict?: Database['public']['Enums']['review_verdict'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'maintenance_reviews_maintenance_id_fkey';
+            columns: ['maintenance_id'];
+            isOneToOne: false;
+            referencedRelation: 'maintenance';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'maintenance_reviews_report_id_fkey';
+            columns: ['report_id'];
+            isOneToOne: false;
+            referencedRelation: 'latest_report_per_component';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'maintenance_reviews_report_id_fkey';
+            columns: ['report_id'];
+            isOneToOne: false;
+            referencedRelation: 'report_repair_days';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'maintenance_reviews_report_id_fkey';
+            columns: ['report_id'];
+            isOneToOne: false;
+            referencedRelation: 'reports';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'maintenance_reviews_reviewer_id_fkey';
+            columns: ['reviewer_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -772,6 +847,7 @@ export type Database = {
           outstanding_issues: number | null;
           resolved_issues: number | null;
           total_issues: number | null;
+          verified_issues: number | null;
         };
         Relationships: [];
       };
@@ -781,9 +857,11 @@ export type Database = {
         Args: { p_month_start?: string };
         Returns: {
           average_repair_days: number;
+          awaiting_verification: number;
           fixed_this_month: number;
           pending_issues: number;
           total_staff: number;
+          verified_fixed_this_month: number;
         }[];
       };
       extract_barangay_from_coordinates: {
@@ -810,11 +888,16 @@ export type Database = {
         Args: { p_component_name: string };
         Returns: {
           agency_name: string;
+          can_review: boolean;
           description: string;
           evidence_image: string;
+          id: string;
+          latest_dispute: string;
+          my_verdict: Database['public']['Enums']['review_verdict'];
           performed_at: string;
           performed_by_name: string;
           status: Database['public']['Enums']['maintenance_status'];
+          verification_status: Database['public']['Enums']['verification_status'];
         }[];
       };
       nearest_components: {
@@ -851,6 +934,7 @@ export type Database = {
           performed_at: string;
           performed_by: string | null;
           status: Database['public']['Enums']['maintenance_status'];
+          verification_status: Database['public']['Enums']['verification_status'];
         };
         SetofOptions: {
           from: '*';
@@ -865,6 +949,75 @@ export type Database = {
           average_days: number;
           day: string;
         }[];
+      };
+      respond_to_resolution: {
+        Args: {
+          p_note?: string;
+          p_report_id: string;
+          p_verdict: Database['public']['Enums']['review_verdict'];
+        };
+        Returns: {
+          address: string | null;
+          category: Database['public']['Enums']['component_type'] | null;
+          component_id: string | null;
+          created_at: string;
+          description: string | null;
+          geocoded_status: string | null;
+          id: string;
+          image: string | null;
+          lat: number | null;
+          long: number | null;
+          photo_check: Database['public']['Enums']['photo_location_check'];
+          photo_distance_m: number | null;
+          photo_lat: number | null;
+          photo_lon: number | null;
+          photo_taken_at: string | null;
+          priority: Database['public']['Enums']['report_priority'];
+          reporter_name: string | null;
+          resolved_at: string | null;
+          resolved_by_maintenance_id: string | null;
+          resolved_image: string | null;
+          review_note: string | null;
+          review_status: Database['public']['Enums']['report_review'];
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: Database['public']['Enums']['report_status'];
+          user_id: string | null;
+          zone: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'reports';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      review_maintenance: {
+        Args: {
+          p_evidence_image?: string;
+          p_maintenance_id: string;
+          p_note?: string;
+          p_verdict: Database['public']['Enums']['review_verdict'];
+        };
+        Returns: {
+          agency_id: string;
+          component_name: string;
+          component_type: Database['public']['Enums']['component_type'];
+          created_at: string;
+          description: string | null;
+          evidence_image: string | null;
+          id: string;
+          performed_at: string;
+          performed_by: string | null;
+          status: Database['public']['Enums']['maintenance_status'];
+          verification_status: Database['public']['Enums']['verification_status'];
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'maintenance';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       review_report: {
         Args: {
@@ -944,7 +1097,9 @@ export type Database = {
       report_priority: 'low' | 'medium' | 'high' | 'critical';
       report_review: 'unreviewed' | 'confirmed' | 'rejected';
       report_status: 'pending' | 'in-progress' | 'resolved';
+      review_verdict: 'confirmed' | 'disputed';
       user_role: 'citizen' | 'staff' | 'admin';
+      verification_status: 'unverified' | 'verified' | 'disputed';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1084,7 +1239,9 @@ export const Constants = {
       report_priority: ['low', 'medium', 'high', 'critical'],
       report_review: ['unreviewed', 'confirmed', 'rejected'],
       report_status: ['pending', 'in-progress', 'resolved'],
+      review_verdict: ['confirmed', 'disputed'],
       user_role: ['citizen', 'staff', 'admin'],
+      verification_status: ['unverified', 'verified', 'disputed'],
     },
   },
 } as const;

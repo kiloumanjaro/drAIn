@@ -17,6 +17,10 @@ export interface OverviewMetrics {
   averageRepairDays: number;
   /** Agency staff and admins. */
   totalAdmins: number;
+  /** Of fixedThisMonth, fixes someone other than the crew confirmed. */
+  verifiedFixedThisMonth: number;
+  /** Finished maintenance nobody has checked yet. */
+  awaitingVerification: number;
   fixedTrend?: number[];
   pendingTrend?: number[];
   repairTimeTrend?: number[];
@@ -59,6 +63,8 @@ export interface TeamPerformanceData {
    * rather than showing zero.
    */
   medianDaysToResolve: number | null;
+  /** Resolved issues whose fix someone other than the crew confirmed. */
+  verifiedIssues: number;
 }
 
 export interface ReportWithMetadata extends Report {
@@ -70,6 +76,8 @@ const EMPTY_OVERVIEW: OverviewMetrics = {
   pendingIssues: 0,
   averageRepairDays: 0,
   totalAdmins: 0,
+  verifiedFixedThisMonth: 0,
+  awaitingVerification: 0,
 };
 
 /**
@@ -97,6 +105,8 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     pendingIssues: row.pending_issues,
     averageRepairDays: row.average_repair_days,
     totalAdmins: row.total_staff,
+    verifiedFixedThisMonth: row.verified_fixed_this_month,
+    awaitingVerification: row.awaiting_verification,
   };
 }
 
@@ -191,7 +201,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
   const { data, error } = await client
     .from('team_performance')
     .select(
-      'agency_name, total_issues, resolved_issues, outstanding_issues, median_days_to_resolve'
+      'agency_name, total_issues, resolved_issues, outstanding_issues, median_days_to_resolve, verified_issues'
     );
 
   if (error) {
@@ -207,6 +217,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
         resolvedIssues: row.resolved_issues ?? 0,
         outstandingIssues: row.outstanding_issues ?? 0,
         medianDaysToResolve: row.median_days_to_resolve,
+        verifiedIssues: row.verified_issues ?? 0,
       }))
       .filter((entry) => entry.totalIssues > 0)
       // Ordered by what is still open, so the table points at where the
