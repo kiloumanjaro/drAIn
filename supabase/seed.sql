@@ -6,7 +6,7 @@
 --   admin@drain.local    admin, City Engineer Office
 --   staff@drain.local    staff, City Engineer Office
 --   citizen@drain.local  citizen
---   citizen2@drain.local citizen
+--   citizen2@drain.local citizen who hides their name on reports
 --
 -- The City Engineer Office join code is DRAIN-LOCAL-01. A citizen who enters
 -- it on the profile screen becomes staff.
@@ -53,6 +53,11 @@ set role = case id when '00000000-0000-4000-a000-000000000001' then 'admin'::pub
                    else 'staff'::public.user_role end,
     agency_id = '6b307b70-0fa4-46df-a66c-0df8a16cca3d'
 where id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000002');
+
+-- Carl hides his name, so his report below shows as Anonymous
+-- (set_reporter_name overrides the reporter_name inserted here).
+update public.profiles set show_name_on_reports = false
+where id = '00000000-0000-4000-a000-000000000004';
 
 -- Join code DRAIN-LOCAL-01, stored the way rotate_agency_join_code stores
 -- codes: normalised, then bcrypt-hashed.

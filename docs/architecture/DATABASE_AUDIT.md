@@ -15,6 +15,7 @@ File references are relative to `drAIn-frontend/`.
 
 - Fixed: S1, S2 (step 2: roles, join codes, guarded `role`/`agency_id`); `auth_rls_initplan` ×3; `profiles` side of B4.
 - Fixed: S3, S5, S6, S8, S10 (search_path, category whitelist), S11, B1, `reports.user_id` side of B4; `report_comments` and `extract_barangay_from_address` dropped (step 3). Avatars also got the UPDATE policy their upsert needs.
+- S9, partly (step 3b): a profile setting hides a person's name on their reports; the database stores "Anonymous" instead. `user_id` is still public.
 - Advisors after step 3: 0 errors, 4 warnings (the maintenance INSERT policies, step 4), 37 info.
 
 ---

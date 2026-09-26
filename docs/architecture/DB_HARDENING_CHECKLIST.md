@@ -147,18 +147,18 @@ Needs: step 2.
 
 Needs: step 2.
 
-- [ ] `profiles.show_name_on_reports boolean not null default true`. The user can update it on their own row; `protect_profile_privileges` only guards `role` and `agency_id`.
-- [ ] `set_reporter_name` BEFORE INSERT trigger on `reports`. For signed-in reporters (`user_id` not null), it ignores the client-sent `reporter_name` and writes the profile's `full_name` if the setting is on, else `'Anonymous'`. Anonymous reporters keep what they typed.
-- [ ] `sync_reporter_name` AFTER UPDATE OF `show_name_on_reports, full_name` trigger on `profiles` (`security definer`, `search_path ''`). It rewrites `reporter_name` on that user's existing reports, so the switch is retroactive both ways.
-- [ ] Code:
+- [x] `profiles.show_name_on_reports boolean not null default true`. The user can update it on their own row; `protect_profile_privileges` only guards `role` and `agency_id`.
+- [x] `set_reporter_name` BEFORE INSERT trigger on `reports`. For signed-in reporters (`user_id` not null), it ignores the client-sent `reporter_name` and writes the profile's `full_name` if the setting is on, else `'Anonymous'`. Anonymous reporters keep what they typed.
+- [x] `sync_reporter_name` AFTER UPDATE OF `show_name_on_reports, full_name` trigger on `profiles` (`security definer`, `search_path ''`). It rewrites `reporter_name` on that user's existing reports, so the switch is retroactive both ways.
+- [x] Code:
   - Add a toggle ("Show my name on reports") to the profile section, `components/control-panel/tabs/profile-content.tsx` or the edit-profile component, whichever holds the name field.
   - Save it through `lib/supabase/profile.ts` and add it to `Profile`.
   - The report form may keep sending `reporterName`; the trigger wins.
-- [ ] Tests:
+- [x] Tests:
   - with the setting off, a new report and existing reports show `Anonymous`;
   - turning it back on restores the name;
   - an anonymous reporter's typed name is untouched.
-- [ ] Seed: `citizen2@` has the setting off, so both states are visible locally.
+- [x] Seed: `citizen2@` has the setting off, so both states are visible locally.
 
 ## Step 4 — One maintenance table plus an atomic RPC (D1, S4, B5, B6)
 
@@ -271,3 +271,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 1 (test harness): `supabase/tests/database/01_baseline.test.sql`, 4 tests pass.
 - Step 2 (permission model): advisors 1 error / 16 warn / 40 info (auth_rls_initplan ×3 and one search_path warning gone; +1 info: agency_join_codes has RLS and no policies, by design). 18 new pgTAP tests. Verified over REST: self-set agency 403, wrong code 400, right code joins, anon 401. Note: declarative sync emitted SET DEFAULT before CREATE TYPE; fixed by hand in the migration, documented in CLAUDE.md.
 - Step 3 (open access): advisors 0 error / 4 warn / 37 info. 16 new pgTAP tests (38 total). Verified on a dev server: CSV download 401 without token, 403 citizen, 200 staff; closest-pipe 200 with no service key. Extra: Avatars UPDATE policy for their own folder (upsert needed it). Declarative sync ignores GRANT narrowing because of the default privileges; explicit REVOKE in schema.sql does work.
+- Step 3b (reporter name setting): advisors 0 error / 4 warn / 38 info. 8 new pgTAP tests (46 total). Verified over REST: turning the setting off rewrites the citizen's existing reports to Anonymous, and back. The toggle sits under Display Name in the profile Edit tab.

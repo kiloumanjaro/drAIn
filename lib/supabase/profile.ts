@@ -4,14 +4,21 @@ import type { Tables } from '@/types/database.types';
 
 export type Profile = Pick<
   Tables<'profiles'>,
-  'id' | 'full_name' | 'avatar_url' | 'role' | 'agency_id'
+  | 'id'
+  | 'full_name'
+  | 'avatar_url'
+  | 'role'
+  | 'agency_id'
+  | 'show_name_on_reports'
 >;
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await client
       .from('profiles')
-      .select('id, full_name, avatar_url, role, agency_id')
+      .select(
+        'id, full_name, avatar_url, role, agency_id, show_name_on_reports'
+      )
       .eq('id', userId)
       .single();
 
@@ -34,7 +41,9 @@ export const updateUserProfile = async (
   session: Session,
   fullName: string,
   avatarFile: File | null,
-  currentProfile: Record<string, unknown> | null
+  currentProfile: Record<string, unknown> | null,
+  /** Show the name on this person's reports; left unchanged when omitted. */
+  showNameOnReports?: boolean
 ) => {
   try {
     const user = session.user;
@@ -80,6 +89,9 @@ export const updateUserProfile = async (
           full_name: fullName,
           avatar_url: avatar_url,
           updated_at: new Date().toISOString(),
+          ...(showNameOnReports === undefined
+            ? {}
+            : { show_name_on_reports: showNameOnReports }),
         })
         .eq('id', user.id)
         .select()

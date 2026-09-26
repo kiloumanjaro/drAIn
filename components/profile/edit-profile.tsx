@@ -7,12 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Session } from '@supabase/supabase-js';
 import ImageUploader from '@/components/common/image-uploader';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 
 interface EditProfileProps {
   profile: Record<string, unknown> | null;
   session: Session | null | undefined;
-  onSave: (fullName: string, avatarFile: File | null) => Promise<void>;
+  onSave: (
+    fullName: string,
+    avatarFile: File | null,
+    showNameOnReports: boolean
+  ) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -24,6 +29,9 @@ export default function EditProfile({
 }: EditProfileProps) {
   const [fullName, setFullName] = useState(String(profile?.full_name || ''));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  // Profiles saved before the setting existed have no value: shown.
+  const savedShowName = profile?.show_name_on_reports !== false;
+  const [showName, setShowName] = useState(savedShowName);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -35,7 +43,7 @@ export default function EditProfile({
     setIsSaving(true);
 
     try {
-      await onSave(fullName, avatarFile);
+      await onSave(fullName, avatarFile, showName);
       setAvatarFile(null);
       setErrorMessage(null);
     } catch (error) {
@@ -50,13 +58,16 @@ export default function EditProfile({
   const handleCancel = () => {
     setAvatarFile(null);
     setFullName(String(profile?.full_name || ''));
+    setShowName(savedShowName);
     setErrorMessage(null);
     onCancel();
   };
 
   // Check if there are any changes
   const hasChanges =
-    fullName !== String(profile?.full_name || '') || avatarFile !== null;
+    fullName !== String(profile?.full_name || '') ||
+    avatarFile !== null ||
+    showName !== savedShowName;
 
   return (
     <Card className="h-full rounded-none border-none">
@@ -66,7 +77,9 @@ export default function EditProfile({
             <Label htmlFor="fullName" className="block font-normal">
               Display Name
             </Label>
-            <span className="text-muted-foreground text-xs">Visible</span>
+            <span className="text-muted-foreground text-xs">
+              {showName ? 'Visible on reports' : 'Hidden on reports'}
+            </span>
           </div>
           <Input
             id="fullName"
@@ -76,6 +89,21 @@ export default function EditProfile({
             placeholder="Your name"
             disabled={isSaving || isGuest}
           />
+          <div className="flex flex-row items-center justify-between gap-3 px-1">
+            <Label
+              htmlFor="showNameOnReports"
+              className="text-muted-foreground text-xs font-normal"
+            >
+              Show my name on my reports. When off, they show as
+              &quot;Anonymous&quot;, including ones already sent.
+            </Label>
+            <Switch
+              id="showNameOnReports"
+              checked={showName}
+              onCheckedChange={setShowName}
+              disabled={isSaving || isGuest}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">

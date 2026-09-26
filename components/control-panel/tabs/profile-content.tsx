@@ -41,14 +41,19 @@ export default function ProfileContent({
   const supabase = client;
   const loading = !profile && !isGuest;
 
-  const handleSave = async (fullName: string, avatarFile: File | null) => {
+  const handleSave = async (
+    fullName: string,
+    avatarFile: File | null,
+    showNameOnReports: boolean
+  ) => {
     if (!session) return;
 
     const updatedProfile = await updateUserProfile(
       session,
       fullName,
       avatarFile,
-      profile
+      profile,
+      showNameOnReports
     );
     let newPublicAvatarUrl = null;
     if (updatedProfile.avatar_url) {

@@ -338,6 +338,51 @@ $$;
 
 ALTER FUNCTION "public"."update_report_zone"() OWNER TO "postgres";
 
+
+-- The name shown on a signed-in person's report comes from their profile,
+-- not from the client: their full name, or 'Anonymous' if they turned off
+-- show_name_on_reports. A hidden name is never written to the report.
+-- Anonymous reports (no user_id) keep whatever name was typed.
+CREATE OR REPLACE FUNCTION "public"."set_reporter_name"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF NEW.user_id IS NOT NULL THEN
+    SELECT CASE WHEN p.show_name_on_reports THEN coalesce(nullif(p.full_name, ''), 'Anonymous')
+                ELSE 'Anonymous' END
+    INTO NEW.reporter_name
+    FROM public.profiles p
+    WHERE p.id = NEW.user_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_reporter_name"() OWNER TO "postgres";
+
+
+-- Keeps existing reports in step when someone changes their name or the
+-- show_name_on_reports setting, so hiding the name is retroactive.
+-- SECURITY DEFINER because only staff may update reports directly.
+CREATE OR REPLACE FUNCTION "public"."sync_reporter_name"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  UPDATE public.reports
+  SET reporter_name = CASE WHEN NEW.show_name_on_reports
+                           THEN coalesce(nullif(NEW.full_name, ''), 'Anonymous')
+                           ELSE 'Anonymous' END
+  WHERE user_id = NEW.id;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."sync_reporter_name"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -718,11 +763,15 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "avatar_url" "text",
     "agency_id" "uuid",
     "role" "public"."user_role" DEFAULT 'citizen'::"public"."user_role" NOT NULL,
+    "show_name_on_reports" boolean DEFAULT true NOT NULL,
     CONSTRAINT "profiles_staff_have_agency" CHECK ((("role" = 'citizen'::"public"."user_role") = ("agency_id" IS NULL)))
 );
 
 
 ALTER TABLE "public"."profiles" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."profiles"."show_name_on_reports" IS 'When false, this person''s reports show "Anonymous" instead of their name. Applied by set_reporter_name and sync_reporter_name.';
 
 
 CREATE TABLE IF NOT EXISTS "public"."reports" (
@@ -1034,6 +1083,14 @@ CREATE OR REPLACE TRIGGER "protect_profile_privileges" BEFORE INSERT OR UPDATE O
 
 
 CREATE OR REPLACE TRIGGER "trigger-geocode-on-insert" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "supabase_functions"."http_request"('https://jpwbdhksmnrtfutcmpht.supabase.co/functions/v1/geocodeWorker', 'POST', '{"Content-type":"application/json","Authorization":"Bearer <SERVICE_ROLE_JWT>"}', '{}', '5000');
+
+
+
+CREATE OR REPLACE TRIGGER "set_reporter_name" BEFORE INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."set_reporter_name"();
+
+
+
+CREATE OR REPLACE TRIGGER "sync_reporter_name" AFTER UPDATE OF "full_name", "show_name_on_reports" ON "public"."profiles" FOR EACH ROW WHEN ((("old"."full_name" IS DISTINCT FROM "new"."full_name") OR ("old"."show_name_on_reports" IS DISTINCT FROM "new"."show_name_on_reports"))) EXECUTE FUNCTION "public"."sync_reporter_name"();
 
 
 
@@ -1578,6 +1635,18 @@ GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "anon";
 GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "anon";
+GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "service_role";
 
 
 
