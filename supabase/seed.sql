@@ -3,17 +3,21 @@
 -- below (I-0, O-0, ISD-1, C-0) already exist.
 --
 -- Everyone signs in with password `password123`:
---   admin@drain.local    agency staff (City Engineer Office)
---   staff@drain.local    agency staff (City Engineer Office)
---   citizen@drain.local  regular user
---   citizen2@drain.local regular user
+--   admin@drain.local    admin, City Engineer Office
+--   staff@drain.local    staff, City Engineer Office
+--   citizen@drain.local  citizen
+--   citizen2@drain.local citizen
+--
+-- The City Engineer Office join code is DRAIN-LOCAL-01. A citizen who enters
+-- it on the profile screen becomes staff.
 
 -- The geocode webhook posts every new report to the hosted geocodeWorker
 -- edge function. Locally that would call production, so switch it off.
 alter table public.reports disable trigger "trigger-geocode-on-insert";
 
 -- ---------------------------------------------------------------------------
--- Users. on_auth_user_created creates each profiles row from the metadata.
+-- Users. on_auth_user_created creates each profiles row as a citizen, taking
+-- only full_name from the metadata.
 -- ---------------------------------------------------------------------------
 
 insert into auth.users (
@@ -25,14 +29,14 @@ select
   '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated',
   u.email, extensions.crypt('password123', extensions.gen_salt('bf')), now(),
   '{"provider":"email","providers":["email"]}',
-  jsonb_build_object('full_name', u.full_name, 'role', u.role),
+  jsonb_build_object('full_name', u.full_name),
   now(), now(), '', '', '', ''
 from (values
-  ('00000000-0000-4000-a000-000000000001'::uuid, 'admin@drain.local',    'Ana Admin',     'admin'),
-  ('00000000-0000-4000-a000-000000000002'::uuid, 'staff@drain.local',    'Sam Staff',     'user'),
-  ('00000000-0000-4000-a000-000000000003'::uuid, 'citizen@drain.local',  'Cora Citizen',  'user'),
-  ('00000000-0000-4000-a000-000000000004'::uuid, 'citizen2@drain.local', 'Carl Citizen',  'user')
-) as u (id, email, full_name, role);
+  ('00000000-0000-4000-a000-000000000001'::uuid, 'admin@drain.local',    'Ana Admin'),
+  ('00000000-0000-4000-a000-000000000002'::uuid, 'staff@drain.local',    'Sam Staff'),
+  ('00000000-0000-4000-a000-000000000003'::uuid, 'citizen@drain.local',  'Cora Citizen'),
+  ('00000000-0000-4000-a000-000000000004'::uuid, 'citizen2@drain.local', 'Carl Citizen')
+) as u (id, email, full_name);
 
 -- Email sign-in needs a matching identity per user.
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -42,10 +46,19 @@ select gen_random_uuid(), id, id::text,
 from auth.users
 where email like '%@drain.local';
 
--- Staff are the profiles attached to an agency.
+-- Roles and agency are set here directly; seeds run as postgres, which
+-- protect_profile_privileges lets through.
 update public.profiles
-set agency_id = '6b307b70-0fa4-46df-a66c-0df8a16cca3d'
+set role = case id when '00000000-0000-4000-a000-000000000001' then 'admin'::public.user_role
+                   else 'staff'::public.user_role end,
+    agency_id = '6b307b70-0fa4-46df-a66c-0df8a16cca3d'
 where id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000002');
+
+-- Join code DRAIN-LOCAL-01, stored the way rotate_agency_join_code stores
+-- codes: normalised, then bcrypt-hashed.
+insert into private.agency_join_codes (agency_id, code_hash)
+values ('6b307b70-0fa4-46df-a66c-0df8a16cca3d',
+        extensions.crypt(private.normalize_join_code('DRAIN-LOCAL-01'), extensions.gen_salt('bf')));
 
 -- ---------------------------------------------------------------------------
 -- Reports, one per status and priority, placed on real components so the

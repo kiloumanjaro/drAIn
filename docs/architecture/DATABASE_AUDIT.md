@@ -11,6 +11,10 @@ Scope: the Supabase database (`supabase/schemas/`) and every piece of code that 
 
 File references are relative to `drAIn-frontend/`.
 
+**Progress** (branch `db-hardening`; order and detail in `DB_HARDENING_CHECKLIST.md`)
+
+- Fixed: S1, S2 (step 2: roles, join codes, guarded `role`/`agency_id`); `auth_rls_initplan` ×3; `profiles` side of B4.
+
 ---
 
 ## Verdict

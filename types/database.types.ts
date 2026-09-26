@@ -773,7 +773,7 @@ export type Database = {
           created_at: string;
           full_name: string | null;
           id: string;
-          role: string;
+          role: Database['public']['Enums']['user_role'];
           updated_at: string;
         };
         Insert: {
@@ -782,7 +782,7 @@ export type Database = {
           created_at?: string;
           full_name?: string | null;
           id?: string;
-          role?: string;
+          role?: Database['public']['Enums']['user_role'];
           updated_at?: string;
         };
         Update: {
@@ -791,7 +791,7 @@ export type Database = {
           created_at?: string;
           full_name?: string | null;
           id?: string;
-          role?: string;
+          role?: Database['public']['Enums']['user_role'];
           updated_at?: string;
         };
         Relationships: [
@@ -1081,6 +1081,48 @@ export type Database = {
           name: string;
         }[];
       };
+      join_agency: {
+        Args: { p_code: string };
+        Returns: {
+          contact_details: Json | null;
+          created_at: string;
+          id: string;
+          name: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'agencies';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      leave_agency: { Args: Record<PropertyKey, never>; Returns: undefined };
+      rotate_agency_join_code: {
+        Args: { p_agency_id: string };
+        Returns: string;
+      };
+      set_member_agency: {
+        Args: {
+          p_agency_id: string;
+          p_role: Database['public']['Enums']['user_role'];
+          p_user_id: string;
+        };
+        Returns: {
+          agency_id: string | null;
+          avatar_url: string | null;
+          created_at: string;
+          full_name: string | null;
+          id: string;
+          role: Database['public']['Enums']['user_role'];
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'profiles';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
     };
     Enums: {
       asset_point_type: 'inlet' | 'outlet' | 'stormdrain';
@@ -1097,6 +1139,7 @@ export type Database = {
         | 'action_taken'
         | 'resolved'
         | 'rejected';
+      user_role: 'citizen' | 'staff' | 'admin';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1246,6 +1289,7 @@ export const Constants = {
         'resolved',
         'rejected',
       ],
+      user_role: ['citizen', 'staff', 'admin'],
     },
   },
 } as const;

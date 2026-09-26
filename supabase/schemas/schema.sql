@@ -83,6 +83,19 @@ CREATE TYPE "public"."report_status" AS ENUM (
 ALTER TYPE "public"."report_status" OWNER TO "postgres";
 
 
+-- Who a person is to the app. citizen: reports issues. staff: belongs to an
+-- agency and records maintenance. admin: staff who can also manage members
+-- and join codes. Only citizens have no agency (profiles_staff_have_agency).
+CREATE TYPE "public"."user_role" AS ENUM (
+    'citizen',
+    'staff',
+    'admin'
+);
+
+
+ALTER TYPE "public"."user_role" OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_address"("address_text" "text") RETURNS character varying
     LANGUAGE "plpgsql" IMMUTABLE
     AS $$
@@ -303,18 +316,16 @@ $$;
 ALTER FUNCTION "public"."get_component_by_category"("category_name" "text") OWNER TO "postgres";
 
 
+-- Creates the profiles row for every new account. Everyone starts as a
+-- citizen: sign-up metadata is written by the client, so only full_name is
+-- taken from it. People become staff through join_agency or an admin.
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    SET "search_path" TO ''
     AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, role)
-  VALUES (
-    new.id,
-    new.raw_user_meta_data ->> 'full_name',
-    -- If the client sends a role, use it. Otherwise, use 'user'.
-    COALESCE(new.raw_user_meta_data ->> 'role', 'user')
-  );
+  INSERT INTO public.profiles (id, full_name)
+  VALUES (new.id, new.raw_user_meta_data ->> 'full_name');
   RETURN new;
 END;
 $$;
@@ -323,22 +334,32 @@ $$;
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."prevent_role_update"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
+-- Guards profiles.role and profiles.agency_id, the two columns that grant
+-- permissions. A signed-in user may edit the rest of their own row, but not
+-- these. Deliberately SECURITY INVOKER: current_user is then the caller, so
+-- a request from the API arrives as anon/authenticated and is refused, while
+-- the SECURITY DEFINER functions below (join_agency, leave_agency,
+-- set_member_agency), which run as postgres, pass after their own checks.
+CREATE OR REPLACE FUNCTION "public"."protect_profile_privileges"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
     AS $$
 BEGIN
-  -- Check if the user is trying to change their role
-  IF NEW.role IS DISTINCT FROM OLD.role THEN
-    -- You can check if the user is an admin here if you want to allow admins to change roles
-    -- For now, we block all changes.
-    RAISE EXCEPTION 'You are not allowed to change your role.';
+  IF current_user IN ('anon', 'authenticated') AND NOT private.is_admin() THEN
+    IF TG_OP = 'INSERT' AND (NEW.role <> 'citizen' OR NEW.agency_id IS NOT NULL) THEN
+      RAISE EXCEPTION 'New profiles start as citizens.' USING ERRCODE = '42501';
+    END IF;
+    IF TG_OP = 'UPDATE' AND (NEW.role IS DISTINCT FROM OLD.role
+                             OR NEW.agency_id IS DISTINCT FROM OLD.agency_id) THEN
+      RAISE EXCEPTION 'Only an admin can change a role or agency.' USING ERRCODE = '42501';
+    END IF;
   END IF;
   RETURN NEW;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."prevent_role_update"() OWNER TO "postgres";
+ALTER FUNCTION "public"."protect_profile_privileges"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_report_zone"() RETURNS "trigger"
@@ -738,7 +759,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "full_name" "text",
     "avatar_url" "text",
     "agency_id" "uuid",
-    "role" character varying DEFAULT 'user'::character varying NOT NULL
+    "role" "public"."user_role" DEFAULT 'citizen'::"public"."user_role" NOT NULL,
+    CONSTRAINT "profiles_staff_have_agency" CHECK ((("role" = 'citizen'::"public"."user_role") = ("agency_id" IS NULL)))
 );
 
 
@@ -1066,7 +1088,7 @@ CREATE INDEX "storm_drains_geom_geom_idx" ON "public"."storm_drains" USING "gist
 
 
 
-CREATE OR REPLACE TRIGGER "on_profile_role_update" BEFORE UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_role_update"();
+CREATE OR REPLACE TRIGGER "protect_profile_privileges" BEFORE INSERT OR UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."protect_profile_privileges"();
 
 
 
@@ -1129,7 +1151,7 @@ ALTER TABLE ONLY "public"."profiles"
 
 
 ALTER TABLE ONLY "public"."profiles"
-    ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id");
+    ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -1187,15 +1209,238 @@ ALTER TABLE "public"."50YR" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."5YR" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "Allow individual insert access" ON "public"."profiles" FOR INSERT WITH CHECK (("auth"."uid"() = "id"));
+-- ---------------------------------------------------------------------------
+-- Permissions. The private schema is not exposed through the API (only
+-- public and graphql_public are, see config.toml), so its tables can't be
+-- read by clients and its functions can only be reached from policies and
+-- other functions. anon/authenticated need USAGE to evaluate policies that
+-- call these helpers.
+-- ---------------------------------------------------------------------------
+
+CREATE SCHEMA IF NOT EXISTS "private";
+
+GRANT USAGE ON SCHEMA "private" TO "anon", "authenticated", "service_role";
+
+
+-- The caller's agency if they are staff or admin, else null. Policies use it
+-- as `(select private.current_agency_id())` so it runs once per query.
+CREATE OR REPLACE FUNCTION "private"."current_agency_id"() RETURNS "uuid"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select p.agency_id
+  from public.profiles p
+  where p.id = (select auth.uid()) and p.role in ('staff', 'admin')
+$$;
+
+
+ALTER FUNCTION "private"."current_agency_id"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "private"."is_admin"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'admin'
+  )
+$$;
+
+
+ALTER FUNCTION "private"."is_admin"() OWNER TO "postgres";
+
+
+-- True for an admin, the service role, or a direct database session (SQL
+-- editor, seeds, migrations), which carries no API role claim. API callers
+-- always carry one, so anon and ordinary signed-in users get false.
+CREATE OR REPLACE FUNCTION "private"."can_manage_members"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select coalesce(auth.role(), 'postgres') not in ('anon', 'authenticated')
+         or private.is_admin()
+$$;
+
+
+ALTER FUNCTION "private"."can_manage_members"() OWNER TO "postgres";
+
+
+-- One join code per agency. Only a bcrypt hash is kept; the plain code is
+-- returned once by rotate_agency_join_code and must be passed on by hand.
+-- Codes are compared after normalize_join_code, so case, spaces and dashes
+-- don't matter.
+CREATE TABLE IF NOT EXISTS "private"."agency_join_codes" (
+    "agency_id" "uuid" NOT NULL,
+    "code_hash" "text" NOT NULL,
+    "rotated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "agency_join_codes_pkey" PRIMARY KEY ("agency_id"),
+    CONSTRAINT "agency_join_codes_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id") ON DELETE CASCADE
+);
+
+
+ALTER TABLE "private"."agency_join_codes" OWNER TO "postgres";
+
+
+ALTER TABLE "private"."agency_join_codes" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE OR REPLACE FUNCTION "private"."normalize_join_code"("code" "text") RETURNS "text"
+    LANGUAGE "sql" IMMUTABLE
+    SET "search_path" TO ''
+    AS $$
+  select regexp_replace(upper(coalesce(code, '')), '[^A-Z0-9]', '', 'g')
+$$;
+
+
+ALTER FUNCTION "private"."normalize_join_code"("code" "text") OWNER TO "postgres";
+
+
+-- Admin only. Replaces the agency's join code and returns the new one, e.g.
+-- 'K7QM-W2XP-9D'. 10 characters from a 32-letter alphabet (no 0/O, 1/I) is
+-- about 50 bits, and every guess costs a bcrypt comparison per agency.
+-- From the SQL editor: select public.rotate_agency_join_code('<agency id>');
+CREATE OR REPLACE FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") RETURNS "text"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  raw text := '';
+BEGIN
+  IF NOT private.can_manage_members() THEN
+    RAISE EXCEPTION 'Only an admin can rotate a join code.' USING ERRCODE = '42501';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.agencies WHERE id = p_agency_id) THEN
+    RAISE EXCEPTION 'No such agency.' USING ERRCODE = 'P0002';
+  END IF;
+
+  -- 256 is a multiple of 32, so taking each random byte mod 32 is unbiased.
+  FOR i IN 1..10 LOOP
+    raw := raw || substr(alphabet, 1 + get_byte(extensions.gen_random_bytes(1), 0) % 32, 1);
+  END LOOP;
+
+  INSERT INTO private.agency_join_codes (agency_id, code_hash, rotated_at)
+  VALUES (p_agency_id, extensions.crypt(raw, extensions.gen_salt('bf')), now())
+  ON CONFLICT (agency_id) DO UPDATE
+    SET code_hash = excluded.code_hash, rotated_at = excluded.rotated_at;
+
+  RETURN substr(raw, 1, 4) || '-' || substr(raw, 5, 4) || '-' || substr(raw, 9, 2);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") OWNER TO "postgres";
+
+
+-- A signed-in citizen enters their agency's code and becomes its staff.
+-- Returns the agency. The error for a wrong code doesn't say whether any
+-- agency exists.
+CREATE OR REPLACE FUNCTION "public"."join_agency"("p_code" "text") RETURNS "public"."agencies"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  candidate text := private.normalize_join_code(p_code);
+  matched public.agencies;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Sign in to join an agency.' USING ERRCODE = '42501';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role <> 'citizen') THEN
+    RAISE EXCEPTION 'You are already part of an agency. Leave it first.' USING ERRCODE = 'P0001';
+  END IF;
+
+  SELECT a.* INTO matched
+  FROM private.agency_join_codes c
+  JOIN public.agencies a ON a.id = c.agency_id
+  WHERE c.code_hash = extensions.crypt(candidate, c.code_hash)
+  LIMIT 1;
+
+  IF matched.id IS NULL THEN
+    RAISE EXCEPTION 'That code is not valid.' USING ERRCODE = 'P0001';
+  END IF;
+
+  UPDATE public.profiles SET role = 'staff', agency_id = matched.id WHERE id = auth.uid();
+  RETURN matched;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."join_agency"("p_code" "text") OWNER TO "postgres";
+
+
+-- Staff leave their agency and become citizens again. Admins can't, so an
+-- agency can't lose its last admin by accident; another admin demotes them.
+CREATE OR REPLACE FUNCTION "public"."leave_agency"() RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  UPDATE public.profiles SET role = 'citizen', agency_id = NULL
+  WHERE id = auth.uid() AND role = 'staff';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Only agency staff can leave an agency.' USING ERRCODE = 'P0001';
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."leave_agency"() OWNER TO "postgres";
+
+
+-- Admin only: set anyone's role and agency directly. A citizen's agency is
+-- cleared; staff and admins must be given one (profiles_staff_have_agency).
+CREATE OR REPLACE FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") RETURNS "public"."profiles"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  result public.profiles;
+BEGIN
+  IF NOT private.can_manage_members() THEN
+    RAISE EXCEPTION 'Only an admin can change a role or agency.' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.profiles
+  SET role = p_role,
+      agency_id = CASE WHEN p_role = 'citizen' THEN NULL ELSE p_agency_id END
+  WHERE id = p_user_id
+  RETURNING * INTO result;
+
+  IF result.id IS NULL THEN
+    RAISE EXCEPTION 'No such user.' USING ERRCODE = 'P0002';
+  END IF;
+  RETURN result;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") OWNER TO "postgres";
+
+
+-- Signed-out callers never need these.
+REVOKE ALL ON FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") FROM PUBLIC, "anon";
+REVOKE ALL ON FUNCTION "public"."join_agency"("p_code" "text") FROM PUBLIC, "anon";
+REVOKE ALL ON FUNCTION "public"."leave_agency"() FROM PUBLIC, "anon";
+REVOKE ALL ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") TO "authenticated", "service_role";
+GRANT EXECUTE ON FUNCTION "public"."join_agency"("p_code" "text") TO "authenticated", "service_role";
+GRANT EXECUTE ON FUNCTION "public"."leave_agency"() TO "authenticated", "service_role";
+GRANT EXECUTE ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") TO "authenticated", "service_role";
+
+
+-- A user can insert, read and update only their own profile.
+-- protect_profile_privileges stops them changing role or agency_id.
+CREATE POLICY "Allow individual insert access" ON "public"."profiles" FOR INSERT WITH CHECK (((select "auth"."uid"()) = "id"));
 
 
 
-CREATE POLICY "Allow individual read access" ON "public"."profiles" FOR SELECT USING (("auth"."uid"() = "id"));
+CREATE POLICY "Allow individual read access" ON "public"."profiles" FOR SELECT USING (((select "auth"."uid"()) = "id"));
 
 
 
-CREATE POLICY "Allow individual update access" ON "public"."profiles" FOR UPDATE USING (("auth"."uid"() = "id")) WITH CHECK (("auth"."uid"() = "id"));
+CREATE POLICY "Allow individual update access" ON "public"."profiles" FOR UPDATE USING (((select "auth"."uid"()) = "id")) WITH CHECK (((select "auth"."uid"()) = "id"));
 
 
 
@@ -1401,9 +1646,9 @@ GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."prevent_role_update"() TO "anon";
-GRANT ALL ON FUNCTION "public"."prevent_role_update"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."prevent_role_update"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "anon";
+GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "service_role";
 
 
 

@@ -41,6 +41,8 @@ This file is the working copy; tick boxes here as steps land, and delete it when
    - Then `npx prettier --write types/database.types.ts`.
 5. `pnpm type-check`, `pnpm test`, `pnpm lint`, and `npx supabase test db` (from step 1 on).
 6. `npx supabase db advisors --local`. Record the before/after counts in the run log.
+   - If `db reset` fails on the new migration, see "The one exception" in CLAUDE.md (the diff tool can misorder statements).
+   - Finish with `declarative sync --name drift_check --no-apply`: it must say "No schema changes found".
 7. Tick the box here and in the audit, run `graphify update .`, then commit.
 
 **Stop rule:** if a step won't go green after a few honest attempts:
@@ -70,16 +72,16 @@ Never loosen types or policies to make a gate pass.
 
 ## Step 2 — One permission model (D5, S1, S2, S10 partial)
 
-- [ ] Types and constraints:
+- [x] Types and constraints:
   - `user_role` enum (`citizen`, `staff`, `admin`).
   - `profiles.role` becomes `user_role`, default `citizen`.
   - `check ((role = 'citizen') = (agency_id is null))`. This keeps the existing "has agency ⇒ staff" UI checks true (`components/control-panel/tabs/maintenance.tsx:333`, `components/profile/user-links.tsx:38`).
-- [ ] `private` schema, not exposed to the API, with two functions. Both are `stable security definer set search_path = ''`:
+- [x] `private` schema, not exposed to the API, with two functions. Both are `stable security definer set search_path = ''`:
   - `private.current_agency_id()` returns the caller's agency when they are staff or admin, else null;
   - `private.is_admin()`.
-- [ ] `handle_new_user`: always inserts `citizen` and ignores metadata `role`; set `search_path = ''`.
-- [ ] Replace `prevent_role_update` with `protect_profile_privileges` (BEFORE UPDATE trigger, `search_path` set). It rejects changes to `role` or `agency_id` unless the caller is admin, `service_role` or `postgres`.
-- [ ] Join codes:
+- [x] `handle_new_user`: always inserts `citizen` and ignores metadata `role`; set `search_path = ''`.
+- [x] Replace `prevent_role_update` with `protect_profile_privileges` (BEFORE UPDATE trigger, `search_path` set). It rejects changes to `role` or `agency_id` unless the caller is admin, `service_role` or `postgres`.
+- [x] Join codes:
   - A `private.agency_join_codes (agency_id pk → agencies on delete cascade, code_hash text not null, rotated_at timestamptz)` table. It lives in `private`, so it isn't exposed to the API.
   - `public.rotate_agency_join_code(p_agency_id uuid) returns text`: admin-only.
     - Generates a random 10-character code from an unambiguous alphabet, e.g. `XXXX-XXXX-XX` (~50 bits, so brute force through the API is impractical).
@@ -91,18 +93,18 @@ Never loosen types or policies to make a gate pass.
     - sets `role = 'staff'` and `agency_id`;
     - raises a generic "invalid code" error.
   - `public.leave_agency()`: staff go back to `citizen` with a null agency. Admins can't use it, which avoids locking out the last admin.
-- [ ] `public.set_member_agency(user_id uuid, agency_id uuid, role user_role)`: admin-only RPC for direct assignment.
-- [ ] Profiles policies use `(select auth.uid())`, which fixes the 3 `auth_rls_initplan` warnings.
-- [ ] `profiles.id` → `auth.users`: `on delete cascade`.
-- [ ] Seed (`supabase/seed.sql`; the seed's role metadata is now ignored):
+- [x] `public.set_member_agency(user_id uuid, agency_id uuid, role user_role)`: admin-only RPC for direct assignment.
+- [x] Profiles policies use `(select auth.uid())`, which fixes the 3 `auth_rls_initplan` warnings.
+- [x] `profiles.id` → `auth.users`: `on delete cascade`.
+- [x] Seed (`supabase/seed.sql`; the seed's role metadata is now ignored):
   - `admin@` gets `admin`, `staff@` gets `staff`, both on the agency; the citizens stay `citizen`.
   - Insert a known local join code for the City Engineer Office: `DRAIN-LOCAL-01`, hashed in the seed. Add it to the CLAUDE.md seed row.
-- [ ] Code:
+- [x] Code:
   - `lib/supabase/profile.ts:143-187`: replace `linkAgencyToProfile` / `unlinkAgencyFromProfile` with `joinAgency(code)` and `leaveAgency()` (`client.rpc`).
   - `components/profile/agency-link.tsx`: the agency picker becomes a code input plus a Join button, with the error message on an invalid code.
   - `components/control-panel/tabs/profile-content.tsx:75,95` calls the new functions and refetches the profile afterwards, because `agency_name` is derived there.
   - Add `agency_id` to `Profile` in `lib/supabase/profile.ts:5`.
-- [ ] Tests:
+- [x] Tests:
   - a citizen can't change their own role or agency directly;
   - sign-up with `{"role":"admin"}` metadata gets `citizen`;
   - `join_agency('DRAIN-LOCAL-01')` makes a citizen staff; a wrong code fails and changes nothing;
@@ -267,3 +269,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 
 - Step 0 (setup): baseline advisors 1 error / 20 warn / 39 info. Branch `db-hardening` off `refactor` at e00c7be.
 - Step 1 (test harness): `supabase/tests/database/01_baseline.test.sql`, 4 tests pass.
+- Step 2 (permission model): advisors 1 error / 16 warn / 40 info (auth_rls_initplan ×3 and one search_path warning gone; +1 info: agency_join_codes has RLS and no policies, by design). 18 new pgTAP tests. Verified over REST: self-set agency 403, wrong code 400, right code joins, anon 401. Note: declarative sync emitted SET DEFAULT before CREATE TYPE; fixed by hand in the migration, documented in CLAUDE.md.

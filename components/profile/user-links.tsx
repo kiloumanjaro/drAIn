@@ -8,27 +8,37 @@ import { toast } from 'sonner';
 interface UserLinksProps {
   isGuest?: boolean;
   profile?: Record<string, unknown> | null;
-  onLink?: (agencyId: string, agencyName: string) => Promise<void>;
-  onUnlink?: () => Promise<void>;
+  /** Joins with a code and resolves to the agency's name. */
+  onJoin?: (code: string) => Promise<string>;
+  onLeave?: () => Promise<void>;
 }
+
+const messageOf = (error: unknown) =>
+  error instanceof Error ? error.message : 'Something went wrong.';
 
 export default function UserLinks({
   isGuest = false,
   profile,
-  onLink,
-  onUnlink,
+  onJoin,
+  onLeave,
 }: UserLinksProps) {
-  const handleUnlink = async () => {
-    if (onUnlink) {
-      await onUnlink();
-      toast.success('Agency unlinked successfully');
+  const handleLeave = async () => {
+    if (!onLeave) return;
+    try {
+      await onLeave();
+      toast.success('You left the agency');
+    } catch (error) {
+      toast.error(messageOf(error));
     }
   };
 
-  const handleLink = async (agencyId: string, agencyName: string) => {
-    if (onLink) {
-      await onLink(agencyId, agencyName);
-      toast.success(`Successfully linked to ${agencyName}`);
+  const handleJoin = async (code: string) => {
+    if (!onJoin) return;
+    try {
+      const agencyName = await onJoin(code);
+      toast.success(`You joined ${agencyName}`);
+    } catch (error) {
+      toast.error(messageOf(error));
     }
   };
 
@@ -41,17 +51,20 @@ export default function UserLinks({
               You are linked to {(profile.agency_name as string) || 'an agency'}
               . You can now respond to reports.
             </div>
-            <Button
-              className="self-center"
-              onClick={handleUnlink}
-              disabled={isGuest}
-            >
-              Unlink Agency
-            </Button>
+            {/* Admins can't leave on their own; another admin demotes them. */}
+            {profile.role !== 'admin' && (
+              <Button
+                className="self-center"
+                onClick={handleLeave}
+                disabled={isGuest}
+              >
+                Leave Agency
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex w-full flex-col justify-center space-y-2">
-            <AgencyLink onLink={handleLink} disabled={isGuest} />
+            <AgencyLink onJoin={handleJoin} disabled={isGuest} />
           </div>
         )}
       </CardContent>

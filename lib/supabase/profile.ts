@@ -4,14 +4,14 @@ import type { Tables } from '@/types/database.types';
 
 export type Profile = Pick<
   Tables<'profiles'>,
-  'id' | 'full_name' | 'avatar_url' | 'role'
+  'id' | 'full_name' | 'avatar_url' | 'role' | 'agency_id'
 >;
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await client
       .from('profiles')
-      .select('id, full_name, avatar_url, role')
+      .select('id, full_name, avatar_url, role, agency_id')
       .eq('id', userId)
       .single();
 
@@ -85,14 +85,14 @@ export const updateUserProfile = async (
         .select()
         .single());
     } else {
-      // Create new profile
+      // Create new profile. Role and agency are left to their defaults;
+      // the database refuses anything else from a client.
       ({ data, error } = await client
         .from('profiles')
         .insert({
           id: user.id,
           full_name: fullName,
           avatar_url: avatar_url,
-          role: 'user',
         })
         .select()
         .single());
@@ -120,68 +120,28 @@ export const updateUserProfile = async (
   }
 };
 
-export const getAgencies = async () => {
-  try {
-    const { data, error } = await client
-      .from('agencies') // Assuming a table named 'agencies'
-      .select('id, name');
+/**
+ * Join an agency with its join code, making the signed-in user its staff.
+ * The database checks the code (see join_agency in supabase/schemas) and
+ * rejects a wrong one with a message fit to show the user.
+ */
+export const joinAgency = async (code: string): Promise<Tables<'agencies'>> => {
+  const { data, error } = await client.rpc('join_agency', { p_code: code });
 
-    if (error) {
-      console.error('Error fetching agencies:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    const err = error as Error;
-    const errorMessage = err.message || 'An unknown error occurred.';
-    console.error('Error in getAgencies:', errorMessage, error);
-    throw new Error(errorMessage);
+  if (error) {
+    console.error('Error joining agency:', error);
+    throw new Error(error.message);
   }
+
+  return data;
 };
 
-export const linkAgencyToProfile = async (userId: string, agencyId: string) => {
-  try {
-    const { data, error } = await client
-      .from('profiles')
-      .update({ agency_id: agencyId })
-      .eq('id', userId)
-      .select()
-      .single();
+/** Leave the signed-in user's agency; they become a citizen again. */
+export const leaveAgency = async (): Promise<void> => {
+  const { error } = await client.rpc('leave_agency');
 
-    if (error) {
-      console.error('Error linking agency:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    const err = error as Error;
-    const errorMessage = err.message || 'An unknown error occurred.';
-    console.error('Error in linkAgencyToProfile:', errorMessage, error);
-    throw new Error(errorMessage);
-  }
-};
-
-export const unlinkAgencyFromProfile = async (userId: string) => {
-  try {
-    const { data, error } = await client
-      .from('profiles')
-      .update({ agency_id: null })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error unlinking agency:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    const err = error as Error;
-    const errorMessage = err.message || 'An unknown error occurred.';
-    console.error('Error in unlinkAgencyFromProfile:', errorMessage, error);
-    throw new Error(errorMessage);
+  if (error) {
+    console.error('Error leaving agency:', error);
+    throw new Error(error.message);
   }
 };
