@@ -243,9 +243,9 @@ Needs: step 4.
 
 ## Step 9 — Wrap-up
 
-- [ ] Final gate. Record the advisor counts before and after: 1 error / 20 warnings / 39 info.
-- [ ] Tick the audit items. Write the run log below: done, skipped and why, and follow-ups for the user.
-- [ ] Leave `db-hardening` unmerged and unpushed for review.
+- [x] Final gate. Record the advisor counts before and after: 1 error / 20 warnings / 39 info.
+- [x] Tick the audit items. Write the run log below: done, skipped and why, and follow-ups for the user.
+- [x] Leave `db-hardening` unmerged and unpushed for review.
 
 ## Out of scope (needs the user)
 
@@ -276,3 +276,15 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 6 (dashboard in SQL): advisors 0 error / 0 warn / 24 info. 13 new pgTAP tests (79 total). vitest 190: the tests of the removed JS arithmetic (calculations/metrics, 35 tests) went with it, their rules are now pgTAP tests; +3 fetchAllRows, +8 mapping tests. Deviations: no `component_last_maintained` view (resolved_at made it unnecessary); the app still derives latest-per-component from the list it has already loaded (no extra request), the view is there for other readers. Added `maintenance_history` RPC so staff see colleagues' names (the step 4 limit). fetchAllReports and the dashboard list now page past 1,000 rows.
 - Step 7 (flood results, components): advisors 0 error / 0 warn / 15 info. 11 new pgTAP tests (90 total); vitest 190. Migration hand-edited to copy the 8 flood tables and fill components before the drops and FKs (dry-run on existing data: 8x1369 rows, 1555 components). flood_results metrics made NOT NULL (no nulls in data) in a second small migration. Verified: nearest_components uses idx_components_location; over the real API a single select returns 1000/1369 flood rows and 1000/1231 storm drains, paged reads return all; /api/closest-pipe works on a dev server. Not done: generating the map GeoJSON from the database.
 - Step 8 (cleanup): advisors 0 error / 0 warn / 14 info (12 unused_index, which on an idle local database means nothing; 2 rls_enabled_no_policy, both intended). 3 new pgTAP tests (93 total). Also indexed the last two foreign keys (profiles.agency_id, reports.user_id). idx_report_category had already gone in step 5.
+- Step 9 (wrap-up), 2026-09-26: every step landed on `db-hardening` (unmerged, unpushed). Final gate: 93 pgTAP tests, 190 vitest tests, type-check clean, lint unchanged (19 pre-existing warnings), `declarative sync` reports no drift, advisors 0 errors / 0 warnings / 14 info (from 1 / 20 / 39). This file stays until the branch is reviewed and merged; delete it then.
+
+**Follow-ups for the user** (not done, need a decision or access):
+
+1. Rotate the service-role key in the Supabase dashboard (S7).
+2. Bring the `geocodeWorker` edge function into `supabase/functions/` and move its URL and key into Vault (D7); then the seed no longer needs to disable its trigger.
+3. `reports.user_id` is still readable by anyone (the name setting covers names only).
+4. There is no admin screen for join codes or member roles; use `rotate_agency_join_code` / `set_member_agency` from the SQL editor.
+5. The map still loads drainage components from `public/drainage/*.geojson`; generating those files from `components` would stop the two copies drifting.
+6. Add CI: `npx supabase test db`, `npx supabase db advisors --local --fail-on warn`, and a `declarative sync --no-apply` drift check.
+7. If these migrations are ever applied to the hosted project: decide what the 8 profiles that linked themselves to an agency should become first, or `20260926053141_permission_model` stops on `profiles_staff_have_agency`.
+8. Smaller: `barangay_boundaries` population columns are still text; `docs/api/SUPABASE.md` is stale; the stray `Project Drain/supabase/` folder and `control-panel-portable/` are still there.
