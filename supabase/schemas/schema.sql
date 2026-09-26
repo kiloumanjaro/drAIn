@@ -38,49 +38,28 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
 
-CREATE TYPE "public"."asset_point_type" AS ENUM (
-    'inlet',
-    'outlet',
-    'stormdrain'
-);
-
-
-ALTER TYPE "public"."asset_point_type" OWNER TO "postgres";
-
-
-CREATE TYPE "public"."drainage_status" AS ENUM (
-    'Clean',
-    'Needs_Cleaning',
-    'Clogged',
-    'Damaged',
-    'Overflowing'
-);
-
-
-ALTER TYPE "public"."drainage_status" OWNER TO "postgres";
-
-
-CREATE TYPE "public"."maintenance_type" AS ENUM (
-    'Cleaning',
-    'Repair',
-    'Inspection',
-    'Unclogging'
-);
-
-
-ALTER TYPE "public"."maintenance_type" OWNER TO "postgres";
-
-
+-- Where a report stands. Reports start pending; record_maintenance moves
+-- them to in-progress or resolved. Spelled as the app already spells them.
 CREATE TYPE "public"."report_status" AS ENUM (
     'pending',
-    'received',
-    'action_taken',
-    'resolved',
-    'rejected'
+    'in-progress',
+    'resolved'
 );
 
 
 ALTER TYPE "public"."report_status" OWNER TO "postgres";
+
+
+-- How urgent the reporter says it is.
+CREATE TYPE "public"."report_priority" AS ENUM (
+    'low',
+    'medium',
+    'high',
+    'critical'
+);
+
+
+ALTER TYPE "public"."report_priority" OWNER TO "postgres";
 
 
 -- Who a person is to the app. citizen: reports issues. staff: belongs to an
@@ -770,31 +749,30 @@ COMMENT ON COLUMN "public"."profiles"."show_name_on_reports" IS 'When false, thi
 CREATE TABLE IF NOT EXISTS "public"."reports" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "category" character varying,
+    "category" "public"."component_type",
     "description" character varying,
     "image" "text",
     "reporter_name" character varying,
-    "status" character varying NOT NULL,
+    "status" "public"."report_status" DEFAULT 'pending'::"public"."report_status" NOT NULL,
     "component_id" "text",
     "long" double precision,
     "lat" double precision,
     "geocoded_status" "text" DEFAULT 'pending'::"text",
     "address" "text",
     "user_id" "uuid",
-    "priority" "text" DEFAULT 'low'::"text",
+    "priority" "public"."report_priority" DEFAULT 'low'::"public"."report_priority" NOT NULL,
     "zone" character varying(255),
     "resolved_at" timestamp with time zone,
     "resolved_by_maintenance_id" "uuid",
     "resolved_image" "text",
-    CONSTRAINT "reports_geocoded_status_check" CHECK (("geocoded_status" = ANY (ARRAY['pending'::"text", 'processing'::"text", 'completed'::"text", 'failed'::"text"]))),
-    CONSTRAINT "reports_priority_check" CHECK (("priority" = ANY (ARRAY['low'::"text", 'medium'::"text", 'high'::"text", 'critical'::"text"])))
+    CONSTRAINT "reports_geocoded_status_check" CHECK (("geocoded_status" = ANY (ARRAY['pending'::"text", 'processing'::"text", 'completed'::"text", 'failed'::"text"])))
 );
 
 
 ALTER TABLE "public"."reports" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."reports"."priority" IS 'Priority level: low, medium, high, critical (manual assignment)';
+COMMENT ON COLUMN "public"."reports"."priority" IS 'Set by the reporter when filing.';
 
 
 
@@ -995,10 +973,6 @@ CREATE INDEX "idx_geocode_lock" ON "public"."geocode_worker_lock" USING "btree" 
 
 
 CREATE INDEX "idx_geocode_pending" ON "public"."reports" USING "btree" ("geocoded_status") WHERE ("geocoded_status" = 'pending'::"text");
-
-
-
-CREATE INDEX "idx_report_category" ON "public"."reports" USING "btree" ("category") WHERE (("category")::"text" = 'inlet'::"text");
 
 
 
@@ -1365,15 +1339,15 @@ BEGIN
   RETURNING * INTO result;
 
   UPDATE public.reports
-  SET status = p_status::text,
+  SET status = p_status::text::public.report_status,
       resolved_by_maintenance_id = result.id,
       resolved_image = coalesce(p_evidence_image, resolved_image),
       resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE resolved_at END
   WHERE component_id = p_component_name
     AND created_at <= result.performed_at
     AND status = ANY (CASE WHEN p_status = 'resolved'
-                           THEN ARRAY['pending', 'in-progress']
-                           ELSE ARRAY['pending'] END);
+                           THEN ARRAY['pending', 'in-progress']::public.report_status[]
+                           ELSE ARRAY['pending']::public.report_status[] END);
 
   RETURN result;
 END;
@@ -1464,7 +1438,7 @@ CREATE POLICY "Enable read access for all users" ON "public"."storm_drains" FOR 
 
 -- Anyone, signed in or not, may file a report, but only as a new pending
 -- report under their own id (anonymous reports carry no user_id).
-CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHECK (((("status")::"text" = 'pending'::"text") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
+CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
 
 
 

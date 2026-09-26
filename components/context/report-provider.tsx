@@ -13,6 +13,7 @@ import {
   subscribeToReportChanges,
   formatReport,
   Report,
+  type ReportRow,
 } from '@/lib/supabase/report';
 import {
   useAllReports,
@@ -56,7 +57,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
   // Subscribe to realtime changes from Supabase
   useEffect(() => {
-    const handleInsert = (newReport: Report) => {
+    const handleInsert = (newReport: ReportRow) => {
       const formatted = formatReport(newReport);
 
       // Update TanStack Query cache for all reports
@@ -75,7 +76,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    const handleUpdate = (updatedReport: Report) => {
+    const handleUpdate = (updatedReport: ReportRow) => {
       const formatted = formatReport(updatedReport);
 
       // Update notifications

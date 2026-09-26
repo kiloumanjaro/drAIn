@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRequestClient } from '@/lib/supabase/server';
+import type { Tables } from '@/types/database.types';
 
-interface ReportRecord {
-  id: string;
-  created_at: string;
-  category: string | null;
-  description: string | null;
-  image: string | null;
-  reporter_name: string | null;
-  status: string | null;
-  component_id: string | null;
-  lat: string | null;
-  long: string | null;
-  geocoded_status: string | null;
-  address: string | null;
-  priority: string | null;
-  zone: string | null;
-}
+type ReportRecord = Tables<'reports'>;
 
 export async function GET(request: NextRequest) {
   try {
@@ -111,7 +97,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate CSV content
-    const csv = generateCSV(reports as ReportRecord[]);
+    const csv = generateCSV(reports);
 
     return new NextResponse(csv, {
       headers: {
@@ -146,7 +132,7 @@ function getMonthName(month: number): string {
   return months[month - 1] || 'Unknown';
 }
 
-function escapeCSVField(field: string | null | undefined): string {
+function escapeCSVField(field: string | number | null | undefined): string {
   if (field === null || field === undefined) return '';
   const stringField = String(field);
   // If the field contains comma, newline, or double quote, wrap it in quotes

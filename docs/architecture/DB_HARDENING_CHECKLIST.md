@@ -195,16 +195,16 @@ Needs: step 2.
 
 Needs: step 4 (`component_type`).
 
-- [ ] Enums:
+- [x] Enums:
   - Drop the dead enums `asset_point_type`, `drainage_status`, `maintenance_type` and the old `report_status`.
   - Create `report_status` (`pending`, `in-progress`, `resolved`) and `report_priority`.
   - `reports.status`, `priority` and `category` become those enums. Status defaults to `pending`, priority to `low`.
-- [ ] Replace the hand-written row types with `Tables<'reports'>` plus one mapper; take the status and priority unions from `Constants`. The types:
+- [x] Replace the hand-written row types with `Tables<'reports'>` plus one mapper; take the status and priority unions from `Constants`. The types:
   - `ReportRow` and `ReportStatusUpdate` in `lib/supabase/report.ts`;
   - `ReportRecord` in `lib/dashboard/queries.ts:133`;
   - `ReportRecord` in `app/api/reports/download/route.ts:4`.
-- [ ] Type the realtime payload as a row, not `Report` (`lib/supabase/report.ts:298,308`).
-- [ ] Leave the UI-only `'unresolved'` filter labels alone.
+- [x] Type the realtime payload as a row, not `Report` (`lib/supabase/report.ts:298,308`).
+- [x] Leave the UI-only `'unresolved'` filter labels alone.
 
 ## Step 6 — Dashboard numbers in SQL (D4, B2, B3, B7)
 
@@ -272,3 +272,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 3 (open access): advisors 0 error / 4 warn / 37 info. 16 new pgTAP tests (38 total). Verified on a dev server: CSV download 401 without token, 403 citizen, 200 staff; closest-pipe 200 with no service key. Extra: Avatars UPDATE policy for their own folder (upsert needed it). Declarative sync ignores GRANT narrowing because of the default privileges; explicit REVOKE in schema.sql does work.
 - Step 3b (reporter name setting): advisors 0 error / 4 warn / 38 info. 8 new pgTAP tests (46 total). Verified over REST: turning the setting off rewrites the citizen's existing reports to Anonymous, and back. The toggle sits under Display Name in the profile Edit tab.
 - Step 4 (one maintenance table): advisors 0 error / 0 warn / 27 info. 12 new pgTAP tests (58 total); vitest 214 (the 4 per-table collision tests became 3 id-lookup tests, plus 1 for last-cleaned ordering). Verified over REST: citizen record 403; staff record resolves ISD-1 report and sets resolved_at; history reads with the last_cleaned_at alias. Migration hand-edited to copy old rows before the drops (dry-run against the pre-step-4 data: both rows and report links carried). Known limit: history shows staff names only to that staff member, because profiles are readable only by their owner (step 6).
+- Step 5 (vocabulary): advisors 0 error / 0 warn / 27 info. 8 new pgTAP tests (66 total); vitest 214. Migration hand-edited (premature SET DEFAULT again; fill null priorities before NOT NULL), dry-run on existing rows OK. Verified over the API: status "unresolved" rejected (22P02); realtime INSERT event received after "Subscribed to PostgreSQL". Also dropped idx_report_category (step 8 item) because the enum made its predicate invalid, and deleted the uncalled deleteReportsByComponentId.

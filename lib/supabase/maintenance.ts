@@ -1,9 +1,8 @@
 import client from '@/lib/supabase/client';
-import type { Database, Tables } from '@/types/database.types';
+import type { Tables } from '@/types/database.types';
+import type { ComponentType, MaintenanceStatus } from '@/lib/supabase/enums';
 
-export type ComponentType = Database['public']['Enums']['component_type'];
-export type MaintenanceStatus =
-  Database['public']['Enums']['maintenance_status'];
+export type { ComponentType, MaintenanceStatus };
 
 // Helper function to normalize Supabase joined data to arrays for TypeScript
 // Supabase's select syntax for related tables (e.g., `agencies ( name )`) often

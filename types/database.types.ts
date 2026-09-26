@@ -681,7 +681,7 @@ export type Database = {
       reports: {
         Row: {
           address: string | null;
-          category: string | null;
+          category: Database['public']['Enums']['component_type'] | null;
           component_id: string | null;
           created_at: string;
           description: string | null;
@@ -690,18 +690,18 @@ export type Database = {
           image: string | null;
           lat: number | null;
           long: number | null;
-          priority: string | null;
+          priority: Database['public']['Enums']['report_priority'];
           reporter_name: string | null;
           resolved_at: string | null;
           resolved_by_maintenance_id: string | null;
           resolved_image: string | null;
-          status: string;
+          status: Database['public']['Enums']['report_status'];
           user_id: string | null;
           zone: string | null;
         };
         Insert: {
           address?: string | null;
-          category?: string | null;
+          category?: Database['public']['Enums']['component_type'] | null;
           component_id?: string | null;
           created_at?: string;
           description?: string | null;
@@ -710,18 +710,18 @@ export type Database = {
           image?: string | null;
           lat?: number | null;
           long?: number | null;
-          priority?: string | null;
+          priority?: Database['public']['Enums']['report_priority'];
           reporter_name?: string | null;
           resolved_at?: string | null;
           resolved_by_maintenance_id?: string | null;
           resolved_image?: string | null;
-          status: string;
+          status?: Database['public']['Enums']['report_status'];
           user_id?: string | null;
           zone?: string | null;
         };
         Update: {
           address?: string | null;
-          category?: string | null;
+          category?: Database['public']['Enums']['component_type'] | null;
           component_id?: string | null;
           created_at?: string;
           description?: string | null;
@@ -730,12 +730,12 @@ export type Database = {
           image?: string | null;
           lat?: number | null;
           long?: number | null;
-          priority?: string | null;
+          priority?: Database['public']['Enums']['report_priority'];
           reporter_name?: string | null;
           resolved_at?: string | null;
           resolved_by_maintenance_id?: string | null;
           resolved_image?: string | null;
-          status?: string;
+          status?: Database['public']['Enums']['report_status'];
           user_id?: string | null;
           zone?: string | null;
         };
@@ -931,22 +931,10 @@ export type Database = {
       };
     };
     Enums: {
-      asset_point_type: 'inlet' | 'outlet' | 'stormdrain';
       component_type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
-      drainage_status:
-        | 'Clean'
-        | 'Needs_Cleaning'
-        | 'Clogged'
-        | 'Damaged'
-        | 'Overflowing';
       maintenance_status: 'in-progress' | 'resolved';
-      maintenance_type: 'Cleaning' | 'Repair' | 'Inspection' | 'Unclogging';
-      report_status:
-        | 'pending'
-        | 'received'
-        | 'action_taken'
-        | 'resolved'
-        | 'rejected';
+      report_priority: 'low' | 'medium' | 'high' | 'critical';
+      report_status: 'pending' | 'in-progress' | 'resolved';
       user_role: 'citizen' | 'staff' | 'admin';
     };
     CompositeTypes: {
@@ -1081,24 +1069,10 @@ export const Constants = {
   },
   public: {
     Enums: {
-      asset_point_type: ['inlet', 'outlet', 'stormdrain'],
       component_type: ['inlets', 'outlets', 'storm_drains', 'man_pipes'],
-      drainage_status: [
-        'Clean',
-        'Needs_Cleaning',
-        'Clogged',
-        'Damaged',
-        'Overflowing',
-      ],
       maintenance_status: ['in-progress', 'resolved'],
-      maintenance_type: ['Cleaning', 'Repair', 'Inspection', 'Unclogging'],
-      report_status: [
-        'pending',
-        'received',
-        'action_taken',
-        'resolved',
-        'rejected',
-      ],
+      report_priority: ['low', 'medium', 'high', 'critical'],
+      report_status: ['pending', 'in-progress', 'resolved'],
       user_role: ['citizen', 'staff', 'admin'],
     },
   },

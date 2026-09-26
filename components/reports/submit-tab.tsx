@@ -13,6 +13,11 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { uploadReport } from '@/lib/supabase/report';
+import {
+  isComponentType,
+  type ComponentType,
+  type ReportPriority,
+} from '@/lib/supabase/enums';
 import { extractExifLocation } from '@/lib/reports/extract-exif';
 import { getClosestPipes } from '@/lib/reports/get-closest-pipe';
 import { useAuth } from '@/components/context/auth-provider';
@@ -37,16 +42,14 @@ export default function SubmitTab() {
   const { user, profile } = useAuth();
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
-  const [severity, setSeverity] = useState<
-    'low' | 'medium' | 'high' | 'critical'
-  >('low');
+  const [severity, setSeverity] = useState<ReportPriority>('low');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [manualAccepted, setManualAccepted] = useState(false);
   const [categoryLabel, setCategoryLabel] = useState('');
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [comboOption, setComboOptions] = useState<ComboboxOption[]>([]);
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState<ComponentType | ''>('');
   const [categoryIndex, setCategoryIndex] = useState(-1);
   const [errorCode, setErrorCode] = useState('');
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
@@ -59,6 +62,7 @@ export default function SubmitTab() {
     : !termsAccepted || categoryIndex < 0;
 
   const handleCategory = (value: string) => {
+    if (!isComponentType(value)) return;
     setCategory(value);
 
     if (value === 'inlets') {
@@ -149,6 +153,9 @@ export default function SubmitTab() {
   };
 
   const handleConfirmSubmit = async () => {
+    // The confirm button only shows once a component, and so a category,
+    // has been picked.
+    if (!category) return;
     setIsConfirming(true);
 
     try {

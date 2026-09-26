@@ -17,6 +17,7 @@ File references are relative to `drAIn-frontend/`.
 - Fixed: S3, S5, S6, S8, S10 (search_path, category whitelist), S11, B1, `reports.user_id` side of B4; `report_comments` and `extract_barangay_from_address` dropped (step 3). Avatars also got the UPDATE policy their upsert needs.
 - S9, partly (step 3b): a profile setting hides a person's name on their reports; the database stores "Anonymous" instead. `user_id` is still public.
 - Fixed: D1, S4, B5, B6, and B4 for maintenance (step 4): one `maintenance` table written only by the `record_maintenance` RPC, which also closes the reports in the same transaction. `reports.resolved_by_maintenance_id` is a real FK; `resolved_at` added. The migration carries old rows across, including the 89 hosted `addressed_report_id` links. B3 fixed along the way (last-cleaned reads oldest first).
+- Fixed: B8, D6 and part of B9 (step 5): `reports.status`, `priority` and `category` are enums (`report_status`, `report_priority`, `component_type`); the 4 dead enums and the never-matching `idx_report_category` are gone. App types come from `lib/supabase/enums.ts` (generated `Constants`); the hand-written report row types were replaced with `Tables<'reports'>`. Realtime verified end to end locally.
 - Advisors after step 4: 0 errors, 0 warnings, 27 info.
 - Advisors after step 3: 0 errors, 4 warnings (the maintenance INSERT policies, step 4), 37 info.
 

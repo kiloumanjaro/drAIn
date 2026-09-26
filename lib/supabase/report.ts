@@ -1,4 +1,10 @@
 import client from '@/lib/supabase/client';
+import type { Tables } from '@/types/database.types';
+import {
+  isComponentType,
+  type ComponentType,
+  type ReportPriority,
+} from '@/lib/supabase/enums';
 
 export interface Report {
   id: string;
@@ -16,35 +22,19 @@ export interface Report {
   resolvedImage?: string | null;
 }
 
-export interface ReportRow {
-  id?: string | number | null;
-  created_at?: string | null;
-  date?: string | null;
-  category?: string | null;
-  description?: string | null;
-  image?: string | null;
-  reporter_name?: string | null;
-  status?: string | null;
-  component_id?: string | null;
-  long?: string | number | null;
-  lat?: string | number | null;
-  geocoded_status?: string | null;
-  address?: string | null;
-  priority?: 'low' | 'medium' | 'high' | 'critical' | null;
-  resolved_by_maintenance_id?: string | null;
-  resolved_image?: string | null;
-}
+/** A reports row as the database returns it (and as realtime sends it). */
+export type ReportRow = Tables<'reports'>;
 
 export const uploadReport = async (
   file: File,
-  category: string,
+  category: ComponentType,
   description: string,
   component_id: string,
   long: number,
   lat: number,
   userId: string | null,
   reporterName: string,
-  priority: 'low' | 'medium' | 'high' | 'critical' = 'low'
+  priority: ReportPriority = 'low'
 ) => {
   try {
     // A fresh name per upload. Using the phone's own file name meant a second
@@ -106,10 +96,7 @@ export const fetchAllReports = async (): Promise<Report[]> => {
 
     if (!data) return [];
 
-    const formattedReports: Report[] = data.map(
-      (report: Record<string, unknown>) => formatReport(report)
-    );
-    return formattedReports;
+    return data.map(formatReport);
   } catch (error) {
     console.error('Error fetching all reports:', error);
     throw error;
@@ -152,23 +139,6 @@ export const fetchLatestReportsPerComponent = async (
   return latestReports;
 };
 
-export const deleteReportsByComponentId = async (componentId: string) => {
-  try {
-    const { error } = await client
-      .from('reports')
-      .delete()
-      .eq('component_id', componentId);
-
-    if (error) {
-      console.error('Error deleting reports:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Error deleting reports:', error);
-    throw error;
-  }
-};
-
 export const formatReport = (report: ReportRow): Report => {
   const { data: img } = client.storage
     .from('ReportImage')
@@ -182,30 +152,25 @@ export const formatReport = (report: ReportRow): Report => {
     resolvedImageUrl = rImg?.publicUrl || '';
   }
 
-  const rawDate = report.created_at ?? report.date ?? null;
-  const parsedDate = rawDate ? new Date(rawDate) : null;
+  const parsedDate = report.created_at ? new Date(report.created_at) : null;
   const safeDate =
     !parsedDate || isNaN(parsedDate.getTime())
       ? new Date().toISOString()
       : parsedDate.toISOString();
 
-  const long =
-    typeof report.long === 'number'
-      ? report.long
-      : parseFloat(report.long ?? '');
-  const lat =
-    typeof report.lat === 'number' ? report.lat : parseFloat(report.lat ?? '');
   const safeCoords: [number, number] =
-    !isNaN(long) && !isNaN(lat) ? [long, lat] : [0, 0];
+    report.long !== null && report.lat !== null
+      ? [report.long, report.lat]
+      : [0, 0];
 
   return {
-    id: report.id?.toString() ?? crypto.randomUUID(),
+    id: report.id,
     date: safeDate,
     category: report.category ?? 'Uncategorized',
     description: report.description ?? 'No description provided.',
     image: img?.publicUrl ?? '',
     reporterName: report.reporter_name ?? 'Anonymous',
-    status: report.status ?? 'Pending',
+    status: report.status,
     componentId: report.component_id ?? 'N/A',
     coordinates: safeCoords,
     geocoded_status: report.geocoded_status ?? 'pending',
@@ -216,8 +181,8 @@ export const formatReport = (report: ReportRow): Report => {
 };
 
 export function subscribeToReportChanges(
-  onInsert?: (r: Report) => void,
-  onUpdate?: (r: Report) => void
+  onInsert?: (r: ReportRow) => void,
+  onUpdate?: (r: ReportRow) => void
 ) {
   const channel = client.channel('reports');
 
@@ -226,7 +191,7 @@ export function subscribeToReportChanges(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'reports' },
       (payload) => {
-        onInsert(payload.new as Report);
+        onInsert(payload.new as ReportRow);
       }
     );
   }
@@ -236,7 +201,7 @@ export function subscribeToReportChanges(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'reports' },
       (payload) => {
-        onUpdate(payload.new as Report);
+        onUpdate(payload.new as ReportRow);
       }
     );
   }
@@ -252,6 +217,8 @@ export const getreportCategoryCount = async (
   targetCategory: string,
   categoryId: string
 ): Promise<number> => {
+  // Report.category falls back to a display label for rows without one.
+  if (!isComponentType(targetCategory)) return 0;
   try {
     const { count: categoryCount } = await client
       .from('reports')
