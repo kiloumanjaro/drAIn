@@ -30,6 +30,7 @@ import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { AlertCircle, CheckCircle2Icon } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import client from '@/lib/supabase/client';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 interface CategoryData {
   name: string;
@@ -200,20 +201,33 @@ export default function SubmitTab() {
   };
 
   const handleManual = async () => {
-    const { data, error } = await client.rpc('get_component_by_category', {
-      category_name: category,
-    });
-
-    if (error) {
+    if (!category) return;
+    // Every component of the chosen type. There are 1,231 storm drains, more
+    // than one page, so read them all.
+    let data: CategoryData[];
+    try {
+      data = await fetchAllRows((from, to) =>
+        client
+          .from('component_locations')
+          .select('name, lat, long')
+          .eq('type', category)
+          .order('name', { ascending: true })
+          .range(from, to)
+      ).then((rows) =>
+        rows.flatMap((row) =>
+          row.name && row.lat !== null && row.long !== null
+            ? [{ name: row.name, lat: row.lat, long: row.long }]
+            : []
+        )
+      );
+    } catch {
       return;
     }
 
-    const options: ComboboxOption[] = data.map(
-      (item: Record<string, unknown>, index: number) => ({
-        value: index.toString(),
-        label: item.name as string,
-      })
-    );
+    const options: ComboboxOption[] = data.map((item, index) => ({
+      value: index.toString(),
+      label: item.name,
+    }));
 
     setComboOptions(options);
     setCategoryData(data);

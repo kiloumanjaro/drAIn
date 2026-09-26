@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRequestClient } from '@/lib/supabase/server';
+import { isComponentType } from '@/lib/supabase/enums';
 
 interface Location {
   lat: number;
@@ -44,38 +45,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine which RPC function to call based on category
-    let rpcFunction:
-      | 'get_closest_inlet'
-      | 'get_closest_outlet'
-      | 'get_closest_man_pipe'
-      | 'get_closest_storm_drain';
-    switch (category.toLowerCase()) {
-      case 'inlets':
-        rpcFunction = 'get_closest_inlet';
-        break;
-      case 'outlets':
-        rpcFunction = 'get_closest_outlet';
-        break;
-      case 'man_pipes':
-        rpcFunction = 'get_closest_man_pipe';
-        break;
-      case 'storm_drains':
-        rpcFunction = 'get_closest_storm_drain';
-        break;
-      default:
-        return NextResponse.json(
-          {
-            error: `Invalid category: ${category}. Must be one of: inlet, outlet, manhole, junction.`,
-          },
-          { status: 400 }
-        );
+    // Accepted in any case, as before.
+    const type = category.toLowerCase();
+    if (!isComponentType(type)) {
+      return NextResponse.json(
+        {
+          error: `Invalid category: ${category}. Must be one of: inlets, outlets, storm_drains, man_pipes.`,
+        },
+        { status: 400 }
+      );
     }
 
-    // Call the appropriate RPC function
-    const { data, error } = await supabase.rpc(rpcFunction, {
-      input_lat: location.lat,
-      input_lon: location.lon,
+    // The three nearest components of that type within 50 m.
+    const { data, error } = await supabase.rpc('nearest_components', {
+      p_type: type,
+      p_lat: location.lat,
+      p_lon: location.lon,
     });
 
     if (error) {

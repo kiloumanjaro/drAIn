@@ -54,14 +54,15 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$select * from public.get_component_by_category('profiles')$$,
-  '22023', null,
-  'get_component_by_category refuses tables other than the four component tables'
+  $$insert into public.components (name, type, location)
+    values ('FAKE-1', 'inlets', 'POINT(123.9 10.3)')$$,
+  '42501', null,
+  'anon cannot add drainage components'
 );
 
 select isnt_empty(
-  $$select * from public.get_component_by_category('inlets')$$,
-  'get_component_by_category still lists inlets'
+  $$select * from public.component_locations where type = 'inlets'$$,
+  'anyone can list component locations'
 );
 
 -- Citizens ------------------------------------------------------------------

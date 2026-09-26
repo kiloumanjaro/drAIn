@@ -132,148 +132,6 @@ $$;
 ALTER FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'extensions'
-    AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        i.name,
-        ST_Y(ST_Centroid(i.geom)) AS lat,
-        ST_X(ST_Centroid(i.geom)) AS long,
-        ST_Distance(
-            ST_Centroid(i.geom)::geography,
-            ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-        ) AS distance
-    FROM inlets i
-    WHERE 
-        ST_DWithin(
-        ST_Centroid(i.geom)::geography,
-        ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography,
-        50)
-    ORDER BY ST_Centroid(i.geom)::geography <-> ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-    LIMIT 3;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input_lon" double precision) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'extensions'
-    AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        i.name,
-        ST_Y(ST_Centroid(i.geom)) AS lat,
-        ST_X(ST_Centroid(i.geom)) AS long,
-        ST_Distance(
-            ST_Centroid(i.geom)::geography,
-            ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-        ) AS distance
-    FROM man_pipes i
-    WHERE 
-        ST_DWithin(
-        ST_Centroid(i.geom)::geography,
-        ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography,
-        50)
-    ORDER BY ST_Centroid(i.geom)::geography <-> ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-    LIMIT 3;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "input_lon" double precision) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'extensions'
-    AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        i.name,
-        ST_Y(ST_Centroid(i.geom)) AS lat,
-        ST_X(ST_Centroid(i.geom)) AS long,
-        ST_Distance(
-            ST_Centroid(i.geom)::geography,
-            ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-        ) AS distance
-    FROM outlets i
-    WHERE 
-        ST_DWithin(
-        ST_Centroid(i.geom)::geography,
-        ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography,
-        50)
-    ORDER BY ST_Centroid(i.geom)::geography <-> ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-    LIMIT 3;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "input_lon" double precision) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'extensions'
-    AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        i.name,
-        ST_Y(ST_Centroid(i.geom)) AS lat,
-        ST_X(ST_Centroid(i.geom)) AS long,
-        ST_Distance(
-            ST_Centroid(i.geom)::geography,
-            ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-        ) AS distance
-    FROM storm_drains i
-    WHERE 
-        ST_DWithin(
-        ST_Centroid(i.geom)::geography,
-        ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography,
-        50)
-    ORDER BY ST_Centroid(i.geom)::geography <-> ST_SetSRID(ST_MakePoint(input_lon, input_lat), 4326)::geography
-    LIMIT 3;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) OWNER TO "postgres";
-
-
--- Every component of one type, for the manual-pick list on the report form.
--- The table name is spliced into dynamic SQL, so only the four component
--- tables are accepted.
-CREATE OR REPLACE FUNCTION "public"."get_component_by_category"("category_name" "text") RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision)
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'extensions'
-    AS $$
-BEGIN
-    IF category_name NOT IN ('inlets', 'outlets', 'storm_drains', 'man_pipes') THEN
-        RAISE EXCEPTION 'Unknown component category: %', category_name USING ERRCODE = '22023';
-    END IF;
-    RETURN QUERY EXECUTE format(
-        'SELECT 
-            name,
-            ST_Y(ST_Centroid(geom)) AS lat,
-            ST_X(ST_Centroid(geom)) AS long
-         FROM %I', 
-        category_name
-    );
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_component_by_category"("category_name" "text") OWNER TO "postgres";
-
-
 -- Creates the profiles row for every new account. Everyone starts as a
 -- citizen: sign-up metadata is written by the client, so only full_name is
 -- taken from it. People become staff through join_agency or an admin.
@@ -340,6 +198,29 @@ $$;
 ALTER FUNCTION "public"."update_report_zone"() OWNER TO "postgres";
 
 
+-- The components of one type within p_radius_m metres of a point, nearest
+-- first. The report form uses it to suggest what a photo is of. Distances
+-- are in metres; the ORDER BY walks idx_components_location.
+CREATE OR REPLACE FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision DEFAULT 50, "p_max_results" integer DEFAULT 3) RETURNS TABLE("name" "text", "lat" double precision, "long" double precision, "distance" double precision)
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'extensions'
+    AS $$
+  select c.name,
+         st_y(c.location::geometry),
+         st_x(c.location::geometry),
+         st_distance(c.location, q.point)
+  from public.components c,
+       (select st_setsrid(st_makepoint(p_lon, p_lat), 4326)::geography as point) q
+  where c.type = p_type
+    and st_dwithin(c.location, q.point, p_radius_m)
+  order by c.location <-> q.point
+  limit p_max_results
+$$;
+
+
+ALTER FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) OWNER TO "postgres";
+
+
 -- The name shown on a signed-in person's report comes from their profile,
 -- not from the client: their full name, or 'Anonymous' if they turned off
 -- show_name_on_reports. A hidden name is never written to the report.
@@ -389,148 +270,72 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
-CREATE TABLE IF NOT EXISTS "public"."100YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
+-- Flood simulation results per drainage node, one row per node and return
+-- period (a 2-year, 5-year, ... 100-year storm). Replaces the eight tables
+-- "2YR" ... "100YR", which had identical columns. Loaded from
+-- supabase/seed/reference_data.sql; the app only reads it.
+CREATE TABLE IF NOT EXISTS "public"."flood_results" (
+    "return_period" smallint NOT NULL,
+    "node_id" "text" NOT NULL,
+    "vulnerability_category" "text" NOT NULL,
+    "vulnerability_rank" integer NOT NULL,
+    "cluster" integer NOT NULL,
+    "cluster_score" double precision NOT NULL,
+    "time_after_raining_min" double precision NOT NULL,
+    "hours_flooded" double precision NOT NULL,
+    "max_rate_cms" double precision NOT NULL,
+    "time_of_max" integer NOT NULL,
+    "total_flood_volume_megalitres" double precision NOT NULL,
+    CONSTRAINT "flood_results_pkey" PRIMARY KEY ("return_period", "node_id"),
+    CONSTRAINT "flood_results_return_period_check" CHECK (("return_period" = ANY (ARRAY[2, 5, 10, 15, 20, 25, 50, 100])))
 );
 
 
-ALTER TABLE "public"."100YR" OWNER TO "postgres";
+ALTER TABLE "public"."flood_results" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."10YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
+COMMENT ON COLUMN "public"."flood_results"."time_after_raining_min" IS 'Minutes of rain before the node overflows. 9999 in older exports means it never overflows (see normaliseOverflowMinutes).';
+
+
+
+COMMENT ON COLUMN "public"."flood_results"."max_rate_cms" IS 'Peak flow, cubic metres per second.';
+
+
+
+COMMENT ON COLUMN "public"."flood_results"."time_of_max" IS 'When the peak flow happens, as exported by the model. Its column was labelled "hr:min" but holds a whole number.';
+
+
+
+COMMENT ON COLUMN "public"."flood_results"."total_flood_volume_megalitres" IS 'Total flood volume in millions of litres (the export''s "10^6 ltr").';
+
+
+
+-- Every drainage component the app can point at, by name, with one point to
+-- measure distance from. reports.component_id and maintenance.component_name
+-- refer to it. Filled from inlets, outlets, storm_drains and man_pipes (the
+-- GIS imports, which keep the full geometry and hydraulic attributes); pipes
+-- are lines, so their point is the centroid.
+CREATE TABLE IF NOT EXISTS "public"."components" (
+    "name" "text" NOT NULL,
+    "type" "public"."component_type" NOT NULL,
+    "location" "extensions"."geography"(Point,4326) NOT NULL,
+    CONSTRAINT "components_pkey" PRIMARY KEY ("name")
 );
 
 
-ALTER TABLE "public"."10YR" OWNER TO "postgres";
+ALTER TABLE "public"."components" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."15YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
-);
+-- Latitude and longitude of each component, for lists and map markers.
+CREATE OR REPLACE VIEW "public"."component_locations" WITH ("security_invoker"='true') AS
+ SELECT "components"."name",
+    "components"."type",
+    "extensions"."st_y"(("components"."location")::"extensions"."geometry") AS "lat",
+    "extensions"."st_x"(("components"."location")::"extensions"."geometry") AS "long"
+   FROM "public"."components";
 
 
-ALTER TABLE "public"."15YR" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."20YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
-);
-
-
-ALTER TABLE "public"."20YR" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."25YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
-);
-
-
-ALTER TABLE "public"."25YR" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."2YR" (
-    "Node_ID" "text",
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
-);
-
-
-ALTER TABLE "public"."2YR" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."50YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
-);
-
-
-ALTER TABLE "public"."50YR" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."5YR" (
-    "Node_ID" "text" NOT NULL,
-    "Vulnerability_Category" "text",
-    "Vulnerability_Rank" bigint,
-    "Cluster" bigint,
-    "Cluster_Score" double precision,
-    "YR" "text",
-    "Time_After_Raining_min" double precision,
-    "Hours Flooded" double precision,
-    "Maximum Rate (CMS)" double precision,
-    "Time of Max (hr:min)" bigint,
-    "Total Flood Volume (10^6 ltr)" double precision
-);
-
-
-ALTER TABLE "public"."5YR" OWNER TO "postgres";
+ALTER VIEW "public"."component_locations" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."agencies" (
@@ -847,41 +652,6 @@ ALTER TABLE ONLY "public"."storm_drains" ALTER COLUMN "gid" SET DEFAULT "nextval
 
 
 
-ALTER TABLE ONLY "public"."100YR"
-    ADD CONSTRAINT "100YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
-ALTER TABLE ONLY "public"."10YR"
-    ADD CONSTRAINT "10YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
-ALTER TABLE ONLY "public"."15YR"
-    ADD CONSTRAINT "15YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
-ALTER TABLE ONLY "public"."20YR"
-    ADD CONSTRAINT "20YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
-ALTER TABLE ONLY "public"."25YR"
-    ADD CONSTRAINT "25YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
-ALTER TABLE ONLY "public"."50YR"
-    ADD CONSTRAINT "50YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
-ALTER TABLE ONLY "public"."5YR"
-    ADD CONSTRAINT "5YR_pkey" PRIMARY KEY ("Node_ID");
-
-
-
 ALTER TABLE ONLY "public"."reports"
     ADD CONSTRAINT "Report_pkey" PRIMARY KEY ("id");
 
@@ -932,35 +702,12 @@ ALTER TABLE ONLY "public"."storm_drains"
 
 
 
-CREATE INDEX "100_yr_node_id" ON "public"."100YR" USING "btree" ("Node_ID");
+-- Nearest-component lookups (nearest_components) walk this index.
+CREATE INDEX "idx_components_location" ON "public"."components" USING "gist" ("location");
 
 
 
-CREATE INDEX "10_yr_node_id" ON "public"."10YR" USING "btree" ("Node_ID");
-
-
-
-CREATE INDEX "15_yr_node_id" ON "public"."15YR" USING "btree" ("Node_ID");
-
-
-
-CREATE INDEX "20_yr_node_id" ON "public"."20YR" USING "btree" ("Node_ID");
-
-
-
-CREATE INDEX "25_yr_node_id" ON "public"."25YR" USING "btree" ("Node_ID");
-
-
-
-CREATE INDEX "2_yr_node_id" ON "public"."2YR" USING "btree" ("Node_ID");
-
-
-
-CREATE INDEX "50_yr_node_id" ON "public"."50YR" USING "btree" ("Node_ID");
-
-
-
-CREATE INDEX "5_yr_node_id" ON "public"."5YR" USING "btree" ("Node_ID");
+CREATE INDEX "idx_components_type" ON "public"."components" USING "btree" ("type");
 
 
 
@@ -1050,6 +797,16 @@ CREATE OR REPLACE TRIGGER "trigger_update_report_zone" BEFORE INSERT OR UPDATE O
 
 
 ALTER TABLE ONLY "public"."maintenance"
+    ADD CONSTRAINT "maintenance_component_name_fkey" FOREIGN KEY ("component_name") REFERENCES "public"."components"("name");
+
+
+
+ALTER TABLE ONLY "public"."reports"
+    ADD CONSTRAINT "reports_component_id_fkey" FOREIGN KEY ("component_id") REFERENCES "public"."components"("name");
+
+
+
+ALTER TABLE ONLY "public"."maintenance"
     ADD CONSTRAINT "maintenance_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id");
 
 
@@ -1077,30 +834,6 @@ ALTER TABLE ONLY "public"."profiles"
 ALTER TABLE ONLY "public"."reports"
     ADD CONSTRAINT "reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
-
-
-ALTER TABLE "public"."100YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."10YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."15YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."20YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."25YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."2YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."50YR" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."5YR" ENABLE ROW LEVEL SECURITY;
 
 
 -- ---------------------------------------------------------------------------
@@ -1384,38 +1117,6 @@ CREATE POLICY "Allow individual update access" ON "public"."profiles" FOR UPDATE
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."100YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."10YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."15YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."20YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."25YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."2YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."50YR" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."5YR" FOR SELECT USING (true);
-
-
-
 CREATE POLICY "Enable read access for all users" ON "public"."agencies" FOR SELECT USING (true);
 
 
@@ -1450,6 +1151,18 @@ CREATE POLICY "Public select reports" ON "public"."reports" FOR SELECT USING (tr
 
 
 ALTER TABLE "public"."agencies" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."components" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."components" FOR SELECT USING (true);
+
+
+ALTER TABLE "public"."flood_results" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."flood_results" FOR SELECT USING (true);
 
 
 -- Barangay polygons feed the zone trigger on every report, so only the
@@ -1507,33 +1220,18 @@ GRANT ALL ON FUNCTION "public"."extract_barangay_from_coordinates"("longitude" d
 
 
 
-GRANT ALL ON FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input_lon" double precision) TO "anon";
-GRANT ALL ON FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input_lon" double precision) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input_lon" double precision) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "input_lon" double precision) TO "anon";
-GRANT ALL ON FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "input_lon" double precision) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "input_lon" double precision) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "input_lon" double precision) TO "anon";
-GRANT ALL ON FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "input_lon" double precision) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "input_lon" double precision) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) TO "anon";
-GRANT ALL ON FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."get_component_by_category"("category_name" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_component_by_category"("category_name" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_component_by_category"("category_name" "text") TO "service_role";
 
 
 
@@ -1567,51 +1265,43 @@ GRANT ALL ON FUNCTION "public"."update_report_zone"() TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."100YR" TO "anon";
-GRANT ALL ON TABLE "public"."100YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."100YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."10YR" TO "anon";
-GRANT ALL ON TABLE "public"."10YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."10YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."15YR" TO "anon";
-GRANT ALL ON TABLE "public"."15YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."15YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."20YR" TO "anon";
-GRANT ALL ON TABLE "public"."20YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."20YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."25YR" TO "anon";
-GRANT ALL ON TABLE "public"."25YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."25YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."2YR" TO "anon";
-GRANT ALL ON TABLE "public"."2YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."2YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."50YR" TO "anon";
-GRANT ALL ON TABLE "public"."50YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."50YR" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."5YR" TO "anon";
-GRANT ALL ON TABLE "public"."5YR" TO "authenticated";
-GRANT ALL ON TABLE "public"."5YR" TO "service_role";
+
+
+
+GRANT SELECT ON TABLE "public"."components" TO "anon";
+GRANT SELECT ON TABLE "public"."components" TO "authenticated";
+GRANT ALL ON TABLE "public"."components" TO "service_role";
+GRANT SELECT ON TABLE "public"."component_locations" TO "anon";
+GRANT SELECT ON TABLE "public"."component_locations" TO "authenticated";
+GRANT ALL ON TABLE "public"."component_locations" TO "service_role";
+GRANT SELECT ON TABLE "public"."flood_results" TO "anon";
+GRANT SELECT ON TABLE "public"."flood_results" TO "authenticated";
+GRANT ALL ON TABLE "public"."flood_results" TO "service_role";
+-- Reference data: the default privileges grant ALL; clients only read.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."components" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."component_locations" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."flood_results" FROM "anon", "authenticated";
 
 
 

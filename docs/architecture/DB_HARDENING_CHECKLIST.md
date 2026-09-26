@@ -222,17 +222,17 @@ Needs: step 4.
 
 ## Step 7 — Flood results and components (D2, D3)
 
-- [ ] `flood_results`:
+- [x] `flood_results`:
   - `return_period smallint` plus snake_case metric columns, PK `(return_period, node_id)`;
   - regenerate that part of `supabase/seed/reference_data.sql` with a node script from the 8 YR inserts;
   - drop the 8 tables;
   - `lib/vulnerabilities/fetch-yr-table.ts` uses `.eq('return_period', YR)`.
-- [ ] **Bug found while planning:** each YR table has 1369 rows, and `max_rows` is 1000, so `fetchYRTable` is already truncated today. Page through it with `.range()` or return it from an RPC. Add this to the audit as B11.
-- [ ] `components (name pk, type component_type, location geography(Point) + GiST)`:
+- [x] **Bug found while planning:** each YR table has 1369 rows, and `max_rows` is 1000, so `fetchYRTable` is already truncated today. Page through it with `.range()` or return it from an RPC. Add this to the audit as B11.
+- [x] `components (name pk, type component_type, location geography(Point) + GiST)`:
   - fill it from the 4 tables in the reference seed;
   - FK from `reports.component_id` and `maintenance.component_name`. The hosted check found 0 orphans.
-- [ ] One `nearest_components(type, lat, lon, radius_m default 50, max_results default 3)` (`language sql stable`, `search_path` set) replaces `get_closest_*` ×4 and `get_component_by_category`. Update `app/api/closest-pipe/route.ts` and `components/reports/submit-tab.tsx:196`.
-- [ ] `EXPLAIN` shows an index scan, not `Seq Scan`.
+- [x] One `nearest_components(type, lat, lon, radius_m default 50, max_results default 3)` (`language sql stable`, `search_path` set) replaces `get_closest_*` ×4 and `get_component_by_category`. Update `app/api/closest-pipe/route.ts` and `components/reports/submit-tab.tsx:196`.
+- [x] `EXPLAIN` shows an index scan, not `Seq Scan`.
 
 ## Step 8 — Cleanup (D8, D9)
 
@@ -274,3 +274,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 4 (one maintenance table): advisors 0 error / 0 warn / 27 info. 12 new pgTAP tests (58 total); vitest 214 (the 4 per-table collision tests became 3 id-lookup tests, plus 1 for last-cleaned ordering). Verified over REST: citizen record 403; staff record resolves ISD-1 report and sets resolved_at; history reads with the last_cleaned_at alias. Migration hand-edited to copy old rows before the drops (dry-run against the pre-step-4 data: both rows and report links carried). Known limit: history shows staff names only to that staff member, because profiles are readable only by their owner (step 6).
 - Step 5 (vocabulary): advisors 0 error / 0 warn / 27 info. 8 new pgTAP tests (66 total); vitest 214. Migration hand-edited (premature SET DEFAULT again; fill null priorities before NOT NULL), dry-run on existing rows OK. Verified over the API: status "unresolved" rejected (22P02); realtime INSERT event received after "Subscribed to PostgreSQL". Also dropped idx_report_category (step 8 item) because the enum made its predicate invalid, and deleted the uncalled deleteReportsByComponentId.
 - Step 6 (dashboard in SQL): advisors 0 error / 0 warn / 24 info. 13 new pgTAP tests (79 total). vitest 190: the tests of the removed JS arithmetic (calculations/metrics, 35 tests) went with it, their rules are now pgTAP tests; +3 fetchAllRows, +8 mapping tests. Deviations: no `component_last_maintained` view (resolved_at made it unnecessary); the app still derives latest-per-component from the list it has already loaded (no extra request), the view is there for other readers. Added `maintenance_history` RPC so staff see colleagues' names (the step 4 limit). fetchAllReports and the dashboard list now page past 1,000 rows.
+- Step 7 (flood results, components): advisors 0 error / 0 warn / 15 info. 11 new pgTAP tests (90 total); vitest 190. Migration hand-edited to copy the 8 flood tables and fill components before the drops and FKs (dry-run on existing data: 8x1369 rows, 1555 components). flood_results metrics made NOT NULL (no nulls in data) in a second small migration. Verified: nearest_components uses idx_components_location; over the real API a single select returns 1000/1369 flood rows and 1000/1231 storm drains, paged reads return all; /api/closest-pipe works on a dev server. Not done: generating the map GeoJSON from the database.

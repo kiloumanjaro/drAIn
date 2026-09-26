@@ -34,342 +34,6 @@ export type Database = {
   };
   public: {
     Tables: {
-      '100YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '10YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '15YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '20YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '25YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '2YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string | null;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string | null;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string | null;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '50YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
-      '5YR': {
-        Row: {
-          Cluster: number | null;
-          Cluster_Score: number | null;
-          'Hours Flooded': number | null;
-          'Maximum Rate (CMS)': number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)': number | null;
-          Time_After_Raining_min: number | null;
-          'Total Flood Volume (10^6 ltr)': number | null;
-          Vulnerability_Category: string | null;
-          Vulnerability_Rank: number | null;
-          YR: string | null;
-        };
-        Insert: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Update: {
-          Cluster?: number | null;
-          Cluster_Score?: number | null;
-          'Hours Flooded'?: number | null;
-          'Maximum Rate (CMS)'?: number | null;
-          Node_ID?: string;
-          'Time of Max (hr:min)'?: number | null;
-          Time_After_Raining_min?: number | null;
-          'Total Flood Volume (10^6 ltr)'?: number | null;
-          Vulnerability_Category?: string | null;
-          Vulnerability_Rank?: number | null;
-          YR?: string | null;
-        };
-        Relationships: [];
-      };
       agencies: {
         Row: {
           contact_details: Json | null;
@@ -418,6 +82,66 @@ export type Database = {
           name?: string;
           population_count?: string | null;
           population_density?: string | null;
+        };
+        Relationships: [];
+      };
+      components: {
+        Row: {
+          location: unknown;
+          name: string;
+          type: Database['public']['Enums']['component_type'];
+        };
+        Insert: {
+          location: unknown;
+          name: string;
+          type: Database['public']['Enums']['component_type'];
+        };
+        Update: {
+          location?: unknown;
+          name?: string;
+          type?: Database['public']['Enums']['component_type'];
+        };
+        Relationships: [];
+      };
+      flood_results: {
+        Row: {
+          cluster: number;
+          cluster_score: number;
+          hours_flooded: number;
+          max_rate_cms: number;
+          node_id: string;
+          return_period: number;
+          time_after_raining_min: number;
+          time_of_max: number;
+          total_flood_volume_megalitres: number;
+          vulnerability_category: string;
+          vulnerability_rank: number;
+        };
+        Insert: {
+          cluster: number;
+          cluster_score: number;
+          hours_flooded: number;
+          max_rate_cms: number;
+          node_id: string;
+          return_period: number;
+          time_after_raining_min: number;
+          time_of_max: number;
+          total_flood_volume_megalitres: number;
+          vulnerability_category: string;
+          vulnerability_rank: number;
+        };
+        Update: {
+          cluster?: number;
+          cluster_score?: number;
+          hours_flooded?: number;
+          max_rate_cms?: number;
+          node_id?: string;
+          return_period?: number;
+          time_after_raining_min?: number;
+          time_of_max?: number;
+          total_flood_volume_megalitres?: number;
+          vulnerability_category?: string;
+          vulnerability_rank?: number;
         };
         Relationships: [];
       };
@@ -537,6 +261,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'agencies';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'maintenance_component_name_fkey';
+            columns: ['component_name'];
+            isOneToOne: false;
+            referencedRelation: 'component_locations';
+            referencedColumns: ['name'];
+          },
+          {
+            foreignKeyName: 'maintenance_component_name_fkey';
+            columns: ['component_name'];
+            isOneToOne: false;
+            referencedRelation: 'components';
+            referencedColumns: ['name'];
           },
           {
             foreignKeyName: 'maintenance_performed_by_fkey';
@@ -741,6 +479,20 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'component_locations';
+            referencedColumns: ['name'];
+          },
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'components';
+            referencedColumns: ['name'];
+          },
+          {
             foreignKeyName: 'reports_resolved_by_maintenance_id_fkey';
             columns: ['resolved_by_maintenance_id'];
             isOneToOne: false;
@@ -808,6 +560,27 @@ export type Database = {
       };
     };
     Views: {
+      component_locations: {
+        Row: {
+          lat: number | null;
+          long: number | null;
+          name: string | null;
+          type: Database['public']['Enums']['component_type'] | null;
+        };
+        Insert: {
+          lat?: never;
+          long?: never;
+          name?: string | null;
+          type?: Database['public']['Enums']['component_type'] | null;
+        };
+        Update: {
+          lat?: never;
+          long?: never;
+          name?: string | null;
+          type?: Database['public']['Enums']['component_type'] | null;
+        };
+        Relationships: [];
+      };
       latest_report_per_component: {
         Row: {
           address: string | null;
@@ -830,6 +603,20 @@ export type Database = {
           zone: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'component_locations';
+            referencedColumns: ['name'];
+          },
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'components';
+            referencedColumns: ['name'];
+          },
           {
             foreignKeyName: 'reports_resolved_by_maintenance_id_fkey';
             columns: ['resolved_by_maintenance_id'];
@@ -860,7 +647,22 @@ export type Database = {
           component_id: string | null;
           report_count: number | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'component_locations';
+            referencedColumns: ['name'];
+          },
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'components';
+            referencedColumns: ['name'];
+          },
+        ];
       };
       report_counts_by_zone: {
         Row: {
@@ -894,7 +696,22 @@ export type Database = {
           repair_days?: never;
           resolved_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'component_locations';
+            referencedColumns: ['name'];
+          },
+          {
+            foreignKeyName: 'reports_component_id_fkey';
+            columns: ['component_id'];
+            isOneToOne: false;
+            referencedRelation: 'components';
+            referencedColumns: ['name'];
+          },
+        ];
       };
       team_performance: {
         Row: {
@@ -921,50 +738,6 @@ export type Database = {
         Args: { latitude: number; longitude: number };
         Returns: string;
       };
-      get_closest_inlet: {
-        Args: { input_lat: number; input_lon: number };
-        Returns: {
-          distance: number;
-          lat: number;
-          long: number;
-          name: string;
-        }[];
-      };
-      get_closest_man_pipe: {
-        Args: { input_lat: number; input_lon: number };
-        Returns: {
-          distance: number;
-          lat: number;
-          long: number;
-          name: string;
-        }[];
-      };
-      get_closest_outlet: {
-        Args: { input_lat: number; input_lon: number };
-        Returns: {
-          distance: number;
-          lat: number;
-          long: number;
-          name: string;
-        }[];
-      };
-      get_closest_storm_drain: {
-        Args: { input_lat: number; input_lon: number };
-        Returns: {
-          distance: number;
-          lat: number;
-          long: number;
-          name: string;
-        }[];
-      };
-      get_component_by_category: {
-        Args: { category_name: string };
-        Returns: {
-          lat: number;
-          long: number;
-          name: string;
-        }[];
-      };
       join_agency: {
         Args: { p_code: string };
         Returns: {
@@ -990,6 +763,21 @@ export type Database = {
           performed_at: string;
           performed_by_name: string;
           status: Database['public']['Enums']['maintenance_status'];
+        }[];
+      };
+      nearest_components: {
+        Args: {
+          p_lat: number;
+          p_lon: number;
+          p_max_results?: number;
+          p_radius_m?: number;
+          p_type: Database['public']['Enums']['component_type'];
+        };
+        Returns: {
+          distance: number;
+          lat: number;
+          long: number;
+          name: string;
         }[];
       };
       record_maintenance: {
