@@ -65,16 +65,61 @@ Gate per backend step: `ruff format --check`, `ruff check`, `pytest`.
 
 ## Steps
 
-- [ ] 0. Branches; this file.
-- [ ] 1. Reports: review, dedupe, rate limit, photo check (DB, tests, UI).
-- [ ] 2. Independent resolution checks (DB, tests, UI).
-- [ ] 3. Chatbot: auth, limits, structured history (DB rate limiter, route, UI).
-- [ ] 4. Backend: auth, per-user limits, bounded overrides, drop sync endpoint.
-- [ ] 5. Backend + DB: durable simulation runs in Supabase.
-- [ ] 6. Frontend: send the token to the simulation API; sign-in prompt.
-- [ ] 7. Model caveats: backend `model_info`, frontend notice.
-- [ ] 8. Backend validation script: paging, `No hazard`, skip rejected.
-- [ ] 9. `drAIn-backend/docs/SCIENCE_ROADMAP.md`.
-- [ ] 10. Wrap-up: docs, CLAUDE.md, final gates, report.
+- [x] 0. Branches; this file.
+- [x] 1. Reports: review, dedupe, rate limit, photo check (DB, tests, UI).
+- [x] 2. Independent resolution checks (DB, tests, UI).
+- [x] 3. Chatbot: auth, limits, structured history (DB rate limiter, route, UI).
+- [x] 4. Backend: auth, per-user limits, bounded overrides, drop sync endpoint.
+- [x] 5. Backend + DB: durable simulation runs in Supabase.
+- [x] 6. Frontend: send the token to the simulation API; sign-in prompt.
+- [x] 7. Model caveats: backend `model_info`, frontend notice.
+- [x] 8. Backend validation script: paging, `No hazard`, skip rejected.
+- [x] 9. `drAIn-backend/docs/SCIENCE_ROADMAP.md`.
+- [x] 10. Wrap-up: docs, CLAUDE.md, final gates, report.
 
 ## Run log
+
+Frontend (`trust-and-ops` on `db-hardening`):
+
+| Step | Commit  | Notes                                                                                                                                                                                                                                                             |
+| ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | cc1df0c | `schema_trust.sql`; tests 10. Three older tests filed several reports on one component and now hit the duplicate rule first; moved to other components. The profile's "my reports" list was always empty (matched names to ids); it now loads the user's reports. |
+| 2    | ceb00d7 | `maintenance_reviews`, `review_maintenance`, `respond_to_resolution`; tests 11. Also removed made-up trend lines, percentage changes and stock-photo "admins" from the dashboard stat cards.                                                                      |
+| 3    | 90ddc6b | `schema_ops.sql` rate limiter; tests 12. Checked on a dev server: 401 signed out, 400 old history format, 429 with the allowance pre-filled (no paid model call made).                                                                                            |
+| 5–6  | 7fe6c0f | `simulation_runs`; tests 13. Simulation client sends the token.                                                                                                                                                                                                   |
+| 7    | 36371dd | Caveat strip on both results tables; assistant told ratings are simulated.                                                                                                                                                                                        |
+
+Backend (`trust-and-ops` on `refactor`):
+
+| Step | Commit  | Notes                                                                                                                                                                                                                           |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4    | d75afb7 | `app/auth.py`; per-user limits in the job store; bounded, strict overrides; unknown ids 422; `/run-simulation` removed.                                                                                                         |
+| 5    | 4b26a94 | `app/runs.py`. Checked end to end against local Supabase: 401 with no token, 422 for an unknown node, run recorded (37 KB stored), result read back after a server restart, and a run the restart cut short reported as failed. |
+| 7    | 8fc4b68 | `drain/model_info.py`, in every result's metadata.                                                                                                                                                                              |
+| 8    | c490f8a | The script could not run before (KeyError on "No hazard"). Checked against the local database. Two mislabelled commits from a failed lint run were squashed into this one before anything else was built on them.               |
+| 9    | 14451bb | `docs/SCIENCE_ROADMAP.md`.                                                                                                                                                                                                      |
+
+Final gate: pgTAP 140, vitest 215, type-check clean, lint 19 warnings (all
+pre-existing), advisors 0 errors / 0 warnings / 20 info (16 unused indexes
+on a fresh database, 4 private tables with RLS and no policies by design).
+Backend: ruff clean, pytest 252.
+
+## Follow-ups for the user
+
+- **Deploying the backend changes needs settings on the host first:**
+  `SUPABASE_URL` and `SUPABASE_ANON_KEY` (without them it refuses every run
+  with 503, by design), and `SUPABASE_SERVICE_ROLE_KEY` for durable runs.
+  The `simulation_runs` migration must be applied before the key is set.
+- The deployed frontend's custom runs start failing with 401 as soon as the
+  new backend is live, until the new frontend (which sends the token) is
+  deployed too. Deploy both together.
+- Signed-out report limits are per IP address. Many phones share one
+  address on mobile networks, so three an hour may be tight there; the
+  numbers are in `check_report_submission`.
+- The photo check trusts the phone's EXIF data. It helps staff triage; it
+  isn't proof, and the UI words it as "the photo says".
+- UI changes were type-checked and unit-tested but not looked at in a
+  browser: the stat cards, the review and verification buttons, the
+  "Is it fixed?" prompt, the chatbot's signed-out state and the caveat strip.
+- The science plan is in `drAIn-backend/docs/SCIENCE_ROADMAP.md`; its
+  phase 1 needs no new data.
