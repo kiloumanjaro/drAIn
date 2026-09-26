@@ -610,6 +610,42 @@ export type Database = {
           },
         ];
       };
+      simulation_runs: {
+        Row: {
+          created_at: string;
+          error: string | null;
+          finished_at: string | null;
+          id: string;
+          request: NonNullable<Json>;
+          result: Json | null;
+          started_at: string | null;
+          status: Database['public']['Enums']['simulation_status'];
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          error?: string | null;
+          finished_at?: string | null;
+          id: string;
+          request?: NonNullable<Json>;
+          result?: Json | null;
+          started_at?: string | null;
+          status?: Database['public']['Enums']['simulation_status'];
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          error?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          request?: NonNullable<Json>;
+          result?: Json | null;
+          started_at?: string | null;
+          status?: Database['public']['Enums']['simulation_status'];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       storm_drains: {
         Row: {
           clog_per: number | null;
@@ -1099,6 +1135,7 @@ export type Database = {
       report_review: 'unreviewed' | 'confirmed' | 'rejected';
       report_status: 'pending' | 'in-progress' | 'resolved';
       review_verdict: 'confirmed' | 'disputed';
+      simulation_status: 'queued' | 'running' | 'succeeded' | 'failed';
       user_role: 'citizen' | 'staff' | 'admin';
       verification_status: 'unverified' | 'verified' | 'disputed';
     };
@@ -1241,6 +1278,7 @@ export const Constants = {
       report_review: ['unreviewed', 'confirmed', 'rejected'],
       report_status: ['pending', 'in-progress', 'resolved'],
       review_verdict: ['confirmed', 'disputed'],
+      simulation_status: ['queued', 'running', 'succeeded', 'failed'],
       user_role: ['citizen', 'staff', 'admin'],
       verification_status: ['unverified', 'verified', 'disputed'],
     },

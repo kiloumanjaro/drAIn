@@ -192,28 +192,61 @@ function retryAfterMs(response: Response): number {
     : DEFAULT_POLL_INTERVAL_MS;
 }
 
+export interface RunOptions {
+  /**
+   * The signed-in user's Supabase access token. The simulation server runs
+   * nothing for callers who aren't signed in.
+   */
+  accessToken: string;
+  /** Called on each status change, for callers that show progress. */
+  onStatus?: (status: SimulationJobStatus) => void;
+}
+
+/** The server's own explanation of a refusal, if it sent one. */
+async function refusalDetail(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === 'string' ? body.detail : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Run a SWMM simulation and resolve with its results.
  *
  * A run takes minutes, so the backend queues it and we poll: the request
- * that starts it returns straight away. `onStatus` reports each transition
- * for callers that want to show progress.
+ * that starts it returns straight away. Both requests carry the user's
+ * access token; the server keeps each run to the person who started it.
  */
 export async function runSimulation(
   nodes: Record<string, NodeData>,
   links: Record<string, LinkData>,
   rainfall: RainfallData,
-  onStatus?: (status: SimulationJobStatus) => void
+  { accessToken, onStatus }: RunOptions
 ): Promise<SimulationResponse> {
+  const authorization = { Authorization: `Bearer ${accessToken}` };
   const created = await fetch(`${apiBaseUrl()}/simulations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authorization },
     body: JSON.stringify(buildSimulationRequest(nodes, links, rainfall)),
   });
 
+  if (created.status === 401) {
+    throw new Error('Sign in to run simulations.');
+  }
   if (created.status === 429) {
+    // Either the server is full, or this person already has a run going or
+    // has used their hourly allowance; the server says which.
     throw new Error(
-      'The simulation server is busy with other runs. Please try again shortly.'
+      (await refusalDetail(created)) ??
+        'The simulation server is busy with other runs. Please try again shortly.'
+    );
+  }
+  if (created.status === 422) {
+    const detail = await refusalDetail(created);
+    throw new Error(
+      detail ?? 'Some of the values entered are outside what the model accepts.'
     );
   }
   if (!created.ok) {
@@ -230,7 +263,12 @@ export async function runSimulation(
   while (Date.now() < deadline) {
     await delay(interval);
 
-    const polled = await fetch(`${apiBaseUrl()}${job.poll_url}`);
+    const polled = await fetch(`${apiBaseUrl()}${job.poll_url}`, {
+      headers: authorization,
+    });
+    if (polled.status === 401) {
+      throw new Error('Your sign-in expired while the simulation ran.');
+    }
     if (polled.status === 404) {
       throw new Error('The simulation result expired before it was read.');
     }

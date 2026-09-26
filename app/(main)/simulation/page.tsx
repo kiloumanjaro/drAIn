@@ -4,6 +4,7 @@ import { ControlPanel } from '@/components/control-panel';
 import { CameraControls } from '@/components/map/camera-controls';
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/components/context/auth-provider';
 import {
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
@@ -113,6 +114,9 @@ export default function SimulationPage() {
   const searchParams = useSearchParams();
   const isSimulationActive = searchParams.get('active') === 'true';
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
+  // Custom runs use the simulation server, which runs nothing for callers
+  // who aren't signed in.
+  const { session } = useAuth();
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -767,6 +771,11 @@ export default function SimulationPage() {
       toast.error('Please select at least one component');
       return;
     }
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error('Sign in to run custom simulations.');
+      return;
+    }
 
     // Close panels before starting
     if (activePanel === 'node') {
@@ -791,7 +800,7 @@ export default function SimulationPage() {
       });
 
       const [response] = await Promise.all([
-        runSimulation(nodes, links, rainfallParams),
+        runSimulation(nodes, links, rainfallParams, { accessToken }),
         new Promise((resolve) => setTimeout(resolve, MIN_GENERATE_DURATION_MS)),
       ]);
 

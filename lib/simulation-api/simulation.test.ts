@@ -28,6 +28,9 @@ function result(
   };
 }
 
+/** A signed-in caller. */
+const AUTH = { accessToken: 'test-token' };
+
 describe('transformToNodeDetails', () => {
   it('maps the backend field names onto the table shape', () => {
     const [row] = transformToNodeDetails([result()]);
@@ -240,7 +243,7 @@ describe('runSimulation', () => {
       .mockResolvedValueOnce(state('succeeded', { result }));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).resolves.toEqual(result);
   });
 
@@ -251,7 +254,7 @@ describe('runSimulation', () => {
         state('succeeded', { result: { nodes_list: [] } })
       );
 
-    await runToCompletion(runSimulation(NODES, LINKS, RAINFALL));
+    await runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH));
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toMatch(/\/simulations$/);
@@ -271,10 +274,12 @@ describe('runSimulation', () => {
       );
 
     await runToCompletion(
-      runSimulation({ 'I-1': { inv_elev: undefined, init_depth: 2 } }, LINKS, {
-        total_precip: 400,
-        duration_hr: NaN,
-      })
+      runSimulation(
+        { 'I-1': { inv_elev: undefined, init_depth: 2 } },
+        LINKS,
+        { total_precip: 400, duration_hr: NaN },
+        AUTH
+      )
     );
 
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
@@ -295,19 +300,53 @@ describe('runSimulation', () => {
 
     const seen: string[] = [];
     await runToCompletion(
-      runSimulation(NODES, LINKS, RAINFALL, (s) => seen.push(s))
+      runSimulation(NODES, LINKS, RAINFALL, {
+        ...AUTH,
+        onStatus: (s) => seen.push(s),
+      })
     );
     // 'running' is reported once, not on every poll.
     expect(seen).toEqual(['queued', 'running', 'succeeded']);
   });
 
   it('explains a busy queue rather than reporting a failure', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 429 }));
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow(/busy/i);
+  });
+
+  it("passes on the server's reason for a refusal", async () => {
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ detail: 'too many' }, { status: 429 })
+      jsonResponse(
+        { detail: 'You already have a simulation queued or running.' },
+        { status: 429 }
+      )
     );
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
-    ).rejects.toThrow(/busy/i);
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow('You already have a simulation queued or running.');
+  });
+
+  it('asks the user to sign in when the server says so', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 401 }));
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow(/sign in/i);
+  });
+
+  it('sends the access token when starting and when polling', async () => {
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(
+        state('succeeded', { result: { nodes_list: [] } })
+      );
+
+    await runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH));
+
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init.headers.Authorization).toBe('Bearer test-token');
+    }
   });
 
   it('surfaces the reason a run failed', async () => {
@@ -316,7 +355,7 @@ describe('runSimulation', () => {
       .mockResolvedValueOnce(state('failed', { error: 'SWMM exploded' }));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow('SWMM exploded');
   });
 
@@ -326,7 +365,7 @@ describe('runSimulation', () => {
       .mockResolvedValueOnce(jsonResponse({ detail: 'gone' }, { status: 404 }));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow(/expired/i);
   });
 
@@ -335,7 +374,7 @@ describe('runSimulation', () => {
       jsonResponse({ detail: 'nope' }, { status: 500 })
     );
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow(/could not start/i);
   });
 
@@ -345,7 +384,7 @@ describe('runSimulation', () => {
       .mockResolvedValueOnce(state('succeeded'));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow(/returned nothing/i);
   });
 
@@ -356,7 +395,7 @@ describe('runSimulation', () => {
         state('succeeded', { result: { nodes_list: [] } })
       );
 
-    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const promise = runSimulation(NODES, LINKS, RAINFALL, AUTH);
     const settled = promise.then(() => 'done');
 
     await vi.advanceTimersByTimeAsync(10_000);
@@ -378,7 +417,7 @@ describe('runSimulation', () => {
       return elapsedMin < 20 ? state('queued') : state('succeeded', { result });
     });
 
-    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const promise = runSimulation(NODES, LINKS, RAINFALL, AUTH);
     const settled = promise.then(
       (value) => ({ ok: true as const, value }),
       (error) => ({ ok: false as const, error })
@@ -393,7 +432,7 @@ describe('runSimulation', () => {
       url.endsWith('/simulations') ? accepted() : state('running')
     );
 
-    const promise = runSimulation(NODES, LINKS, RAINFALL);
+    const promise = runSimulation(NODES, LINKS, RAINFALL, AUTH);
     const settled = promise.then(
       () => 'resolved',
       (error: Error) => error.message
@@ -413,7 +452,7 @@ describe('runSimulation', () => {
       .mockResolvedValueOnce(jsonResponse({ detail: 'oops' }, { status: 502 }));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow(/progress \(HTTP 502\)/);
   });
 
@@ -423,7 +462,7 @@ describe('runSimulation', () => {
       .mockResolvedValueOnce(state('failed', { error: null }));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow('The simulation failed.');
   });
 
@@ -431,7 +470,7 @@ describe('runSimulation', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow('Failed to fetch');
   });
 
@@ -441,7 +480,7 @@ describe('runSimulation', () => {
       .mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
     await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL))
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
     ).rejects.toThrow('Failed to fetch');
   });
 
@@ -463,7 +502,9 @@ describe('runSimulation', () => {
           state('succeeded', { result: { nodes_list: [] } })
         );
 
-      const settled = runSimulation(NODES, LINKS, RAINFALL).then(() => 'done');
+      const settled = runSimulation(NODES, LINKS, RAINFALL, AUTH).then(
+        () => 'done'
+      );
 
       await vi.advanceTimersByTimeAsync(2_900);
       expect(fetchMock).toHaveBeenCalledTimes(1);
