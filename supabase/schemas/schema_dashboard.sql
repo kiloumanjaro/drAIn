@@ -4,6 +4,9 @@
 -- used to download report rows and count them in the browser, which quietly
 -- stopped at the API's 1,000-row limit (max_rows in config.toml).
 --
+-- Reports staff rejected (review_report in schema_trust.sql) are left out of
+-- every figure here: they are spam, duplicates or not a drainage problem.
+--
 -- Views run with the caller's rights (security_invoker), so they show exactly
 -- what the caller could read from reports. The two functions that must see
 -- across users are SECURITY DEFINER and check or limit what they return.
@@ -16,7 +19,7 @@
 CREATE OR REPLACE VIEW "public"."latest_report_per_component" WITH ("security_invoker"='true') AS
  SELECT DISTINCT ON ("reports"."component_id") "reports".*
    FROM "public"."reports"
-  WHERE ("reports"."component_id" IS NOT NULL)
+  WHERE (("reports"."component_id" IS NOT NULL) AND ("reports"."review_status" <> 'rejected'::"public"."report_review"))
   ORDER BY "reports"."component_id", "reports"."created_at" DESC;
 
 
@@ -29,7 +32,7 @@ CREATE OR REPLACE VIEW "public"."report_counts_by_component" WITH ("security_inv
     "reports"."component_id",
     ("count"(*))::integer AS "report_count"
    FROM "public"."reports"
-  WHERE ("reports"."component_id" IS NOT NULL)
+  WHERE (("reports"."component_id" IS NOT NULL) AND ("reports"."review_status" <> 'rejected'::"public"."report_review"))
   GROUP BY "reports"."category", "reports"."component_id";
 
 
@@ -40,7 +43,7 @@ CREATE OR REPLACE VIEW "public"."report_counts_by_zone" WITH ("security_invoker"
  SELECT "reports"."zone",
     ("count"(*))::integer AS "report_count"
    FROM "public"."reports"
-  WHERE ("reports"."zone" IS NOT NULL)
+  WHERE (("reports"."zone" IS NOT NULL) AND ("reports"."review_status" <> 'rejected'::"public"."report_review"))
   GROUP BY "reports"."zone";
 
 
@@ -51,7 +54,7 @@ CREATE OR REPLACE VIEW "public"."report_counts_by_category" WITH ("security_invo
  SELECT "reports"."category",
     ("count"(*))::integer AS "report_count"
    FROM "public"."reports"
-  WHERE ("reports"."category" IS NOT NULL)
+  WHERE (("reports"."category" IS NOT NULL) AND ("reports"."review_status" <> 'rejected'::"public"."report_review"))
   GROUP BY "reports"."category";
 
 
@@ -69,7 +72,7 @@ CREATE OR REPLACE VIEW "public"."report_repair_days" WITH ("security_invoker"='t
     "reports"."resolved_at",
     (EXTRACT(epoch FROM ("reports"."resolved_at" - "reports"."created_at")) / 86400.0) AS "repair_days"
    FROM "public"."reports"
-  WHERE (("reports"."status" = 'resolved'::"public"."report_status") AND ("reports"."resolved_at" IS NOT NULL) AND ("reports"."resolved_at" >= "reports"."created_at"));
+  WHERE (("reports"."status" = 'resolved'::"public"."report_status") AND ("reports"."resolved_at" IS NOT NULL) AND ("reports"."resolved_at" >= "reports"."created_at") AND ("reports"."review_status" <> 'rejected'::"public"."report_review"));
 
 
 ALTER VIEW "public"."report_repair_days" OWNER TO "postgres";
@@ -99,7 +102,7 @@ CREATE OR REPLACE VIEW "public"."team_performance" WITH ("security_invoker"='tru
     "round"((percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY (("d"."repair_days")::double precision)))::numeric, 1) AS "median_days_to_resolve"
    FROM ((("public"."agencies" "a"
      JOIN "public"."maintenance" "m" ON (("m"."agency_id" = "a"."id")))
-     JOIN "public"."reports" "r" ON (("r"."resolved_by_maintenance_id" = "m"."id")))
+     JOIN "public"."reports" "r" ON ((("r"."resolved_by_maintenance_id" = "m"."id") AND ("r"."review_status" <> 'rejected'::"public"."report_review"))))
      LEFT JOIN "public"."report_repair_days" "d" ON (("d"."id" = "r"."id")))
   GROUP BY "a"."id", "a"."name";
 
@@ -132,8 +135,10 @@ CREATE OR REPLACE FUNCTION "public"."dashboard_overview"("p_month_start" timesta
     AS $$
   select
     (select count(*) from public.reports
-      where status = 'resolved' and resolved_at >= p_month_start)::integer,
-    (select count(*) from public.reports where status = 'pending')::integer,
+      where status = 'resolved' and resolved_at >= p_month_start
+        and review_status <> 'rejected')::integer,
+    (select count(*) from public.reports
+      where status = 'pending' and review_status <> 'rejected')::integer,
     (select coalesce(round(avg(repair_days), 1), 0) from public.report_repair_days),
     (select count(*) from public.profiles where role in ('staff', 'admin'))::integer
 $$;

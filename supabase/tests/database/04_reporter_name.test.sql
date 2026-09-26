@@ -41,7 +41,7 @@ select is_empty(
 );
 
 insert into public.reports (id, category, status, component_id, user_id)
-values ('00000000-0000-4000-b000-0000000000ab', 'inlets', 'pending', 'I-0',
+values ('00000000-0000-4000-b000-0000000000ab', 'inlets', 'pending', 'I-1',
         '00000000-0000-4000-a000-000000000003');
 
 select is(

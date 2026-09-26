@@ -97,6 +97,35 @@ CREATE TYPE "public"."maintenance_status" AS ENUM (
 ALTER TYPE "public"."maintenance_status" OWNER TO "postgres";
 
 
+-- What agency staff made of a citizen report (review_report). Rejected
+-- reports (spam, duplicates, not a drainage problem) stay in the table for
+-- the record but drop out of every count, map pin and public list.
+CREATE TYPE "public"."report_review" AS ENUM (
+    'unreviewed',
+    'confirmed',
+    'rejected'
+);
+
+
+ALTER TYPE "public"."report_review" OWNER TO "postgres";
+
+
+-- Where the report's photo says it was taken, against the component the
+-- report is filed on (check_report_submission). match: within 100 m.
+-- mismatch: further. missing: the photo carried no location.
+--
+-- A signal for staff triage, not proof: the location comes from the photo's
+-- EXIF block, read in the reporter's browser, and EXIF is easy to edit.
+CREATE TYPE "public"."photo_location_check" AS ENUM (
+    'match',
+    'mismatch',
+    'missing'
+);
+
+
+ALTER TYPE "public"."photo_location_check" OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) RETURNS character varying
     LANGUAGE "plpgsql" STABLE
     SET "search_path" TO 'public', 'extensions'
@@ -590,6 +619,17 @@ CREATE TABLE IF NOT EXISTS "public"."reports" (
     "resolved_at" timestamp with time zone,
     "resolved_by_maintenance_id" "uuid",
     "resolved_image" "text",
+    "photo_lat" double precision,
+    "photo_lon" double precision,
+    "photo_taken_at" timestamp with time zone,
+    "photo_distance_m" double precision,
+    "photo_check" "public"."photo_location_check" DEFAULT 'missing'::"public"."photo_location_check" NOT NULL,
+    "review_status" "public"."report_review" DEFAULT 'unreviewed'::"public"."report_review" NOT NULL,
+    "reviewed_by" "uuid",
+    "reviewed_at" timestamp with time zone,
+    "review_note" "text",
+    CONSTRAINT "reports_photo_lat_range" CHECK ((("photo_lat" >= ('-90'::integer)::double precision) AND ("photo_lat" <= (90)::double precision))),
+    CONSTRAINT "reports_photo_lon_range" CHECK ((("photo_lon" >= ('-180'::integer)::double precision) AND ("photo_lon" <= (180)::double precision))),
     CONSTRAINT "reports_geocoded_status_check" CHECK (("geocoded_status" = ANY (ARRAY['pending'::"text", 'processing'::"text", 'completed'::"text", 'failed'::"text"])))
 );
 
@@ -597,7 +637,23 @@ CREATE TABLE IF NOT EXISTS "public"."reports" (
 ALTER TABLE "public"."reports" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."reports"."priority" IS 'Set by the reporter when filing.';
+COMMENT ON COLUMN "public"."reports"."priority" IS 'Set by the reporter when filing; staff may change it when they review the report (review_report).';
+
+
+
+COMMENT ON COLUMN "public"."reports"."photo_lat" IS 'Latitude from the photo''s EXIF GPS, sent by the reporter''s browser. Null when the photo had none.';
+
+
+
+COMMENT ON COLUMN "public"."reports"."photo_taken_at" IS 'When the photo says it was taken (EXIF DateTimeOriginal), sent by the reporter''s browser.';
+
+
+
+COMMENT ON COLUMN "public"."reports"."photo_distance_m" IS 'Metres from the photo''s GPS position to the component. Computed by check_report_submission; whatever the client sends is overwritten.';
+
+
+
+COMMENT ON COLUMN "public"."reports"."review_status" IS 'Set only by review_report. New reports always start unreviewed.';
 
 
 
@@ -772,6 +828,10 @@ CREATE INDEX "idx_reports_user_id" ON "public"."reports" USING "btree" ("user_id
 
 
 
+CREATE INDEX "idx_reports_reviewed_by" ON "public"."reports" USING "btree" ("reviewed_by");
+
+
+
 CREATE INDEX "idx_reports_created_at" ON "public"."reports" USING "btree" ("created_at" DESC);
 
 
@@ -860,6 +920,11 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."reports"
+    ADD CONSTRAINT "reports_reviewed_by_fkey" FOREIGN KEY ("reviewed_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
@@ -1082,8 +1147,9 @@ ALTER FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "u
 -- maintenance row and moves the component's open reports along:
 --   resolved     closes pending and in-progress reports,
 --   in-progress  moves pending reports to in-progress.
--- Reports filed after the work are left alone. This is the only way
--- reports change status; clients can't update reports directly.
+-- Reports filed after the work, and reports staff rejected, are left alone.
+-- This is the only way reports change status; clients can't update reports
+-- directly.
 CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -1110,6 +1176,7 @@ BEGIN
       resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE resolved_at END
   WHERE component_id = p_component_name
     AND created_at <= result.performed_at
+    AND review_status <> 'rejected'
     AND status = ANY (CASE WHEN p_status = 'resolved'
                            THEN ARRAY['pending', 'in-progress']::public.report_status[]
                            ELSE ARRAY['pending']::public.report_status[] END);

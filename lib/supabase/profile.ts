@@ -12,6 +12,14 @@ export type Profile = Pick<
   | 'show_name_on_reports'
 >;
 
+/**
+ * Agency staff or admin. Only a display hint: the database checks the role
+ * again on everything staff can do.
+ */
+export const isAgencyStaff = (
+  profile: Pick<Profile, 'role'> | null | undefined
+) => !!profile && profile.role !== 'citizen';
+
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await client

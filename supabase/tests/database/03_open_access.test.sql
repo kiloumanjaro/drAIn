@@ -30,14 +30,14 @@ select lives_ok(
 );
 
 select throws_ok(
-  $$insert into public.reports (category, status, component_id) values ('inlets', 'resolved', 'I-0')$$,
+  $$insert into public.reports (category, status, component_id) values ('inlets', 'resolved', 'I-1')$$,
   '42501', null,
   'anon cannot file a report as already resolved'
 );
 
 select throws_ok(
   $$insert into public.reports (category, status, component_id, user_id)
-    values ('inlets', 'pending', 'I-0', '00000000-0000-4000-a000-000000000003')$$,
+    values ('inlets', 'pending', 'I-2', '00000000-0000-4000-a000-000000000003')$$,
   '42501', null,
   'anon cannot file a report under someone else''s account'
 );

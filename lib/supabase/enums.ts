@@ -13,6 +13,8 @@ export type ReportStatus = Enums['report_status'];
 export type ReportPriority = Enums['report_priority'];
 export type MaintenanceStatus = Enums['maintenance_status'];
 export type UserRole = Enums['user_role'];
+export type ReportReview = Enums['report_review'];
+export type PhotoLocationCheck = Enums['photo_location_check'];
 
 const oneOf =
   <T extends string>(values: readonly T[]) =>

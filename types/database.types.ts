@@ -428,11 +428,20 @@ export type Database = {
           image: string | null;
           lat: number | null;
           long: number | null;
+          photo_check: Database['public']['Enums']['photo_location_check'];
+          photo_distance_m: number | null;
+          photo_lat: number | null;
+          photo_lon: number | null;
+          photo_taken_at: string | null;
           priority: Database['public']['Enums']['report_priority'];
           reporter_name: string | null;
           resolved_at: string | null;
           resolved_by_maintenance_id: string | null;
           resolved_image: string | null;
+          review_note: string | null;
+          review_status: Database['public']['Enums']['report_review'];
+          reviewed_at: string | null;
+          reviewed_by: string | null;
           status: Database['public']['Enums']['report_status'];
           user_id: string | null;
           zone: string | null;
@@ -448,11 +457,20 @@ export type Database = {
           image?: string | null;
           lat?: number | null;
           long?: number | null;
+          photo_check?: Database['public']['Enums']['photo_location_check'];
+          photo_distance_m?: number | null;
+          photo_lat?: number | null;
+          photo_lon?: number | null;
+          photo_taken_at?: string | null;
           priority?: Database['public']['Enums']['report_priority'];
           reporter_name?: string | null;
           resolved_at?: string | null;
           resolved_by_maintenance_id?: string | null;
           resolved_image?: string | null;
+          review_note?: string | null;
+          review_status?: Database['public']['Enums']['report_review'];
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
           status?: Database['public']['Enums']['report_status'];
           user_id?: string | null;
           zone?: string | null;
@@ -468,11 +486,20 @@ export type Database = {
           image?: string | null;
           lat?: number | null;
           long?: number | null;
+          photo_check?: Database['public']['Enums']['photo_location_check'];
+          photo_distance_m?: number | null;
+          photo_lat?: number | null;
+          photo_lon?: number | null;
+          photo_taken_at?: string | null;
           priority?: Database['public']['Enums']['report_priority'];
           reporter_name?: string | null;
           resolved_at?: string | null;
           resolved_by_maintenance_id?: string | null;
           resolved_image?: string | null;
+          review_note?: string | null;
+          review_status?: Database['public']['Enums']['report_review'];
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
           status?: Database['public']['Enums']['report_status'];
           user_id?: string | null;
           zone?: string | null;
@@ -497,6 +524,13 @@ export type Database = {
             columns: ['resolved_by_maintenance_id'];
             isOneToOne: false;
             referencedRelation: 'maintenance';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'reports_reviewed_by_fkey';
+            columns: ['reviewed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
         ];
@@ -593,11 +627,22 @@ export type Database = {
           image: string | null;
           lat: number | null;
           long: number | null;
+          photo_check:
+            | Database['public']['Enums']['photo_location_check']
+            | null;
+          photo_distance_m: number | null;
+          photo_lat: number | null;
+          photo_lon: number | null;
+          photo_taken_at: string | null;
           priority: Database['public']['Enums']['report_priority'] | null;
           reporter_name: string | null;
           resolved_at: string | null;
           resolved_by_maintenance_id: string | null;
           resolved_image: string | null;
+          review_note: string | null;
+          review_status: Database['public']['Enums']['report_review'] | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
           status: Database['public']['Enums']['report_status'] | null;
           user_id: string | null;
           zone: string | null;
@@ -622,6 +667,13 @@ export type Database = {
             columns: ['resolved_by_maintenance_id'];
             isOneToOne: false;
             referencedRelation: 'maintenance';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'reports_reviewed_by_fkey';
+            columns: ['reviewed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
         ];
@@ -814,6 +866,49 @@ export type Database = {
           day: string;
         }[];
       };
+      review_report: {
+        Args: {
+          p_note?: string;
+          p_priority?: Database['public']['Enums']['report_priority'];
+          p_report_id: string;
+          p_verdict: Database['public']['Enums']['report_review'];
+        };
+        Returns: {
+          address: string | null;
+          category: Database['public']['Enums']['component_type'] | null;
+          component_id: string | null;
+          created_at: string;
+          description: string | null;
+          geocoded_status: string | null;
+          id: string;
+          image: string | null;
+          lat: number | null;
+          long: number | null;
+          photo_check: Database['public']['Enums']['photo_location_check'];
+          photo_distance_m: number | null;
+          photo_lat: number | null;
+          photo_lon: number | null;
+          photo_taken_at: string | null;
+          priority: Database['public']['Enums']['report_priority'];
+          reporter_name: string | null;
+          resolved_at: string | null;
+          resolved_by_maintenance_id: string | null;
+          resolved_image: string | null;
+          review_note: string | null;
+          review_status: Database['public']['Enums']['report_review'];
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: Database['public']['Enums']['report_status'];
+          user_id: string | null;
+          zone: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'reports';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       rotate_agency_join_code: {
         Args: { p_agency_id: string };
         Returns: string;
@@ -845,7 +940,9 @@ export type Database = {
     Enums: {
       component_type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
       maintenance_status: 'in-progress' | 'resolved';
+      photo_location_check: 'match' | 'mismatch' | 'missing';
       report_priority: 'low' | 'medium' | 'high' | 'critical';
+      report_review: 'unreviewed' | 'confirmed' | 'rejected';
       report_status: 'pending' | 'in-progress' | 'resolved';
       user_role: 'citizen' | 'staff' | 'admin';
     };
@@ -983,7 +1080,9 @@ export const Constants = {
     Enums: {
       component_type: ['inlets', 'outlets', 'storm_drains', 'man_pipes'],
       maintenance_status: ['in-progress', 'resolved'],
+      photo_location_check: ['match', 'mismatch', 'missing'],
       report_priority: ['low', 'medium', 'high', 'critical'],
+      report_review: ['unreviewed', 'confirmed', 'rejected'],
       report_status: ['pending', 'in-progress', 'resolved'],
       user_role: ['citizen', 'staff', 'admin'],
     },

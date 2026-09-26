@@ -23,7 +23,7 @@ interface Report {
   image?: string | null;
   address: string;
   priority?: 'low' | 'medium' | 'high' | 'critical';
-  resolvedAt?: string;
+  resolvedAt?: string | null;
 }
 
 interface Props {
@@ -271,7 +271,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
             address={report.address}
             status={report.status as 'pending' | 'in-progress' | 'resolved'}
             priority={report.priority || 'low'}
-            resolvedAt={report.resolvedAt}
+            resolvedAt={report.resolvedAt ?? undefined}
             onClose={() => setShowImageViewer(false)}
           />
         )}

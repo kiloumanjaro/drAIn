@@ -5,15 +5,30 @@ import ReportCard from './report-card';
 import ReportFilters from './report-filters';
 import { useAllReports } from '@/lib/query/hooks/use-reports-data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/components/context/auth-provider';
+import { isAgencyStaff } from '@/lib/supabase/profile';
 
 export default function ReportsTab() {
   // Filter states
   const [priority, setPriority] = useState('all');
   const [status, setStatus] = useState('all');
   const [componentType, setComponentType] = useState('all');
+  // Rejected reports (spam, duplicates) are hidden; staff can show them to
+  // check or undo a rejection.
+  const [showRejected, setShowRejected] = useState(false);
+  const { profile } = useAuth();
+  const staff = isAgencyStaff(profile);
 
   // Fetch reports using React Query
-  const { data: reports = [], isLoading: loading, error } = useAllReports();
+  const { data: allReports = [], isLoading: loading, error } = useAllReports();
+  const reports = useMemo(
+    () =>
+      staff && showRejected
+        ? allReports
+        : allReports.filter((report) => report.reviewStatus !== 'rejected'),
+    [allReports, staff, showRejected]
+  );
 
   // Filter and sort reports
   const filteredReports = useMemo(() => {
@@ -70,6 +85,13 @@ export default function ReportsTab() {
         filteredCount={sortedReports.length}
         totalCount={reports.length}
       />
+
+      {staff && (
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-xs text-gray-600">
+          <Switch checked={showRejected} onCheckedChange={setShowRejected} />
+          Show reports staff rejected
+        </label>
+      )}
 
       {/* Loading State */}
       {loading ? (

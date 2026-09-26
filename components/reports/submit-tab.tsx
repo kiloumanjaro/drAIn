@@ -18,7 +18,8 @@ import {
   type ComponentType,
   type ReportPriority,
 } from '@/lib/supabase/enums';
-import { extractExifLocation } from '@/lib/reports/extract-exif';
+import { extractExifLocation, type ExifData } from '@/lib/reports/extract-exif';
+import { toast } from 'sonner';
 import { getClosestPipes } from '@/lib/reports/get-closest-pipe';
 import { useAuth } from '@/components/context/auth-provider';
 import { ComboboxForm } from '@/components/common/combobox-form';
@@ -58,6 +59,9 @@ export default function SubmitTab() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isManual, setIsManual] = useState(false);
   const [alertNow, setAlertNow] = useState(false);
+  // What the photo says about where and when it was taken. Sent with the
+  // report so staff can see whether it matches the component.
+  const [photoExif, setPhotoExif] = useState<ExifData | null>(null);
   const isDisabled = isManual
     ? !manualAccepted || !termsAccepted || categoryIndex < 0
     : !termsAccepted || categoryIndex < 0;
@@ -85,6 +89,7 @@ export default function SubmitTab() {
     setCategoryData([]);
     setCategoryIndex(0);
     setSeverity('low');
+    setPhotoExif(null);
   };
 
   const handlePreSubmit = async (e: React.FormEvent) => {
@@ -98,6 +103,7 @@ export default function SubmitTab() {
       setErrorCode('Not a valid image');
     } else {
       const location = await extractExifLocation(image);
+      setPhotoExif(location);
       // const location = {
       //   latitude: 10.360832542295604,
       //   longitude: 123.927200298236968,
@@ -176,7 +182,8 @@ export default function SubmitTab() {
         lat,
         userID,
         profileName,
-        severity
+        severity,
+        photoExif
       );
 
       // Show alert
@@ -194,9 +201,17 @@ export default function SubmitTab() {
         clearInputs();
       }, 1000);
     } catch (error) {
-      // Handle error
       setIsConfirming(false);
       console.error('Upload failed:', error);
+      // The database explains a refusal in words meant for the reporter:
+      // an open report on this component already, or too many recently.
+      const message =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : '';
+      toast.error(
+        message || 'Your report could not be sent. Please try again.'
+      );
     }
   };
 

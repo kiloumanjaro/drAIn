@@ -78,16 +78,21 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
     const handleUpdate = (updatedReport: ReportRow) => {
       const formatted = formatReport(updatedReport);
+      // A report staff just rejected leaves the public lists, as it would
+      // on the next fetch (fetchAllReports skips rejected reports).
+      const rejected = formatted.reviewStatus === 'rejected';
 
       // Update notifications
       setNotifications((prev) => [
-        formatted,
+        ...(rejected ? [] : [formatted]),
         ...prev.filter((n) => n.id !== formatted.id),
       ]);
 
       // Update TanStack Query cache for all reports
       queryClient.setQueryData<Report[]>(reportKeys.list(), (old = []) =>
-        old.map((r) => (r.id === formatted.id ? formatted : r))
+        rejected
+          ? old.filter((r) => r.id !== formatted.id)
+          : old.map((r) => (r.id === formatted.id ? formatted : r))
       );
 
       // Invalidate latest reports to recalculate

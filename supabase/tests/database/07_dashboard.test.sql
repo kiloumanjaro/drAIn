@@ -49,19 +49,19 @@ select is(
 
 select is(
   (select sum(report_count)::integer from public.report_counts_by_category),
-  (select count(*)::integer from public.reports),
-  'category counts add up to every report'
+  (select count(*)::integer from public.reports where review_status <> 'rejected'),
+  'category counts add up to every report staff have not rejected'
 );
 
 select is(
   (select sum(report_count)::integer from public.report_counts_by_zone),
-  (select count(*)::integer from public.reports where zone is not null),
-  'zone counts add up to every report with a zone'
+  (select count(*)::integer from public.reports where zone is not null and review_status <> 'rejected'),
+  'zone counts add up to every unrejected report with a zone'
 );
 
 select is(
   (select count(*)::integer from public.latest_report_per_component),
-  (select count(distinct component_id)::integer from public.reports),
+  (select count(distinct component_id)::integer from public.reports where review_status <> 'rejected'),
   'one latest report per component'
 );
 

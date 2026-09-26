@@ -66,19 +66,39 @@ values ('6b307b70-0fa4-46df-a66c-0df8a16cca3d',
         extensions.crypt(private.normalize_join_code('DRAIN-LOCAL-01'), extensions.gen_salt('bf')));
 
 -- ---------------------------------------------------------------------------
--- Reports, one per status and priority, placed on real components so the
--- map and the zone trigger have something to work with. Images point at
--- paths with no uploaded file, so they render as broken images.
+-- Reports, one per status and priority (and one rejected), placed on real
+-- components so the map and the zone trigger have something to work with.
+-- Images point at paths with no uploaded file, so they render as broken
+-- images.
 -- ---------------------------------------------------------------------------
 
 insert into public.reports (
   id, created_at, category, description, image, reporter_name, status,
-  priority, component_id, long, lat, address, geocoded_status, user_id
+  priority, component_id, long, lat, address, geocoded_status, user_id,
+  photo_lat, photo_lon, photo_taken_at
 ) values
-  ('00000000-0000-4000-b000-000000000001', now() - interval '20 days', 'inlets', 'Inlet grate clogged with leaves and plastic.', 'public/seed-1.jpg', 'Cora Citizen', 'resolved',    'medium',   'I-0',   123.915424397261, 10.360172475881,  null, 'pending', '00000000-0000-4000-a000-000000000003'),
-  ('00000000-0000-4000-b000-000000000002', now() - interval '6 days',  'outlets', 'Outlet blocked, water backing up onto the road.', 'public/seed-2.jpg', 'Carl Citizen', 'in-progress', 'high', 'O-0',   123.930881802134, 10.3287419155488, null, 'pending', '00000000-0000-4000-a000-000000000004'),
-  ('00000000-0000-4000-b000-000000000003', now() - interval '2 days',  'storm_drains', 'Storm drain overflowing after light rain.', 'public/seed-3.jpg', 'Cora Citizen', 'pending', 'critical', 'ISD-1', 123.923200288885, 10.3145439635574, null, 'pending', '00000000-0000-4000-a000-000000000003'),
-  ('00000000-0000-4000-b000-000000000004', now() - interval '1 day',   'man_pipes', 'Manhole cover cracked.', 'public/seed-4.jpg', 'Anonymous', 'pending', 'low', 'C-0', 123.948852671767, 10.3248457286088, null, 'pending', null);
+  ('00000000-0000-4000-b000-000000000001', now() - interval '20 days', 'inlets', 'Inlet grate clogged with leaves and plastic.', 'public/seed-1.jpg', 'Cora Citizen', 'resolved',    'medium',   'I-0',   123.915424397261, 10.360172475881,  null, 'pending', '00000000-0000-4000-a000-000000000003', null, null, null),
+  ('00000000-0000-4000-b000-000000000002', now() - interval '6 days',  'outlets', 'Outlet blocked, water backing up onto the road.', 'public/seed-2.jpg', 'Carl Citizen', 'in-progress', 'high', 'O-0',   123.930881802134, 10.3287419155488, null, 'pending', '00000000-0000-4000-a000-000000000004', null, null, null),
+  -- The photo's GPS is a few metres from ISD-1, so photo_check is 'match'.
+  ('00000000-0000-4000-b000-000000000003', now() - interval '2 days',  'storm_drains', 'Storm drain overflowing after light rain.', 'public/seed-3.jpg', 'Cora Citizen', 'pending', 'critical', 'ISD-1', 123.923200288885, 10.3145439635574, null, 'pending', '00000000-0000-4000-a000-000000000003', 10.31456, 123.92322, now() - interval '2 days 1 hour'),
+  ('00000000-0000-4000-b000-000000000004', now() - interval '1 day',   'man_pipes', 'Manhole cover cracked.', 'public/seed-4.jpg', 'Anonymous', 'pending', 'low', 'C-0', 123.948852671767, 10.3248457286088, null, 'pending', null, null, null, null),
+  -- Photo taken about 2 km away ('mismatch'); staff rejected it below.
+  ('00000000-0000-4000-b000-000000000005', now() - interval '3 days',  'storm_drains', 'Flooding here!!', 'public/seed-5.jpg', 'Anonymous', 'pending', 'critical', 'ISD-2', 123.923281736004, 10.3146480062604, null, 'pending', null, 10.33, 123.93, now() - interval '40 days');
+
+-- Staff rejected report 5 (review_report does the same through the API).
+update public.reports
+set review_status = 'rejected',
+    reviewed_by = '00000000-0000-4000-a000-000000000002',
+    reviewed_at = now() - interval '2 days',
+    review_note = 'Photo is from somewhere else and weeks old.'
+where id = '00000000-0000-4000-b000-000000000005';
+
+-- Sam confirmed report 3 on sight.
+update public.reports
+set review_status = 'confirmed',
+    reviewed_by = '00000000-0000-4000-a000-000000000002',
+    reviewed_at = now() - interval '1 day'
+where id = '00000000-0000-4000-b000-000000000003';
 
 -- ---------------------------------------------------------------------------
 -- Maintenance: one finished job that resolved report 1, one in progress for

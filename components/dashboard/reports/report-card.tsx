@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import PriorityBadge from './priority-badge';
 import StatusBadge from './status-badge';
 import ComponentTypeBadge from './component-type-badge';
+import ReportReview from './report-review';
 import { formatDateShort } from '@/lib/dashboard/calculations';
 import type { ReportWithMetadata } from '@/lib/dashboard/queries';
 import { MapPin, MapPinHouse, FileText, Copy } from 'lucide-react';
@@ -136,6 +137,8 @@ export default function ReportCard({
               />
             </div>
           </div>
+
+          <ReportReview report={report} />
 
           {/* Location */}
           <div className="flex items-center gap-2">

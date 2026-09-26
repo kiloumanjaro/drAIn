@@ -1,7 +1,13 @@
 import client from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import type { ComponentType, ReportPriority } from '@/lib/supabase/enums';
+import type {
+  ComponentType,
+  PhotoLocationCheck,
+  ReportPriority,
+  ReportReview,
+} from '@/lib/supabase/enums';
+import type { ExifData } from '@/lib/reports/extract-exif';
 
 export interface Report {
   id: string;
@@ -17,6 +23,21 @@ export interface Report {
   address: string;
   resolvedByMaintenanceId?: string | null;
   resolvedImage?: string | null;
+  resolvedAt?: string | null;
+  priority: ReportPriority;
+  /** Null for a report filed while signed out. */
+  userId: string | null;
+  /** What agency staff made of it. Rejected reports are hidden from the public. */
+  reviewStatus: ReportReview;
+  reviewNote: string | null;
+  /**
+   * Where the photo says it was taken, against the component: 'match'
+   * (within 100 m), 'mismatch' or 'missing'. Measured by the database from
+   * the photo's EXIF, which is easy to edit, so a hint rather than proof.
+   */
+  photoCheck: PhotoLocationCheck;
+  photoDistanceM: number | null;
+  photoTakenAt: string | null;
 }
 
 /** A reports row as the database returns it (and as realtime sends it). */
@@ -31,7 +52,9 @@ export const uploadReport = async (
   lat: number,
   userId: string | null,
   reporterName: string,
-  priority: ReportPriority = 'low'
+  priority: ReportPriority = 'low',
+  /** What the photo's EXIF says about where and when it was taken. */
+  photo: ExifData | null = null
 ) => {
   try {
     // A fresh name per upload. Using the phone's own file name meant a second
@@ -66,6 +89,11 @@ export const uploadReport = async (
         geocoded_status: 'pending',
         user_id: userId ?? null,
         priority: priority,
+        // The database measures these against the component and labels the
+        // report (photo_check); staff see it when they review.
+        photo_lat: photo?.latitude ?? null,
+        photo_lon: photo?.longitude ?? null,
+        photo_taken_at: photo?.date?.toISOString() ?? null,
       },
     ]);
 
@@ -81,11 +109,13 @@ export const uploadReport = async (
 
 export const fetchAllReports = async (): Promise<Report[]> => {
   try {
-    // Every report, a page at a time: a single select stops at 1,000 rows.
+    // Every report staff haven't rejected as spam or a duplicate, a page at
+    // a time: a single select stops at 1,000 rows.
     const rows = await fetchAllRows((from, to) =>
       client
         .from('reports')
         .select('*')
+        .neq('review_status', 'rejected')
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })
         .range(from, to)
@@ -95,6 +125,44 @@ export const fetchAllReports = async (): Promise<Report[]> => {
     console.error('Error fetching all reports:', error);
     throw error;
   }
+};
+
+/**
+ * The signed-in person's own reports, newest first, including any staff
+ * rejected, so they can see why.
+ */
+export const fetchMyReports = async (userId: string): Promise<Report[]> => {
+  const { data, error } = await client
+    .from('reports')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching your reports:', error);
+    throw error;
+  }
+  return (data ?? []).map(formatReport);
+};
+
+/**
+ * Staff confirm a report, or reject it with a reason, and may correct its
+ * priority (review_report in supabase/schemas/schema_trust.sql).
+ */
+export const reviewReport = async (
+  reportId: string,
+  verdict: Exclude<ReportReview, 'unreviewed'>,
+  note?: string,
+  priority?: ReportPriority
+): Promise<ReportRow> => {
+  const { data, error } = await client.rpc('review_report', {
+    p_report_id: reportId,
+    p_verdict: verdict,
+    p_note: note,
+    p_priority: priority,
+  });
+  if (error) throw new Error(error.message);
+  return data;
 };
 
 /** The reports filed against one component, oldest first. */
@@ -188,6 +256,14 @@ export const formatReport = (report: ReportRow): Report => {
     address: report.address ?? 'Unknown address',
     resolvedByMaintenanceId: report.resolved_by_maintenance_id ?? null,
     resolvedImage: resolvedImageUrl || null,
+    resolvedAt: report.resolved_at,
+    priority: report.priority,
+    userId: report.user_id,
+    reviewStatus: report.review_status,
+    reviewNote: report.review_note,
+    photoCheck: report.photo_check,
+    photoDistanceM: report.photo_distance_m,
+    photoTakenAt: report.photo_taken_at,
   };
 };
 

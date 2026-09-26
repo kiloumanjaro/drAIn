@@ -1,7 +1,7 @@
 import client from '@/lib/supabase/client';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import type { Report } from '@/lib/supabase/report';
-import type { ComponentType, ReportPriority } from '@/lib/supabase/enums';
+import { formatReport, type Report } from '@/lib/supabase/report';
+import type { ComponentType } from '@/lib/supabase/enums';
 
 /*
  * The dashboard's numbers are computed in the database, by the views and
@@ -62,7 +62,6 @@ export interface TeamPerformanceData {
 }
 
 export interface ReportWithMetadata extends Report {
-  priority: ReportPriority;
   zone?: string;
 }
 
@@ -233,30 +232,18 @@ export async function getAllReports(): Promise<ReportWithMetadata[]> {
         .range(from, to)
     );
 
-    // Transform database records to match Report interface
-    // Map created_at to date field and convert image paths to public URLs
-    return reports.map((report): ReportWithMetadata => {
-      // Get public URL for image if it exists
-      const { data: img } = report.image
-        ? client.storage.from('ReportImage').getPublicUrl(report.image)
-        : { data: { publicUrl: '' } };
-
-      return {
-        id: report.id,
-        date: report.created_at || new Date().toISOString(),
-        category: report.category || 'Uncategorized',
-        description: report.description || 'No description',
-        image: img?.publicUrl || '',
-        reporterName: report.reporter_name || 'Anonymous',
-        status: report.status || 'pending',
+    // Rejected reports are included: staff filter them on the reports tab.
+    return reports.map(
+      (report): ReportWithMetadata => ({
+        ...formatReport(report),
+        image: report.image
+          ? client.storage.from('ReportImage').getPublicUrl(report.image).data
+              .publicUrl
+          : '',
         componentId: report.component_id || '',
-        coordinates: [report.long ?? 0, report.lat ?? 0],
-        geocoded_status: report.geocoded_status || 'pending',
-        address: report.address || 'Unknown',
-        priority: report.priority,
         zone: report.zone ?? undefined,
-      };
-    });
+      })
+    );
   } catch (error) {
     console.error('Error fetching all reports:', error);
     return [];
