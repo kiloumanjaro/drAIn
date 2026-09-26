@@ -808,9 +808,115 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      latest_report_per_component: {
+        Row: {
+          address: string | null;
+          category: Database['public']['Enums']['component_type'] | null;
+          component_id: string | null;
+          created_at: string | null;
+          description: string | null;
+          geocoded_status: string | null;
+          id: string | null;
+          image: string | null;
+          lat: number | null;
+          long: number | null;
+          priority: Database['public']['Enums']['report_priority'] | null;
+          reporter_name: string | null;
+          resolved_at: string | null;
+          resolved_by_maintenance_id: string | null;
+          resolved_image: string | null;
+          status: Database['public']['Enums']['report_status'] | null;
+          user_id: string | null;
+          zone: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'reports_resolved_by_maintenance_id_fkey';
+            columns: ['resolved_by_maintenance_id'];
+            isOneToOne: false;
+            referencedRelation: 'maintenance';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      repair_time_by_component: {
+        Row: {
+          average_days: number | null;
+          component_type: Database['public']['Enums']['component_type'] | null;
+          resolved_count: number | null;
+        };
+        Relationships: [];
+      };
+      report_counts_by_category: {
+        Row: {
+          category: Database['public']['Enums']['component_type'] | null;
+          report_count: number | null;
+        };
+        Relationships: [];
+      };
+      report_counts_by_component: {
+        Row: {
+          category: Database['public']['Enums']['component_type'] | null;
+          component_id: string | null;
+          report_count: number | null;
+        };
+        Relationships: [];
+      };
+      report_counts_by_zone: {
+        Row: {
+          report_count: number | null;
+          zone: string | null;
+        };
+        Relationships: [];
+      };
+      report_repair_days: {
+        Row: {
+          category: Database['public']['Enums']['component_type'] | null;
+          component_id: string | null;
+          created_at: string | null;
+          id: string | null;
+          repair_days: number | null;
+          resolved_at: string | null;
+        };
+        Insert: {
+          category?: Database['public']['Enums']['component_type'] | null;
+          component_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          repair_days?: never;
+          resolved_at?: string | null;
+        };
+        Update: {
+          category?: Database['public']['Enums']['component_type'] | null;
+          component_id?: string | null;
+          created_at?: string | null;
+          id?: string | null;
+          repair_days?: never;
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      team_performance: {
+        Row: {
+          agency_name: string | null;
+          median_days_to_resolve: number | null;
+          outstanding_issues: number | null;
+          resolved_issues: number | null;
+          total_issues: number | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
+      dashboard_overview: {
+        Args: { p_month_start?: string };
+        Returns: {
+          average_repair_days: number;
+          fixed_this_month: number;
+          pending_issues: number;
+          total_staff: number;
+        }[];
+      };
       extract_barangay_from_coordinates: {
         Args: { latitude: number; longitude: number };
         Returns: string;
@@ -875,6 +981,17 @@ export type Database = {
         };
       };
       leave_agency: { Args: Record<PropertyKey, never>; Returns: undefined };
+      maintenance_history: {
+        Args: { p_component_name: string };
+        Returns: {
+          agency_name: string;
+          description: string;
+          evidence_image: string;
+          performed_at: string;
+          performed_by_name: string;
+          status: Database['public']['Enums']['maintenance_status'];
+        }[];
+      };
       record_maintenance: {
         Args: {
           p_component_name: string;
@@ -901,6 +1018,13 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
+      };
+      repair_trend: {
+        Args: { p_days?: number };
+        Returns: {
+          average_days: number;
+          day: string;
+        }[];
       };
       rotate_agency_join_code: {
         Args: { p_agency_id: string };

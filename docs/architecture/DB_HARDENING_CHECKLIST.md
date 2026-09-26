@@ -210,11 +210,11 @@ Needs: step 4 (`component_type`).
 
 Needs: step 4.
 
-- [ ] Views (`security_invoker = true`): `latest_report_per_component` (`distinct on`), `report_counts_by_zone`, `report_counts_by_category`, `report_counts_by_component`, `component_last_maintained` (`max(performed_at)`).
-- [ ] `security definer` RPCs:
+- [x] Views (`security_invoker = true`): `latest_report_per_component` (`distinct on`), `report_counts_by_zone`, `report_counts_by_category`, `report_counts_by_component`, `component_last_maintained` (`max(performed_at)`).
+- [x] `security definer` RPCs:
   - `dashboard_overview()`: fixed this month, pending, average repair days from `resolved_at - created_at`, staff count.
   - `team_performance()`: per agency, via `maintenance.agency_id` joined to `reports.resolved_by_maintenance_id`.
-- [ ] Code:
+- [x] Code:
   - `lib/dashboard/queries.ts` uses these;
   - `fetchLatestReportsPerComponent` uses the view;
   - the map's per-bubble count query (`app/(main)/map/page.tsx:703`) becomes one `report_counts_by_component` fetch;
@@ -273,3 +273,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 3b (reporter name setting): advisors 0 error / 4 warn / 38 info. 8 new pgTAP tests (46 total). Verified over REST: turning the setting off rewrites the citizen's existing reports to Anonymous, and back. The toggle sits under Display Name in the profile Edit tab.
 - Step 4 (one maintenance table): advisors 0 error / 0 warn / 27 info. 12 new pgTAP tests (58 total); vitest 214 (the 4 per-table collision tests became 3 id-lookup tests, plus 1 for last-cleaned ordering). Verified over REST: citizen record 403; staff record resolves ISD-1 report and sets resolved_at; history reads with the last_cleaned_at alias. Migration hand-edited to copy old rows before the drops (dry-run against the pre-step-4 data: both rows and report links carried). Known limit: history shows staff names only to that staff member, because profiles are readable only by their owner (step 6).
 - Step 5 (vocabulary): advisors 0 error / 0 warn / 27 info. 8 new pgTAP tests (66 total); vitest 214. Migration hand-edited (premature SET DEFAULT again; fill null priorities before NOT NULL), dry-run on existing rows OK. Verified over the API: status "unresolved" rejected (22P02); realtime INSERT event received after "Subscribed to PostgreSQL". Also dropped idx_report_category (step 8 item) because the enum made its predicate invalid, and deleted the uncalled deleteReportsByComponentId.
+- Step 6 (dashboard in SQL): advisors 0 error / 0 warn / 24 info. 13 new pgTAP tests (79 total). vitest 190: the tests of the removed JS arithmetic (calculations/metrics, 35 tests) went with it, their rules are now pgTAP tests; +3 fetchAllRows, +8 mapping tests. Deviations: no `component_last_maintained` view (resolved_at made it unnecessary); the app still derives latest-per-component from the list it has already loaded (no extra request), the view is there for other readers. Added `maintenance_history` RPC so staff see colleagues' names (the step 4 limit). fetchAllReports and the dashboard list now page past 1,000 rows.

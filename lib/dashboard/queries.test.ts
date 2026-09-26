@@ -1,28 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * A stand-in for the Supabase query builder. Every chained call is recorded,
- * and awaiting the chain asks `respond` for the result of that query.
+ * The dashboard's arithmetic lives in the database (schema_dashboard.sql,
+ * tested in supabase/tests/database/07_dashboard.test.sql). These tests cover
+ * what is left here: which view or function is read, how fields are renamed,
+ * ordering, and falling back to empty values on an error.
+ *
+ * A stand-in for the Supabase client. Every chained call is recorded, and
+ * awaiting a chain asks `respond` for the result of that query.
  */
 const supabase = vi.hoisted(() => {
   type Call = [method: string, ...args: unknown[]];
-  type Result = { data: unknown; count?: number | null; error?: unknown };
-  const state: { respond: (table: string, calls: Call[]) => Result } = {
-    respond: () => ({ data: null }),
-  };
+  type Result = { data: unknown; error?: unknown };
+  const state: {
+    respond: (source: string, calls: Call[]) => Result;
+    rpcCalls: Array<[string, unknown]>;
+  } = { respond: () => ({ data: [] }), rpcCalls: [] };
 
-  function from(table: string) {
-    const calls: Call[] = [];
+  function chain(source: string, calls: Call[]) {
     const builder: Record<string, unknown> = {};
-    for (const method of [
-      'select',
-      'eq',
-      'gte',
-      'not',
-      'in',
-      'limit',
-      'order',
-    ]) {
+    for (const method of ['select', 'eq', 'order', 'range', 'not', 'in']) {
       builder[method] = (...args: unknown[]) => {
         calls.push([method, ...args]);
         return builder;
@@ -31,137 +28,97 @@ const supabase = vi.hoisted(() => {
     builder.then = (
       resolve: (value: Result) => unknown,
       reject: (reason: unknown) => unknown
-    ) => Promise.resolve(state.respond(table, calls)).then(resolve, reject);
+    ) => Promise.resolve(state.respond(source, calls)).then(resolve, reject);
     return builder;
   }
 
-  return { state, from };
+  return {
+    state,
+    from: (table: string) => chain(table, []),
+    rpc: (fn: string, args: unknown) => {
+      state.rpcCalls.push([fn, args]);
+      return chain(`rpc:${fn}`, []);
+    },
+  };
 });
 
 vi.mock('@/lib/supabase/client', () => ({
-  default: { from: supabase.from },
+  default: {
+    from: supabase.from,
+    rpc: supabase.rpc,
+    storage: {
+      from: () => ({ getPublicUrl: () => ({ data: { publicUrl: '' } }) }),
+    },
+  },
 }));
 
 import {
+  getIssuesPerZone,
   getOverviewMetrics,
   getRepairTimeByComponent,
   getRepairTrendData,
   getTeamPerformance,
 } from './queries';
 
-type Call = [string, ...unknown[]];
-type Rows = Array<Record<string, unknown>>;
-
-const isHeadCount = (calls: Call[]) =>
-  calls.some(
-    ([method, , options]) =>
-      method === 'select' && (options as { head?: boolean })?.head === true
-  );
-
-const hasFilter = (calls: Call[], method: string, ...args: unknown[]) =>
-  calls.some(
-    ([m, ...rest]) =>
-      m === method && args.every((arg, index) => rest[index] === arg)
-  );
-
-/** Answer the reports query with `reports` and the rest from `tables`. */
-function respondWith(reports: Rows, tables: Record<string, Rows> = {}) {
-  supabase.state.respond = (table, calls) => {
-    if (isHeadCount(calls)) return { data: null, count: 0 };
-    if (table === 'reports') return { data: reports };
-    return { data: tables[table] ?? [] };
-  };
-}
+const answer = (sources: Record<string, unknown>) => {
+  supabase.state.respond = (source) =>
+    source in sources ? { data: sources[source] } : { data: [] };
+};
 
 beforeEach(() => {
   supabase.state.respond = () => ({ data: [] });
+  supabase.state.rpcCalls = [];
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 describe('getOverviewMetrics', () => {
-  it('reads the head-only count queries from their count', async () => {
-    // A head: true query returns no rows at all, only a count. These used
-    // to read data?.length, so all three cards always said 0.
-    supabase.state.respond = (table, calls) => {
-      if (isHeadCount(calls)) {
-        if (table === 'profiles') return { data: null, count: 4 };
-        if (hasFilter(calls, 'eq', 'status', 'pending')) {
-          return { data: null, count: 12 };
-        }
-        return { data: null, count: 7 };
-      }
-      return { data: [] };
-    };
+  it('reads the overview function and renames its fields', async () => {
+    answer({
+      'rpc:dashboard_overview': [
+        {
+          fixed_this_month: 7,
+          pending_issues: 12,
+          average_repair_days: 3.5,
+          total_staff: 4,
+        },
+      ],
+    });
 
-    const metrics = await getOverviewMetrics();
-
-    expect(metrics).toMatchObject({
+    await expect(getOverviewMetrics()).resolves.toEqual({
       fixedThisMonth: 7,
       pendingIssues: 12,
+      averageRepairDays: 3.5,
       totalAdmins: 4,
     });
   });
 
-  it('averages repair time over the rows it can measure', async () => {
-    respondWith(
-      [
-        { component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' },
-        { component_id: 'I-2', created_at: '2026-01-01T00:00:00Z' },
-        { component_id: 'I-3', created_at: 'garbage' },
-      ],
-      {
-        maintenance: [
-          { component_name: 'I-1', performed_at: '2026-01-03T00:00:00Z' },
-          { component_name: 'I-2', performed_at: '2026-01-05T00:00:00Z' },
-          { component_name: 'I-3', performed_at: '2026-01-05T00:00:00Z' },
-        ],
-      }
-    );
+  it("counts 'this month' from the viewer's local first of the month", async () => {
+    await getOverviewMetrics();
 
-    const metrics = await getOverviewMetrics();
+    const [, args] = supabase.state.rpcCalls[0];
+    const start = new Date((args as { p_month_start: string }).p_month_start);
+    expect(start.getDate()).toBe(1);
+    expect(start.getHours()).toBe(0);
+  });
 
-    // (2 + 4) / 2; the unparseable row is left out rather than poisoning it.
-    expect(metrics.averageRepairDays).toBe(3);
+  it('shows zeros rather than failing when the query errors', async () => {
+    supabase.state.respond = () => ({ data: null, error: { message: 'x' } });
+
+    await expect(getOverviewMetrics()).resolves.toMatchObject({
+      fixedThisMonth: 0,
+      totalAdmins: 0,
+    });
   });
 });
 
 describe('getRepairTrendData', () => {
-  it('keeps the chart when one report has a malformed date', async () => {
-    // new Date('garbage').toISOString() throws. The whole query used to
-    // fall into its catch and return nothing, emptying the chart.
-    respondWith(
-      [
-        { component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' },
-        { component_id: 'I-2', created_at: 'garbage' },
+  it('maps each day to the chart shape', async () => {
+    answer({
+      'rpc:repair_trend': [
+        { day: '2026-01-01', average_days: 2 },
+        { day: '2026-01-02', average_days: 1 },
       ],
-      {
-        maintenance: [
-          { component_name: 'I-1', performed_at: '2026-01-03T00:00:00Z' },
-          { component_name: 'I-2', performed_at: '2026-01-03T00:00:00Z' },
-        ],
-      }
-    );
-
-    await expect(getRepairTrendData()).resolves.toEqual([
-      { date: '2026-01-01', averageDays: 2 },
-    ]);
-  });
-
-  it('averages the repairs per report day, oldest first', async () => {
-    respondWith(
-      [
-        { component_id: 'I-3', created_at: '2026-01-02T00:00:00Z' },
-        { component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' },
-        { component_id: 'I-2', created_at: '2026-01-01T00:00:00Z' },
-      ],
-      {
-        maintenance: [
-          { component_name: 'I-1', performed_at: '2026-01-02T00:00:00Z' },
-          { component_name: 'I-2', performed_at: '2026-01-04T00:00:00Z' },
-          { component_name: 'I-3', performed_at: '2026-01-03T00:00:00Z' },
-        ],
-      }
-    );
+    });
 
     await expect(getRepairTrendData()).resolves.toEqual([
       { date: '2026-01-01', averageDays: 2 },
@@ -170,55 +127,30 @@ describe('getRepairTrendData', () => {
   });
 });
 
-describe('last cleaned lookup', () => {
-  it('reads maintenance oldest first, so the latest record wins', async () => {
-    // "Last cleaned" is the final value left in a map. The four old tables
-    // were read in no order, so it was whichever row arrived last.
-    let maintenanceCalls: Call[] = [];
-    supabase.state.respond = (table, calls) => {
-      if (table === 'maintenance') maintenanceCalls = calls;
-      // One report, or the trend returns before it reads maintenance.
-      if (table === 'reports') {
-        return {
-          data: [{ component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' }],
-        };
-      }
-      return { data: [] };
-    };
+describe('getIssuesPerZone', () => {
+  it('keeps the database order and skips rows without a zone', async () => {
+    answer({
+      report_counts_by_zone: [
+        { zone: 'Tipolo', report_count: 5 },
+        { zone: null, report_count: 9 },
+        { zone: 'Banilad', report_count: 2 },
+      ],
+    });
 
-    await getRepairTrendData();
-
-    expect(hasFilter(maintenanceCalls, 'order', 'performed_at')).toBe(true);
-    const order = maintenanceCalls.find(([method]) => method === 'order');
-    expect(order?.[2]).toEqual({ ascending: true });
+    await expect(getIssuesPerZone()).resolves.toEqual([
+      { zone: 'Tipolo', count: 5 },
+      { zone: 'Banilad', count: 2 },
+    ]);
   });
 });
 
 describe('getRepairTimeByComponent', () => {
-  it('averages per component type, skipping unusable rows', async () => {
-    respondWith(
-      [
-        {
-          category: 'inlets',
-          component_id: 'I-1',
-          created_at: '2026-01-01T00:00:00Z',
-        },
-        { category: 'inlets', component_id: 'I-2', created_at: 'garbage' },
-        {
-          category: 'man_pipes',
-          component_id: 'P-1',
-          created_at: '2026-01-05T00:00:00Z',
-        },
+  it('maps each component type', async () => {
+    answer({
+      repair_time_by_component: [
+        { component_type: 'inlets', average_days: 3, resolved_count: 1 },
       ],
-      {
-        maintenance: [
-          { component_name: 'I-1', performed_at: '2026-01-04T00:00:00Z' },
-          { component_name: 'I-2', performed_at: '2026-01-04T00:00:00Z' },
-          // Cleaned before it was reported: a wrong link, not a fast fix.
-          { component_name: 'P-1', performed_at: '2026-01-01T00:00:00Z' },
-        ],
-      }
-    );
+    });
 
     await expect(getRepairTimeByComponent()).resolves.toEqual([
       { type: 'inlets', averageDays: 3, resolvedCount: 1 },
@@ -227,81 +159,44 @@ describe('getRepairTimeByComponent', () => {
 });
 
 describe('getTeamPerformance', () => {
-  const AGENCIES = {
-    agencies: [
-      { id: 'a', name: 'Alpha' },
-      { id: 'b', name: 'Bravo' },
-      { id: 'c', name: 'Charlie' },
-    ],
-    profiles: [
-      { id: 'u1', agency_id: 'a' },
-      { id: 'u2', agency_id: 'b' },
-      { id: 'u3', agency_id: 'c' },
-    ],
-  };
-
-  let nextId = 0;
-  const report = (
-    user_id: string,
-    status: string,
-    extra: Record<string, unknown> = {}
-  ) => ({ id: `r${nextId++}`, user_id, status, ...extra });
-
-  it('counts what is still open as total minus resolved', async () => {
-    respondWith(
-      [
-        report('u1', 'resolved'),
-        report('u1', 'pending'),
-        report('u1', 'in-progress'),
-      ],
-      AGENCIES
-    );
-
-    const [alpha] = await getTeamPerformance();
-
-    expect(alpha).toMatchObject({
-      agencyName: 'Alpha',
-      totalIssues: 3,
-      resolvedIssues: 1,
-      outstandingIssues: 2,
-    });
+  const row = (
+    agency_name: string,
+    total_issues: number,
+    outstanding_issues: number,
+    median_days_to_resolve: number | null = null
+  ) => ({
+    agency_name,
+    total_issues,
+    resolved_issues: total_issues - outstanding_issues,
+    outstanding_issues,
+    median_days_to_resolve,
   });
 
   it('orders agencies by what is still open, and drops idle ones', async () => {
-    respondWith(
-      [
+    answer({
+      team_performance: [
         // Alpha has the most reports, but all resolved.
-        report('u1', 'resolved'),
-        report('u1', 'resolved'),
-        report('u1', 'resolved'),
-        // Bravo has two still open.
-        report('u2', 'pending'),
-        report('u2', 'pending'),
+        row('Alpha', 3, 0, 1),
+        row('Bravo', 2, 2),
+        row('Charlie', 0, 0),
       ],
-      AGENCIES
-    );
+    });
 
     const rows = await getTeamPerformance();
 
-    expect(rows.map((row) => row.agencyName)).toEqual(['Bravo', 'Alpha']);
+    expect(rows.map((r) => r.agencyName)).toEqual(['Bravo', 'Alpha']);
   });
 
-  it('measures time to resolve from the maintenance that closed it', async () => {
-    respondWith(
-      [
-        report('u1', 'resolved', {
-          created_at: '2026-01-01T00:00:00Z',
-          resolved_by_maintenance_id: 'm1',
-        }),
-      ],
-      {
-        ...AGENCIES,
-        maintenance: [{ id: 'm1', performed_at: '2026-01-03T00:00:00Z' }],
-      }
-    );
+  it('keeps "no figure" as null rather than zero', async () => {
+    answer({ team_performance: [row('Bravo', 2, 2)] });
 
-    const [alpha] = await getTeamPerformance();
+    const [bravo] = await getTeamPerformance();
 
-    expect(alpha.medianDaysToResolve).toBe(2);
+    expect(bravo).toMatchObject({
+      totalIssues: 2,
+      resolvedIssues: 0,
+      outstandingIssues: 2,
+      medianDaysToResolve: null,
+    });
   });
 });

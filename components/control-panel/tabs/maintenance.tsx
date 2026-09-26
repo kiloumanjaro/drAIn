@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchAllReports } from '@/lib/supabase/report';
+import { fetchReportsForComponent } from '@/lib/supabase/report';
 import {
   DEBUG_MODE,
   checkMaintenancePhoto,
@@ -110,11 +110,7 @@ export default function Maintenance({
   >(null);
 
   const loadReports = useCallback(async (componentId: string) => {
-    const allReports = await fetchAllReports();
-    const assetReports = allReports.filter(
-      (report) => report.componentId === componentId
-    );
-    setReports(assetReports);
+    setReports(await fetchReportsForComponent(componentId));
   }, []);
 
   const handleViewHistory = useCallback(

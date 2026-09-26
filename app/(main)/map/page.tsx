@@ -53,7 +53,10 @@ import {
   type ReportBubbleRef,
 } from '@/components/map/report-bubble';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getreportCategoryCount } from '@/lib/supabase/report';
+import {
+  fetchReportCountsByComponent,
+  reportCountKey,
+} from '@/lib/supabase/report';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
@@ -666,6 +669,8 @@ function MapPageContent() {
     reportPopupsRef.current = [];
 
     const reportBubbleRefs: Array<ReportBubbleRef | null> = [];
+    // One request for every pin's report count, not one per pin.
+    const reportCounts = fetchReportCountsByComponent();
 
     const coordinateCounts = new Map<string, number>();
     reports.forEach((report) => {
@@ -700,9 +705,10 @@ function MapPageContent() {
           ref={(ref) => {
             reportBubbleRefs[index] = ref;
           }}
-          reportSize={getreportCategoryCount(
-            report.category,
-            report.componentId
+          reportSize={reportCounts.then(
+            (counts) =>
+              counts.get(reportCountKey(report.category, report.componentId)) ??
+              0
           )}
           report={report}
           map={map}

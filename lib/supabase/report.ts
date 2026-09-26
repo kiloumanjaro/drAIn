@@ -1,10 +1,7 @@
 import client from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
-import {
-  isComponentType,
-  type ComponentType,
-  type ReportPriority,
-} from '@/lib/supabase/enums';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import type { ComponentType, ReportPriority } from '@/lib/supabase/enums';
 
 export interface Report {
   id: string;
@@ -84,23 +81,37 @@ export const uploadReport = async (
 
 export const fetchAllReports = async (): Promise<Report[]> => {
   try {
-    const { data, error } = await client
-      .from('reports')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching all reports:', error);
-      throw error;
-    }
-
-    if (!data) return [];
-
-    return data.map(formatReport);
+    // Every report, a page at a time: a single select stops at 1,000 rows.
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    return rows.map(formatReport);
   } catch (error) {
     console.error('Error fetching all reports:', error);
     throw error;
   }
+};
+
+/** The reports filed against one component, oldest first. */
+export const fetchReportsForComponent = async (
+  componentId: string
+): Promise<Report[]> => {
+  const { data, error } = await client
+    .from('reports')
+    .select('*')
+    .eq('component_id', componentId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching reports for component:', error);
+    throw error;
+  }
+  return (data ?? []).map(formatReport);
 };
 
 export const fetchLatestReportsPerComponent = async (
@@ -213,22 +224,36 @@ export function subscribeToReportChanges(
   };
 }
 
-export const getreportCategoryCount = async (
-  targetCategory: string,
-  categoryId: string
-): Promise<number> => {
-  // Report.category falls back to a display label for rows without one.
-  if (!isComponentType(targetCategory)) return 0;
+/**
+ * How many reports each component has, keyed by `reportCountKey`. One
+ * request for the whole map, instead of one count query per map pin.
+ */
+export const fetchReportCountsByComponent = async (): Promise<
+  Map<string, number>
+> => {
+  const counts = new Map<string, number>();
   try {
-    const { count: categoryCount } = await client
-      .from('reports')
-      .select('category', { count: 'exact', head: true })
-      .eq('category', targetCategory)
-      .eq('component_id', categoryId);
-
-    return categoryCount ?? 0;
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('report_counts_by_component')
+        .select('category, component_id, report_count')
+        .order('component_id', { ascending: true })
+        .order('category', { ascending: true })
+        .range(from, to)
+    );
+    for (const row of rows) {
+      if (row.category && row.component_id) {
+        counts.set(
+          reportCountKey(row.category, row.component_id),
+          row.report_count ?? 0
+        );
+      }
+    }
   } catch (error) {
-    console.error('Error fetching reports:', error);
-    return 0;
+    console.error('Error fetching report counts:', error);
   }
+  return counts;
 };
+
+export const reportCountKey = (category: string, componentId: string) =>
+  `${category}:${componentId}`;
