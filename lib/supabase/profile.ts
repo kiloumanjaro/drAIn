@@ -1,12 +1,11 @@
 import client from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
+import type { Tables } from '@/types/database.types';
 
-export interface Profile {
-  id: string;
-  full_name: string;
-  avatar_url: string;
-  role: string;
-}
+export type Profile = Pick<
+  Tables<'profiles'>,
+  'id' | 'full_name' | 'avatar_url' | 'role'
+>;
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   try {
@@ -45,7 +44,7 @@ export const updateUserProfile = async (
       throw new Error('Full name cannot be empty.');
     }
 
-    let avatar_url = currentProfile?.avatar_url || '';
+    let avatar_url = (currentProfile?.avatar_url as string | undefined) || '';
     let newAvatarPath: string | null = null;
 
     if (avatarFile) {
@@ -106,6 +105,10 @@ export const updateUserProfile = async (
         await client.storage.from('Avatars').remove([newAvatarPath]);
       }
       throw error;
+    }
+
+    if (!data) {
+      throw new Error('Profile was not returned after saving.');
     }
 
     return data;

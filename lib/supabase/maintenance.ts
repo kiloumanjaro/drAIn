@@ -1,5 +1,9 @@
 import client from '@/lib/supabase/client';
 import { updateReportsStatusForComponent } from '@/lib/supabase/report';
+import type {
+  MaintenanceTableName,
+  TablesInsert,
+} from '@/types/database.types';
 
 // Helper function to normalize Supabase joined data to arrays for TypeScript
 // Supabase's select syntax for related tables (e.g., `agencies ( name )`) often
@@ -112,7 +116,7 @@ export async function getStormDrainMaintenanceHistory(stormDrainId: string) {
 }
 
 async function recordMaintenance(
-  tableName: string,
+  tableName: MaintenanceTableName,
   idColumn: string,
   assetId: string,
   status?: 'in-progress' | 'resolved',
@@ -153,7 +157,9 @@ async function recordMaintenance(
 
   const { data, error } = await client
     .from(tableName)
-    .insert([payload])
+    // The name column is chosen at runtime, so the payload can't be checked
+    // against a specific table's Insert type.
+    .insert([payload as TablesInsert<MaintenanceTableName>])
     .select();
 
   if (error) {
@@ -176,7 +182,7 @@ async function recordMaintenance(
 }
 
 async function getMaintenanceHistory(
-  tableName: string,
+  tableName: MaintenanceTableName,
   idColumn: string,
   assetId: string
 ) {

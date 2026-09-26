@@ -201,7 +201,8 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     if (allReports) {
       const maintenanceMap = await fetchLastCleanedByComponent();
 
-      allReports.forEach((report: ReportRecord) => {
+      allReports.forEach((report) => {
+        if (!report.component_id) return;
         const maintenanceDate = maintenanceMap.get(report.component_id);
         if (!maintenanceDate) return;
         // Null for an unparseable date or work predating the report, both
