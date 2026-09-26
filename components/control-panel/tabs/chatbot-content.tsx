@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
+import { useAuth } from '@/components/context/auth-provider';
+import { MAX_MESSAGE_CHARS } from '@/lib/chatbot/request';
 
 interface Message {
   role: 'user' | 'bot';
@@ -28,13 +30,16 @@ export function ChatbotView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The assistant is for signed-in users: each message is a paid model call.
+  const { session, loading: authLoading } = useAuth();
+  const signedIn = !!session?.access_token;
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !session?.access_token) return;
 
     const userMessage: Message = {
       role: 'user',
@@ -48,17 +53,19 @@ export function ChatbotView() {
     setError(null);
 
     try {
-      const conversationHistory = messages
-        .slice(-6)
-        .map(
-          (msg) =>
-            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-        );
+      // Who said what, as structured turns; the server trims it further.
+      const history = messages.slice(-6).map((msg) => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      }));
 
       const res = await fetch('/api/chatbot', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input, history: conversationHistory }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ input, history }),
       });
 
       const payload = (await res.json()) as { text?: string; error?: string };
@@ -78,7 +85,7 @@ export function ChatbotView() {
       console.error('Chatbot request error:', err);
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(`Failed to get response: ${errorMessage}`);
+      setError(errorMessage);
 
       setMessages((prev) => [
         ...prev,
@@ -202,13 +209,18 @@ export function ChatbotView() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask, Search or Chat..."
-            disabled={loading}
+            placeholder={
+              signedIn || authLoading
+                ? 'Ask, Search or Chat...'
+                : 'Sign in to use the assistant'
+            }
+            maxLength={MAX_MESSAGE_CHARS}
+            disabled={loading || !signedIn}
             className="h-12 flex-1 rounded-lg border-[#d1d5dc] bg-white pr-16 text-sm"
           />
           <Button
             onClick={sendMessage}
-            disabled={loading || !input.trim()}
+            disabled={loading || !signedIn || !input.trim()}
             size="icon"
             className="absolute right-2 h-9 w-9"
           >

@@ -853,6 +853,7 @@ export type Database = {
       };
     };
     Functions: {
+      consume_rate_limit: { Args: { p_bucket: string }; Returns: boolean };
       dashboard_overview: {
         Args: { p_month_start?: string };
         Returns: {
