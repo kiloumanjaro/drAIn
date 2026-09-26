@@ -63,7 +63,7 @@ Never loosen types or policies to make a gate pass.
 
 ## Step 1 — RLS test harness (Phase 3, pulled forward)
 
-- [ ] `supabase/tests/database/rls.test.sql`: pgTAP (`create extension if not exists pgtap with schema extensions`).
+- [x] `supabase/tests/database/rls.test.sql`: pgTAP (`create extension if not exists pgtap with schema extensions`).
   - Impersonate users with `set local role authenticated` / `anon` and `set local request.jwt.claims` for the seeded ids `00000000-0000-4000-a000-00000000000{1..4}`.
   - Start with tests that pass today: anon can read reports; a citizen can read their own profile.
 - Each later step adds its own tests, so the gate stays green.
@@ -266,3 +266,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 (append as steps finish: step, commit hash, advisor counts, notes)
 
 - Step 0 (setup): baseline advisors 1 error / 20 warn / 39 info. Branch `db-hardening` off `refactor` at e00c7be.
+- Step 1 (test harness): `supabase/tests/database/01_baseline.test.sql`, 4 tests pass.
