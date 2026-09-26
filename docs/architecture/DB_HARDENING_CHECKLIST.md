@@ -117,27 +117,27 @@ Never loosen types or policies to make a gate pass.
 
 Needs: step 2.
 
-- [ ] `barangay_boundaries`:
+- [x] `barangay_boundaries`:
   - enable RLS, with a public SELECT policy;
   - revoke insert, update, delete and truncate from `anon` and `authenticated`.
-- [ ] `reports` policies:
+- [x] `reports` policies:
   - drop the DELETE policy (no callers);
   - UPDATE for staff only: `(select private.current_agency_id()) is not null`;
   - INSERT `with check (status = 'pending' and user_id is not distinct from (select auth.uid()) and resolved_by_maintenance_id is null)`.
-- [ ] `reports.user_id` → `auth.users`: `on delete set null`.
-- [ ] Drop `report_comments` and `extract_barangay_from_address` (unused).
-- [ ] `set search_path` on `get_closest_*` ×4, `get_component_by_category`, `extract_barangay_from_coordinates` and `update_report_zone`. `get_component_by_category` also rejects any name outside the 4 component tables.
-- [ ] Realtime: `ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";` in `schema.sql`. Verified: declarative sync picks this up.
-- [ ] Storage:
+- [x] `reports.user_id` → `auth.users`: `on delete set null`.
+- [x] Drop `report_comments` and `extract_barangay_from_address` (unused).
+- [x] `set search_path` on `get_closest_*` ×4, `get_component_by_category`, `extract_barangay_from_coordinates` and `update_report_zone`. `get_component_by_category` also rejects any name outside the 4 component tables.
+- [x] Realtime: `ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";` in `schema.sql`. Verified: declarative sync picks this up.
+- [x] Storage:
   - drop the ReportImage "Public update access" policy in `schema_auth_storage.sql`;
   - `uploadReport` (`lib/supabase/report.ts:59`) uploads to `public/<crypto.randomUUID()>.<ext>` with no `upsert`;
   - set bucket `file_size_limit` and `allowed_mime_types = ["image/*"]` in `supabase/config.toml`.
-- [ ] `app/api/reports/download/route.ts`:
+- [x] `app/api/reports/download/route.ts`:
   - build a user-scoped client with `@supabase/ssr`, following the `proxy.ts:7` pattern;
   - return 401 or 403 unless the caller is staff;
   - stop using the service-role client.
-- [ ] `app/api/closest-pipe/route.ts`: use an anon-key server client, not the service role.
-- [ ] Tests:
+- [x] `app/api/closest-pipe/route.ts`: use an anon-key server client, not the service role.
+- [x] Tests:
   - anon can't update or delete a report;
   - anon can't insert a report with `status = 'resolved'` or someone else's `user_id`;
   - anon can't write `barangay_boundaries`;
@@ -270,3 +270,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 0 (setup): baseline advisors 1 error / 20 warn / 39 info. Branch `db-hardening` off `refactor` at e00c7be.
 - Step 1 (test harness): `supabase/tests/database/01_baseline.test.sql`, 4 tests pass.
 - Step 2 (permission model): advisors 1 error / 16 warn / 40 info (auth_rls_initplan ×3 and one search_path warning gone; +1 info: agency_join_codes has RLS and no policies, by design). 18 new pgTAP tests. Verified over REST: self-set agency 403, wrong code 400, right code joins, anon 401. Note: declarative sync emitted SET DEFAULT before CREATE TYPE; fixed by hand in the migration, documented in CLAUDE.md.
+- Step 3 (open access): advisors 0 error / 4 warn / 37 info. 16 new pgTAP tests (38 total). Verified on a dev server: CSV download 401 without token, 403 citizen, 200 staff; closest-pipe 200 with no service key. Extra: Avatars UPDATE policy for their own folder (upsert needed it). Declarative sync ignores GRANT narrowing because of the default privileges; explicit REVOKE in schema.sql does work.

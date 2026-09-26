@@ -7,12 +7,17 @@
 -- schema.sql: it takes `role` from client-supplied metadata.
 CREATE OR REPLACE TRIGGER "on_auth_user_created" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_user"();
 
--- Storage access. Buckets themselves are declared in supabase/config.toml.
--- Avatars: anyone reads; a signed-in user writes only under <their id>/.
+-- Storage access. Buckets themselves, with their size and type limits, are
+-- declared in supabase/config.toml.
+-- Avatars: anyone reads; a signed-in user writes and replaces files only
+-- under <their id>/ (updateUserProfile uploads with upsert, which needs the
+-- UPDATE policy to replace an existing avatar).
 CREATE POLICY "Allow authenticated users to upload their own avatars" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND (("auth"."uid"())::"text" = ("storage"."foldername"("name"))[1])));
+CREATE POLICY "Allow authenticated users to replace their own avatars" ON "storage"."objects" FOR UPDATE TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1]))) WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1])));
 CREATE POLICY "Allow public read access to avatars" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'Avatars'::"text"));
 
--- ReportImage: anyone, signed in or not, reads, uploads and overwrites.
+-- ReportImage: anyone, signed in or not, reads and uploads. Nobody
+-- overwrites: uploads get a fresh random name (uploadReport, maintenance
+-- evidence), so there is never a reason to replace someone else's photo.
 CREATE POLICY "Public insert access" ON "storage"."objects" FOR INSERT WITH CHECK (("bucket_id" = 'ReportImage'::"text"));
 CREATE POLICY "Public read access" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'ReportImage'::"text"));
-CREATE POLICY "Public update access" ON "storage"."objects" FOR UPDATE USING (("bucket_id" = 'ReportImage'::"text")) WITH CHECK (("bucket_id" = 'ReportImage'::"text"));

@@ -96,63 +96,9 @@ CREATE TYPE "public"."user_role" AS ENUM (
 ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_address"("address_text" "text") RETURNS character varying
-    LANGUAGE "plpgsql" IMMUTABLE
-    AS $$
-DECLARE
-  matched_barangay VARCHAR(255);
-BEGIN
-  -- Return NULL if address is empty
-  IF address_text IS NULL OR address_text = '' THEN
-    RETURN NULL;
-  END IF;
-
-  -- List of 29 valid barangays from mandaue_population.geojson
-  -- Ordered by length (longest first) to match longer names first
-  SELECT name INTO matched_barangay
-  FROM (VALUES
-    ('Alang-alang'),
-    ('Bakilid'),
-    ('Banilad'),
-    ('Basak'),
-    ('Cabancalan'),
-    ('Cambaro'),
-    ('Canduman'),
-    ('Casili'),
-    ('Casuntingan'),
-    ('Centro'),
-    ('Cubacub'),
-    ('Guizo'),
-    ('Ibabao'),
-    ('Jagobiao'),
-    ('Labogon'),
-    ('Looc'),
-    ('Maguikay'),
-    ('Mantuyong'),
-    ('Opao'),
-    ('Pagsabungan'),
-    ('Pakna-an'),
-    ('Recle'),
-    ('Subangdaku'),
-    ('Tabok'),
-    ('Tawason'),
-    ('Tingub'),
-    ('Tipolo'),
-    ('Umapad')
-  ) AS barangays(name)
-  WHERE LOWER(address_text) LIKE '%' || LOWER(name) || '%'
-  LIMIT 1;
-
-  RETURN matched_barangay;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."extract_barangay_from_address"("address_text" "text") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) RETURNS character varying
     LANGUAGE "plpgsql" STABLE
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 DECLARE
   matched_barangay VARCHAR(255);
@@ -187,6 +133,7 @@ ALTER FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double p
 
 CREATE OR REPLACE FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 BEGIN
     RETURN QUERY
@@ -215,6 +162,7 @@ ALTER FUNCTION "public"."get_closest_inlet"("input_lat" double precision, "input
 
 CREATE OR REPLACE FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 BEGIN
     RETURN QUERY
@@ -243,6 +191,7 @@ ALTER FUNCTION "public"."get_closest_man_pipe"("input_lat" double precision, "in
 
 CREATE OR REPLACE FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 BEGIN
     RETURN QUERY
@@ -271,6 +220,7 @@ ALTER FUNCTION "public"."get_closest_outlet"("input_lat" double precision, "inpu
 
 CREATE OR REPLACE FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision, "distance" double precision)
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 BEGIN
     RETURN QUERY
@@ -297,10 +247,17 @@ $$;
 ALTER FUNCTION "public"."get_closest_storm_drain"("input_lat" double precision, "input_lon" double precision) OWNER TO "postgres";
 
 
+-- Every component of one type, for the manual-pick list on the report form.
+-- The table name is spliced into dynamic SQL, so only the four component
+-- tables are accepted.
 CREATE OR REPLACE FUNCTION "public"."get_component_by_category"("category_name" "text") RETURNS TABLE("name" character varying, "lat" double precision, "long" double precision)
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 BEGIN
+    IF category_name NOT IN ('inlets', 'outlets', 'storm_drains', 'man_pipes') THEN
+        RAISE EXCEPTION 'Unknown component category: %', category_name USING ERRCODE = '22023';
+    END IF;
     RETURN QUERY EXECUTE format(
         'SELECT 
             name,
@@ -364,6 +321,7 @@ ALTER FUNCTION "public"."protect_profile_privileges"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."update_report_zone"() RETURNS "trigger"
     LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'extensions'
     AS $$
 BEGIN
   -- Extract zone from coordinates (not address)
@@ -767,18 +725,6 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
 ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."report_comments" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "report_id" "uuid" NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "content" "text" NOT NULL
-);
-
-
-ALTER TABLE "public"."report_comments" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."reports" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
@@ -989,11 +935,6 @@ ALTER TABLE ONLY "public"."profiles"
 
 
 
-ALTER TABLE ONLY "public"."report_comments"
-    ADD CONSTRAINT "report_comments_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."storm_drains_maintenance"
     ADD CONSTRAINT "storm_drains_maintenance_pkey" PRIMARY KEY ("id");
 
@@ -1155,18 +1096,8 @@ ALTER TABLE ONLY "public"."profiles"
 
 
 
-ALTER TABLE ONLY "public"."report_comments"
-    ADD CONSTRAINT "report_comments_report_id_fkey" FOREIGN KEY ("report_id") REFERENCES "public"."reports"("id");
-
-
-
-ALTER TABLE ONLY "public"."report_comments"
-    ADD CONSTRAINT "report_comments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id");
-
-
-
 ALTER TABLE ONLY "public"."reports"
-    ADD CONSTRAINT "reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id");
+    ADD CONSTRAINT "reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
 
 
@@ -1520,14 +1451,6 @@ CREATE POLICY "Enable read access for all users" ON "public"."outlets_maintenanc
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."report_comments" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."reports" FOR DELETE USING (true);
-
-
-
 CREATE POLICY "Enable read access for all users" ON "public"."storm_drains" FOR SELECT USING (true);
 
 
@@ -1536,11 +1459,9 @@ CREATE POLICY "Enable read access for all users" ON "public"."storm_drains_maint
 
 
 
-CREATE POLICY "Public insert report comments" ON "public"."report_comments" FOR INSERT WITH CHECK (true);
-
-
-
-CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHECK (true);
+-- Anyone, signed in or not, may file a report, but only as a new pending
+-- report under their own id (anonymous reports carry no user_id).
+CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHECK (((("status")::"text" = 'pending'::"text") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
 
 
 
@@ -1548,11 +1469,21 @@ CREATE POLICY "Public select reports" ON "public"."reports" FOR SELECT USING (tr
 
 
 
-CREATE POLICY "Public update reports" ON "public"."reports" FOR UPDATE USING (true);
+-- Only agency staff change reports (status, and the maintenance that closed
+-- them). Nobody deletes reports through the API.
+CREATE POLICY "Staff update reports" ON "public"."reports" FOR UPDATE TO "authenticated" USING ((( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL)) WITH CHECK ((( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL));
 
 
 
 ALTER TABLE "public"."agencies" ENABLE ROW LEVEL SECURITY;
+
+
+-- Barangay polygons feed the zone trigger on every report, so only the
+-- service role may change them (the seed loads them as postgres).
+ALTER TABLE "public"."barangay_boundaries" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."barangay_boundaries" FOR SELECT USING (true);
 
 
 ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
@@ -1579,10 +1510,11 @@ ALTER TABLE "public"."outlets_maintenance" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."report_comments" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
+
+
+-- The app subscribes to report inserts and updates (subscribeToReportChanges).
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
 
 
 ALTER TABLE "public"."storm_drains" ENABLE ROW LEVEL SECURITY;
@@ -1598,9 +1530,6 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."extract_barangay_from_address"("address_text" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."extract_barangay_from_address"("address_text" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."extract_barangay_from_address"("address_text" "text") TO "service_role";
 
 
 
@@ -1712,14 +1641,16 @@ GRANT ALL ON TABLE "public"."agencies" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."barangay_boundaries" TO "anon";
-GRANT ALL ON TABLE "public"."barangay_boundaries" TO "authenticated";
+GRANT SELECT ON TABLE "public"."barangay_boundaries" TO "anon";
+GRANT SELECT ON TABLE "public"."barangay_boundaries" TO "authenticated";
+-- The default privileges at the end of this file grant ALL on every new
+-- table; take the writes back explicitly.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."barangay_boundaries" FROM "anon", "authenticated";
+REVOKE ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."barangay_boundaries" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "service_role";
 
 
@@ -1790,9 +1721,6 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."report_comments" TO "anon";
-GRANT ALL ON TABLE "public"."report_comments" TO "authenticated";
-GRANT ALL ON TABLE "public"."report_comments" TO "service_role";
 
 
 

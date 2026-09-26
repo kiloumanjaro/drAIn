@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import client from '@/lib/supabase/client';
 
 interface DownloadReportsModalProps {
   open: boolean;
@@ -73,8 +74,19 @@ export default function DownloadReportsModal({
         year: selectedYear,
       });
 
+      // The route is staff-only and the session lives in the browser, so
+      // the access token goes along explicitly.
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+
       const response = await fetch(
-        `/api/reports/download?${params.toString()}`
+        `/api/reports/download?${params.toString()}`,
+        {
+          headers: session
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : {},
+        }
       );
 
       if (!response.ok) {

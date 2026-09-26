@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import supabase from '@/lib/supabase/server';
+import { createRequestClient } from '@/lib/supabase/server';
 
 interface ReportRecord {
   id: string;
@@ -20,6 +20,32 @@ interface ReportRecord {
 
 export async function GET(request: NextRequest) {
   try {
+    // The export lists every report with reporter details, so it is for
+    // agency staff only. The caller's own token is used for the query too.
+    const authorization = request.headers.get('authorization');
+    const supabase = createRequestClient(authorization);
+    const token = authorization?.replace(/^Bearer\s+/i, '');
+    const {
+      data: { user },
+    } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
+
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role === 'citizen') {
+      return NextResponse.json(
+        { error: 'Only agency staff can download reports' },
+        { status: 403 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const month = searchParams.get('month');
     const year = searchParams.get('year');

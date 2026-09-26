@@ -804,45 +804,6 @@ export type Database = {
           },
         ];
       };
-      report_comments: {
-        Row: {
-          content: string;
-          created_at: string;
-          id: string;
-          report_id: string;
-          user_id: string;
-        };
-        Insert: {
-          content: string;
-          created_at?: string;
-          id?: string;
-          report_id: string;
-          user_id: string;
-        };
-        Update: {
-          content?: string;
-          created_at?: string;
-          id?: string;
-          report_id?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'report_comments_report_id_fkey';
-            columns: ['report_id'];
-            isOneToOne: false;
-            referencedRelation: 'reports';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'report_comments_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       reports: {
         Row: {
           address: string | null;
@@ -1029,10 +990,6 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      extract_barangay_from_address: {
-        Args: { address_text: string };
-        Returns: string;
-      };
       extract_barangay_from_coordinates: {
         Args: { latitude: number; longitude: number };
         Returns: string;

@@ -14,6 +14,8 @@ File references are relative to `drAIn-frontend/`.
 **Progress** (branch `db-hardening`; order and detail in `DB_HARDENING_CHECKLIST.md`)
 
 - Fixed: S1, S2 (step 2: roles, join codes, guarded `role`/`agency_id`); `auth_rls_initplan` ×3; `profiles` side of B4.
+- Fixed: S3, S5, S6, S8, S10 (search_path, category whitelist), S11, B1, `reports.user_id` side of B4; `report_comments` and `extract_barangay_from_address` dropped (step 3). Avatars also got the UPDATE policy their upsert needs.
+- Advisors after step 3: 0 errors, 4 warnings (the maintenance INSERT policies, step 4), 37 info.
 
 ---
 

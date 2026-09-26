@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import server from '@/lib/supabase/server';
+import { createRequestClient } from '@/lib/supabase/server';
 
 interface Location {
   lat: number;
@@ -14,7 +14,8 @@ interface PipeResult {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = server;
+  // Component locations are public; no user is needed.
+  const supabase = createRequestClient();
 
   try {
     const body = await req.json();

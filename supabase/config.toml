@@ -124,11 +124,17 @@ file_size_limit = "50MiB"
 # objects_path = "./images"
 
 # Buckets the app uses (lib/supabase/report.ts, lib/supabase/profile.ts).
+# Photos only. Keep these limits in step with the hosted project's bucket
+# settings if it's ever used again.
 [storage.buckets.ReportImage]
 public = true
+file_size_limit = "10MiB"
+allowed_mime_types = ["image/*"]
 
 [storage.buckets.Avatars]
 public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/*"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]

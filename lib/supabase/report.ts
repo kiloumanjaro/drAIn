@@ -56,11 +56,17 @@ export const uploadReport = async (
   priority: 'low' | 'medium' | 'high' | 'critical' = 'low'
 ) => {
   try {
+    // A fresh name per upload. Using the phone's own file name meant a second
+    // "image.jpg" silently replaced the first report's photo.
+    const extension = file.name.includes('.')
+      ? file.name.split('.').pop()!.toLowerCase()
+      : 'jpg';
+    const imagePath = `public/${crypto.randomUUID()}.${extension}`;
+
     const { error } = await client.storage
       .from('ReportImage')
-      .upload(`public/${file.name}`, file, {
+      .upload(imagePath, file, {
         cacheControl: '3600',
-        upsert: true,
         contentType: file.type,
       });
     if (error) {
@@ -72,7 +78,7 @@ export const uploadReport = async (
       {
         category,
         description,
-        image: `public/${file.name}`,
+        image: imagePath,
         reporter_name: reporterName,
         status: 'pending',
         component_id: component_id,
