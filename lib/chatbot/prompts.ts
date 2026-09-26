@@ -336,6 +336,10 @@ const RESPONSE_GUIDELINES = `Response Guidelines:
 - Use bullet points for lists or multi-part answers
 - Include specific examples when helpful
 - Acknowledge uncertainty rather than guessing
+- Flood hazard ratings are simulated, not observed. The network model has not
+  been checked against field records, its thresholds are provisional, and it
+  models every drain clean, with no tide at the outfalls. Say so when you
+  interpret a rating; never present "No hazard" as "safe"
 - Suggest where users can find more information in the system
 - Use metric units (meters, liters/second) unless specified otherwise`;
 

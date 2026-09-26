@@ -5,6 +5,7 @@ import { CameraControls } from '@/components/map/camera-controls';
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/context/auth-provider';
+import { readModelInfo, type ModelInfo } from '@/lib/simulation-api/model-info';
 import {
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
@@ -171,6 +172,8 @@ export default function SimulationPage() {
 
   // model 1 table state
   const [tableData3, setTableData3] = useState<NodeDetails[] | null>(null);
+  // What the live run's result says about its own limits.
+  const [liveModelInfo, setLiveModelInfo] = useState<ModelInfo | null>(null);
   const [isLoadingTable3, setIsLoadingTable3] = useState(false);
   const [isTable3Minimized, setIsTable3Minimized] = useState(false);
   const [table3Position, setTable3Position] = useAnchoredPosition(
@@ -808,6 +811,7 @@ export default function SimulationPage() {
       const transformedData = transformToNodeDetails(response.nodes_list);
 
       setTableData3(transformedData);
+      setLiveModelInfo(readModelInfo(response));
       setIsTable3Minimized(false);
 
       showVulnerabilityOnMap(transformedData);
@@ -1327,6 +1331,7 @@ export default function SimulationPage() {
             ) : (
               <VulnerabilityDataTable
                 data={tableData}
+                ratingSource="stored"
                 isMinimized={false}
                 onToggleMinimize={handleToggleTableMinimize}
                 position={tablePosition}
@@ -1352,6 +1357,8 @@ export default function SimulationPage() {
             ) : (
               <VulnerabilityDataTable
                 data={tableData3}
+                ratingSource="live"
+                modelInfo={liveModelInfo}
                 isMinimized={false}
                 onToggleMinimize={handleToggleTable3Minimize}
                 position={table3Position}
