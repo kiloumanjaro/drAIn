@@ -61,23 +61,10 @@ export interface TeamPerformanceData {
   medianDaysToResolve: number | null;
 }
 
-/** When each maintenance record was carried out, by table and id. */
+/** When each maintenance record was carried out, by id. */
 async function fetchMaintenanceDates(): Promise<MaintenanceDateIndex> {
-  const results = await Promise.all(
-    MAINTENANCE_TABLES.map(
-      ({ table }) =>
-        client.from(table).select('id, last_cleaned_at') as unknown as Promise<{
-          data: Array<{ id: string; last_cleaned_at: string }> | null;
-        }>
-    )
-  );
-
-  return indexMaintenanceDates(
-    results.map(({ data }, i) => ({
-      table: MAINTENANCE_TABLES[i].table,
-      rows: data ?? [],
-    }))
-  );
+  const { data } = await client.from('maintenance').select('id, performed_at');
+  return indexMaintenanceDates(data ?? []);
 }
 
 export interface ReportWithMetadata extends Report {
@@ -85,47 +72,22 @@ export interface ReportWithMetadata extends Report {
   zone?: string;
 }
 
-interface MaintenanceRecord {
-  in_name?: string;
-  out_name?: string;
-  name?: string;
-  last_cleaned_at: string;
-}
-
-/** The four per-component-type maintenance tables and their name column. */
-const MAINTENANCE_TABLES = [
-  { table: 'inlets_maintenance', nameColumn: 'in_name' },
-  { table: 'outlets_maintenance', nameColumn: 'out_name' },
-  { table: 'storm_drains_maintenance', nameColumn: 'in_name' },
-  { table: 'man_pipes_maintenance', nameColumn: 'name' },
-] as const;
-
 /**
  * When each component was last cleaned, keyed by component id.
  *
- * Maintenance is split across one table per component type. All four are
- * read at once rather than in sequence, and merged into a single lookup.
+ * Read oldest first, so the latest record for a component is the one left
+ * in the map. (The four old per-type tables were read in no order, so
+ * "last cleaned" was whichever row happened to arrive last.)
  */
 async function fetchLastCleanedByComponent(): Promise<Map<string, string>> {
-  const results = await Promise.all(
-    MAINTENANCE_TABLES.map(
-      ({ table, nameColumn }) =>
-        client
-          .from(table)
-          .select(`${nameColumn}, last_cleaned_at`) as unknown as Promise<{
-          data: MaintenanceRecord[] | null;
-        }>
-    )
-  );
+  const { data } = await client
+    .from('maintenance')
+    .select('component_name, performed_at')
+    .order('performed_at', { ascending: true });
 
   const lastCleaned = new Map<string, string>();
-  for (const { data } of results) {
-    for (const record of data ?? []) {
-      const key = record.in_name || record.out_name || record.name || '';
-      if (key) {
-        lastCleaned.set(key, record.last_cleaned_at);
-      }
-    }
+  for (const record of data ?? []) {
+    lastCleaned.set(record.component_name, record.performed_at);
   }
   return lastCleaned;
 }
@@ -415,9 +377,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
     const { data: reports } = (await client
       .from('reports')
-      .select(
-        'id, status, user_id, created_at, resolved_by_maintenance_id, resolved_by_maintenance_type'
-      )
+      .select('id, status, user_id, created_at, resolved_by_maintenance_id')
       .in('user_id', [...agencyIdByUser.keys()])) as {
       data: Array<{
         id: string;
@@ -425,7 +385,6 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
         user_id: string;
         created_at: string | null;
         resolved_by_maintenance_id: string | null;
-        resolved_by_maintenance_type: string | null;
       }> | null;
     };
 
@@ -452,8 +411,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
         // happened.
         const closedAt = lookupMaintenanceDate(
           maintenanceDates,
-          report.resolved_by_maintenance_id,
-          report.resolved_by_maintenance_type
+          report.resolved_by_maintenance_id
         );
         const days = daysBetween(report.created_at, closedAt);
         if (days !== null) tally.durations.push(days);

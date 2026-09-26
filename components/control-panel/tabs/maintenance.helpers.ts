@@ -18,13 +18,15 @@ export const MAINTENANCE_PHOTO_MAX_AGE_HOURS = 12;
 /** How close to the asset the photo must have been taken, in metres. */
 export const MAINTENANCE_PHOTO_MAX_DISTANCE_M = 50;
 
-/** Shape of a maintenance-history row returned by Supabase. */
+/**
+ * Shape of a maintenance-history row returned by getMaintenanceHistory.
+ * `last_cleaned_at` is `maintenance.performed_at`, aliased in the query.
+ */
 export type HistoryItem = {
   last_cleaned_at: string;
   agencies: { name: string }[] | null;
   profiles: { full_name: string }[] | null;
   status: string | null;
-  addressed_report_id: string | null;
   description: string | null;
   evidence_image: string | null;
 };

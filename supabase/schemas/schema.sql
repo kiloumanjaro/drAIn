@@ -96,6 +96,28 @@ CREATE TYPE "public"."user_role" AS ENUM (
 ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
 
+-- The four kinds of drainage component, spelled as the app already spells
+-- them (reports.category, the map layers, the dashboard).
+CREATE TYPE "public"."component_type" AS ENUM (
+    'inlets',
+    'outlets',
+    'storm_drains',
+    'man_pipes'
+);
+
+
+ALTER TYPE "public"."component_type" OWNER TO "postgres";
+
+
+CREATE TYPE "public"."maintenance_status" AS ENUM (
+    'in-progress',
+    'resolved'
+);
+
+
+ALTER TYPE "public"."maintenance_status" OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) RETURNS character varying
     LANGUAGE "plpgsql" STABLE
     SET "search_path" TO 'public', 'extensions'
@@ -622,27 +644,6 @@ ALTER SEQUENCE "public"."inlets_gid_seq" OWNED BY "public"."inlets"."gid";
 
 
 
-CREATE TABLE IF NOT EXISTS "public"."inlets_maintenance" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "last_cleaned_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "agency_id" "uuid" NOT NULL,
-    "represented_by" "uuid" NOT NULL,
-    "in_name" character varying NOT NULL,
-    "addressed_report_id" "uuid",
-    "status" "text",
-    "description" "text" DEFAULT 'No Comments'::"text",
-    "evidence_image" "text"
-);
-
-
-ALTER TABLE "public"."inlets_maintenance" OWNER TO "postgres";
-
-
-COMMENT ON COLUMN "public"."inlets_maintenance"."description" IS 'agency comments';
-
-
-
 CREATE TABLE IF NOT EXISTS "public"."man_pipes" (
     "gid" integer NOT NULL,
     "geom" "extensions"."geometry"(Geometry,4326),
@@ -679,24 +680,37 @@ ALTER SEQUENCE "public"."man_pipes_gid_seq" OWNED BY "public"."man_pipes"."gid";
 
 
 
-CREATE TABLE IF NOT EXISTS "public"."man_pipes_maintenance" (
+-- Work done on one drainage component by agency staff. Replaces the four
+-- per-type tables (inlets_, outlets_, storm_drains_, man_pipes_maintenance).
+-- Written only through record_maintenance, which also moves the
+-- component's open reports along in the same transaction.
+CREATE TABLE IF NOT EXISTS "public"."maintenance" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "last_cleaned_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "performed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "component_type" "public"."component_type" NOT NULL,
+    "component_name" "text" NOT NULL,
     "agency_id" "uuid" NOT NULL,
-    "represented_by" "uuid" NOT NULL,
-    "name" character varying NOT NULL,
-    "addressed_report_id" "uuid",
-    "status" "text",
-    "description" "text" DEFAULT 'No Comments'::"text",
-    "evidence_image" "text"
+    "performed_by" "uuid",
+    "status" "public"."maintenance_status" NOT NULL,
+    "description" "text",
+    "evidence_image" "text",
+    CONSTRAINT "maintenance_pkey" PRIMARY KEY ("id")
 );
 
 
-ALTER TABLE "public"."man_pipes_maintenance" OWNER TO "postgres";
+ALTER TABLE "public"."maintenance" OWNER TO "postgres";
 
 
-COMMENT ON COLUMN "public"."man_pipes_maintenance"."description" IS 'agency comments';
+COMMENT ON COLUMN "public"."maintenance"."component_name" IS 'The component''s name, e.g. I-0, O-0, ISD-1, C-0; matches reports.component_id.';
+
+
+
+COMMENT ON COLUMN "public"."maintenance"."performed_by" IS 'The staff member who recorded it. Null once their account is deleted; agency_id still says who did the work.';
+
+
+
+COMMENT ON COLUMN "public"."maintenance"."description" IS 'Agency comments, including photo notes and evidence-check notes.';
 
 
 
@@ -731,27 +745,6 @@ ALTER SEQUENCE "public"."outlets_gid_seq" OWNER TO "postgres";
 
 
 ALTER SEQUENCE "public"."outlets_gid_seq" OWNED BY "public"."outlets"."gid";
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."outlets_maintenance" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "last_cleaned_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "agency_id" "uuid" NOT NULL,
-    "represented_by" "uuid" NOT NULL,
-    "out_name" character varying NOT NULL,
-    "addressed_report_id" "uuid",
-    "status" "text",
-    "description" "text" DEFAULT 'No Comments'::"text",
-    "evidence_image" "text"
-);
-
-
-ALTER TABLE "public"."outlets_maintenance" OWNER TO "postgres";
-
-
-COMMENT ON COLUMN "public"."outlets_maintenance"."description" IS 'agency comments';
 
 
 
@@ -790,8 +783,8 @@ CREATE TABLE IF NOT EXISTS "public"."reports" (
     "user_id" "uuid",
     "priority" "text" DEFAULT 'low'::"text",
     "zone" character varying(255),
+    "resolved_at" timestamp with time zone,
     "resolved_by_maintenance_id" "uuid",
-    "resolved_by_maintenance_type" "text",
     "resolved_image" "text",
     CONSTRAINT "reports_geocoded_status_check" CHECK (("geocoded_status" = ANY (ARRAY['pending'::"text", 'processing'::"text", 'completed'::"text", 'failed'::"text"]))),
     CONSTRAINT "reports_priority_check" CHECK (("priority" = ANY (ARRAY['low'::"text", 'medium'::"text", 'high'::"text", 'critical'::"text"])))
@@ -802,6 +795,14 @@ ALTER TABLE "public"."reports" OWNER TO "postgres";
 
 
 COMMENT ON COLUMN "public"."reports"."priority" IS 'Priority level: low, medium, high, critical (manual assignment)';
+
+
+
+COMMENT ON COLUMN "public"."reports"."resolved_by_maintenance_id" IS 'The maintenance that last moved this report along (in-progress or resolved). Set only by record_maintenance.';
+
+
+
+COMMENT ON COLUMN "public"."reports"."resolved_at" IS 'When the maintenance that resolved this report was done. Set only by record_maintenance.';
 
 
 
@@ -845,27 +846,6 @@ ALTER SEQUENCE "public"."storm_drains_gid_seq" OWNER TO "postgres";
 
 
 ALTER SEQUENCE "public"."storm_drains_gid_seq" OWNED BY "public"."storm_drains"."gid";
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."storm_drains_maintenance" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "last_cleaned_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "agency_id" "uuid" NOT NULL,
-    "represented_by" "uuid" NOT NULL,
-    "in_name" character varying NOT NULL,
-    "addressed_report_id" "uuid",
-    "status" "text",
-    "description" "text" DEFAULT 'No Comments'::"text",
-    "evidence_image" "text"
-);
-
-
-ALTER TABLE "public"."storm_drains_maintenance" OWNER TO "postgres";
-
-
-COMMENT ON COLUMN "public"."storm_drains_maintenance"."description" IS 'agency comments';
 
 
 
@@ -949,28 +929,13 @@ ALTER TABLE ONLY "public"."geocode_worker_lock"
 
 
 
-ALTER TABLE ONLY "public"."inlets_maintenance"
-    ADD CONSTRAINT "inlets_maintenance_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."inlets"
     ADD CONSTRAINT "inlets_pk" PRIMARY KEY ("gid");
 
 
 
-ALTER TABLE ONLY "public"."man_pipes_maintenance"
-    ADD CONSTRAINT "man_pipes_maintenance_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."man_pipes"
     ADD CONSTRAINT "man_pipes_pk" PRIMARY KEY ("gid");
-
-
-
-ALTER TABLE ONLY "public"."outlets_maintenance"
-    ADD CONSTRAINT "outlets_maintenance_pkey" PRIMARY KEY ("id");
 
 
 
@@ -981,11 +946,6 @@ ALTER TABLE ONLY "public"."outlets"
 
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."storm_drains_maintenance"
-    ADD CONSTRAINT "storm_drains_maintenance_pkey" PRIMARY KEY ("id");
 
 
 
@@ -1039,6 +999,23 @@ CREATE INDEX "idx_geocode_pending" ON "public"."reports" USING "btree" ("geocode
 
 
 CREATE INDEX "idx_report_category" ON "public"."reports" USING "btree" ("category") WHERE (("category")::"text" = 'inlet'::"text");
+
+
+
+-- History of one component, newest first (getMaintenanceHistory, last cleaned).
+CREATE INDEX "idx_maintenance_component" ON "public"."maintenance" USING "btree" ("component_name", "performed_at" DESC);
+
+
+
+CREATE INDEX "idx_maintenance_agency_id" ON "public"."maintenance" USING "btree" ("agency_id");
+
+
+
+CREATE INDEX "idx_maintenance_performed_by" ON "public"."maintenance" USING "btree" ("performed_by");
+
+
+
+CREATE INDEX "idx_reports_resolved_by_maintenance_id" ON "public"."reports" USING "btree" ("resolved_by_maintenance_id");
 
 
 
@@ -1098,48 +1075,18 @@ CREATE OR REPLACE TRIGGER "trigger_update_report_zone" BEFORE INSERT OR UPDATE O
 
 
 
-ALTER TABLE ONLY "public"."inlets_maintenance"
-    ADD CONSTRAINT "inlets_maintenance_addressed_report_id_fkey" FOREIGN KEY ("addressed_report_id") REFERENCES "public"."reports"("id") ON DELETE SET NULL;
+ALTER TABLE ONLY "public"."maintenance"
+    ADD CONSTRAINT "maintenance_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id");
 
 
 
-ALTER TABLE ONLY "public"."inlets_maintenance"
-    ADD CONSTRAINT "inlets_maintenance_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id");
+ALTER TABLE ONLY "public"."maintenance"
+    ADD CONSTRAINT "maintenance_performed_by_fkey" FOREIGN KEY ("performed_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
-ALTER TABLE ONLY "public"."inlets_maintenance"
-    ADD CONSTRAINT "inlets_maintenance_represented_by_fkey" FOREIGN KEY ("represented_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."man_pipes_maintenance"
-    ADD CONSTRAINT "man_pipes_maintenance_addressed_report_id_fkey" FOREIGN KEY ("addressed_report_id") REFERENCES "public"."reports"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."man_pipes_maintenance"
-    ADD CONSTRAINT "man_pipes_maintenance_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id");
-
-
-
-ALTER TABLE ONLY "public"."man_pipes_maintenance"
-    ADD CONSTRAINT "man_pipes_maintenance_represented_by_fkey" FOREIGN KEY ("represented_by") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."outlets_maintenance"
-    ADD CONSTRAINT "outlets_maintenance_addressed_report_id_fkey" FOREIGN KEY ("addressed_report_id") REFERENCES "public"."reports"("id");
-
-
-
-ALTER TABLE ONLY "public"."outlets_maintenance"
-    ADD CONSTRAINT "outlets_maintenance_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id");
-
-
-
-ALTER TABLE ONLY "public"."outlets_maintenance"
-    ADD CONSTRAINT "outlets_maintenance_represented_by_fkey" FOREIGN KEY ("represented_by") REFERENCES "public"."profiles"("id");
+ALTER TABLE ONLY "public"."reports"
+    ADD CONSTRAINT "reports_resolved_by_maintenance_id_fkey" FOREIGN KEY ("resolved_by_maintenance_id") REFERENCES "public"."maintenance"("id") ON DELETE SET NULL;
 
 
 
@@ -1155,21 +1102,6 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."reports"
     ADD CONSTRAINT "reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."storm_drains_maintenance"
-    ADD CONSTRAINT "storm_drains_maintenance_addressed_report_id_fkey" FOREIGN KEY ("addressed_report_id") REFERENCES "public"."reports"("id");
-
-
-
-ALTER TABLE ONLY "public"."storm_drains_maintenance"
-    ADD CONSTRAINT "storm_drains_maintenance_agency_id_fkey" FOREIGN KEY ("agency_id") REFERENCES "public"."agencies"("id");
-
-
-
-ALTER TABLE ONLY "public"."storm_drains_maintenance"
-    ADD CONSTRAINT "storm_drains_maintenance_represented_by_fkey" FOREIGN KEY ("represented_by") REFERENCES "public"."profiles"("id");
 
 
 
@@ -1407,12 +1339,58 @@ $$;
 ALTER FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") OWNER TO "postgres";
 
 
+-- Staff record work on a component. In one transaction this inserts the
+-- maintenance row and moves the component's open reports along:
+--   resolved     closes pending and in-progress reports,
+--   in-progress  moves pending reports to in-progress.
+-- Reports filed after the work are left alone. This is the only way
+-- reports change status; clients can't update reports directly.
+CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  staff_agency uuid := private.current_agency_id();
+  result public.maintenance;
+BEGIN
+  IF staff_agency IS NULL THEN
+    RAISE EXCEPTION 'Only agency staff can record maintenance.' USING ERRCODE = '42501';
+  END IF;
+
+  INSERT INTO public.maintenance
+    (component_type, component_name, agency_id, performed_by, status, description, evidence_image)
+  VALUES
+    (p_component_type, p_component_name, staff_agency, auth.uid(), p_status,
+     nullif(btrim(p_description), ''), p_evidence_image)
+  RETURNING * INTO result;
+
+  UPDATE public.reports
+  SET status = p_status::text,
+      resolved_by_maintenance_id = result.id,
+      resolved_image = coalesce(p_evidence_image, resolved_image),
+      resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE resolved_at END
+  WHERE component_id = p_component_name
+    AND created_at <= result.performed_at
+    AND status = ANY (CASE WHEN p_status = 'resolved'
+                           THEN ARRAY['pending', 'in-progress']
+                           ELSE ARRAY['pending'] END);
+
+  RETURN result;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") OWNER TO "postgres";
+
+
 -- Signed-out callers never need these.
 REVOKE ALL ON FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") FROM PUBLIC, "anon";
 REVOKE ALL ON FUNCTION "public"."join_agency"("p_code" "text") FROM PUBLIC, "anon";
 REVOKE ALL ON FUNCTION "public"."leave_agency"() FROM PUBLIC, "anon";
 REVOKE ALL ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") FROM PUBLIC, "anon";
 GRANT EXECUTE ON FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."join_agency"("p_code" "text") TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."leave_agency"() TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") TO "authenticated", "service_role";
@@ -1429,22 +1407,6 @@ CREATE POLICY "Allow individual read access" ON "public"."profiles" FOR SELECT U
 
 
 CREATE POLICY "Allow individual update access" ON "public"."profiles" FOR UPDATE USING (((select "auth"."uid"()) = "id")) WITH CHECK (((select "auth"."uid"()) = "id"));
-
-
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."inlets_maintenance" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."man_pipes_maintenance" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."outlets_maintenance" FOR INSERT TO "authenticated" WITH CHECK (true);
-
-
-
-CREATE POLICY "Enable insert for authenticated users only" ON "public"."storm_drains_maintenance" FOR INSERT TO "authenticated" WITH CHECK (true);
 
 
 
@@ -1488,15 +1450,7 @@ CREATE POLICY "Enable read access for all users" ON "public"."inlets" FOR SELECT
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."inlets_maintenance" FOR SELECT USING (true);
-
-
-
 CREATE POLICY "Enable read access for all users" ON "public"."man_pipes" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."man_pipes_maintenance" FOR SELECT USING (true);
 
 
 
@@ -1504,15 +1458,7 @@ CREATE POLICY "Enable read access for all users" ON "public"."outlets" FOR SELEC
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."outlets_maintenance" FOR SELECT USING (true);
-
-
-
 CREATE POLICY "Enable read access for all users" ON "public"."storm_drains" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."storm_drains_maintenance" FOR SELECT USING (true);
 
 
 
@@ -1526,9 +1472,6 @@ CREATE POLICY "Public select reports" ON "public"."reports" FOR SELECT USING (tr
 
 
 
--- Only agency staff change reports (status, and the maintenance that closed
--- them). Nobody deletes reports through the API.
-CREATE POLICY "Staff update reports" ON "public"."reports" FOR UPDATE TO "authenticated" USING ((( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL)) WITH CHECK ((( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL));
 
 
 
@@ -1549,19 +1492,16 @@ ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."inlets" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."inlets_maintenance" ENABLE ROW LEVEL SECURITY;
-
-
 ALTER TABLE "public"."man_pipes" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."man_pipes_maintenance" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."outlets" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."outlets_maintenance" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."maintenance" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."maintenance" FOR SELECT USING (true);
 
 
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
@@ -1575,9 +1515,6 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
 
 
 ALTER TABLE "public"."storm_drains" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."storm_drains_maintenance" ENABLE ROW LEVEL SECURITY;
 
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
@@ -1742,9 +1679,6 @@ GRANT ALL ON SEQUENCE "public"."inlets_gid_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."inlets_maintenance" TO "anon";
-GRANT ALL ON TABLE "public"."inlets_maintenance" TO "authenticated";
-GRANT ALL ON TABLE "public"."inlets_maintenance" TO "service_role";
 
 
 
@@ -1760,9 +1694,14 @@ GRANT ALL ON SEQUENCE "public"."man_pipes_gid_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."man_pipes_maintenance" TO "anon";
-GRANT ALL ON TABLE "public"."man_pipes_maintenance" TO "authenticated";
-GRANT ALL ON TABLE "public"."man_pipes_maintenance" TO "service_role";
+
+
+
+GRANT SELECT ON TABLE "public"."maintenance" TO "anon";
+GRANT SELECT ON TABLE "public"."maintenance" TO "authenticated";
+GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
+-- Default privileges grant ALL; writes go through record_maintenance only.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 
 
@@ -1778,9 +1717,6 @@ GRANT ALL ON SEQUENCE "public"."outlets_gid_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."outlets_maintenance" TO "anon";
-GRANT ALL ON TABLE "public"."outlets_maintenance" TO "authenticated";
-GRANT ALL ON TABLE "public"."outlets_maintenance" TO "service_role";
 
 
 
@@ -1811,9 +1747,6 @@ GRANT ALL ON SEQUENCE "public"."storm_drains_gid_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."storm_drains_maintenance" TO "anon";
-GRANT ALL ON TABLE "public"."storm_drains_maintenance" TO "authenticated";
-GRANT ALL ON TABLE "public"."storm_drains_maintenance" TO "service_role";
 
 
 

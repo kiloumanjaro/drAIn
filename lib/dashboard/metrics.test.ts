@@ -78,43 +78,23 @@ describe('median', () => {
 
 describe('maintenance date lookup', () => {
   const index = indexMaintenanceDates([
-    {
-      table: 'inlets_maintenance',
-      rows: [{ id: 1, last_cleaned_at: '2026-01-02T00:00:00Z' }],
-    },
-    {
-      table: 'outlets_maintenance',
-      rows: [
-        { id: 1, last_cleaned_at: '2026-03-09T00:00:00Z' },
-        { id: 2, last_cleaned_at: '2026-03-10T00:00:00Z' },
-      ],
-    },
+    { id: 'm1', performed_at: '2026-01-02T00:00:00Z' },
+    { id: 'm2', performed_at: '2026-03-10T00:00:00Z' },
+    { id: null, performed_at: '2026-04-01T00:00:00Z' },
   ]);
 
-  it('finds the record in the table the report names', () => {
-    // Each maintenance table numbers its own rows, so id 1 exists in both.
-    // Keyed by id alone, the last table read won and the inlet report
-    // was measured against the outlet's date.
-    expect(lookupMaintenanceDate(index, '1', 'inlets_maintenance')).toBe(
-      '2026-01-02T00:00:00Z'
-    );
-    expect(lookupMaintenanceDate(index, 1, 'outlets_maintenance')).toBe(
-      '2026-03-09T00:00:00Z'
-    );
-  });
-
-  it('falls back to the id alone when the report names no table', () => {
-    expect(lookupMaintenanceDate(index, '2', null)).toBe(
-      '2026-03-10T00:00:00Z'
-    );
-  });
-
-  it('refuses to guess when the id alone is ambiguous', () => {
-    expect(lookupMaintenanceDate(index, '1', null)).toBeNull();
+  it('finds a record by its id', () => {
+    expect(lookupMaintenanceDate(index, 'm1')).toBe('2026-01-02T00:00:00Z');
+    expect(lookupMaintenanceDate(index, 'm2')).toBe('2026-03-10T00:00:00Z');
   });
 
   it('returns null for no id or an unknown one', () => {
-    expect(lookupMaintenanceDate(index, null, 'inlets_maintenance')).toBeNull();
-    expect(lookupMaintenanceDate(index, '9', 'inlets_maintenance')).toBeNull();
+    expect(lookupMaintenanceDate(index, null)).toBeNull();
+    expect(lookupMaintenanceDate(index, undefined)).toBeNull();
+    expect(lookupMaintenanceDate(index, 'm9')).toBeNull();
+  });
+
+  it('skips rows without an id', () => {
+    expect(index.size).toBe(2);
   });
 });

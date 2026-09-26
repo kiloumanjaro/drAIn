@@ -1,13 +1,19 @@
 import {
-  recordInletMaintenance,
-  getInletMaintenanceHistory,
-  recordManPipeMaintenance,
-  getManPipeMaintenanceHistory,
-  recordOutletMaintenance,
-  getOutletMaintenanceHistory,
-  recordStormDrainMaintenance,
-  getStormDrainMaintenanceHistory,
+  getMaintenanceHistory,
+  recordMaintenance,
+  type ComponentType,
+  type MaintenanceStatus,
 } from '@/lib/supabase/maintenance';
+
+const actionsFor = (type: ComponentType) => ({
+  getHistory: (componentName: string) => getMaintenanceHistory(componentName),
+  record: (
+    componentName: string,
+    status: MaintenanceStatus,
+    description?: string,
+    imagePath?: string
+  ) => recordMaintenance(type, componentName, status, description, imagePath),
+});
 
 /**
  * Per-asset-type mapping from a logical asset key (`inlets`, `man_pipes`,
@@ -19,20 +25,8 @@ import {
  * client (and its required env vars) into the test process.
  */
 export const assetActions = {
-  inlets: {
-    getHistory: getInletMaintenanceHistory,
-    record: recordInletMaintenance,
-  },
-  man_pipes: {
-    getHistory: getManPipeMaintenanceHistory,
-    record: recordManPipeMaintenance,
-  },
-  outlets: {
-    getHistory: getOutletMaintenanceHistory,
-    record: recordOutletMaintenance,
-  },
-  storm_drains: {
-    getHistory: getStormDrainMaintenanceHistory,
-    record: recordStormDrainMaintenance,
-  },
+  inlets: actionsFor('inlets'),
+  man_pipes: actionsFor('man_pipes'),
+  outlets: actionsFor('outlets'),
+  storm_drains: actionsFor('storm_drains'),
 };

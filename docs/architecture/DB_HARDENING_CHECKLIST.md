@@ -37,7 +37,6 @@ This file is the working copy; tick boxes here as steps land, and delete it when
 2. `npx supabase db schema declarative sync --name <step> --no-apply`
 3. `npx supabase db reset`
 4. Generate types from Git Bash: `npx supabase gen types typescript --local > types/database.types.ts`.
-   - Re-append the `MaintenanceTableName` helper until step 4 removes it.
    - Then `npx prettier --write types/database.types.ts`.
 5. `pnpm type-check`, `pnpm test`, `pnpm lint`, and `npx supabase test db` (from step 1 on).
 6. `npx supabase db advisors --local`. Record the before/after counts in the run log.
@@ -164,30 +163,30 @@ Needs: step 2.
 
 Needs: step 2.
 
-- [ ] Enums: `component_type` (`inlets`, `outlets`, `storm_drains`, `man_pipes`, today's spellings) and `maintenance_status` (`in-progress`, `resolved`).
-- [ ] The `public.maintenance` table:
+- [x] Enums: `component_type` (`inlets`, `outlets`, `storm_drains`, `man_pipes`, today's spellings) and `maintenance_status` (`in-progress`, `resolved`).
+- [x] The `public.maintenance` table:
   - columns: `id`, `created_at`, `performed_at` (was `last_cleaned_at`), `component_type`, `component_name`, `agency_id` → agencies, `performed_by` → profiles, `status not null`, `description`, `evidence_image`;
   - indexes on `(component_name, performed_at desc)`, `(agency_id)` and `(performed_by)`;
   - RLS: public SELECT, and no client INSERT, UPDATE or DELETE.
-- [ ] `reports` changes:
+- [x] `reports` changes:
   - `resolved_by_maintenance_id` → FK to `maintenance`, `on delete set null`;
   - drop `resolved_by_maintenance_type`;
   - add `resolved_at timestamptz`.
-- [ ] `public.record_maintenance(p_component_type, p_component_name, p_status, p_description, p_evidence_image) returns maintenance`, `security definer`, `search_path ''`. It:
+- [x] `public.record_maintenance(p_component_type, p_component_name, p_status, p_description, p_evidence_image) returns maintenance`, `security definer`, `search_path ''`. It:
   - requires `private.current_agency_id()`;
   - inserts the maintenance row;
   - updates the component's reports in the same transaction, using the hierarchy now in `lib/supabase/report.ts:178-221`: resolved closes pending and in-progress, in-progress moves pending; `created_at <= now()`. It sets `resolved_by_maintenance_id`, `resolved_image`, and `resolved_at` when resolved.
-- [ ] Remove the `reports` UPDATE policy. Status changes now go only through the RPC.
-- [ ] Drop the 4 `*_maintenance` tables.
-- [ ] Seed: rewrite the maintenance section of `supabase/seed.sql`.
-- [ ] Code:
+- [x] Remove the `reports` UPDATE policy. Status changes now go only through the RPC.
+- [x] Drop the 4 `*_maintenance` tables.
+- [x] Seed: rewrite the maintenance section of `supabase/seed.sql`.
+- [x] Code:
   - `lib/supabase/maintenance.ts`: the record functions call the RPC. History reads `maintenance` filtered by `component_name`, aliasing `last_cleaned_at:performed_at` to limit UI churn. Keep the exported `recordXMaintenance`/`getXMaintenanceHistory` names as thin wrappers.
   - Delete `updateReportsStatusForComponent`.
   - `lib/dashboard/queries.ts` (`MAINTENANCE_TABLES`, `fetchMaintenanceDates`, `fetchLastCleanedByComponent`) and `lib/dashboard/metrics.ts` (`lookupMaintenanceDate`, keyed by id only) read the single table.
   - `components/control-panel/tabs/maintenance.helpers.ts` `HistoryItem`.
   - Update the affected vitest tests.
-- [ ] Delete the `MaintenanceTableName` helper from `types/database.types.ts` and drop the re-append instruction from CLAUDE.md step 4 and from the gate above.
-- [ ] Tests:
+- [x] Delete the `MaintenanceTableName` helper from `types/database.types.ts` and drop the re-append instruction from CLAUDE.md step 4 and from the gate above.
+- [x] Tests:
   - a citizen calling `record_maintenance` fails;
   - staff succeeds and the matching reports close;
   - a direct INSERT into `maintenance` is denied.
@@ -272,3 +271,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 - Step 2 (permission model): advisors 1 error / 16 warn / 40 info (auth_rls_initplan ×3 and one search_path warning gone; +1 info: agency_join_codes has RLS and no policies, by design). 18 new pgTAP tests. Verified over REST: self-set agency 403, wrong code 400, right code joins, anon 401. Note: declarative sync emitted SET DEFAULT before CREATE TYPE; fixed by hand in the migration, documented in CLAUDE.md.
 - Step 3 (open access): advisors 0 error / 4 warn / 37 info. 16 new pgTAP tests (38 total). Verified on a dev server: CSV download 401 without token, 403 citizen, 200 staff; closest-pipe 200 with no service key. Extra: Avatars UPDATE policy for their own folder (upsert needed it). Declarative sync ignores GRANT narrowing because of the default privileges; explicit REVOKE in schema.sql does work.
 - Step 3b (reporter name setting): advisors 0 error / 4 warn / 38 info. 8 new pgTAP tests (46 total). Verified over REST: turning the setting off rewrites the citizen's existing reports to Anonymous, and back. The toggle sits under Display Name in the profile Edit tab.
+- Step 4 (one maintenance table): advisors 0 error / 0 warn / 27 info. 12 new pgTAP tests (58 total); vitest 214 (the 4 per-table collision tests became 3 id-lookup tests, plus 1 for last-cleaned ordering). Verified over REST: citizen record 403; staff record resolves ISD-1 report and sets resolved_at; history reads with the last_cleaned_at alias. Migration hand-edited to copy old rows before the drops (dry-run against the pre-step-4 data: both rows and report links carried). Known limit: history shows staff names only to that staff member, because profiles are readable only by their owner (step 6).

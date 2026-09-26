@@ -103,8 +103,8 @@ where id = '00000000-0000-4000-b000-000000000003';
 
 select is(
   (select status::text from public.reports where id = '00000000-0000-4000-b000-000000000003'),
-  'in-progress',
-  'staff can change a report''s status'
+  'pending',
+  'not even staff edit reports directly; status changes go through record_maintenance'
 );
 
 delete from public.reports where id = '00000000-0000-4000-b000-000000000003';

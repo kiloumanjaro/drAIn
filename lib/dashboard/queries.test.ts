@@ -14,7 +14,15 @@ const supabase = vi.hoisted(() => {
   function from(table: string) {
     const calls: Call[] = [];
     const builder: Record<string, unknown> = {};
-    for (const method of ['select', 'eq', 'gte', 'not', 'in', 'limit']) {
+    for (const method of [
+      'select',
+      'eq',
+      'gte',
+      'not',
+      'in',
+      'limit',
+      'order',
+    ]) {
       builder[method] = (...args: unknown[]) => {
         calls.push([method, ...args]);
         return builder;
@@ -102,10 +110,10 @@ describe('getOverviewMetrics', () => {
         { component_id: 'I-3', created_at: 'garbage' },
       ],
       {
-        inlets_maintenance: [
-          { in_name: 'I-1', last_cleaned_at: '2026-01-03T00:00:00Z' },
-          { in_name: 'I-2', last_cleaned_at: '2026-01-05T00:00:00Z' },
-          { in_name: 'I-3', last_cleaned_at: '2026-01-05T00:00:00Z' },
+        maintenance: [
+          { component_name: 'I-1', performed_at: '2026-01-03T00:00:00Z' },
+          { component_name: 'I-2', performed_at: '2026-01-05T00:00:00Z' },
+          { component_name: 'I-3', performed_at: '2026-01-05T00:00:00Z' },
         ],
       }
     );
@@ -127,9 +135,9 @@ describe('getRepairTrendData', () => {
         { component_id: 'I-2', created_at: 'garbage' },
       ],
       {
-        inlets_maintenance: [
-          { in_name: 'I-1', last_cleaned_at: '2026-01-03T00:00:00Z' },
-          { in_name: 'I-2', last_cleaned_at: '2026-01-03T00:00:00Z' },
+        maintenance: [
+          { component_name: 'I-1', performed_at: '2026-01-03T00:00:00Z' },
+          { component_name: 'I-2', performed_at: '2026-01-03T00:00:00Z' },
         ],
       }
     );
@@ -147,10 +155,10 @@ describe('getRepairTrendData', () => {
         { component_id: 'I-2', created_at: '2026-01-01T00:00:00Z' },
       ],
       {
-        inlets_maintenance: [
-          { in_name: 'I-1', last_cleaned_at: '2026-01-02T00:00:00Z' },
-          { in_name: 'I-2', last_cleaned_at: '2026-01-04T00:00:00Z' },
-          { in_name: 'I-3', last_cleaned_at: '2026-01-03T00:00:00Z' },
+        maintenance: [
+          { component_name: 'I-1', performed_at: '2026-01-02T00:00:00Z' },
+          { component_name: 'I-2', performed_at: '2026-01-04T00:00:00Z' },
+          { component_name: 'I-3', performed_at: '2026-01-03T00:00:00Z' },
         ],
       }
     );
@@ -159,6 +167,30 @@ describe('getRepairTrendData', () => {
       { date: '2026-01-01', averageDays: 2 },
       { date: '2026-01-02', averageDays: 1 },
     ]);
+  });
+});
+
+describe('last cleaned lookup', () => {
+  it('reads maintenance oldest first, so the latest record wins', async () => {
+    // "Last cleaned" is the final value left in a map. The four old tables
+    // were read in no order, so it was whichever row arrived last.
+    let maintenanceCalls: Call[] = [];
+    supabase.state.respond = (table, calls) => {
+      if (table === 'maintenance') maintenanceCalls = calls;
+      // One report, or the trend returns before it reads maintenance.
+      if (table === 'reports') {
+        return {
+          data: [{ component_id: 'I-1', created_at: '2026-01-01T00:00:00Z' }],
+        };
+      }
+      return { data: [] };
+    };
+
+    await getRepairTrendData();
+
+    expect(hasFilter(maintenanceCalls, 'order', 'performed_at')).toBe(true);
+    const order = maintenanceCalls.find(([method]) => method === 'order');
+    expect(order?.[2]).toEqual({ ascending: true });
   });
 });
 
@@ -179,13 +211,11 @@ describe('getRepairTimeByComponent', () => {
         },
       ],
       {
-        inlets_maintenance: [
-          { in_name: 'I-1', last_cleaned_at: '2026-01-04T00:00:00Z' },
-          { in_name: 'I-2', last_cleaned_at: '2026-01-04T00:00:00Z' },
-        ],
-        // Cleaned before it was reported: a wrong link, not a fast fix.
-        man_pipes_maintenance: [
-          { name: 'P-1', last_cleaned_at: '2026-01-01T00:00:00Z' },
+        maintenance: [
+          { component_name: 'I-1', performed_at: '2026-01-04T00:00:00Z' },
+          { component_name: 'I-2', performed_at: '2026-01-04T00:00:00Z' },
+          // Cleaned before it was reported: a wrong link, not a fast fix.
+          { component_name: 'P-1', performed_at: '2026-01-01T00:00:00Z' },
         ],
       }
     );
@@ -262,41 +292,11 @@ describe('getTeamPerformance', () => {
         report('u1', 'resolved', {
           created_at: '2026-01-01T00:00:00Z',
           resolved_by_maintenance_id: 'm1',
-          resolved_by_maintenance_type: 'inlets_maintenance',
         }),
       ],
       {
         ...AGENCIES,
-        inlets_maintenance: [
-          { id: 'm1', last_cleaned_at: '2026-01-03T00:00:00Z' },
-        ],
-      }
-    );
-
-    const [alpha] = await getTeamPerformance();
-
-    expect(alpha.medianDaysToResolve).toBe(2);
-  });
-
-  it('reads the closing date from the table the report names', async () => {
-    // Two tables with a record numbered 1. Keyed by id alone, the outlet
-    // record (read later) answered for the inlet report too.
-    respondWith(
-      [
-        report('u1', 'resolved', {
-          created_at: '2026-01-01T00:00:00Z',
-          resolved_by_maintenance_id: 1,
-          resolved_by_maintenance_type: 'inlets_maintenance',
-        }),
-      ],
-      {
-        ...AGENCIES,
-        inlets_maintenance: [
-          { id: 1, last_cleaned_at: '2026-01-03T00:00:00Z' },
-        ],
-        outlets_maintenance: [
-          { id: 1, last_cleaned_at: '2026-03-01T00:00:00Z' },
-        ],
+        maintenance: [{ id: 'm1', performed_at: '2026-01-03T00:00:00Z' }],
       }
     );
 

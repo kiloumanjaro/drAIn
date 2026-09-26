@@ -493,61 +493,54 @@ export type Database = {
         };
         Relationships: [];
       };
-      inlets_maintenance: {
+      maintenance: {
         Row: {
-          addressed_report_id: string | null;
           agency_id: string;
+          component_name: string;
+          component_type: Database['public']['Enums']['component_type'];
           created_at: string;
           description: string | null;
           evidence_image: string | null;
           id: string;
-          in_name: string;
-          last_cleaned_at: string;
-          represented_by: string;
-          status: string | null;
+          performed_at: string;
+          performed_by: string | null;
+          status: Database['public']['Enums']['maintenance_status'];
         };
         Insert: {
-          addressed_report_id?: string | null;
           agency_id: string;
+          component_name: string;
+          component_type: Database['public']['Enums']['component_type'];
           created_at?: string;
           description?: string | null;
           evidence_image?: string | null;
           id?: string;
-          in_name: string;
-          last_cleaned_at?: string;
-          represented_by: string;
-          status?: string | null;
+          performed_at?: string;
+          performed_by?: string | null;
+          status: Database['public']['Enums']['maintenance_status'];
         };
         Update: {
-          addressed_report_id?: string | null;
           agency_id?: string;
+          component_name?: string;
+          component_type?: Database['public']['Enums']['component_type'];
           created_at?: string;
           description?: string | null;
           evidence_image?: string | null;
           id?: string;
-          in_name?: string;
-          last_cleaned_at?: string;
-          represented_by?: string;
-          status?: string | null;
+          performed_at?: string;
+          performed_by?: string | null;
+          status?: Database['public']['Enums']['maintenance_status'];
         };
         Relationships: [
           {
-            foreignKeyName: 'inlets_maintenance_addressed_report_id_fkey';
-            columns: ['addressed_report_id'];
-            isOneToOne: false;
-            referencedRelation: 'reports';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'inlets_maintenance_agency_id_fkey';
+            foreignKeyName: 'maintenance_agency_id_fkey';
             columns: ['agency_id'];
             isOneToOne: false;
             referencedRelation: 'agencies';
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'inlets_maintenance_represented_by_fkey';
-            columns: ['represented_by'];
+            foreignKeyName: 'maintenance_performed_by_fkey';
+            columns: ['performed_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -602,67 +595,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      man_pipes_maintenance: {
-        Row: {
-          addressed_report_id: string | null;
-          agency_id: string;
-          created_at: string;
-          description: string | null;
-          evidence_image: string | null;
-          id: string;
-          last_cleaned_at: string;
-          name: string;
-          represented_by: string;
-          status: string | null;
-        };
-        Insert: {
-          addressed_report_id?: string | null;
-          agency_id: string;
-          created_at?: string;
-          description?: string | null;
-          evidence_image?: string | null;
-          id?: string;
-          last_cleaned_at?: string;
-          name: string;
-          represented_by: string;
-          status?: string | null;
-        };
-        Update: {
-          addressed_report_id?: string | null;
-          agency_id?: string;
-          created_at?: string;
-          description?: string | null;
-          evidence_image?: string | null;
-          id?: string;
-          last_cleaned_at?: string;
-          name?: string;
-          represented_by?: string;
-          status?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'man_pipes_maintenance_addressed_report_id_fkey';
-            columns: ['addressed_report_id'];
-            isOneToOne: false;
-            referencedRelation: 'reports';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'man_pipes_maintenance_agency_id_fkey';
-            columns: ['agency_id'];
-            isOneToOne: false;
-            referencedRelation: 'agencies';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'man_pipes_maintenance_represented_by_fkey';
-            columns: ['represented_by'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       outlets: {
         Row: {
           allowq: number | null;
@@ -704,67 +636,6 @@ export type Database = {
           y?: number | null;
         };
         Relationships: [];
-      };
-      outlets_maintenance: {
-        Row: {
-          addressed_report_id: string | null;
-          agency_id: string;
-          created_at: string;
-          description: string | null;
-          evidence_image: string | null;
-          id: string;
-          last_cleaned_at: string;
-          out_name: string;
-          represented_by: string;
-          status: string | null;
-        };
-        Insert: {
-          addressed_report_id?: string | null;
-          agency_id: string;
-          created_at?: string;
-          description?: string | null;
-          evidence_image?: string | null;
-          id?: string;
-          last_cleaned_at?: string;
-          out_name: string;
-          represented_by: string;
-          status?: string | null;
-        };
-        Update: {
-          addressed_report_id?: string | null;
-          agency_id?: string;
-          created_at?: string;
-          description?: string | null;
-          evidence_image?: string | null;
-          id?: string;
-          last_cleaned_at?: string;
-          out_name?: string;
-          represented_by?: string;
-          status?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'outlets_maintenance_addressed_report_id_fkey';
-            columns: ['addressed_report_id'];
-            isOneToOne: false;
-            referencedRelation: 'reports';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'outlets_maintenance_agency_id_fkey';
-            columns: ['agency_id'];
-            isOneToOne: false;
-            referencedRelation: 'agencies';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'outlets_maintenance_represented_by_fkey';
-            columns: ['represented_by'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
       };
       profiles: {
         Row: {
@@ -821,8 +692,8 @@ export type Database = {
           long: number | null;
           priority: string | null;
           reporter_name: string | null;
+          resolved_at: string | null;
           resolved_by_maintenance_id: string | null;
-          resolved_by_maintenance_type: string | null;
           resolved_image: string | null;
           status: string;
           user_id: string | null;
@@ -841,8 +712,8 @@ export type Database = {
           long?: number | null;
           priority?: string | null;
           reporter_name?: string | null;
+          resolved_at?: string | null;
           resolved_by_maintenance_id?: string | null;
-          resolved_by_maintenance_type?: string | null;
           resolved_image?: string | null;
           status: string;
           user_id?: string | null;
@@ -861,14 +732,22 @@ export type Database = {
           long?: number | null;
           priority?: string | null;
           reporter_name?: string | null;
+          resolved_at?: string | null;
           resolved_by_maintenance_id?: string | null;
-          resolved_by_maintenance_type?: string | null;
           resolved_image?: string | null;
           status?: string;
           user_id?: string | null;
           zone?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'reports_resolved_by_maintenance_id_fkey';
+            columns: ['resolved_by_maintenance_id'];
+            isOneToOne: false;
+            referencedRelation: 'maintenance';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       storm_drains: {
         Row: {
@@ -926,67 +805,6 @@ export type Database = {
           y?: number | null;
         };
         Relationships: [];
-      };
-      storm_drains_maintenance: {
-        Row: {
-          addressed_report_id: string | null;
-          agency_id: string;
-          created_at: string;
-          description: string | null;
-          evidence_image: string | null;
-          id: string;
-          in_name: string;
-          last_cleaned_at: string;
-          represented_by: string;
-          status: string | null;
-        };
-        Insert: {
-          addressed_report_id?: string | null;
-          agency_id: string;
-          created_at?: string;
-          description?: string | null;
-          evidence_image?: string | null;
-          id?: string;
-          in_name: string;
-          last_cleaned_at?: string;
-          represented_by: string;
-          status?: string | null;
-        };
-        Update: {
-          addressed_report_id?: string | null;
-          agency_id?: string;
-          created_at?: string;
-          description?: string | null;
-          evidence_image?: string | null;
-          id?: string;
-          in_name?: string;
-          last_cleaned_at?: string;
-          represented_by?: string;
-          status?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'storm_drains_maintenance_addressed_report_id_fkey';
-            columns: ['addressed_report_id'];
-            isOneToOne: false;
-            referencedRelation: 'reports';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'storm_drains_maintenance_agency_id_fkey';
-            columns: ['agency_id'];
-            isOneToOne: false;
-            referencedRelation: 'agencies';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'storm_drains_maintenance_represented_by_fkey';
-            columns: ['represented_by'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
-          },
-        ];
       };
     };
     Views: {
@@ -1057,6 +875,33 @@ export type Database = {
         };
       };
       leave_agency: { Args: Record<PropertyKey, never>; Returns: undefined };
+      record_maintenance: {
+        Args: {
+          p_component_name: string;
+          p_component_type: Database['public']['Enums']['component_type'];
+          p_description?: string;
+          p_evidence_image?: string;
+          p_status: Database['public']['Enums']['maintenance_status'];
+        };
+        Returns: {
+          agency_id: string;
+          component_name: string;
+          component_type: Database['public']['Enums']['component_type'];
+          created_at: string;
+          description: string | null;
+          evidence_image: string | null;
+          id: string;
+          performed_at: string;
+          performed_by: string | null;
+          status: Database['public']['Enums']['maintenance_status'];
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'maintenance';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       rotate_agency_join_code: {
         Args: { p_agency_id: string };
         Returns: string;
@@ -1087,12 +932,14 @@ export type Database = {
     };
     Enums: {
       asset_point_type: 'inlet' | 'outlet' | 'stormdrain';
+      component_type: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes';
       drainage_status:
         | 'Clean'
         | 'Needs_Cleaning'
         | 'Clogged'
         | 'Damaged'
         | 'Overflowing';
+      maintenance_status: 'in-progress' | 'resolved';
       maintenance_type: 'Cleaning' | 'Repair' | 'Inspection' | 'Unclogging';
       report_status:
         | 'pending'
@@ -1235,6 +1082,7 @@ export const Constants = {
   public: {
     Enums: {
       asset_point_type: ['inlet', 'outlet', 'stormdrain'],
+      component_type: ['inlets', 'outlets', 'storm_drains', 'man_pipes'],
       drainage_status: [
         'Clean',
         'Needs_Cleaning',
@@ -1242,6 +1090,7 @@ export const Constants = {
         'Damaged',
         'Overflowing',
       ],
+      maintenance_status: ['in-progress', 'resolved'],
       maintenance_type: ['Cleaning', 'Repair', 'Inspection', 'Unclogging'],
       report_status: [
         'pending',
@@ -1254,12 +1103,3 @@ export const Constants = {
     },
   },
 } as const;
-
-// ---- App helpers (not generated; re-add after regenerating) ----
-
-/** Names of the four per-component-type maintenance tables. */
-export type MaintenanceTableName =
-  | 'inlets_maintenance'
-  | 'outlets_maintenance'
-  | 'storm_drains_maintenance'
-  | 'man_pipes_maintenance';

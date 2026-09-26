@@ -13,7 +13,6 @@ export interface Report {
   geocoded_status: string;
   address: string;
   resolvedByMaintenanceId?: string | null;
-  resolvedByMaintenanceType?: string | null;
   resolvedImage?: string | null;
 }
 
@@ -33,15 +32,7 @@ export interface ReportRow {
   address?: string | null;
   priority?: 'low' | 'medium' | 'high' | 'critical' | null;
   resolved_by_maintenance_id?: string | null;
-  resolved_by_maintenance_type?: string | null;
   resolved_image?: string | null;
-}
-
-interface ReportStatusUpdate {
-  status: 'in-progress' | 'resolved';
-  resolved_by_maintenance_id?: string;
-  resolved_by_maintenance_type?: string;
-  resolved_image?: string;
 }
 
 export const uploadReport = async (
@@ -161,71 +152,6 @@ export const fetchLatestReportsPerComponent = async (
   return latestReports;
 };
 
-const _updateReportStatusById = async (
-  reportId: string,
-  status: 'in-progress' | 'resolved'
-) => {
-  try {
-    const { error } = await client
-      .from('reports')
-      .update({ status })
-      .eq('id', reportId);
-
-    if (error) {
-      console.error('Error updating report status:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Error updating report status:', error);
-    throw error;
-  }
-};
-
-export const updateReportsStatusForComponent = async (
-  componentId: string,
-  status: 'in-progress' | 'resolved',
-  maintenanceDate: string,
-  maintenanceId?: string,
-  maintenanceType?: string,
-  maintenanceImage?: string
-) => {
-  try {
-    const updates: ReportStatusUpdate = { status };
-    if (maintenanceId) updates.resolved_by_maintenance_id = maintenanceId;
-    if (maintenanceType) updates.resolved_by_maintenance_type = maintenanceType;
-    if (maintenanceImage) updates.resolved_image = maintenanceImage;
-
-    // Hierarchy Logic: Only update reports with a LOWER status.
-    // Resolved > In-Progress > Pending
-    // - Resolved can update: Pending, In-Progress
-    // - In-Progress can update: Pending
-
-    const targetStatuses =
-      status === 'resolved' ? ['pending', 'in-progress'] : ['pending'];
-
-    const { error } = await client
-      .from('reports')
-      .update(updates)
-      .eq('component_id', componentId)
-      .in('status', targetStatuses)
-      .lte('created_at', maintenanceDate);
-
-    if (error) {
-      console.error(
-        'Error updating multiple report statuses for component:',
-        error
-      );
-      throw error;
-    }
-  } catch (error) {
-    console.error(
-      'Error updating multiple report statuses for component:',
-      error
-    );
-    throw error;
-  }
-};
-
 export const deleteReportsByComponentId = async (componentId: string) => {
   try {
     const { error } = await client
@@ -285,7 +211,6 @@ export const formatReport = (report: ReportRow): Report => {
     geocoded_status: report.geocoded_status ?? 'pending',
     address: report.address ?? 'Unknown address',
     resolvedByMaintenanceId: report.resolved_by_maintenance_id ?? null,
-    resolvedByMaintenanceType: report.resolved_by_maintenance_type ?? null,
     resolvedImage: resolvedImageUrl || null,
   };
 };

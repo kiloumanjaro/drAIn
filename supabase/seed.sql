@@ -81,32 +81,26 @@ insert into public.reports (
   ('00000000-0000-4000-b000-000000000004', now() - interval '1 day',   'man_pipes', 'Manhole cover cracked.', 'public/seed-4.jpg', 'Anonymous', 'pending', 'low', 'C-0', 123.948852671767, 10.3248457286088, null, 'pending', null);
 
 -- ---------------------------------------------------------------------------
--- Maintenance: one finished job that closed report 1, one in progress for
--- report 2, matching how lib/supabase/maintenance.ts links them.
+-- Maintenance: one finished job that resolved report 1, one in progress for
+-- report 2. Inserted directly, with the report links that record_maintenance
+-- would have set; the app itself only writes maintenance through that RPC.
 -- ---------------------------------------------------------------------------
 
-insert into public.inlets_maintenance (
-  id, last_cleaned_at, agency_id, represented_by, in_name, status, description, addressed_report_id
-) values (
-  '00000000-0000-4000-c000-000000000001', now() - interval '15 days',
-  '6b307b70-0fa4-46df-a66c-0df8a16cca3d', '00000000-0000-4000-a000-000000000002',
-  'I-0', 'resolved', 'Cleared debris from grate.', '00000000-0000-4000-b000-000000000001'
-);
-
-insert into public.outlets_maintenance (
-  id, last_cleaned_at, agency_id, represented_by, out_name, status, description, addressed_report_id
-) values (
-  '00000000-0000-4000-c000-000000000002', now() - interval '3 days',
-  '6b307b70-0fa4-46df-a66c-0df8a16cca3d', '00000000-0000-4000-a000-000000000001',
-  'O-0', 'in-progress', 'Crew dispatched; partial clearing done.', '00000000-0000-4000-b000-000000000002'
-);
+insert into public.maintenance (
+  id, performed_at, component_type, component_name, agency_id, performed_by, status, description
+) values
+  ('00000000-0000-4000-c000-000000000001', now() - interval '15 days', 'inlets', 'I-0',
+   '6b307b70-0fa4-46df-a66c-0df8a16cca3d', '00000000-0000-4000-a000-000000000002',
+   'resolved', 'Cleared debris from grate.'),
+  ('00000000-0000-4000-c000-000000000002', now() - interval '3 days', 'outlets', 'O-0',
+   '6b307b70-0fa4-46df-a66c-0df8a16cca3d', '00000000-0000-4000-a000-000000000001',
+   'in-progress', 'Crew dispatched; partial clearing done.');
 
 update public.reports
 set resolved_by_maintenance_id = '00000000-0000-4000-c000-000000000001',
-    resolved_by_maintenance_type = 'inlets_maintenance'
+    resolved_at = now() - interval '15 days'
 where id = '00000000-0000-4000-b000-000000000001';
 
 update public.reports
-set resolved_by_maintenance_id = '00000000-0000-4000-c000-000000000002',
-    resolved_by_maintenance_type = 'outlets_maintenance'
+set resolved_by_maintenance_id = '00000000-0000-4000-c000-000000000002'
 where id = '00000000-0000-4000-b000-000000000002';

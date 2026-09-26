@@ -1,9 +1,9 @@
 import client from '@/lib/supabase/client';
-import { updateReportsStatusForComponent } from '@/lib/supabase/report';
-import type {
-  MaintenanceTableName,
-  TablesInsert,
-} from '@/types/database.types';
+import type { Database, Tables } from '@/types/database.types';
+
+export type ComponentType = Database['public']['Enums']['component_type'];
+export type MaintenanceStatus =
+  Database['public']['Enums']['maintenance_status'];
 
 // Helper function to normalize Supabase joined data to arrays for TypeScript
 // Supabase's select syntax for related tables (e.g., `agencies ( name )`) often
@@ -27,184 +27,60 @@ const normalizeJoinedData = (data: unknown) => {
   );
 };
 
-// Inlet Maintenance Functions
-export async function recordInletMaintenance(
-  inletId: string,
-  status?: 'in-progress' | 'resolved',
+/**
+ * Record work on a component as the signed-in staff member.
+ *
+ * The database does the whole job in one transaction (record_maintenance in
+ * supabase/schemas): it checks the caller is agency staff, files the record
+ * under their agency, and moves the component's open reports along.
+ */
+export async function recordMaintenance(
+  componentType: ComponentType,
+  componentName: string,
+  status: MaintenanceStatus,
   description?: string,
   imagePath?: string
-) {
-  return recordMaintenance(
-    'inlets_maintenance',
-    'in_name',
-    inletId,
-    status,
-    description,
-    imagePath
-  );
-}
-
-export async function getInletMaintenanceHistory(inletId: string) {
-  return getMaintenanceHistory('inlets_maintenance', 'in_name', inletId);
-}
-
-// Man Pipe Maintenance Functions
-export async function recordManPipeMaintenance(
-  manPipeId: string,
-  status?: 'in-progress' | 'resolved',
-  description?: string,
-  imagePath?: string
-) {
-  return recordMaintenance(
-    'man_pipes_maintenance',
-    'name',
-    manPipeId,
-    status,
-    description,
-    imagePath
-  );
-}
-
-export async function getManPipeMaintenanceHistory(manPipeId: string) {
-  return getMaintenanceHistory('man_pipes_maintenance', 'name', manPipeId);
-}
-
-// Outlet Maintenance Functions
-export async function recordOutletMaintenance(
-  outletId: string,
-  status?: 'in-progress' | 'resolved',
-  description?: string,
-  imagePath?: string
-) {
-  return recordMaintenance(
-    'outlets_maintenance',
-    'out_name',
-    outletId,
-    status,
-    description,
-    imagePath
-  );
-}
-
-export async function getOutletMaintenanceHistory(outletId: string) {
-  return getMaintenanceHistory('outlets_maintenance', 'out_name', outletId);
-}
-
-// Storm Drain Maintenance Functions
-export async function recordStormDrainMaintenance(
-  stormDrainId: string,
-  status?: 'in-progress' | 'resolved',
-  description?: string,
-  imagePath?: string
-) {
-  return recordMaintenance(
-    'storm_drains_maintenance',
-    'in_name',
-    stormDrainId,
-    status,
-    description,
-    imagePath
-  );
-}
-
-export async function getStormDrainMaintenanceHistory(stormDrainId: string) {
-  return getMaintenanceHistory(
-    'storm_drains_maintenance',
-    'in_name',
-    stormDrainId
-  );
-}
-
-async function recordMaintenance(
-  tableName: MaintenanceTableName,
-  idColumn: string,
-  assetId: string,
-  status?: 'in-progress' | 'resolved',
-  description?: string,
-  imagePath?: string
-) {
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-
-  if (!user) {
-    return { error: 'You must be logged in to record maintenance.' };
-  }
-
-  const { data: profile } = await client
-    .from('profiles')
-    .select('agency_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || !profile.agency_id) {
-    return {
-      error: 'You must be associated with an agency to record maintenance.',
-    };
-  }
-
-  const payload: Record<string, unknown> = {
-    [idColumn]: assetId,
-    agency_id: profile.agency_id,
-    represented_by: user.id,
-    status: status,
-    description: description,
-  };
-
-  if (imagePath) {
-    payload.evidence_image = imagePath;
-  }
-
-  const { data, error } = await client
-    .from(tableName)
-    // The name column is chosen at runtime, so the payload can't be checked
-    // against a specific table's Insert type.
-    .insert([payload as TablesInsert<MaintenanceTableName>])
-    .select();
+): Promise<{
+  success: boolean;
+  data?: Tables<'maintenance'>;
+  error?: string;
+}> {
+  const { data, error } = await client.rpc('record_maintenance', {
+    p_component_type: componentType,
+    p_component_name: componentName,
+    p_status: status,
+    p_description: description,
+    p_evidence_image: imagePath,
+  });
 
   if (error) {
-    console.error(`Supabase insert error (${tableName}):`, error.message);
-    return { error: `Failed to record maintenance for asset ${assetId}.` };
+    console.error('Error recording maintenance:', error.message);
+    return { success: false, error: error.message };
   }
 
-  if (status) {
-    await updateReportsStatusForComponent(
-      assetId,
-      status,
-      new Date().toISOString(),
-      data[0].id,
-      tableName,
-      imagePath
-    );
-  }
-
-  return { success: true, data: data[0] };
+  return { success: true, data };
 }
 
-async function getMaintenanceHistory(
-  tableName: MaintenanceTableName,
-  idColumn: string,
-  assetId: string
-) {
+/** A component's maintenance history, newest first. */
+export async function getMaintenanceHistory(componentName: string) {
   const { data, error } = await client
-    .from(tableName)
+    .from('maintenance')
     .select(
       `
-      last_cleaned_at,
+      last_cleaned_at:performed_at,
       agencies ( name ),
       profiles ( full_name ),
       status,
-      addressed_report_id,
       description,
       evidence_image
     `
     )
-    .eq(idColumn, assetId)
-    .order('last_cleaned_at', { ascending: false });
+    .eq('component_name', componentName)
+    .order('performed_at', { ascending: false });
 
   if (error) {
-    console.error(`Error fetching history for ${tableName}:`, error.message);
-    return { error: `Failed to fetch maintenance history for ${tableName}.` };
+    console.error('Error fetching maintenance history:', error.message);
+    return { error: 'Failed to fetch maintenance history.' };
   }
   const normalizedData = normalizeJoinedData(data);
   return { data: normalizedData };

@@ -43,55 +43,25 @@ export function median(values: number[]): number | null {
     : sorted[middle];
 }
 
-/** When each maintenance record was carried out, by table and by bare id. */
-export interface MaintenanceDateIndex {
-  /** Keyed `${table}:${id}`. */
-  byTableAndId: Map<string, string>;
-  /** Keyed by id alone; null where more than one table uses that id. */
-  byId: Map<string, string | null>;
-}
+/** When each maintenance record was carried out, keyed by its id. */
+export type MaintenanceDateIndex = Map<string, string>;
 
-/**
- * Index the maintenance records of every per-component-type table.
- *
- * The records live in four tables, and nothing guarantees their ids are
- * unique across them. Keyed by id alone, a collision silently took the date
- * of whichever table was read last, so records are keyed by table too.
- */
+/** Index maintenance records by id. Ids are unique in the one table. */
 export function indexMaintenanceDates(
-  tables: Array<{
-    table: string;
-    rows: Array<{ id: string | number | null; last_cleaned_at: string }>;
-  }>
+  rows: Array<{ id: string | null; performed_at: string }>
 ): MaintenanceDateIndex {
-  const byTableAndId = new Map<string, string>();
-  const byId = new Map<string, string | null>();
-
-  for (const { table, rows } of tables) {
-    for (const row of rows) {
-      if (row.id === null || row.id === undefined || row.id === '') continue;
-      const id = String(row.id);
-      byTableAndId.set(`${table}:${id}`, row.last_cleaned_at);
-      byId.set(id, byId.has(id) ? null : row.last_cleaned_at);
-    }
+  const index: MaintenanceDateIndex = new Map();
+  for (const row of rows) {
+    if (row.id) index.set(row.id, row.performed_at);
   }
-
-  return { byTableAndId, byId };
+  return index;
 }
 
-/**
- * When the maintenance that closed a report happened, or null.
- *
- * `table` is the report's resolved_by_maintenance_type. Reports that
- * predate it fall back to the id alone, but only when that is unambiguous.
- */
+/** When the maintenance that closed a report happened, or null. */
 export function lookupMaintenanceDate(
   index: MaintenanceDateIndex,
-  id: string | number | null | undefined,
-  table: string | null | undefined
+  id: string | null | undefined
 ): string | null {
-  if (id === null || id === undefined || id === '') return null;
-  const key = String(id);
-  if (table) return index.byTableAndId.get(`${table}:${key}`) ?? null;
-  return index.byId.get(key) ?? null;
+  if (!id) return null;
+  return index.get(id) ?? null;
 }
