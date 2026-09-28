@@ -108,7 +108,7 @@ Do the audit as narrow passes, inline or with small background subagents (see Me
   - frontend CI runs no tests and no pgTAP.
 - [ ] Order `REAUDIT_TODO.md` by value divided by effort, and commit it (`docs: re-audit to-do list`).
 
-## Phase 2: Known backlog (about 3–4 h; can run before Phase 1 finishes)
+## Phase 2: Known backlog (about 10–12 h with the database cleanup; can run before Phase 1 finishes)
 
 These are already verified. Each is one commit.
 
@@ -116,10 +116,19 @@ These are already verified. Each is one commit.
 
 - [ ] **2.1 Frontend CI (45 min).** In `.github/workflows/deploy.yml`, or a new `ci.yml`, run `type-check` and `test` alongside lint. Add a `database` job that does `supabase start`, `supabase db reset` and `supabase test db` (`supabase/setup-cli` action). Can't be run locally beyond a YAML lint; say so in the commit.
 - [ ] **2.2 Lint to zero (45 min).** Fix every warning worth fixing; justify any left with an inline disable comment.
-- [ ] **2.3 Hide `reports.user_id` from signed-out visitors (45 min).**
-  - Revoke column `SELECT (user_id)` from `anon`, keeping it for `authenticated`.
-  - Check that every anon read path (map, dashboard, realtime) doesn't select `*` in a way that now fails: switch those to explicit columns.
-  - pgTAP: anon can't read `user_id`; a citizen still reads their own reports.
+- [ ] **2.3 Hide private report columns from signed-out visitors (1 h).** Covers item 2 of the 2026-09-28 evaluation.
+  - Revoke column `SELECT` from `anon` on:
+    - `reports.user_id`;
+    - `photo_lat` and `photo_lon` (where the reporter stood);
+    - `reviewed_by`;
+    - `maintenance.performed_by`.
+
+    Keep them for `authenticated`. If column grants turn out to be awkward with PostgREST, serve public reads through a view instead.
+
+  - Check that every anon read path (map, dashboard, realtime) doesn't select `*` in a way that now fails; switch those to explicit columns.
+  - The realtime channel on `reports` sends whole rows to every open map. Check whether Supabase Realtime honours a publication column list (`ALTER PUBLICATION ... ADD TABLE reports (col, ...)`). If not, publish only what the map needs, and have clients refetch by id. Log what was verified.
+  - pgTAP: anon can't read those columns; a citizen still reads their own reports; staff still see reviewers.
+
 - [ ] **2.4 Barangay population columns to numbers (30 min).** Change `barangay_boundaries` population and density from text to numeric, hand-editing the migration's data cast. Update readers.
 - [ ] **2.5 Report photo uploads (45 min).** Limit anonymous storage inserts to `public/<uuid>.<ext>` image names. Check whether the bucket's 50 MiB limit should be lower (for example 10 MiB) in `config.toml`. pgTAP or a REST check.
 - [ ] **2.6 Admin screen for join codes and roles (1.5 h, M).**
@@ -131,6 +140,65 @@ These are already verified. Each is one commit.
 - [ ] **2.8 Remove dead code (30 min).** Delete `control-panel-portable/`, `components/_unused/` and `BACKEND-DrAin/` after grep proves nothing imports them, then run type-check, test and lint.
 - [ ] **2.9 Accurate claims (45 min).** Apply the wording from 1h, or from roadmap workstream F if 1h isn't done: the landing page, docs sections, metadata, both READMEs, and the chatbot prompt's "satellite data" and "AI analysis" lines.
 - [ ] **2.10 Relabel `init_flow` in the UI (20 min).** The link panel's "Initial flow" control sets SWMM's flow limit. Relabel it "Flow limit (m³/s)", with a tooltip. The wire name stays.
+
+### Database cleanup (from the 2026-09-28 evaluation)
+
+Evaluated against the local database on 2026-09-28. Item 2 of that evaluation is folded into 2.3 above. Do these in this order: D1 first, D2 after 2.3, D4 and D5 last.
+
+- [ ] **2.D1 Close unused write grants (30 min).**
+  - `anon` and `authenticated` hold INSERT, UPDATE, DELETE and TRUNCATE on `reports`, `profiles`, `agencies`, `inlets`, `outlets`, `man_pipes`, `storm_drains` and `geocode_worker_lock`, inherited from the dump's "grant everything" defaults.
+  - Row-level security blocks the first three. TRUNCATE ignores it, and today only the API's lack of a TRUNCATE call stops it.
+  - Revoke every write the app doesn't use. Keep INSERT on `reports` (the insert policy guards it) and UPDATE and INSERT on `profiles` (own row, guarded).
+  - Change the `ALTER DEFAULT PRIVILEGES` at the end of `schema.sql` so new tables and functions grant nothing to `anon` or `authenticated` by default.
+  - Revoke EXECUTE from `anon` and `authenticated` on the trigger functions `handle_new_user`, `set_reporter_name`, `sync_reporter_name` and `update_report_zone`.
+  - Move `extract_barangay_from_coordinates` to `private`; only the zone trigger uses it.
+  - Check with `information_schema.role_table_grants` and `has_function_privilege`.
+  - pgTAP: anon has no write privilege on those tables, and TRUNCATE is refused.
+  - Then check that every app write path still works: a report insert (anon and signed in), a profile edit, joining an agency, recording maintenance.
+- [ ] **2.D2 Load the map without downloading every report (1.5 h).**
+  - Today the app downloads all reports, with all 27 columns, a page at a time, in up to three places:
+    - the map's report provider (`components/context/report-provider.tsx`, via `useAllReports`);
+    - the dashboard reports tab;
+    - the analytics prefetch (`lib/query/hooks/use-analytics.ts`).
+
+    It then works out the latest report per drain in JavaScript (`fetchLatestReportsPerComponent`). The unused `latest_report_per_component` view already does that in the database.
+
+  - The map should read that view plus `report_counts_by_component`. The per-component history should load on demand (`fetchReportsForComponent`).
+  - The dashboard reports tab should filter and page in the database: `.range()` plus `.eq()` for its filters, and an exact count for "N of M".
+  - Remove the duplicate prefetch.
+  - Keep realtime working: on an insert or update, update just that component's pin.
+  - Tests for the new readers. Record the size of one page load before and after in the commit.
+
+- [ ] **2.D3 Decide geocoding; drop the k-means leftovers (45 min).**
+  - `geocode_worker_lock`, the trigger `trigger-geocode-on-insert`, `reports.address` and `reports.geocoded_status` serve a hosted edge function that isn't in the repo. They're switched off locally, and `zone` already comes from coordinates.
+  - Default: keep the columns (the UI shows `address` when present), but document in `schema.sql` that the worker is hosted-only. Don't drop anything that the hosted edge function might write to. Add a `needs user` note: bring `geocodeWorker` into the repo, or retire geocoding.
+  - Drop `flood_results.cluster` and `cluster_score` only if 2.11 or the stored-scenario rescoring has replaced what the UI shows from them. Otherwise leave them, and note it here.
+  - Drop the placeholder clog columns (`clogfac`, `clog_per`, `clogtime`) only as part of D4, which drops their tables anyway. Their values are defaults: 1,215 of 1,231 storm drains and all 138 inlets are exactly 50 / 1.
+- [ ] **2.D4 One source for the drainage network (2.5 h, L; follow the stop rule strictly).**
+  - The network is stored three times: the four GIS tables (`inlets`, `outlets`, `man_pipes`, `storm_drains`, 54 columns), which the app never queries; the map's `public/drainage/*.geojson`; and the backend's `.inp`.
+  - Make `components` the database's single copy:
+    1. List every GeoJSON property the map and control panel actually read (grep `lib/map`, `components/control-panel`, `hooks`). Add those to `components`: typed columns for the few used everywhere, plus an `attributes jsonb` for the rest. For pipes, store the line geometry as well as the point.
+    2. Write `scripts/export-network-geojson.mjs`. It reads `components` from the local database and writes the four GeoJSON files. Its output must be equivalent to today's files: same features, and same properties the app reads. Prove it with a script that diffs the two sets.
+    3. Change `supabase/seed/reference_data.sql` so it loads `components` directly (generated by a node script from the current inserts), then drop the four tables and their policies.
+    4. The backend's `.inp` stays as it is; the roadmap (G2) covers rebuilding it. Note in `schema.sql` that the `.inp` is the simulation's copy.
+  - If the map needs a property that's hard to carry, stop after step 2. Keep the tables, commit the export script, and log why.
+- [ ] **2.D5 Stop copying component data into every report (1.5 h, after D2 and 2.3).**
+  - `reports.category` repeats `components.type`. `long` and `lat` are the drain's coordinates, copied at insert. `resolved_image` and `resolved_at` copy the maintenance record that `resolved_by_maintenance_id` points to.
+  - Add a `reports_with_component` view (`security_invoker`) that joins these in, and point every reader at it.
+  - Only then drop the copied columns. That means updating:
+    - the insert policy;
+    - the zone trigger (read the location from `components`);
+    - `check_report_submission`;
+    - `record_maintenance`;
+    - the dashboard views;
+    - the seed, the types and the realtime handling.
+  - Keep `reporter_name`: it is deliberate, because profiles aren't public.
+  - If the time runs out, stop after the view and the reader switch, and leave the columns. Log it.
+- [ ] **2.D6 Reorganise `schema.sql` and document the report lifecycle (1 h).**
+  - Regroup `schema.sql` by area (types, people and agencies, reference data, reports, maintenance, grants).
+  - Remove the dump noise: runs of blank lines, and the "Enable read access for all users" policy names (give them descriptive names).
+  - Proof that nothing changed: `declarative sync --no-apply` must print "No schema changes found". A policy rename is a real change and gets its own small migration.
+  - Add `docs/architecture/REPORT_LIFECYCLE.md`: a state diagram (Mermaid) of `status`, `review_status` and the maintenance `verification_status`, and which function moves each.
 
 ### Backend (science roadmap phase 1 and engineering)
 
