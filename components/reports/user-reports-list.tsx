@@ -69,6 +69,7 @@ export default function UserReportsList({
     new Map()
   );
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [disputing, setDisputing] = useState<Report | null>(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -87,8 +88,11 @@ export default function UserReportsList({
       ]);
       setReports(mine);
       setVerdicts(answers);
+      setFailed(false);
     } catch {
+      // Said, rather than shown as "no reports yet".
       setReports([]);
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -131,7 +135,9 @@ export default function UserReportsList({
                 ? 'Reports are not recorded when not signed in'
                 : loading
                   ? 'Loading your reports...'
-                  : "You haven't submitted any reports yet."}
+                  : failed
+                    ? "Couldn't load your reports. Try again in a moment."
+                    : "You haven't submitted any reports yet."}
             </div>
           </div>
         ) : (

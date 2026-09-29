@@ -116,8 +116,14 @@ describe('getOverviewMetrics', () => {
     expect(start.getHours()).toBe(0);
   });
 
-  it('shows zeros rather than failing when the query errors', async () => {
+  it('fails on an error rather than showing zeros as if they were real', async () => {
     supabase.state.respond = () => ({ data: null, error: { message: 'x' } });
+
+    await expect(getOverviewMetrics()).rejects.toMatchObject({ message: 'x' });
+  });
+
+  it('reads an empty answer as zeros', async () => {
+    supabase.state.respond = () => ({ data: [] });
 
     await expect(getOverviewMetrics()).resolves.toMatchObject({
       fixedThisMonth: 0,

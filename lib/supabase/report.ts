@@ -238,9 +238,11 @@ export const fetchMyResolutionVerdicts = async (
     .select('report_id, verdict')
     .eq('reviewer_id', userId)
     .not('report_id', 'is', null);
+  // Thrown rather than read as "no answers yet", which would ask people
+  // again about fixes they already answered for.
   if (error) {
     console.error('Error fetching your answers:', error);
-    return new Map();
+    throw error;
   }
   return new Map(
     (data ?? []).flatMap((row) =>

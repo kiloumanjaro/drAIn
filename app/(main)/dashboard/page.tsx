@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const {
     data: metrics,
     isLoading: metricsLoading,
+    isError: metricsFailed,
     refetch,
     isFetching,
     dataUpdatedAt,
@@ -64,16 +65,23 @@ export default function DashboardPage() {
               Live citizen reports and repair tracking for the drainage system
               infrastructure.
             </p>
-            {/* Stats Cards */}
-            <StatsCards
-              fixedThisMonth={metrics?.fixedThisMonth ?? 0}
-              pendingIssues={metrics?.pendingIssues ?? 0}
-              averageRepairDays={metrics?.averageRepairDays ?? 0}
-              totalAdmins={metrics?.totalAdmins ?? 0}
-              verifiedFixedThisMonth={metrics?.verifiedFixedThisMonth}
-              awaitingVerification={metrics?.awaitingVerification}
-              loading={metricsLoading}
-            />
+            {/* Stats Cards. On a failed load they would read as zeros, so
+                say it failed instead. */}
+            {metricsFailed && !metrics ? (
+              <p className="mt-4 text-sm text-red-600">
+                Couldn&apos;t load these figures. Use Refresh to try again.
+              </p>
+            ) : (
+              <StatsCards
+                fixedThisMonth={metrics?.fixedThisMonth ?? 0}
+                pendingIssues={metrics?.pendingIssues ?? 0}
+                averageRepairDays={metrics?.averageRepairDays ?? 0}
+                totalAdmins={metrics?.totalAdmins ?? 0}
+                verifiedFixedThisMonth={metrics?.verifiedFixedThisMonth}
+                awaitingVerification={metrics?.awaitingVerification}
+                loading={metricsLoading}
+              />
+            )}
           </div>
 
           {/* Tabs */}

@@ -103,11 +103,12 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     p_month_start: startOfMonth.toISOString(),
   });
 
-  const row = data?.[0];
-  if (error || !row) {
-    if (error) console.error('Error fetching overview metrics:', error);
-    return EMPTY_OVERVIEW;
+  if (error) {
+    console.error('Error fetching overview metrics:', error);
+    throw error;
   }
+  const row = data?.[0];
+  if (!row) return EMPTY_OVERVIEW;
 
   return {
     fixedThisMonth: row.fixed_this_month,
@@ -127,7 +128,7 @@ export async function getRepairTrendData(): Promise<RepairTrendData[]> {
 
   if (error) {
     console.error('Error fetching repair trend data:', error);
-    return [];
+    throw error;
   }
 
   return (data ?? []).map((row) => ({
@@ -149,7 +150,7 @@ export async function getIssuesPerZone(): Promise<ZoneIssueData[]> {
 
   if (error) {
     console.error('Error fetching issues per zone:', error);
-    return [];
+    throw error;
   }
 
   return (data ?? []).flatMap((row) =>
@@ -167,7 +168,7 @@ export async function getComponentTypeData(): Promise<ComponentTypeData[]> {
 
   if (error) {
     console.error('Error fetching component type data:', error);
-    return [];
+    throw error;
   }
 
   return (data ?? []).flatMap((row) =>
@@ -187,7 +188,7 @@ export async function getRepairTimeByComponent(): Promise<
 
   if (error) {
     console.error('Error fetching repair time by component:', error);
-    return [];
+    throw error;
   }
 
   return (data ?? []).flatMap((row) =>
@@ -215,7 +216,7 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
 
   if (error) {
     console.error('Error fetching team performance:', error);
-    return [];
+    throw error;
   }
 
   return (
