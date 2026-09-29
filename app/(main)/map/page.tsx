@@ -75,6 +75,21 @@ const POPULATION_POPUP_CLOSE_BG = '#f3f4f6';
 /** Hover background colour for the popup close button. */
 const POPULATION_POPUP_CLOSE_BG_HOVER = '#e5e7eb';
 
+/**
+ * Text for the population popup, which is built as HTML. The values come
+ * from a GeoJSON file we ship, but are escaped so that stays harmless if the
+ * source ever changes.
+ */
+function escapeHtml(value: unknown): string {
+  return String(value).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ]!
+  );
+}
+
 /** The drainage hooks' fallback while loading: one array, not a new one per render. */
 const NO_ITEMS: never[] = [];
 
@@ -113,6 +128,7 @@ function MapPageContent() {
   const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
   const clickedPopulationIdRef = useRef<string | null>(null);
   const overlayVisibilityRef = useLatestRef(overlayVisibility);
+  const selectedFloodScenarioRef = useLatestRef(selectedFloodScenario);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
@@ -152,11 +168,6 @@ function MapPageContent() {
   const initialTab = searchParams.get('activetab') || 'overlays';
 
   const [controlPanelTab, setControlPanelTab] = useState<string>(initialTab);
-
-  useEffect(() => {
-    const tab = searchParams.get('activetab') || 'overlays';
-    setControlPanelTab(tab);
-  }, [searchParams]);
 
   const dataConsumerTabs = ['report', 'simulations', 'admin'];
 
@@ -324,8 +335,12 @@ function MapPageContent() {
 
         mapRef.current = map;
 
+        // Read through a ref: after a style switch this runs long after the
+        // first render, and used to rebuild the layers with its 5YR scenario.
         const addCustomLayers = () =>
-          addMapLayers(map, { floodScenario: selectedFloodScenario });
+          addMapLayers(map, {
+            floodScenario: selectedFloodScenarioRef.current,
+          });
 
         map.on('load', addCustomLayers);
         map.on('load', () => setMapReady(true));
@@ -524,27 +539,27 @@ function MapPageContent() {
             // Create content
             const content = document.createElement('div');
             content.innerHTML = `
-              <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; padding-right: 0px;">Barangay ${
+              <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; padding-right: 0px;">Barangay ${escapeHtml(
                 props.name || 'Unknown Area'
-              }</h3>
+              )}</h3>
               <div style="display: flex; flex-direction: column; gap: 2px;">
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #666; font-size: 12px;">Population</span>
-                  <span style=" font-size: 12px;">${
+                  <span style=" font-size: 12px;">${escapeHtml(
                     props['population-count'] || 'N/A'
-                  }</span>
+                  )}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #666; font-size: 12px;">Density</span>
-                  <span style=" font-size: 12px;">${
+                  <span style=" font-size: 12px;">${escapeHtml(
                     props['population-density'] || 'N/A'
-                  } per km²</span>
+                  )} per km²</span>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #666; font-size: 12px;">Land Area</span>
-                  <span style=" font-size: 12px;">${
+                  <span style=" font-size: 12px;">${escapeHtml(
                     props['land-area'] || 'N/A'
-                  } km²</span>
+                  )} km²</span>
                 </div>
               </div>
             `;
@@ -1067,11 +1082,14 @@ function MapPageContent() {
     (tab: string) => {
       setControlPanelTab(tab);
       currentTabRef.current = tab;
-      const newParams = new URLSearchParams(searchParams.toString());
+      // From the address bar, not this render's searchParams: the map's click
+      // handler keeps the first render's copy of this function, and rebuilt
+      // the URL from that render's parameters.
+      const newParams = new URLSearchParams(window.location.search);
       newParams.set('activetab', tab);
       router.replace(`?${newParams.toString()}`);
     },
-    [searchParams, router]
+    [router]
   );
 
   // Update the useEffect for URL sync
@@ -1086,6 +1104,7 @@ function MapPageContent() {
   // left a WebGL context and its listeners behind.
   useEffect(() => {
     return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       mapRef.current?.remove();
       mapRef.current = null;
     };

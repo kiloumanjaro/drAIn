@@ -43,10 +43,10 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:660 — `const { data: inlets = [] }` defaults create new arrays every render, so the report-bubble effect tears down and refetches counts on every render while loading — module-level `EMPTY` constant. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:665 — report bubbles: old popups not removed when the list empties; no re-run once the map becomes ready — remove first, add `mapReady` state. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:693 — bubbles re-added while the reports layer is hidden — respect `overlayVisibilityRef`. — done: Phase 3
-- [ ] [frontend] [med] [S] app/(main)/map/page.tsx:321 — `style.load` handler rebuilds layers with the first render's flood scenario — latest-value ref.
-- [ ] [frontend] [med] [S] app/(main)/map/page.tsx:365 — click handler calls the first render's `handleTabChange` (stale `searchParams`) — build params from `window.location.search`.
-- [ ] [frontend] [med] [S] app/(main)/simulation/page.tsx:1044,698 — flood-propagation animation can start a second RAF loop; the guard reads stale state — cancel before start, guard on the frame ref.
-- [ ] [frontend] [med] [S] app/(main)/map/page.tsx:518-521 — population popup built with `innerHTML` from GeoJSON properties (first-party file today) — use `textContent`.
+- [x] [frontend] [med] [S] app/(main)/map/page.tsx:321 — `style.load` handler rebuilds layers with the first render's flood scenario — latest-value ref. — done: Phase 3
+- [x] [frontend] [med] [S] app/(main)/map/page.tsx:365 — click handler calls the first render's `handleTabChange` (stale `searchParams`) — build params from `window.location.search`. — done: Phase 3
+- [x] [frontend] [med] [S] app/(main)/simulation/page.tsx:1044,698 — flood-propagation animation can start a second RAF loop; the guard reads stale state — cancel before start, guard on the frame ref. — done: Phase 3
+- [x] [frontend] [med] [S] app/(main)/map/page.tsx:518-521 — population popup built with `innerHTML` from GeoJSON properties (first-party file today) — use `textContent`. — done: Phase 3
 - [ ] [backend] [med] [S] drain/flooding.py:156-157 — every node is sent twice (`nodes_dict` and `nodes_list`), `app/runs.py:96` rebuilds the dict on read-back — check the frontend's use, drop one. Pairs with 2.15 (gzip).
 - [x] [backend] [med] [S] drain/flooding.py:120 — barangay matching of ~1,400 nodes recomputed per request against static data — cache node→exposure once. (Overlaps 2.12, do together.) — done: 2.12 (backend 8ba5d1a)
 - [ ] [backend] [med] [S] drain/vulnerability.py:323 — `pickle.load` of the legacy k-means model on every startup (runs any code in the file) — export to JSON/npz or drop the legacy fields. Needs user if dropping `Legacy_Cluster_*`.
@@ -58,10 +58,10 @@ Ordered by value per effort within each band. Tick as items land.
 
 - [x] [frontend] [low] [S] app/api/closest-pipe/route.ts:27-49 — `category` not type-checked (non-string → 500), lat/lon not range-checked — validate, 400. — done: Phase 3
 - [x] [frontend] [low] [S] components/control-panel/index.tsx:229, components/shell/nav-user.tsx:122 — `window.open(url, '_blank')` without `noopener,noreferrer`. — done: Phase 3
-- [ ] [frontend] [low] [S] app/(main)/map/page.tsx:150-153 — duplicate of the `activetab` sync effect at 1041 — delete one.
-- [ ] [frontend] [low] [S] app/(main)/map/page.tsx:830,848; simulation/page.tsx:416,665 — timeouts never cleared on unmount — refs + one cleanup.
-- [ ] [frontend] [low] [S] app/(main)/simulation/page.tsx:488,506 — `componentParams` updated from closure value; two quick edits lose one — functional `setState`.
-- [ ] [frontend] [low] [S] app/(main)/simulation/page.tsx:1155 — node slideshow chains `setTimeout`s with no cancellation — request counter.
+- [x] [frontend] [low] [S] app/(main)/map/page.tsx:150-153 — duplicate of the `activetab` sync effect at 1041 — delete one. — done: Phase 3
+- [x] [frontend] [low] [S] app/(main)/map/page.tsx:830,848; simulation/page.tsx:416,665 — timeouts never cleared on unmount — refs + one cleanup. — done: Phase 3 for the toast timer; the rest only set state, which React 18 ignores after unmount
+- [x] [frontend] [low] [S] app/(main)/simulation/page.tsx:488,506 — `componentParams` updated from closure value; two quick edits lose one — functional `setState`. — done: Phase 3
+- [x] [frontend] [low] [S] app/(main)/simulation/page.tsx:1155 — node slideshow chains `setTimeout`s with no cancellation — request counter. — done: Phase 3
 - [x] [frontend] [low] [S] components/control-panel/tabs/tables-content/{drain,inlet,outlet,pipe}-table.tsx — clickable rows without keyboard access — `tabIndex`, Enter/Space. — done: Phase 3
 - [x] [frontend] [low] [S] components/dashboard/reports/report-card.tsx:171, image-gallery.tsx:64 — clickable divs — buttons. — done: Phase 3
 - [x] [frontend] [low] [S] components/reports/submit-tab.tsx:78 — label typo "Manduae Pipe". — done: Phase 3

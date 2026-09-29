@@ -211,8 +211,6 @@ export default function SimulationPage() {
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const [isFloodPropagationActive, setIsFloodPropagationActive] =
     useState(true); // Enabled by default
-  const [isFloodPropagationAnimating, setIsFloodPropagationAnimating] =
-    useState(false);
   const animationFrameRef = useRef<number | null>(null);
   const nodeFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
   const lineFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
@@ -268,6 +266,8 @@ export default function SimulationPage() {
   // The custom run being waited on, so leaving the page or starting another
   // run can stop reading it (it polls for up to half an hour).
   const runAbortRef = useRef<AbortController | null>(null);
+  // Which node-slideshow opening is current (see handleOpenNodeSimulation).
+  const slideshowRequestRef = useRef(0);
 
   const mapHandlersRef = useRef<{
     isSimulationActive: boolean;
@@ -517,17 +517,21 @@ export default function SimulationPage() {
     key: keyof NodeParams,
     value: number
   ) => {
-    const newParams = new Map(componentParams);
-    const current =
-      newParams.get(id) ??
-      // No invert elevation: left unset, the model keeps its own.
-      ({
-        init_depth: 0,
-        ponding_area: 0,
-        surcharge_depth: 0,
-      } satisfies NodeParams);
-    newParams.set(id, { ...current, [key]: value });
-    setComponentParams(newParams);
+    // From the latest state, not this render's: two quick edits used to
+    // lose the first.
+    setComponentParams((previous) => {
+      const newParams = new Map(previous);
+      const current =
+        newParams.get(id) ??
+        // No invert elevation: left unset, the model keeps its own.
+        ({
+          init_depth: 0,
+          ponding_area: 0,
+          surcharge_depth: 0,
+        } satisfies NodeParams);
+      newParams.set(id, { ...current, [key]: value });
+      return newParams;
+    });
   };
 
   const updatePipeParam = (
@@ -535,17 +539,19 @@ export default function SimulationPage() {
     key: keyof LinkParams,
     value: number
   ) => {
-    const newParams = new Map(pipeParams);
-    const current =
-      newParams.get(id) ??
-      ({
-        init_flow: 0,
-        upstrm_offset_depth: 0,
-        downstrm_offset_depth: 0,
-        avg_conduit_loss: 0,
-      } satisfies LinkParams);
-    newParams.set(id, { ...current, [key]: value });
-    setPipeParams(newParams);
+    setPipeParams((previous) => {
+      const newParams = new Map(previous);
+      const current =
+        newParams.get(id) ??
+        ({
+          init_flow: 0,
+          upstrm_offset_depth: 0,
+          downstrm_offset_depth: 0,
+          avg_conduit_loss: 0,
+        } satisfies LinkParams);
+      newParams.set(id, { ...current, [key]: value });
+      return newParams;
+    });
   };
 
   // Handler for the back button in control panel
@@ -727,8 +733,9 @@ export default function SimulationPage() {
       setIsFloodPropagationActive(true);
       shouldAnimateFloodPropagationRef.current = true;
 
-      if (!isFloodPropagationAnimating) {
-        setIsFloodPropagationAnimating(true);
+      // A loop is running exactly when a frame is pending. The state flag
+      // captured here could be out of date and start a second loop.
+      if (animationFrameRef.current === null) {
         animateFloodPropagationIntensity();
       }
     });
@@ -922,7 +929,6 @@ export default function SimulationPage() {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      setIsFloodPropagationAnimating(false);
       return;
     }
 
@@ -944,7 +950,6 @@ export default function SimulationPage() {
     ) as mapboxgl.GeoJSONSource;
 
     if (!nodeSource && !lineSource) {
-      setIsFloodPropagationAnimating(false);
       return;
     }
 
@@ -1088,10 +1093,14 @@ export default function SimulationPage() {
 
       // Start or stop animation
       if (enabled) {
-        setIsFloodPropagationAnimating(true);
+        // Never two loops at once: only the newest frame id is kept, so a
+        // second loop could not be stopped.
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
         animateFloodPropagationIntensity();
       } else {
-        setIsFloodPropagationAnimating(false);
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
           animationFrameRef.current = null;
@@ -1153,6 +1162,12 @@ export default function SimulationPage() {
   const handleOpenNodeSimulation = async (nodeId: string) => {
     const map = mapRef.current;
     if (!map) return;
+    // This waits on three timers. A second click, or leaving the page, makes
+    // this run stale; it then stops rather than highlighting on a removed map
+    // or racing the newer one.
+    const request = ++slideshowRequestRef.current;
+    const stale = () =>
+      slideshowRequestRef.current !== request || mapRef.current !== map;
 
     // Parse node ID to get source and feature ID
     const { source, featureId } = parseNodeId(nodeId);
@@ -1199,6 +1214,7 @@ export default function SimulationPage() {
 
     // Step 3: Wait for tables to minimize and year state to update (300ms delay)
     await new Promise((resolve) => setTimeout(resolve, 300));
+    if (stale()) return;
 
     // Step 4: Fly to the node
     map.flyTo({
@@ -1214,12 +1230,14 @@ export default function SimulationPage() {
     // Calculate approximate duration based on distance and speed
     const flyDuration = CAMERA_FLY_DURATION_MS;
     await new Promise((resolve) => setTimeout(resolve, flyDuration));
+    if (stale()) return;
 
     // Step 6: Highlight the node on the map
     map.setFeatureState({ source, id: featureId }, { selected: true });
 
     // Step 7: Wait a bit for highlight to be visible (200ms)
     await new Promise((resolve) => setTimeout(resolve, 200));
+    if (stale()) return;
 
     // Step 8: Set slideshow data and show the slideshow
     setSlideshowNodeData(nodeData);
