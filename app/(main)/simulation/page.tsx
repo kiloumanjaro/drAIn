@@ -14,6 +14,7 @@ import {
 } from '@/lib/map/config';
 
 import {
+  isAbortError,
   runSimulation,
   transformToNodeDetails,
 } from '@/lib/simulation-api/simulation';
@@ -264,6 +265,10 @@ export default function SimulationPage() {
   // The map's click and hover handlers are registered once, when the map is
   // created, so they call this render's functions through a ref (refreshed
   // by an effect further down, after the handlers are defined).
+  // The custom run being waited on, so leaving the page or starting another
+  // run can stop reading it (it polls for up to half an hour).
+  const runAbortRef = useRef<AbortController | null>(null);
+
   const mapHandlersRef = useRef<{
     isSimulationActive: boolean;
     onEmptyClick: () => void;
@@ -815,6 +820,11 @@ export default function SimulationPage() {
       setActivePanel(null);
     }
 
+    // Only the latest run is read; leaving the page stops reading it too.
+    runAbortRef.current?.abort();
+    const controller = new AbortController();
+    runAbortRef.current = controller;
+
     setIsLoadingTable3(true);
     try {
       // Build nodes object from componentParams
@@ -830,7 +840,10 @@ export default function SimulationPage() {
       });
 
       const [response] = await Promise.all([
-        runSimulation(nodes, links, rainfallParams, { accessToken }),
+        runSimulation(nodes, links, rainfallParams, {
+          accessToken,
+          signal: controller.signal,
+        }),
         new Promise((resolve) => setTimeout(resolve, MIN_GENERATE_DURATION_MS)),
       ]);
 
@@ -847,6 +860,9 @@ export default function SimulationPage() {
         `Successfully generated flood hazard data for ${transformedData.length} nodes`
       );
     } catch (error) {
+      // Stopped on purpose (the page closed, or a newer run replaced it):
+      // nothing to report, and nothing here to update.
+      if (isAbortError(error)) return;
       console.error('Error running simulation:', error);
       // The client distinguishes a busy queue from a failed run from an
       // expired result, so show what it said rather than one flat message.
@@ -857,7 +873,10 @@ export default function SimulationPage() {
       );
       setTableData3(null);
     } finally {
-      setIsLoadingTable3(false);
+      if (runAbortRef.current === controller) {
+        runAbortRef.current = null;
+        setIsLoadingTable3(false);
+      }
     }
   };
 
@@ -1241,10 +1260,11 @@ export default function SimulationPage() {
     };
   });
 
-  // On unmount: stop the rain, then remove the map. Without remove() every
+  // On unmount: stop waiting for a custom run, stop the rain, then remove the map. Without remove() every
   // visit to this page left a WebGL context and its listeners behind.
   useEffect(() => {
     return () => {
+      runAbortRef.current?.abort();
       if (mapRef.current) {
         disableRain(mapRef.current);
         mapRef.current.remove();

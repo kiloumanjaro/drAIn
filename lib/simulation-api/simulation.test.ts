@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildSimulationRequest,
+  isAbortError,
   runSimulation,
   transformToNodeDetails,
 } from './simulation';
@@ -234,6 +235,47 @@ describe('runSimulation', () => {
     if (!outcome.ok) throw outcome.error;
     return outcome.value;
   }
+
+  it('stops polling when its signal aborts, and says it was aborted', async () => {
+    const controller = new AbortController();
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValue(state('running'));
+
+    const run = runSimulation(NODES, LINKS, RAINFALL, {
+      ...AUTH,
+      signal: controller.signal,
+    });
+    const outcome = run.then(
+      () => 'resolved',
+      (error) => (isAbortError(error) ? 'aborted' : `failed: ${error}`)
+    );
+    await vi.advanceTimersByTimeAsync(3000);
+    const pollsBefore = fetchMock.mock.calls.length;
+    controller.abort();
+    for (let i = 0; i < 10; i++) await vi.advanceTimersByTimeAsync(3000);
+
+    await expect(outcome).resolves.toBe('aborted');
+    expect(fetchMock.mock.calls.length).toBe(pollsBefore);
+  });
+
+  it('passes the signal to every request', async () => {
+    const controller = new AbortController();
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(
+        state('succeeded', { result: { nodes_list: [] } })
+      );
+    await runToCompletion(
+      runSimulation(NODES, LINKS, RAINFALL, {
+        ...AUTH,
+        signal: controller.signal,
+      })
+    );
+    for (const [, init] of fetchMock.mock.calls) {
+      expect((init as RequestInit).signal).toBe(controller.signal);
+    }
+  });
 
   it('starts the job and returns the polled result', async () => {
     const result = { nodes_list: [{ Node: 'I-4' }] };

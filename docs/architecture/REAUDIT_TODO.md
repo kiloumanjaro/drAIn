@@ -20,7 +20,7 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [high] [S] components/dashboard/analytics/zone-map.tsx:51 — map init runs once on mount, but while `loading` the container isn't rendered, so on a cold load the map never draws — always render the container, overlay the skeleton. — done: Phase 3
 - [x] [frontend] [high] [M] components/control-panel/tabs/maintenance.tsx:250 — recording maintenance reports errors into state that is only shown inside a view that was just closed; failures (and successes) are silent — use `toast.error` / `toast.success`. — done: Phase 3
 - [x] [frontend] [high] [S] app/(main)/simulation/page.tsx:312 — the map click handler reads `isSimulationActive` from the first render (guarded re-init never re-registers) — read it through a latest-value ref. — done: 2.2 (3370ecc)
-- [ ] [frontend] [high] [M] app/(main)/simulation/page.tsx:806 — `runSimulation` polls up to 30 min and can't be cancelled; after leaving the page it still sets state and paints the map — add an `AbortSignal` to `RunOptions`, abort on unmount.
+- [x] [frontend] [high] [M] app/(main)/simulation/page.tsx:806 — `runSimulation` polls up to 30 min and can't be cancelled; after leaving the page it still sets state and paints the map — add an `AbortSignal` to `RunOptions`, abort on unmount. — done: Phase 3
 
 ## Medium
 

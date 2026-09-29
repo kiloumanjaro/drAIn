@@ -185,8 +185,22 @@ function apiBaseUrl(): string {
   return API_BASE_URL?.replace(/\/$/, '') || '';
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortReason(signal));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortReason(signal!));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 /** Seconds the server asked us to wait, in ms, or the default. */
@@ -205,6 +219,21 @@ export interface RunOptions {
   accessToken: string;
   /** Called on each status change, for callers that show progress. */
   onStatus?: (status: SimulationJobStatus) => void;
+  /**
+   * Stops waiting for the run (the page was left, or a new run started).
+   * The promise then rejects with an AbortError; see isAbortError. The job
+   * itself carries on on the server and is simply no longer read.
+   */
+  signal?: AbortSignal;
+}
+
+/** True for the rejection runSimulation gives when its signal aborts. */
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+function abortReason(signal: AbortSignal): unknown {
+  return signal.reason ?? new DOMException('Aborted', 'AbortError');
 }
 
 /** The server's own explanation of a refusal, if it sent one. */
@@ -228,13 +257,14 @@ export async function runSimulation(
   nodes: Record<string, NodeData>,
   links: Record<string, LinkData>,
   rainfall: RainfallData,
-  { accessToken, onStatus }: RunOptions
+  { accessToken, onStatus, signal }: RunOptions
 ): Promise<SimulationResponse> {
   const authorization = { Authorization: `Bearer ${accessToken}` };
   const created = await fetch(`${apiBaseUrl()}/simulations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authorization },
     body: JSON.stringify(buildSimulationRequest(nodes, links, rainfall)),
+    signal,
   });
 
   if (created.status === 401) {
@@ -266,10 +296,11 @@ export async function runSimulation(
   let lastStatus: SimulationJobStatus = job.status;
 
   while (Date.now() < deadline) {
-    await delay(interval);
+    await delay(interval, signal);
 
     const polled = await fetch(`${apiBaseUrl()}${job.poll_url}`, {
       headers: authorization,
+      signal,
     });
     if (polled.status === 401) {
       throw new Error('Your sign-in expired while the simulation ran.');
