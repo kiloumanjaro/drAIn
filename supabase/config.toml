@@ -383,6 +383,11 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# The deployed geocodeWorker requires a JWT (the trigger sends the service
+# role's). Keep it that way on redeploy.
+[functions.geocodeWorker]
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

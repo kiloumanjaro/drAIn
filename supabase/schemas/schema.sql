@@ -826,9 +826,8 @@ ALTER FUNCTION "public"."set_reporter_name"() OWNER TO "postgres";
 
 -- A one-row lock for the geocodeWorker edge function, so only one run
 -- geocodes at a time. RLS is on with no policies on purpose: only the
--- service role (the edge function) touches it. The function's source is
--- not in this repo yet (see DATABASE_AUDIT.md, D7, and the note on
--- trigger-geocode-on-insert).
+-- service role (the edge function, supabase/functions/geocodeWorker) touches
+-- it. See the note on trigger-geocode-on-insert.
 CREATE TABLE IF NOT EXISTS "public"."geocode_worker_lock" (
     "id" integer DEFAULT 1 NOT NULL,
     "is_running" boolean DEFAULT false,
@@ -902,12 +901,14 @@ CREATE INDEX "idx_reports_zone" ON "public"."reports" USING "btree" ("zone");
 
 -- Geocoding runs on the hosted project only. This webhook calls the
 -- geocodeWorker edge function, which fills reports.address and
--- geocoded_status and takes geocode_worker_lock. The function's source isn't
--- in this repo, and supabase/seed.sql disables this trigger locally, so local
+-- geocoded_status and takes geocode_worker_lock. Its source is
+-- supabase/functions/geocodeWorker (downloaded as deployed, version 3, on
+-- 2026-09-29): it reverse-geocodes pending reports through OpenStreetMap's
+-- Nominatim, one a second, for up to 90 s a run, and re-triggers itself while
+-- any remain. supabase/seed.sql disables this trigger locally, so local
 -- reports stay 'pending' with no address and the UI shows "Unknown address".
 -- reports.zone doesn't depend on it: update_report_zone takes it from the
--- coordinates. Kept until someone decides to bring geocodeWorker into the
--- repo or retire geocoding (AUTONOMOUS_RUN_PLAN.md, 2.D3).
+-- coordinates.
 CREATE OR REPLACE TRIGGER "trigger-geocode-on-insert" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "supabase_functions"."http_request"('https://jpwbdhksmnrtfutcmpht.supabase.co/functions/v1/geocodeWorker', 'POST', '{"Content-type":"application/json","Authorization":"Bearer <SERVICE_ROLE_JWT>"}', '{}', '5000');
 
 CREATE OR REPLACE TRIGGER "set_reporter_name" BEFORE INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."set_reporter_name"();

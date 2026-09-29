@@ -29,5 +29,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "control-panel-portable"]
+  "exclude": ["node_modules", "control-panel-portable", "supabase/functions"]
 }
