@@ -87,18 +87,24 @@ export type Database = {
       };
       components: {
         Row: {
+          attributes: NonNullable<Json>;
           location: unknown;
           name: string;
+          path: unknown;
           type: Database['public']['Enums']['component_type'];
         };
         Insert: {
+          attributes?: NonNullable<Json>;
           location: unknown;
           name: string;
+          path?: unknown;
           type: Database['public']['Enums']['component_type'];
         };
         Update: {
+          attributes?: NonNullable<Json>;
           location?: unknown;
           name?: string;
+          path?: unknown;
           type?: Database['public']['Enums']['component_type'];
         };
         Relationships: [];
@@ -163,57 +169,6 @@ export type Database = {
           is_running?: boolean | null;
           started_at?: string | null;
           started_by?: string | null;
-        };
-        Relationships: [];
-      };
-      inlets: {
-        Row: {
-          clogfac: number | null;
-          clogtime: number | null;
-          fplain_080: number | null;
-          geom: unknown;
-          gid: number;
-          height: number | null;
-          in_type: number | null;
-          inv_elev: number | null;
-          length: number | null;
-          maxdepth: number | null;
-          name: string | null;
-          weir_coeff: number | null;
-          x: number | null;
-          y: number | null;
-        };
-        Insert: {
-          clogfac?: number | null;
-          clogtime?: number | null;
-          fplain_080?: number | null;
-          geom?: unknown;
-          gid?: number;
-          height?: number | null;
-          in_type?: number | null;
-          inv_elev?: number | null;
-          length?: number | null;
-          maxdepth?: number | null;
-          name?: string | null;
-          weir_coeff?: number | null;
-          x?: number | null;
-          y?: number | null;
-        };
-        Update: {
-          clogfac?: number | null;
-          clogtime?: number | null;
-          fplain_080?: number | null;
-          geom?: unknown;
-          gid?: number;
-          height?: number | null;
-          in_type?: number | null;
-          inv_elev?: number | null;
-          length?: number | null;
-          maxdepth?: number | null;
-          name?: string | null;
-          weir_coeff?: number | null;
-          x?: number | null;
-          y?: number | null;
         };
         Relationships: [];
       };
@@ -359,96 +314,6 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
-      };
-      man_pipes: {
-        Row: {
-          barrels: number | null;
-          clogper: number | null;
-          clogtime: number | null;
-          geom: unknown;
-          gid: number;
-          height: number | null;
-          length: number | null;
-          mannings: number | null;
-          name: string | null;
-          pipe_lngth: number | null;
-          pipe_shape: string | null;
-          type: string | null;
-          width: number | null;
-        };
-        Insert: {
-          barrels?: number | null;
-          clogper?: number | null;
-          clogtime?: number | null;
-          geom?: unknown;
-          gid?: number;
-          height?: number | null;
-          length?: number | null;
-          mannings?: number | null;
-          name?: string | null;
-          pipe_lngth?: number | null;
-          pipe_shape?: string | null;
-          type?: string | null;
-          width?: number | null;
-        };
-        Update: {
-          barrels?: number | null;
-          clogper?: number | null;
-          clogtime?: number | null;
-          geom?: unknown;
-          gid?: number;
-          height?: number | null;
-          length?: number | null;
-          mannings?: number | null;
-          name?: string | null;
-          pipe_lngth?: number | null;
-          pipe_shape?: string | null;
-          type?: string | null;
-          width?: number | null;
-        };
-        Relationships: [];
-      };
-      outlets: {
-        Row: {
-          allowq: number | null;
-          flapgate: number | null;
-          fplain_080: number | null;
-          geom: unknown;
-          gid: number;
-          inv_elev: number | null;
-          join_count: number | null;
-          name: string | null;
-          target_fid: number | null;
-          x: number | null;
-          y: number | null;
-        };
-        Insert: {
-          allowq?: number | null;
-          flapgate?: number | null;
-          fplain_080?: number | null;
-          geom?: unknown;
-          gid?: number;
-          inv_elev?: number | null;
-          join_count?: number | null;
-          name?: string | null;
-          target_fid?: number | null;
-          x?: number | null;
-          y?: number | null;
-        };
-        Update: {
-          allowq?: number | null;
-          flapgate?: number | null;
-          fplain_080?: number | null;
-          geom?: unknown;
-          gid?: number;
-          inv_elev?: number | null;
-          join_count?: number | null;
-          name?: string | null;
-          target_fid?: number | null;
-          x?: number | null;
-          y?: number | null;
-        };
-        Relationships: [];
       };
       profiles: {
         Row: {
@@ -646,63 +511,6 @@ export type Database = {
           started_at?: string | null;
           status?: Database['public']['Enums']['simulation_status'];
           user_id?: string;
-        };
-        Relationships: [];
-      };
-      storm_drains: {
-        Row: {
-          clog_per: number | null;
-          clogfac: number | null;
-          clogtime: number | null;
-          fplain_080: number | null;
-          geom: unknown;
-          gid: number;
-          height: number | null;
-          id: number | null;
-          invelev: number | null;
-          length: number | null;
-          max_depth: number | null;
-          name: string | null;
-          namenum: number | null;
-          weir_coeff: number | null;
-          x: number | null;
-          y: number | null;
-        };
-        Insert: {
-          clog_per?: number | null;
-          clogfac?: number | null;
-          clogtime?: number | null;
-          fplain_080?: number | null;
-          geom?: unknown;
-          gid?: number;
-          height?: number | null;
-          id?: number | null;
-          invelev?: number | null;
-          length?: number | null;
-          max_depth?: number | null;
-          name?: string | null;
-          namenum?: number | null;
-          weir_coeff?: number | null;
-          x?: number | null;
-          y?: number | null;
-        };
-        Update: {
-          clog_per?: number | null;
-          clogfac?: number | null;
-          clogtime?: number | null;
-          fplain_080?: number | null;
-          geom?: unknown;
-          gid?: number;
-          height?: number | null;
-          id?: number | null;
-          invelev?: number | null;
-          length?: number | null;
-          max_depth?: number | null;
-          name?: string | null;
-          namenum?: number | null;
-          weir_coeff?: number | null;
-          x?: number | null;
-          y?: number | null;
         };
         Relationships: [];
       };
@@ -956,6 +764,10 @@ export type Database = {
           long: number;
           name: string;
         }[];
+      };
+      network_geojson: {
+        Args: { p_type: Database['public']['Enums']['component_type'] };
+        Returns: Json;
       };
       record_maintenance: {
         Args: {

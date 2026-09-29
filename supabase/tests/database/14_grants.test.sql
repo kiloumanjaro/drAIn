@@ -79,7 +79,7 @@ set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 
 select throws_ok($$truncate public.reports$$, '42501', null, 'anon cannot truncate reports');
-select throws_ok($$truncate public.inlets$$, '42501', null, 'anon cannot truncate reference tables');
+select throws_ok($$truncate public.components$$, '42501', null, 'anon cannot truncate reference tables');
 select throws_ok($$update public.agencies set name = 'x'$$, '42501', null, 'anon cannot edit agencies');
 
 reset role;

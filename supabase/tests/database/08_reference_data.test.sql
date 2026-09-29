@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(13);
+select plan(17);
 
 select hasnt_table('public', '5YR', 'the eight per-period flood tables are gone');
 
@@ -73,6 +73,24 @@ select is(
   (select population_count from public.barangay_boundaries where name = 'Bakilid'),
   4387,
   'the seeded figures survive as numbers'
+);
+
+-- One copy of the network (run plan 2.D4): components carries the GIS
+-- attributes and the pipes' lines; the four GIS tables are gone.
+select is(
+  (select count(*)::int from public.components where attributes = '{}'::jsonb),
+  0,
+  'every component has its GIS attributes'
+);
+select is(
+  (select count(*)::int from public.components where (type = 'man_pipes') <> (path is not null)),
+  0,
+  'pipes, and only pipes, have a line'
+);
+select hasnt_table('public', 'inlets', 'the old per-type GIS tables are gone');
+select ok(
+  not has_function_privilege('anon', 'public.network_geojson(public.component_type)', 'execute'),
+  'only the export script (service role) can build the GeoJSON'
 );
 
 select * from finish();

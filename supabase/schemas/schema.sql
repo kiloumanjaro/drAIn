@@ -10,7 +10,6 @@
 
 
 
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -345,20 +344,63 @@ COMMENT ON COLUMN "public"."flood_results"."total_flood_volume_megalitres" IS 'T
 
 
 
--- Every drainage component the app can point at, by name, with one point to
--- measure distance from. reports.component_id and maintenance.component_name
--- refer to it. Filled from inlets, outlets, storm_drains and man_pipes (the
--- GIS imports, which keep the full geometry and hydraulic attributes); pipes
--- are lines, so their point is the centroid.
+-- The drainage network: every component the app can point at, by name.
+-- The database's one copy of it. reports.component_id and
+-- maintenance.component_name refer to it. The map reads the same data from
+-- public/drainage/*.geojson, which scripts/export-network-geojson.mjs writes
+-- from this table (network_geojson below). The simulation server keeps its
+-- own copy, the SWMM .inp file in drAIn-backend; rebuilding that from here is
+-- roadmap G2.
+--   location:   one point to measure distance from (a pipe's centroid).
+--   path:       a pipe's line (LineString, or MultiLineString for the two
+--               pipes in several parts); null for the point components.
+--   attributes: the GIS attributes the app shows, under the GeoJSON's own
+--               property names (In_Name, Inv_Elev, Pipe_Shape, ...).
 CREATE TABLE IF NOT EXISTS "public"."components" (
     "name" "text" NOT NULL,
     "type" "public"."component_type" NOT NULL,
     "location" "extensions"."geography"(Point,4326) NOT NULL,
+    "attributes" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "path" "extensions"."geography"(Geometry,4326),
     CONSTRAINT "components_pkey" PRIMARY KEY ("name")
 );
 
 
 ALTER TABLE "public"."components" OWNER TO "postgres";
+
+
+-- The map's GeoJSON for one component type, built from components: the
+-- same features, properties and coordinates as public/drainage/*.geojson.
+-- scripts/export-network-geojson.mjs writes the files from this.
+CREATE OR REPLACE FUNCTION "public"."network_geojson"("p_type" "public"."component_type") RETURNS "jsonb"
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO ''
+    AS $$
+  select jsonb_build_object(
+    'type', 'FeatureCollection',
+    'name', case p_type
+              when 'inlets' then 'Inlets'
+              when 'outlets' then 'Outlets'
+              when 'man_pipes' then 'Man_Pipes'
+              when 'storm_drains' then 'StormDrains'
+            end,
+    'crs', jsonb_build_object(
+      'type', 'name',
+      'properties', jsonb_build_object('name', 'urn:ogc:def:crs:OGC:1.3:CRS84')),
+    'features', coalesce(jsonb_agg(
+      jsonb_build_object(
+        'type', 'Feature',
+        'properties', c.attributes,
+        'geometry', extensions.st_asgeojson(coalesce(c.path, c.location), 15)::jsonb)
+      -- Numeric order of the id (I-2 before I-10), as the GIS export had it.
+      order by nullif(regexp_replace(c.name, '\D', '', 'g'), '')::bigint nulls last, c.name
+    ), '[]'::jsonb))
+  from public.components c
+  where c.type = p_type
+$$;
+
+
+ALTER FUNCTION "public"."network_geojson"("p_type" "public"."component_type") OWNER TO "postgres";
 
 
 -- Latitude and longitude of each component, for lists and map markers.
@@ -431,78 +473,6 @@ CREATE TABLE IF NOT EXISTS "public"."geocode_worker_lock" (
 ALTER TABLE "public"."geocode_worker_lock" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."inlets" (
-    "gid" integer NOT NULL,
-    "geom" "extensions"."geometry"(MultiPoint,4326),
-    "x" double precision,
-    "y" double precision,
-    "inv_elev" double precision,
-    "maxdepth" double precision,
-    "length" double precision,
-    "height" double precision,
-    "weir_coeff" double precision,
-    "in_type" integer,
-    "name" character varying,
-    "clogfac" integer,
-    "clogtime" integer,
-    "fplain_080" double precision
-);
-
-
-ALTER TABLE "public"."inlets" OWNER TO "postgres";
-
-
-CREATE SEQUENCE IF NOT EXISTS "public"."inlets_gid_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE "public"."inlets_gid_seq" OWNER TO "postgres";
-
-
-ALTER SEQUENCE "public"."inlets_gid_seq" OWNED BY "public"."inlets"."gid";
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."man_pipes" (
-    "gid" integer NOT NULL,
-    "geom" "extensions"."geometry"(Geometry,4326),
-    "type" character varying,
-    "length" double precision,
-    "width" double precision,
-    "height" double precision,
-    "pipe_shape" character varying,
-    "pipe_lngth" double precision,
-    "mannings" double precision,
-    "barrels" integer,
-    "name" character varying,
-    "clogper" integer,
-    "clogtime" integer
-);
-
-
-ALTER TABLE "public"."man_pipes" OWNER TO "postgres";
-
-
-CREATE SEQUENCE IF NOT EXISTS "public"."man_pipes_gid_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE "public"."man_pipes_gid_seq" OWNER TO "postgres";
-
-
-ALTER SEQUENCE "public"."man_pipes_gid_seq" OWNED BY "public"."man_pipes"."gid";
-
-
 
 -- Work done on one drainage component by agency staff. Replaces the four
 -- per-type tables (inlets_, outlets_, storm_drains_, man_pipes_maintenance).
@@ -540,40 +510,6 @@ COMMENT ON COLUMN "public"."maintenance"."verification_status" IS 'Kept by revie
 
 
 COMMENT ON COLUMN "public"."maintenance"."description" IS 'Agency comments, including photo notes and evidence-check notes.';
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."outlets" (
-    "gid" integer NOT NULL,
-    "geom" "extensions"."geometry"(MultiPoint,4326),
-    "join_count" integer,
-    "target_fid" integer,
-    "inv_elev" double precision,
-    "allowq" integer,
-    "flapgate" integer,
-    "x" double precision,
-    "y" double precision,
-    "name" character varying,
-    "fplain_080" double precision
-);
-
-
-ALTER TABLE "public"."outlets" OWNER TO "postgres";
-
-
-CREATE SEQUENCE IF NOT EXISTS "public"."outlets_gid_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE "public"."outlets_gid_seq" OWNER TO "postgres";
-
-
-ALTER SEQUENCE "public"."outlets_gid_seq" OWNED BY "public"."outlets"."gid";
 
 
 
@@ -666,62 +602,7 @@ COMMENT ON COLUMN "public"."reports"."zone" IS 'The barangay containing the repo
 
 
 
-CREATE TABLE IF NOT EXISTS "public"."storm_drains" (
-    "gid" integer NOT NULL,
-    "geom" "extensions"."geometry"(MultiPoint,4326),
-    "invelev" double precision,
-    "x" double precision,
-    "y" double precision,
-    "clog_per" integer,
-    "clogtime" integer,
-    "weir_coeff" double precision,
-    "length" double precision,
-    "height" double precision,
-    "max_depth" double precision,
-    "name" character varying,
-    "clogfac" integer,
-    "id" integer,
-    "namenum" integer,
-    "fplain_080" double precision
-);
-
-
-ALTER TABLE "public"."storm_drains" OWNER TO "postgres";
-
-
-CREATE SEQUENCE IF NOT EXISTS "public"."storm_drains_gid_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE "public"."storm_drains_gid_seq" OWNER TO "postgres";
-
-
-ALTER SEQUENCE "public"."storm_drains_gid_seq" OWNED BY "public"."storm_drains"."gid";
-
-
-
 ALTER TABLE ONLY "public"."barangay_boundaries" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."barangay_boundaries_id_seq"'::"regclass");
-
-
-
-ALTER TABLE ONLY "public"."inlets" ALTER COLUMN "gid" SET DEFAULT "nextval"('"public"."inlets_gid_seq"'::"regclass");
-
-
-
-ALTER TABLE ONLY "public"."man_pipes" ALTER COLUMN "gid" SET DEFAULT "nextval"('"public"."man_pipes_gid_seq"'::"regclass");
-
-
-
-ALTER TABLE ONLY "public"."outlets" ALTER COLUMN "gid" SET DEFAULT "nextval"('"public"."outlets_gid_seq"'::"regclass");
-
-
-
-ALTER TABLE ONLY "public"."storm_drains" ALTER COLUMN "gid" SET DEFAULT "nextval"('"public"."storm_drains_gid_seq"'::"regclass");
 
 
 
@@ -750,28 +631,8 @@ ALTER TABLE ONLY "public"."geocode_worker_lock"
 
 
 
-ALTER TABLE ONLY "public"."inlets"
-    ADD CONSTRAINT "inlets_pk" PRIMARY KEY ("gid");
-
-
-
-ALTER TABLE ONLY "public"."man_pipes"
-    ADD CONSTRAINT "man_pipes_pk" PRIMARY KEY ("gid");
-
-
-
-ALTER TABLE ONLY "public"."outlets"
-    ADD CONSTRAINT "outlets_pk" PRIMARY KEY ("gid");
-
-
-
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."storm_drains"
-    ADD CONSTRAINT "storm_drains_pk" PRIMARY KEY ("gid");
 
 
 
@@ -842,22 +703,6 @@ CREATE INDEX "idx_reports_status" ON "public"."reports" USING "btree" ("status")
 
 
 CREATE INDEX "idx_reports_zone" ON "public"."reports" USING "btree" ("zone");
-
-
-
-CREATE INDEX "inlets_geom_geom_idx" ON "public"."inlets" USING "gist" ("geom");
-
-
-
-CREATE INDEX "man_pipes_geom_geom_idx" ON "public"."man_pipes" USING "gist" ("geom");
-
-
-
-CREATE INDEX "outlets_geom_geom_idx" ON "public"."outlets" USING "gist" ("geom");
-
-
-
-CREATE INDEX "storm_drains_geom_geom_idx" ON "public"."storm_drains" USING "gist" ("geom");
 
 
 
@@ -1293,22 +1138,6 @@ CREATE POLICY "Enable read access for all users" ON "public"."agencies" FOR SELE
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."inlets" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."man_pipes" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."outlets" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "Enable read access for all users" ON "public"."storm_drains" FOR SELECT USING (true);
-
-
-
 -- Anyone, signed in or not, may file a report, but only as a new pending
 -- report under their own id (anonymous reports carry no user_id).
 CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
@@ -1316,9 +1145,6 @@ CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHEC
 
 
 CREATE POLICY "Public select reports" ON "public"."reports" FOR SELECT USING (true);
-
-
-
 
 
 
@@ -1348,14 +1174,6 @@ CREATE POLICY "Enable read access for all users" ON "public"."barangay_boundarie
 ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."inlets" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."man_pipes" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."outlets" ENABLE ROW LEVEL SECURITY;
-
 
 ALTER TABLE "public"."maintenance" ENABLE ROW LEVEL SECURITY;
 
@@ -1373,8 +1191,6 @@ ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
 
 
-ALTER TABLE "public"."storm_drains" ENABLE ROW LEVEL SECURITY;
-
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
@@ -1383,26 +1199,8 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-
-
-
 REVOKE ALL ON FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1438,33 +1236,13 @@ GRANT ALL ON FUNCTION "public"."update_report_zone"() TO "service_role";
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 GRANT SELECT ON TABLE "public"."components" TO "anon";
 GRANT SELECT ON TABLE "public"."components" TO "authenticated";
 GRANT ALL ON TABLE "public"."components" TO "service_role";
+-- The whole network as GeoJSON is about 600 KB to build; only the export
+-- script (service role) needs it.
+REVOKE ALL ON FUNCTION "public"."network_geojson"("p_type" "public"."component_type") FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION "public"."network_geojson"("p_type" "public"."component_type") TO "service_role";
 GRANT SELECT ON TABLE "public"."component_locations" TO "anon";
 GRANT SELECT ON TABLE "public"."component_locations" TO "authenticated";
 GRANT ALL ON TABLE "public"."component_locations" TO "service_role";
@@ -1505,36 +1283,6 @@ GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "service_role";
 
 
 
-REVOKE ALL ON TABLE "public"."inlets" FROM "anon", "authenticated";
-GRANT SELECT ON TABLE "public"."inlets" TO "anon";
-GRANT SELECT ON TABLE "public"."inlets" TO "authenticated";
-GRANT ALL ON TABLE "public"."inlets" TO "service_role";
-
-
-
-REVOKE ALL ON SEQUENCE "public"."inlets_gid_seq" FROM "anon", "authenticated";
-GRANT ALL ON SEQUENCE "public"."inlets_gid_seq" TO "service_role";
-
-
-
-
-
-
-REVOKE ALL ON TABLE "public"."man_pipes" FROM "anon", "authenticated";
-GRANT SELECT ON TABLE "public"."man_pipes" TO "anon";
-GRANT SELECT ON TABLE "public"."man_pipes" TO "authenticated";
-GRANT ALL ON TABLE "public"."man_pipes" TO "service_role";
-
-
-
-REVOKE ALL ON SEQUENCE "public"."man_pipes_gid_seq" FROM "anon", "authenticated";
-GRANT ALL ON SEQUENCE "public"."man_pipes_gid_seq" TO "service_role";
-
-
-
-
-
-
 -- Signed-out visitors don't see which staff member did the work.
 REVOKE ALL ON TABLE "public"."maintenance" FROM "anon";
 GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "anon";
@@ -1545,28 +1293,10 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."
 
 
 
-REVOKE ALL ON TABLE "public"."outlets" FROM "anon", "authenticated";
-GRANT SELECT ON TABLE "public"."outlets" TO "anon";
-GRANT SELECT ON TABLE "public"."outlets" TO "authenticated";
-GRANT ALL ON TABLE "public"."outlets" TO "service_role";
-
-
-
-REVOKE ALL ON SEQUENCE "public"."outlets_gid_seq" FROM "anon", "authenticated";
-GRANT ALL ON SEQUENCE "public"."outlets_gid_seq" TO "service_role";
-
-
-
-
-
-
 REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."profiles" TO "anon";
 GRANT SELECT, INSERT, UPDATE ON TABLE "public"."profiles" TO "authenticated";
 GRANT ALL ON TABLE "public"."profiles" TO "service_role";
-
-
-
 
 
 
@@ -1582,34 +1312,13 @@ GRANT ALL ON TABLE "public"."reports" TO "service_role";
 
 
 
-REVOKE ALL ON TABLE "public"."storm_drains" FROM "anon", "authenticated";
-GRANT SELECT ON TABLE "public"."storm_drains" TO "anon";
-GRANT SELECT ON TABLE "public"."storm_drains" TO "authenticated";
-GRANT ALL ON TABLE "public"."storm_drains" TO "service_role";
-
-
-
-REVOKE ALL ON SEQUENCE "public"."storm_drains_gid_seq" FROM "anon", "authenticated";
-GRANT ALL ON SEQUENCE "public"."storm_drains_gid_seq" TO "service_role";
-
-
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
 
 
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
-
-
-
 
 
 
@@ -1626,10 +1335,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FU
 -- global, so it is revoked without IN SCHEMA.
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
 
 
 
