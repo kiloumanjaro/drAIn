@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface LinkParams {
@@ -315,14 +321,36 @@ export function LinkParametersPanel({
                   value={id}
                   className="mt-0 space-y-4 px-2"
                 >
-                  {/* Initial Flow */}
+                  {/* Flow limit. The API field is still called init_flow,
+                      but the simulator uses it as the pipe's flow limit
+                      (SWMM's qLimit), not a starting flow. */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
-                        Initial Flow
-                      </Label>
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-sm font-normal">
+                          Flow limit (m³/s)
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info
+                                className="text-muted-foreground h-3.5 w-3.5 cursor-help"
+                                aria-label="About the flow limit"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs text-xs">
+                                The most water this pipe can carry, for example
+                                to model a partial blockage. 0 means no limit.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                       <span className="text-muted-foreground text-xs">
-                        {params.init_flow.toFixed(2)} m³/s
+                        {params.init_flow === 0
+                          ? 'No limit'
+                          : `${params.init_flow.toFixed(2)} m³/s`}
                       </span>
                     </div>
                     <Slider
@@ -336,7 +364,7 @@ export function LinkParametersPanel({
                       className="no-drag w-full"
                     />
                     <div className="text-muted-foreground flex justify-between text-xs">
-                      <span>0 m³/s</span>
+                      <span>No limit</span>
                       <span>5 m³/s</span>
                     </div>
                   </div>

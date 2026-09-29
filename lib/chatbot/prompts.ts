@@ -132,7 +132,7 @@ Surcharge Depth: Additional head above ground allowed before overflow.
 
 🔩 Editable Pipe Properties
 
-Initial Flow: Starting discharge rate before rainfall onset.
+Flow limit: The most water the pipe can carry (0 means no limit), for example to model a partial blockage. The API calls it init_flow, but it is SWMM's flow limit, not a starting flow.
 
 Upstream Offset: Vertical distance from node invert to pipe start elevation.
 
