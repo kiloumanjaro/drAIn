@@ -108,9 +108,7 @@ megabyte.
 
 ### `GET /health`
 
-Liveness probe. Its model flag says whether the legacy k-means model is
-loaded, which only affects the `Legacy_Cluster_*` fields. Hazard, exposure
-and risk scoring do not depend on it.
+Liveness probe. Answers `{"status": "ok"}`.
 
 ### `POST /run-simulation` — deprecated
 
@@ -128,7 +126,6 @@ interface SimulationResponse {
     non_flooded_nodes: number;
     rpt_file: string; // the SWMM report file the figures were read from
     out_file: string; // the SWMM binary output file
-    model_file: string; // the network model (.inp) that was run
     event_hours: number; // length of the simulated event, in hours
     inconsistent_nodes: number; // nodes the report floods but the output does not
     exposure_basis_counts: { inside: number; nearest: number; unknown: number };
@@ -163,7 +160,6 @@ string.
 | `Vulnerability_Score` / `Vulnerability_Category`   | **Hazard.** How badly the node floods: volume, duration as a share of the event, peak rate. 0–1, monotonic. A node that floods can never score zero. |
 | `Exposure_Score`, `Barangay`, `Population_Density` | **Exposure.** Roughly how many people are around it, from the density of the barangay it sits in. 0–1, never null.                                   |
 | `Risk_Score`                                       | **Hazard × exposure.** Rank work lists on this.                                                                                                      |
-| `Legacy_Cluster_Category` / `Legacy_Cluster_Score` | The superseded k-means output, kept for comparison.                                                                                                  |
 
 Ranking on hazard alone puts a drain in an empty lot level with one in the
 densest barangay in the city — exposure moves nine of the top twenty.

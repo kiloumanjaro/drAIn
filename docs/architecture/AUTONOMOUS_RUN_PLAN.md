@@ -303,10 +303,10 @@ Evaluated against the local database on 2026-09-28. Item 2 of that evaluation is
 
 **Needs you.**
 
-1. Recle has no population or density in the boundary data, so its 182 nodes (63 flood in the baseline) now show exposure and risk as "Unknown" instead of an invented 0.5. Add Recle's PSA census figures to the population GeoJSON (backend `data/`, frontend `public/additional-overlays/`) and the seed.
-2. Geocoding (2.D3): bring the hosted `geocodeWorker` edge function into the repo, or retire geocoding and drop `address`, `geocoded_status`, `geocode_worker_lock` and the trigger.
-3. `components/_unused/` (with the `/gallery` page) and `control-panel-portable/`: delete or keep. Both look deliberate, so they were left.
-4. The pickled k-means model (backend): retire the `Legacy_Cluster_*` fields (roadmap F), or export the model to plain arrays. sklearn warns the pickle was written by 1.6.1 and read by 1.9.1.
+1. Recle has no population or density in the boundary data, so its 182 nodes (63 flood in the baseline) now show exposure and risk as "Unknown" instead of an invented 0.5. Add Recle's PSA census figures to the population GeoJSON (backend `data/`, frontend `public/additional-overlays/`) and the seed. **Decided 2026-09-29: leave as is until there is data.**
+2. Geocoding (2.D3): bring the hosted `geocodeWorker` edge function into the repo, or retire geocoding and drop `address`, `geocoded_status`, `geocode_worker_lock` and the trigger. **Decided: brought in** (`supabase/functions/geocodeWorker`, frontend 63a5b75).
+3. `components/_unused/` (with the `/gallery` page) and `control-panel-portable/`: delete or keep. Both look deliberate, so they were left. **Decided: keep for now.**
+4. The pickled k-means model (backend): retire the `Legacy_Cluster_*` fields (roadmap F), or export the model to plain arrays. sklearn warns the pickle was written by 1.6.1 and read by 1.9.1. **Decided: retired** (backend eacb592): the fields, the pickle and scikit-learn are gone.
 5. Backend CORS: your Vercel team slug, to limit the preview-origin pattern to your deployments.
 6. Report photo uploads have no rate limit (anyone can upload many photos without filing reports); a fix needs signed upload URLs or an edge function.
 7. Still open from before: rotate the service-role key in the hosted geocode trigger; delete the stray `Project Drain/supabase/` folder.
