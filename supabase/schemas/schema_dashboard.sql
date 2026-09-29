@@ -15,9 +15,33 @@
 -- way); everything here builds on public.reports and public.maintenance.
 
 
--- The newest report on each component: what the map pins show.
+-- The newest report on each component: what the map pins show. Only the
+-- columns signed-out visitors may read (see the reports grants in
+-- schema.sql), so the map works the same signed in or out.
 CREATE OR REPLACE VIEW "public"."latest_report_per_component" WITH ("security_invoker"='true') AS
- SELECT DISTINCT ON ("reports"."component_id") "reports".*
+ SELECT DISTINCT ON ("reports"."component_id") "reports"."id",
+    "reports"."created_at",
+    "reports"."category",
+    "reports"."description",
+    "reports"."image",
+    "reports"."reporter_name",
+    "reports"."status",
+    "reports"."component_id",
+    "reports"."long",
+    "reports"."lat",
+    "reports"."geocoded_status",
+    "reports"."address",
+    "reports"."priority",
+    "reports"."zone",
+    "reports"."resolved_by_maintenance_id",
+    "reports"."resolved_image",
+    "reports"."resolved_at",
+    "reports"."photo_taken_at",
+    "reports"."photo_distance_m",
+    "reports"."reviewed_at",
+    "reports"."review_note",
+    "reports"."photo_check",
+    "reports"."review_status"
    FROM "public"."reports"
   WHERE (("reports"."component_id" IS NOT NULL) AND ("reports"."review_status" <> 'rejected'::"public"."report_review"))
   ORDER BY "reports"."component_id", "reports"."created_at" DESC;

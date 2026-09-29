@@ -41,8 +41,28 @@ export interface Report {
   photoTakenAt: string | null;
 }
 
-/** A reports row as the database returns it (and as realtime sends it). */
-export type ReportRow = Tables<'reports'>;
+/**
+ * Columns only signed-in users can read (column grants in schema.sql): who
+ * filed the report, where the reporter stood when taking the photo, and who
+ * reviewed it. Signed-out requests that name them fail, and realtime leaves
+ * them out of its payloads.
+ */
+type PrivateReportColumn =
+  | 'user_id'
+  | 'photo_lat'
+  | 'photo_lon'
+  | 'reviewed_by';
+
+/** Every other column: what the shared report lists select. */
+export const PUBLIC_REPORT_COLUMNS =
+  'id, created_at, category, description, image, reporter_name, status, component_id, long, lat, geocoded_status, address, priority, zone, resolved_by_maintenance_id, resolved_image, resolved_at, photo_taken_at, photo_distance_m, reviewed_at, review_note, photo_check, review_status' as const;
+
+/**
+ * A reports row as the database returns it (and as realtime sends it). The
+ * private columns are missing from public reads and signed-out realtime.
+ */
+export type ReportRow = Omit<Tables<'reports'>, PrivateReportColumn> &
+  Partial<Pick<Tables<'reports'>, PrivateReportColumn>>;
 
 export const uploadReport = async (
   file: File,
@@ -115,7 +135,7 @@ export const fetchAllReports = async (): Promise<Report[]> => {
     const rows = await fetchAllRows((from, to) =>
       client
         .from('reports')
-        .select('*')
+        .select(PUBLIC_REPORT_COLUMNS)
         .neq('review_status', 'rejected')
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })
@@ -214,7 +234,7 @@ export const fetchReportsForComponent = async (
 ): Promise<Report[]> => {
   const { data, error } = await client
     .from('reports')
-    .select('*')
+    .select(PUBLIC_REPORT_COLUMNS)
     .eq('component_id', componentId)
     .order('created_at', { ascending: true });
 
@@ -301,7 +321,7 @@ export const formatReport = (report: ReportRow): Report => {
     resolvedImage: resolvedImageUrl || null,
     resolvedAt: report.resolved_at,
     priority: report.priority,
-    userId: report.user_id,
+    userId: report.user_id ?? null,
     reviewStatus: report.review_status,
     reviewNote: report.review_note,
     photoCheck: report.photo_check,

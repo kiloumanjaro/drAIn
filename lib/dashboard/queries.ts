@@ -1,6 +1,10 @@
 import client from '@/lib/supabase/client';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import { formatReport, type Report } from '@/lib/supabase/report';
+import {
+  formatReport,
+  PUBLIC_REPORT_COLUMNS,
+  type Report,
+} from '@/lib/supabase/report';
 import type { ComponentType } from '@/lib/supabase/enums';
 
 /*
@@ -237,7 +241,7 @@ export async function getAllReports(): Promise<ReportWithMetadata[]> {
     const reports = await fetchAllRows((from, to) =>
       client
         .from('reports')
-        .select('*')
+        .select(PUBLIC_REPORT_COLUMNS)
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
         .range(from, to)

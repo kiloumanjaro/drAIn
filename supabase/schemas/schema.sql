@@ -1493,7 +1493,9 @@ GRANT ALL ON SEQUENCE "public"."man_pipes_gid_seq" TO "service_role";
 
 
 
-GRANT SELECT ON TABLE "public"."maintenance" TO "anon";
+-- Signed-out visitors don't see which staff member did the work.
+REVOKE ALL ON TABLE "public"."maintenance" FROM "anon";
+GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "anon";
 GRANT SELECT ON TABLE "public"."maintenance" TO "authenticated";
 GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
 -- Default privileges grant ALL; writes go through record_maintenance only.
@@ -1527,7 +1529,12 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 
 
 REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
-GRANT SELECT, INSERT ON TABLE "public"."reports" TO "anon";
+-- Signed-out visitors read every column except who filed the report
+-- (user_id), where the reporter stood (photo_lat/photo_lon) and which staff
+-- member reviewed it (reviewed_by). A new column is hidden from them until
+-- it is added here; realtime leaves ungranted columns out of its payloads.
+GRANT INSERT ON TABLE "public"."reports" TO "anon";
+GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
 GRANT SELECT, INSERT ON TABLE "public"."reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."reports" TO "service_role";
 

@@ -742,8 +742,6 @@ export type Database = {
             | Database['public']['Enums']['photo_location_check']
             | null;
           photo_distance_m: number | null;
-          photo_lat: number | null;
-          photo_lon: number | null;
           photo_taken_at: string | null;
           priority: Database['public']['Enums']['report_priority'] | null;
           reporter_name: string | null;
@@ -753,9 +751,7 @@ export type Database = {
           review_note: string | null;
           review_status: Database['public']['Enums']['report_review'] | null;
           reviewed_at: string | null;
-          reviewed_by: string | null;
           status: Database['public']['Enums']['report_status'] | null;
-          user_id: string | null;
           zone: string | null;
         };
         Relationships: [
@@ -778,13 +774,6 @@ export type Database = {
             columns: ['resolved_by_maintenance_id'];
             isOneToOne: false;
             referencedRelation: 'maintenance';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'reports_reviewed_by_fkey';
-            columns: ['reviewed_by'];
-            isOneToOne: false;
-            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
         ];
