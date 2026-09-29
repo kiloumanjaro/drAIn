@@ -130,12 +130,12 @@ interface SimulationResponse {
     out_file: string; // the SWMM binary output file
     model_file: string; // the network model (.inp) that was run
     event_hours: number; // length of the simulated event, in hours
-    inconsistent_nodes: unknown; // nodes whose figures did not agree
+    inconsistent_nodes: number; // nodes the report floods but the output does not
+    exposure_basis_counts: { inside: number; nearest: number; unknown: number };
+    model_info: ModelInfo; // what the ratings can claim; see lib/simulation-api/model-info.ts
     scoring: unknown; // the settings behind the three ratings
-    structure_info: unknown; // about the network that was run
   };
-  nodes_list: NodeSimulationResult[]; // for iteration
-  nodes_dict: Record<string, NodeSimulationResult>; // for lookup by node ID
+  nodes_list: NodeSimulationResult[]; // one row per node
 }
 ```
 
