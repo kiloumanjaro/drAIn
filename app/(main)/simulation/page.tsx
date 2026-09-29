@@ -182,6 +182,9 @@ export default function SimulationPage() {
 
   // Slideshow state
   const [slideshowNode, setSlideshowNode] = useState<string | null>(null);
+  // Set when Mapbox can't start (no token, no WebGL); the rest of the page
+  // still works.
+  const [mapError, setMapError] = useState<string | null>(null);
   const [slideshowNodeData, setSlideshowNodeData] =
     useState<NodeDetails | null>(null);
   const [slideshowAllData, setSlideshowAllData] = useState<
@@ -304,16 +307,26 @@ export default function SimulationPage() {
 
     // Only initialize map after sidebar is closed to ensure proper sizing
     if (mapContainerRef.current && !mapRef.current && !open) {
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: SIMULATION_MAP_STYLE,
-        center: DEFAULT_CENTER,
-        zoom: DEFAULT_ZOOM,
-        maxBounds: MAP_BOUNDS,
-        pitch: SIMULATION_PITCH,
-        bearing: SIMULATION_BEARING,
-        attributionControl: false,
-      });
+      let map: mapboxgl.Map;
+      try {
+        map = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: SIMULATION_MAP_STYLE,
+          center: DEFAULT_CENTER,
+          zoom: DEFAULT_ZOOM,
+          maxBounds: MAP_BOUNDS,
+          pitch: SIMULATION_PITCH,
+          bearing: SIMULATION_BEARING,
+          attributionControl: false,
+        });
+      } catch (error) {
+        // It used to throw out of the effect and take the whole page down.
+        console.error('Failed to initialize map:', error);
+        setMapError(
+          'The map could not start. Reload the page, or check the Mapbox token.'
+        );
+        return;
+      }
       mapRef.current = map;
 
       const addCustomLayers = () => addSimulationLayers(map);
@@ -1263,6 +1276,11 @@ export default function SimulationPage() {
             className="h-full w-full"
             style={{ backgroundColor: '#1e1e1e' }}
           />
+          {mapError && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center p-8 text-center text-sm text-white/80">
+              {mapError}
+            </div>
+          )}
 
           {/* Grey overlay when simulation is not active */}
           {!isSimulationActive && (
