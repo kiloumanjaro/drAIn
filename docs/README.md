@@ -1,6 +1,6 @@
 # drAIn Documentation
 
-Welcome to the comprehensive documentation for drAIn - an AI/machine learning-powered platform for flood resilience and urban drainage system management.
+Welcome to the comprehensive documentation for drAIn - a SWMM-based simulation and citizen-reporting platform for flood resilience and urban drainage system management.
 
 ## Documentation Structure
 

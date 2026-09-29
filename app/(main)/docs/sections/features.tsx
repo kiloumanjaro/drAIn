@@ -67,7 +67,7 @@ export function FeaturesSection({
             icon: Zap,
             features: [
               'Static model with pre-simulated data',
-              'Dynamic model with real-time adjustments',
+              'Adjustable parameters with on-demand re-simulation',
               'Flood hazard classification (No Risk to High)',
               'What-if scenario analysis',
             ],

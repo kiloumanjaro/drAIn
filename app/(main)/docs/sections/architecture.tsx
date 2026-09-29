@@ -30,7 +30,7 @@ export function ArchitectureSection() {
             description:
               'Python FastAPI for simulation processing, SWMM hydrological modeling, and flood hazard scoring weighted by population exposure',
             tooltip:
-              'API server handling flood simulations, data processing, and machine learning computations',
+              'API server handling SWMM flood simulations and hazard scoring',
           },
           {
             icon: Database,

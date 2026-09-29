@@ -2,7 +2,7 @@
 
 ## Overview
 
-drAIn is a modern full-stack web application built with Next.js 15, featuring real-time data synchronization, 3D visualization, and AI-powered flood prediction. The system integrates multiple technologies to provide a comprehensive urban drainage management platform.
+drAIn is a modern full-stack web application built with Next.js 15, featuring real-time data synchronization, 3D visualization, and SWMM flood simulation with an AI chat assistant. The system integrates multiple technologies to provide a comprehensive urban drainage management platform.
 
 ## High-Level Architecture
 
@@ -154,7 +154,7 @@ Each loaded via custom hooks (useInlets, usePipes, etc.)
 2. **Railway (Simulation Backend)**
    - FastAPI application
    - SWMM (Storm Water Management Model) integration
-   - Machine learning prediction models
+   - Hazard scoring of simulated flooding (a k-means model is kept only for legacy fields)
    - Python/PySWMM runtime
 
 3. **Mapbox GL**

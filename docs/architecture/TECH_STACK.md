@@ -232,7 +232,7 @@ Complete breakdown of all technologies, libraries, and tools used in the drAIn p
 - **Models**: K-Means clustering, kept only for the legacy `Legacy_Cluster_*`
   fields. It no longer does the rating: that is a transparent hazard score
   (flood volume, duration, peak rate) weighted by population exposure.
-- **Purpose**: Flood prediction and risk assessment
+- **Purpose**: Legacy comparison only; no longer used for the rating
 - **Why**: Industry standard, well-documented
 
 ## Simulation

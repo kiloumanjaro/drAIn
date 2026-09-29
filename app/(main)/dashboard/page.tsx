@@ -61,7 +61,7 @@ export default function DashboardPage() {
               System Analytics & Overview
             </h2>
             <p className="text-muted-foreground text-sm">
-              Real-time monitoring and analysis of the drainage system
+              Live citizen reports and repair tracking for the drainage system
               infrastructure.
             </p>
             {/* Stats Cards */}

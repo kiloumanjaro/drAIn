@@ -368,7 +368,7 @@ ORDER BY report_count DESC;
 ## Advantages
 
 ✅ **Works immediately** - All reports have coordinates
-✅ **100% accurate** - Uses actual geographic boundaries
+✅ **Boundary-based** - Uses actual geographic boundaries
 ✅ **No external dependencies** - No API calls needed
 ✅ **Fast** - Spatial index enables O(log n) lookups
 ✅ **Free** - PostGIS is included with most Supabase plans

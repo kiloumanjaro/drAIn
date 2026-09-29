@@ -19,7 +19,8 @@ export function OverviewSection() {
       <div className="mb-5 ml-2">
         <h2 className="mb-1 text-xl font-semibold text-gray-900">Overview</h2>
         <p className="text-muted-foreground text-sm">
-          AI-driven urban flood intelligence — what drAin is and why it matters.
+          Simulated urban flood risk and community reporting — what drAin is and
+          why it matters.
         </p>
       </div>
 
@@ -29,10 +30,9 @@ export function OverviewSection() {
           {
             icon: Droplets,
             title: 'SWMM Integration',
-            description:
-              'Hydrological modeling for accurate drainage network simulation',
+            description: 'Hydrological modeling of the drainage network',
             tooltip:
-              'Uses Storm Water Management Model for accurate rainfall-runoff simulation',
+              'Uses the Storm Water Management Model (SWMM) for rainfall-runoff simulation',
           },
           {
             icon: Target,
@@ -45,8 +45,7 @@ export function OverviewSection() {
           {
             icon: Users,
             title: 'Citizen Engagement',
-            description:
-              'Real-time reporting and monitorin capabilities for communities',
+            description: 'Live community reporting of drainage problems',
             tooltip:
               'Citizens can report issues and track drainage system status in real-time',
           },

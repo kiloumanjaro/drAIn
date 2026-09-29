@@ -28,7 +28,7 @@ export function SimulationSection() {
           <div className="space-y-2">
             {[
               'Node flooding summaries',
-              'Predicted time to overflow',
+              'Simulated time to overflow',
               'Flood hazard classifications',
               'Multiple rainfall return periods',
               'Color-coded flood hazard layers',
@@ -60,7 +60,7 @@ export function SimulationSection() {
               'Adjust node elevations',
               'Change conduit dimensions',
               'Alter flow capacity',
-              'Real-time flood hazard updates',
+              'Updated hazard results after each run',
               'What-if scenario analysis',
             ].map((feature, idx) => (
               <div
@@ -81,7 +81,7 @@ export function SimulationSection() {
             icon: Gauge,
             title: 'No Risk',
             description:
-              'Drainage nodes with no predicted flooding under simulated rainfall conditions',
+              'Drainage nodes with no simulated flooding under the chosen rainfall',
             tooltip:
               'No overflow under this storm. Not a guarantee the location is safe',
             iconColor: 'text-green-500',

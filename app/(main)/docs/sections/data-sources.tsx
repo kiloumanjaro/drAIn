@@ -17,7 +17,8 @@ export function DataSourcesSection() {
           Data Sources
         </h2>
         <p className="text-muted-foreground text-sm">
-          Satellite and field datasets used for modeling and analysis.
+          Published research, rainfall, elevation and drainage datasets used for
+          modeling and analysis.
         </p>
       </div>
 
@@ -60,7 +61,8 @@ export function DataSourcesSection() {
             title: 'Node Flooding',
             description:
               'Flood simulation results derived from SWMM hydrological modeling',
-            tooltip: 'Computed flooding predictions for drainage network nodes',
+            tooltip:
+              'Simulated flooding at drainage network nodes under design storms',
           },
           {
             icon: Database,
@@ -76,7 +78,7 @@ export function DataSourcesSection() {
         {[
           'Enhanced spatial accuracy with DEM',
           'Real-world surface characteristics',
-          'Up-to-date precipitation measurements',
+          'Design-storm rainfall from published rainfall-intensity curves',
           'Reduced data collection costs',
           'Support for continuous model updates',
         ].map((benefit, idx) => (

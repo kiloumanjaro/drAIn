@@ -28,7 +28,7 @@ export function LimitationsSection() {
             icon: Database,
             title: 'Data Dependency',
             description:
-              'Accuracy depends on quality of satellite data and drainage information.',
+              'Results depend on the quality of the drainage network and rainfall data, and the model has not yet been calibrated against field records.',
             tooltip: 'Results are only as reliable as the input datasets',
           },
           {

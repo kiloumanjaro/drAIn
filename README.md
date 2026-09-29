@@ -17,7 +17,7 @@
   <br />
   <p align="center">
     <br />
-      Predict, Simulate, and Strengthen Urban Drainage Systems
+      Simulate, Assess, and Strengthen Urban Drainage Systems
     <br />
     <br />
     <p align="center">
@@ -55,16 +55,16 @@
 
 ## 🗺️ Project Overview
 
-**drAIn** is an **AI/machine learning - powered platform for flood resilience**. It is designed to help engineers, planners, and local governments **predict, simulate, and strengthen urban drainage systems**.
+**drAIn** is a **SWMM-based simulation and citizen-reporting platform for flood resilience**. It is designed to help engineers, planners, and local governments **simulate, assess, and strengthen urban drainage systems**. Its hazard ratings come from a simulation that has not yet been calibrated against field records, so treat them as a way to compare places, not as forecasts.
 
-The project moves beyond simple hazard mapping by integrating **SWMM-based (Storm Water Management Model) hydraulic simulations** with **AI-driven analytics** and **community participation**. It transforms complex flood data into actionable insights to support proactive maintenance, infrastructure upgrades, and data-driven resilience planning.
+The project moves beyond simple hazard mapping by integrating **SWMM-based (Storm Water Management Model) hydraulic simulations** with a **transparent hazard score** and **community participation**. It transforms complex flood data into actionable insights to support proactive maintenance, infrastructure upgrades, and data-driven resilience planning.
 
 ### 💡 Why drAIn?
 
 Urban flooding is a critical problem, often caused by heavy rainfall and poor drainage maintenance. While many existing tools focus on flood hazard mapping or risk assessment, they often remain theoretical. They typically lack real-time data integration, community participation, and operational decision support.
 
 - 🧠 **Flood Hazard and Risk Ranking:** Scores each drainage component by how severely it floods in simulation (flood volume, how long it stays flooded, peak rate), using a transparent hazard score rather than clustering. That hazard is then weighted by how many people live nearby, so work lists rank on risk, not on flooding alone.
-- 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to simulate the impact of rainfall or structural changes in real time.
+- 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to re-run the simulation on demand with changed rainfall or structural parameters.
 - 👥 **Community Participation:** Incorporates citizen reporting, allowing communities to contribute real-world drainage data for model validation and maintenance tracking.
 - 📊 **Actionable Intelligence:** Converts complex simulation data into clear, actionable intelligence for engineers and planners to make informed decisions.
 

@@ -41,7 +41,7 @@ export function UsersSection() {
             icon: AlertCircle,
             title: 'Disaster Risk Reduction',
             description:
-              'Run rainfall simulations to predict overflow areas, generate early warnings, and allocate emergency resources effectively',
+              'Run rainfall simulations to see which areas are likely to overflow under design storms, and plan maintenance and emergency resources around them',
             tooltip: 'Prepare early warnings and allocate emergency resources',
           },
           {
