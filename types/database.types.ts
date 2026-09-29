@@ -60,28 +60,28 @@ export type Database = {
           boundary: unknown;
           created_at: string | null;
           id: number;
-          land_area: string | null;
+          land_area: number | null;
           name: string;
-          population_count: string | null;
-          population_density: string | null;
+          population_count: number | null;
+          population_density: number | null;
         };
         Insert: {
           boundary: unknown;
           created_at?: string | null;
           id?: number;
-          land_area?: string | null;
+          land_area?: number | null;
           name: string;
-          population_count?: string | null;
-          population_density?: string | null;
+          population_count?: number | null;
+          population_density?: number | null;
         };
         Update: {
           boundary?: unknown;
           created_at?: string | null;
           id?: number;
-          land_area?: string | null;
+          land_area?: number | null;
           name?: string;
-          population_count?: string | null;
-          population_density?: string | null;
+          population_count?: number | null;
+          population_density?: number | null;
         };
         Relationships: [];
       };

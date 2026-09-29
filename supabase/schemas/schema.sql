@@ -388,9 +388,9 @@ CREATE TABLE IF NOT EXISTS "public"."barangay_boundaries" (
     "id" integer NOT NULL,
     "name" character varying(255) NOT NULL,
     "boundary" "extensions"."geography"(Polygon,4326) NOT NULL,
-    "population_count" character varying(50),
-    "population_density" character varying(50),
-    "land_area" character varying(50),
+    "population_count" integer,
+    "population_density" numeric, -- people per km²
+    "land_area" numeric, -- km²
     "created_at" timestamp without time zone DEFAULT "now"()
 );
 

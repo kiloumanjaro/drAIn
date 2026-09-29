@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(11);
+select plan(13);
 
 select hasnt_table('public', '5YR', 'the eight per-period flood tables are gone');
 
@@ -67,5 +67,13 @@ select is(
 );
 
 reset role;
+-- Barangay figures are numbers (run plan 2.4), not text like '4,387'.
+select col_type_is('public', 'barangay_boundaries', 'population_count', 'integer', 'population is an integer');
+select is(
+  (select population_count from public.barangay_boundaries where name = 'Bakilid'),
+  4387,
+  'the seeded figures survive as numbers'
+);
+
 select * from finish();
 rollback;
