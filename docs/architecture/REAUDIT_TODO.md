@@ -51,7 +51,7 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [backend] [med] [S] drain/flooding.py:120 — barangay matching of ~1,400 nodes recomputed per request against static data — cache node→exposure once. (Overlaps 2.12, do together.) — done: 2.12 (backend 8ba5d1a)
 - [ ] [backend] [med] [S] drain/vulnerability.py:323 — `pickle.load` of the legacy k-means model on every startup (runs any code in the file) — export to JSON/npz or drop the legacy fields. Needs user if dropping `Legacy_Cluster_*`.
 - [x] [docs] [med] [M] docs/README.md:3, docs/architecture/SYSTEM*ARCHITECTURE.md:5,157, docs/architecture/TECH_STACK.md:219-235, docs/features/POSTGIS*\*.md — "AI/ML-powered", "flood prediction", "99%/100% accurate" with nothing behind them — same wording as 2.9. — done: 2.9 (2b6a0ee)
-- [ ] [tooling] [med] [S] frontend `.gitignore:50` — `playwright.config.ts` is ignored, which is why `e2e/` has specs and no config — un-ignore and commit a minimal config (Phase 4 needs it anyway).
+- [x] [tooling] [med] [S] frontend `.gitignore:50` — `playwright.config.ts` is ignored, which is why `e2e/` has specs and no config — un-ignore and commit a minimal config (Phase 4 needs it anyway). — done: Phase 3; all 27 e2e specs pass locally (`pnpm test:e2e`)
 - [x] [tooling] [med] [S] frontend `BACKEND-DrAin` — a git submodule (`.gitmodules` → github.com/4Chronosx/drAIn) with an empty checkout; nothing references it — remove with 2.8. — done: 2.8 (5344cb8)
 
 ## Low
@@ -69,7 +69,7 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [low] [S] components/control-panel/components/link-bar.tsx:22 — favourite star is local-only; popover always says "Jupyter Notebook" — remove star, fix text. — done: Phase 3
 - [x] [frontend] [low] [S] components/control-panel/tabs/maintenance.tsx:765 — says photos "must" have GPS and be under 12 h old, but unverifiable photos are accepted and marked — reword. — done: Phase 3
 - [x] [frontend] [low] [S] components/dashboard/analytics/component-type-chart.tsx:145,166 — "NaN%" when all counts are 0 — guard. — done: Phase 3
-- [ ] [frontend] [low] [S] lib/supabase/report.ts:136,215 — `fetchMyReports`, `fetchReportsForComponent` unpaged (filtered, so only an edge case) — `fetchAllRows`.
+- [x] [frontend] [low] [S] lib/supabase/report.ts:136,215 — `fetchMyReports`, `fetchReportsForComponent` unpaged (filtered, so only an edge case) — `fetchAllRows`. — done: Phase 3
 - [ ] [backend] [low] [S] app/jobs.py:282 — raw exception text returned to the client and stored (may contain server paths) — generic message; details stay in the log.
 - [ ] [backend] [low] [S] app/config.py:91 — preview-origin regex accepts anyone's `drain-*.vercel.app`, with `allow_credentials=True` though auth is a Bearer header — drop `allow_credentials`; tie the regex to the team slug (needs user: slug).
 - [x] [backend] [low] [S] app/runs.py:207 — recorder queue unbounded — `maxsize`, log drops. (With 2.17.) — done: 2.17 (backend d8e3b75)

@@ -174,17 +174,22 @@ export const fetchReportList = async ({
  * rejected, so they can see why.
  */
 export const fetchMyReports = async (userId: string): Promise<Report[]> => {
-  const { data, error } = await client
-    .from('reports')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
+  try {
+    // Paged like every list that can grow past the API's 1,000-row limit.
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('reports')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+    );
+    return rows.map(formatReport);
+  } catch (error) {
     console.error('Error fetching your reports:', error);
     throw error;
   }
-  return (data ?? []).map(formatReport);
 };
 
 /**
@@ -255,17 +260,21 @@ export const fetchMyResolutionVerdicts = async (
 export const fetchReportsForComponent = async (
   componentId: string
 ): Promise<Report[]> => {
-  const { data, error } = await client
-    .from('reports')
-    .select(PUBLIC_REPORT_COLUMNS)
-    .eq('component_id', componentId)
-    .order('created_at', { ascending: true });
-
-  if (error) {
+  try {
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('reports')
+        .select(PUBLIC_REPORT_COLUMNS)
+        .eq('component_id', componentId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    return rows.map(formatReport);
+  } catch (error) {
     console.error('Error fetching reports for component:', error);
     throw error;
   }
-  return (data ?? []).map(formatReport);
 };
 
 /**
