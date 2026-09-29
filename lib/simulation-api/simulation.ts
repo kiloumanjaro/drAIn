@@ -81,15 +81,20 @@ export interface NodeSimulationResult {
   Vulnerability_Category: string;
   Vulnerability_Score: number;
   /**
-   * Exposure: roughly how many people are around it. Always sent; the
-   * barangay and its density are null for a node outside every barangay.
+   * Exposure: roughly how many people are around it. From the barangay the
+   * node is in, or the nearest one within 250 m (see Exposure_Basis).
    */
   Barangay: string | null;
   Population_Density: number | null;
-  /** 0-1. Never null. */
-  Exposure_Score: number;
-  /** Hazard x exposure. What a work list should rank on. */
-  Risk_Score: number;
+  /**
+   * 0-1, or null when the population around the node isn't known (outside
+   * every barangay, or in one with no published figure, such as Recle).
+   */
+  Exposure_Score: number | null;
+  /** How the barangay was found. Older servers don't send it. */
+  Exposure_Basis?: 'inside' | 'nearest' | 'unknown';
+  /** Hazard x exposure. What a work list should rank on. Null with exposure. */
+  Risk_Score: number | null;
 }
 
 export interface SimulationResponse {

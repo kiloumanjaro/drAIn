@@ -35,7 +35,10 @@ export interface NodeDetails {
    */
   Barangay?: string | null;
   Population_Density?: number | null;
-  /** 0-1, from the population density of the barangay the node sits in. */
+  /**
+   * 0-1, from the population density of the barangay the node sits in.
+   * null on a live result when that density isn't known.
+   */
   Exposure_Score?: number | null;
   /** Hazard x exposure. Rank work lists on this, not on hazard alone. */
   Risk_Score?: number | null;
