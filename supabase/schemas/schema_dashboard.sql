@@ -197,13 +197,14 @@ REVOKE ALL ON FUNCTION "public"."maintenance_history"("p_component_name" "text")
 GRANT EXECUTE ON FUNCTION "public"."maintenance_history"("p_component_name" "text") TO "authenticated", "service_role";
 
 
--- Read models are read-only. The default privileges in schema.sql grant ALL
--- on every new view, and report_repair_days is simple enough to be
--- updatable, so take writes back explicitly.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."latest_report_per_component" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."report_counts_by_component" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."report_counts_by_zone" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."report_counts_by_category" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."report_repair_days" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."repair_time_by_component" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."team_performance" FROM "anon", "authenticated";
+-- Read models are read-only. New objects get no client privileges by
+-- default (see the end of schema.sql), so each is granted here.
+GRANT EXECUTE ON FUNCTION "public"."repair_trend"("p_days" integer) TO "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION "public"."dashboard_overview"("p_month_start" timestamp with time zone) TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."latest_report_per_component" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."report_counts_by_component" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."report_counts_by_zone" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."report_counts_by_category" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."report_repair_days" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."repair_time_by_component" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."team_performance" TO "anon", "authenticated";

@@ -6,16 +6,26 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(16);
+select plan(21);
 
 -- Signed-out visitors -------------------------------------------------------
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 
-update public.reports set description = 'vandalised'
-where id = '00000000-0000-4000-b000-000000000003';
-delete from public.reports where id = '00000000-0000-4000-b000-000000000003';
+-- No UPDATE/DELETE privilege at all (run plan 2.D1), so these are refused
+-- outright rather than filtered to zero rows by RLS.
+select throws_ok(
+  $$update public.reports set description = 'vandalised'
+    where id = '00000000-0000-4000-b000-000000000003'$$,
+  '42501', null,
+  'anon has no update privilege on reports'
+);
+select throws_ok(
+  $$delete from public.reports where id = '00000000-0000-4000-b000-000000000003'$$,
+  '42501', null,
+  'anon has no delete privilege on reports'
+);
 
 select is(
   (select description from public.reports where id = '00000000-0000-4000-b000-000000000003'),
@@ -71,8 +81,12 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000003","role":"authenticated"}';
 
-update public.reports set status = 'resolved'
-where id = '00000000-0000-4000-b000-000000000003';
+select throws_ok(
+  $$update public.reports set status = 'resolved'
+    where id = '00000000-0000-4000-b000-000000000003'$$,
+  '42501', null,
+  'a citizen has no update privilege on reports'
+);
 
 select is(
   (select status::text from public.reports where id = '00000000-0000-4000-b000-000000000003'),
@@ -99,8 +113,12 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
 
-update public.reports set status = 'in-progress'
-where id = '00000000-0000-4000-b000-000000000003';
+select throws_ok(
+  $$update public.reports set status = 'in-progress'
+    where id = '00000000-0000-4000-b000-000000000003'$$,
+  '42501', null,
+  'staff have no update privilege on reports'
+);
 
 select is(
   (select status::text from public.reports where id = '00000000-0000-4000-b000-000000000003'),
@@ -108,7 +126,11 @@ select is(
   'not even staff edit reports directly; status changes go through record_maintenance'
 );
 
-delete from public.reports where id = '00000000-0000-4000-b000-000000000003';
+select throws_ok(
+  $$delete from public.reports where id = '00000000-0000-4000-b000-000000000003'$$,
+  '42501', null,
+  'staff have no delete privilege on reports'
+);
 
 select isnt_empty(
   $$select 1 from public.reports where id = '00000000-0000-4000-b000-000000000003'$$,

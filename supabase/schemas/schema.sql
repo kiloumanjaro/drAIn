@@ -149,40 +149,6 @@ CREATE TYPE "public"."review_verdict" AS ENUM (
 ALTER TYPE "public"."review_verdict" OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) RETURNS character varying
-    LANGUAGE "plpgsql" STABLE
-    SET "search_path" TO 'public', 'extensions'
-    AS $$
-DECLARE
-  matched_barangay VARCHAR(255);
-BEGIN
-  -- Validate inputs
-  IF longitude IS NULL OR latitude IS NULL THEN
-    RETURN NULL;
-  END IF;
-
-  -- Find which barangay polygon contains this point
-  -- Using ST_Contains with geometry casting for efficient spatial queries
-  SELECT name INTO matched_barangay
-  FROM barangay_boundaries
-  WHERE ST_Contains(
-    boundary::geometry,
-    ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geometry
-  )
-  LIMIT 1;
-
-  -- If no barangay found, return "Outside Mandaue" catch-all
-  IF matched_barangay IS NULL THEN
-    RETURN 'Outside Mandaue';
-  END IF;
-
-  RETURN matched_barangay;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) OWNER TO "postgres";
-
 
 -- Creates the profiles row for every new account. Everyone starts as a
 -- citizen: sign-up metadata is written by the client, so only full_name is
@@ -230,14 +196,15 @@ $$;
 ALTER FUNCTION "public"."protect_profile_privileges"() OWNER TO "postgres";
 
 
+-- SECURITY DEFINER so the lookup in private needs no grant to API roles.
 CREATE OR REPLACE FUNCTION "public"."update_report_zone"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    SET "search_path" TO 'public', 'extensions'
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
     AS $$
 BEGIN
   -- Extract zone from coordinates (not address)
   IF NEW.long IS NOT NULL AND NEW.lat IS NOT NULL THEN
-    NEW.zone := extract_barangay_from_coordinates(NEW.long, NEW.lat);
+    NEW.zone := private.extract_barangay_from_coordinates(NEW.long, NEW.lat);
   ELSE
     NEW.zone := NULL;
   END IF;
@@ -974,6 +941,42 @@ CREATE SCHEMA IF NOT EXISTS "private";
 GRANT USAGE ON SCHEMA "private" TO "anon", "authenticated", "service_role";
 
 
+-- Only the zone trigger (update_report_zone) uses this.
+CREATE OR REPLACE FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) RETURNS character varying
+    LANGUAGE "plpgsql" STABLE
+    SET "search_path" TO 'public', 'extensions'
+    AS $$
+DECLARE
+  matched_barangay VARCHAR(255);
+BEGIN
+  -- Validate inputs
+  IF longitude IS NULL OR latitude IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  -- Find which barangay polygon contains this point
+  -- Using ST_Contains with geometry casting for efficient spatial queries
+  SELECT name INTO matched_barangay
+  FROM barangay_boundaries
+  WHERE ST_Contains(
+    boundary::geometry,
+    ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geometry
+  )
+  LIMIT 1;
+
+  -- If no barangay found, return "Outside Mandaue" catch-all
+  IF matched_barangay IS NULL THEN
+    RETURN 'Outside Mandaue';
+  END IF;
+
+  RETURN matched_barangay;
+END;
+$$;
+
+
+ALTER FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) OWNER TO "postgres";
+
+
 -- The caller's agency if they are staff or admin, else null. Policies use it
 -- as `(select private.current_agency_id())` so it runs once per query.
 CREATE OR REPLACE FUNCTION "private"."current_agency_id"() RETURNS "uuid"
@@ -1341,9 +1344,8 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) TO "anon";
-GRANT ALL ON FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) TO "service_role";
+REVOKE ALL ON FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) FROM PUBLIC, "anon", "authenticated";
+GRANT ALL ON FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) TO "service_role";
 
 
 
@@ -1362,38 +1364,34 @@ GRANT ALL ON FUNCTION "public"."extract_barangay_from_coordinates"("longitude" d
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
+-- Trigger functions: triggers fire without EXECUTE, and nothing calls
+-- these through the API.
+REVOKE ALL ON FUNCTION "public"."handle_new_user"() FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "anon";
-GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."protect_profile_privileges"() FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "public"."protect_profile_privileges"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "anon";
-GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."set_reporter_name"() FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "public"."set_reporter_name"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "anon";
-GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."sync_reporter_name"() FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "public"."sync_reporter_name"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
-GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."set_updated_at"() FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."update_report_zone"() TO "anon";
-GRANT ALL ON FUNCTION "public"."update_report_zone"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_report_zone"() FROM PUBLIC, "anon", "authenticated";
 GRANT ALL ON FUNCTION "public"."update_report_zone"() TO "service_role";
 
 
@@ -1432,23 +1430,25 @@ GRANT SELECT ON TABLE "public"."flood_results" TO "anon";
 GRANT SELECT ON TABLE "public"."flood_results" TO "authenticated";
 GRANT ALL ON TABLE "public"."flood_results" TO "service_role";
 -- Reference data: the default privileges grant ALL; clients only read.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."components" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."component_locations" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."flood_results" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."components" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."component_locations" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."flood_results" FROM "anon", "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."agencies" TO "anon";
-GRANT ALL ON TABLE "public"."agencies" TO "authenticated";
+-- Client table privileges are only what the app uses: revoke what
+-- Supabase's defaults granted, then grant back. RLS still filters on top;
+-- the grants also stop TRUNCATE, which RLS doesn't cover.
+REVOKE ALL ON TABLE "public"."agencies" FROM "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."agencies" TO "anon";
+GRANT SELECT ON TABLE "public"."agencies" TO "authenticated";
 GRANT ALL ON TABLE "public"."agencies" TO "service_role";
 
 
 
 GRANT SELECT ON TABLE "public"."barangay_boundaries" TO "anon";
 GRANT SELECT ON TABLE "public"."barangay_boundaries" TO "authenticated";
--- The default privileges at the end of this file grant ALL on every new
--- table; take the writes back explicitly.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."barangay_boundaries" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."barangay_boundaries" FROM "anon", "authenticated";
 REVOKE ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."barangay_boundaries" TO "service_role";
 
@@ -1458,20 +1458,19 @@ GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "anon";
-GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "authenticated";
+REVOKE ALL ON TABLE "public"."geocode_worker_lock" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."inlets" TO "anon";
-GRANT ALL ON TABLE "public"."inlets" TO "authenticated";
+REVOKE ALL ON TABLE "public"."inlets" FROM "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."inlets" TO "anon";
+GRANT SELECT ON TABLE "public"."inlets" TO "authenticated";
 GRANT ALL ON TABLE "public"."inlets" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."inlets_gid_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."inlets_gid_seq" TO "authenticated";
+REVOKE ALL ON SEQUENCE "public"."inlets_gid_seq" FROM "anon", "authenticated";
 GRANT ALL ON SEQUENCE "public"."inlets_gid_seq" TO "service_role";
 
 
@@ -1479,14 +1478,14 @@ GRANT ALL ON SEQUENCE "public"."inlets_gid_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."man_pipes" TO "anon";
-GRANT ALL ON TABLE "public"."man_pipes" TO "authenticated";
+REVOKE ALL ON TABLE "public"."man_pipes" FROM "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."man_pipes" TO "anon";
+GRANT SELECT ON TABLE "public"."man_pipes" TO "authenticated";
 GRANT ALL ON TABLE "public"."man_pipes" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."man_pipes_gid_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."man_pipes_gid_seq" TO "authenticated";
+REVOKE ALL ON SEQUENCE "public"."man_pipes_gid_seq" FROM "anon", "authenticated";
 GRANT ALL ON SEQUENCE "public"."man_pipes_gid_seq" TO "service_role";
 
 
@@ -1498,18 +1497,18 @@ GRANT SELECT ON TABLE "public"."maintenance" TO "anon";
 GRANT SELECT ON TABLE "public"."maintenance" TO "authenticated";
 GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
 -- Default privileges grant ALL; writes go through record_maintenance only.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."maintenance" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."outlets" TO "anon";
-GRANT ALL ON TABLE "public"."outlets" TO "authenticated";
+REVOKE ALL ON TABLE "public"."outlets" FROM "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."outlets" TO "anon";
+GRANT SELECT ON TABLE "public"."outlets" TO "authenticated";
 GRANT ALL ON TABLE "public"."outlets" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."outlets_gid_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."outlets_gid_seq" TO "authenticated";
+REVOKE ALL ON SEQUENCE "public"."outlets_gid_seq" FROM "anon", "authenticated";
 GRANT ALL ON SEQUENCE "public"."outlets_gid_seq" TO "service_role";
 
 
@@ -1517,8 +1516,9 @@ GRANT ALL ON SEQUENCE "public"."outlets_gid_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."profiles" TO "anon";
-GRANT ALL ON TABLE "public"."profiles" TO "authenticated";
+REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."profiles" TO "anon";
+GRANT SELECT, INSERT, UPDATE ON TABLE "public"."profiles" TO "authenticated";
 GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 
 
@@ -1526,20 +1526,21 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."reports" TO "anon";
-GRANT ALL ON TABLE "public"."reports" TO "authenticated";
+REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
+GRANT SELECT, INSERT ON TABLE "public"."reports" TO "anon";
+GRANT SELECT, INSERT ON TABLE "public"."reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."reports" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."storm_drains" TO "anon";
-GRANT ALL ON TABLE "public"."storm_drains" TO "authenticated";
+REVOKE ALL ON TABLE "public"."storm_drains" FROM "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."storm_drains" TO "anon";
+GRANT SELECT ON TABLE "public"."storm_drains" TO "authenticated";
 GRANT ALL ON TABLE "public"."storm_drains" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."storm_drains_gid_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."storm_drains_gid_seq" TO "authenticated";
+REVOKE ALL ON SEQUENCE "public"."storm_drains_gid_seq" FROM "anon", "authenticated";
 GRANT ALL ON SEQUENCE "public"."storm_drains_gid_seq" TO "service_role";
 
 
@@ -1548,8 +1549,6 @@ GRANT ALL ON SEQUENCE "public"."storm_drains_gid_seq" TO "service_role";
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
 
@@ -1558,8 +1557,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQ
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
 
@@ -1568,8 +1565,17 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
+-- New tables, views, sequences and functions grant nothing to anon or
+-- authenticated (Supabase's own defaults grant them ALL). Grant each object
+-- explicitly where it is defined. Declarative sync does not diff default
+-- privileges: the migration that introduced this block
+-- (20260929*_close_unused_grants) carries them by hand.
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON TABLES FROM "anon", "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM "anon", "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" REVOKE ALL ON FUNCTIONS FROM "anon", "authenticated";
+-- Postgres itself lets PUBLIC execute every new function; that default is
+-- global, so it is revoked without IN SCHEMA.
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 

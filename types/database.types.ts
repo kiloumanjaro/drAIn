@@ -901,10 +901,6 @@ export type Database = {
           verified_fixed_this_month: number;
         }[];
       };
-      extract_barangay_from_coordinates: {
-        Args: { latitude: number; longitude: number };
-        Returns: string;
-      };
       join_agency: {
         Args: { p_code: string };
         Returns: {
