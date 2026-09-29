@@ -144,16 +144,20 @@ pnpm run dev
 
 ### ✅ Checks
 
-The same four gates CI runs:
+The gates CI runs:
 
 ```sh
 pnpm run lint         # ESLint
 pnpm run type-check   # tsc --noEmit
 pnpm run test         # Vitest unit tests
 pnpm run format:check # Prettier
+npx supabase test db  # pgTAP: permissions, row-level security, dashboard numbers
+npx supabase db advisors --local --fail-on warn
 ```
 
-`pnpm run test:e2e` runs the Playwright suite, which needs the app running.
+The database checks need the local stack (`npx supabase start`).
+`pnpm run test:e2e` runs the Playwright suite; it starts the dev server on
+port 3055 itself (see `playwright.config.ts`).
 
 <!-- CONTRIBUTING -->
 

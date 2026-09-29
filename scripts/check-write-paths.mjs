@@ -64,16 +64,14 @@ async function signIn(email) {
 {
   const c = await signIn('citizen2@drain.local');
   const { data: u } = await c.auth.getUser();
-  const r = await c
-    .from('reports')
-    .insert({
-      category: 'inlets',
-      component_id: 'I-11',
-      description: 'grants check',
-      long: 123.9154,
-      lat: 10.3601,
-      user_id: u.user.id,
-    });
+  const r = await c.from('reports').insert({
+    category: 'inlets',
+    component_id: 'I-11',
+    description: 'grants check',
+    long: 123.9154,
+    lat: 10.3601,
+    user_id: u.user.id,
+  });
   out('signed-in report insert', r.error);
   const p = await c
     .from('profiles')
