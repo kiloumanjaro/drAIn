@@ -16,14 +16,14 @@ import {
   type ReportRow,
 } from '@/lib/supabase/report';
 import {
-  useAllReports,
   useLatestReports,
   useRefreshReports,
 } from '@/lib/query/hooks/use-report-queries';
 import { reportKeys } from '@/lib/query/keys';
+import { mergeLatestReport } from '@/lib/reports/latest';
 
 interface ReportContextType {
-  allReports: Report[];
+  /** The newest report on each component: what the map's pins show. */
   latestReports: Report[];
   isRefreshingReports: boolean;
   refreshReports: () => Promise<void>;
@@ -37,8 +37,6 @@ const ReportContext = createContext<ReportContextType | undefined>(undefined);
 export function ReportProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
-  // Use TanStack Query hooks for data fetching
-  const { data: allReports = [], isLoading: isLoadingAll } = useAllReports();
   const { data: latestReports = [], isLoading: isLoadingLatest } =
     useLatestReports();
   const refreshMutation = useRefreshReports();
@@ -52,53 +50,42 @@ export function ReportProvider({ children }: { children: ReactNode }) {
     await refreshMutation.mutateAsync();
   }, [refreshMutation]);
 
-  const isRefreshingReports =
-    isLoadingAll || isLoadingLatest || refreshMutation.isPending;
+  const isRefreshingReports = isLoadingLatest || refreshMutation.isPending;
 
-  // Subscribe to realtime changes from Supabase
+  // Realtime: move just the changed component's pin, and let any open list
+  // or count refetch.
   useEffect(() => {
-    const handleInsert = (newReport: ReportRow) => {
-      const formatted = formatReport(newReport);
-
-      // Update TanStack Query cache for all reports
-      queryClient.setQueryData<Report[]>(reportKeys.list(), (old = []) => [
-        formatted,
-        ...old,
-      ]);
-
-      // Add to notifications
-      setNotifications((prev) => [formatted, ...prev]);
-      setUnreadCount((c) => c + 1);
-
-      // Invalidate latest reports to recalculate
-      queryClient.invalidateQueries({
-        queryKey: reportKeys.latestPerComponent(),
-      });
+    const applyChange = (row: ReportRow) => {
+      const formatted = formatReport(row);
+      const latest = queryClient.getQueryData<Report[]>(
+        reportKeys.latestPerComponent()
+      );
+      const merged = latest ? mergeLatestReport(latest, formatted) : latest;
+      if (merged === null) {
+        queryClient.invalidateQueries({
+          queryKey: reportKeys.latestPerComponent(),
+        });
+      } else if (merged !== latest) {
+        queryClient.setQueryData(reportKeys.latestPerComponent(), merged);
+      }
+      queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.countsByDay() });
+      return formatted;
     };
 
-    const handleUpdate = (updatedReport: ReportRow) => {
-      const formatted = formatReport(updatedReport);
-      // A report staff just rejected leaves the public lists, as it would
-      // on the next fetch (fetchAllReports skips rejected reports).
-      const rejected = formatted.reviewStatus === 'rejected';
+    const handleInsert = (row: ReportRow) => {
+      const formatted = applyChange(row);
+      setNotifications((prev) => [formatted, ...prev]);
+      setUnreadCount((c) => c + 1);
+    };
 
-      // Update notifications
+    const handleUpdate = (row: ReportRow) => {
+      const formatted = applyChange(row);
+      const rejected = formatted.reviewStatus === 'rejected';
       setNotifications((prev) => [
         ...(rejected ? [] : [formatted]),
         ...prev.filter((n) => n.id !== formatted.id),
       ]);
-
-      // Update TanStack Query cache for all reports
-      queryClient.setQueryData<Report[]>(reportKeys.list(), (old = []) =>
-        rejected
-          ? old.filter((r) => r.id !== formatted.id)
-          : old.map((r) => (r.id === formatted.id ? formatted : r))
-      );
-
-      // Invalidate latest reports to recalculate
-      queryClient.invalidateQueries({
-        queryKey: reportKeys.latestPerComponent(),
-      });
     };
 
     const unsubscribe = subscribeToReportChanges(handleInsert, handleUpdate);
@@ -111,7 +98,6 @@ export function ReportProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = {
-    allReports,
     latestReports,
     isRefreshingReports,
     refreshReports,

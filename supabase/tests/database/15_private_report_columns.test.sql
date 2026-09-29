@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(11);
+select plan(12);
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -29,6 +29,10 @@ select isnt_empty(
 select isnt_empty(
   $$select component_id, report_count from public.report_counts_by_component$$,
   'anon can read report counts'
+);
+select isnt_empty(
+  $$select day, report_count from public.report_counts_by_day$$,
+  'anon can read reports per day (the map''s reports chart)'
 );
 
 reset role;

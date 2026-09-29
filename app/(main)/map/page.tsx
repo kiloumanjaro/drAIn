@@ -79,7 +79,6 @@ function MapPageContent() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
   const {
     latestReports: reports, // Use latestReports from context for map bubbles
-    allReports: allReportsData, // Use allReports from context for history
     isRefreshingReports,
     refreshReports: onRefreshReports, // Use refresh function from context
   } = useReports();
@@ -1087,10 +1086,8 @@ function MapPageContent() {
           onToggleFloodProneArea={handleToggleFloodProneArea}
           selectedFloodScenario={selectedFloodScenario}
           onChangeFloodScenario={handleFloodScenarioChange}
-          reports={reports}
           onRefreshReports={onRefreshReports}
           isRefreshingReports={isRefreshingReports}
-          allReportsData={allReportsData} // Pass all reports data to ControlPanel
           isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls

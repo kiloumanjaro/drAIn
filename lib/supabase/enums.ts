@@ -26,3 +26,4 @@ const oneOf =
 /** True for 'inlets', 'outlets', 'storm_drains' or 'man_pipes'. */
 export const isComponentType = oneOf(Constants.public.Enums.component_type);
 export const isReportPriority = oneOf(Constants.public.Enums.report_priority);
+export const isReportStatus = oneOf(Constants.public.Enums.report_status);

@@ -11,15 +11,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 const supabase = vi.hoisted(() => {
   type Call = [method: string, ...args: unknown[]];
-  type Result = { data: unknown; error?: unknown };
+  type Result = { data: unknown; error?: unknown; count?: number };
   const state: {
     respond: (source: string, calls: Call[]) => Result;
     rpcCalls: Array<[string, unknown]>;
-  } = { respond: () => ({ data: [] }), rpcCalls: [] };
+    queries: Array<{ source: string; calls: Call[] }>;
+  } = { respond: () => ({ data: [] }), rpcCalls: [], queries: [] };
 
   function chain(source: string, calls: Call[]) {
     const builder: Record<string, unknown> = {};
-    for (const method of ['select', 'eq', 'order', 'range', 'not', 'in']) {
+    state.queries.push({ source, calls });
+    for (const method of [
+      'select',
+      'eq',
+      'neq',
+      'gte',
+      'order',
+      'range',
+      'limit',
+      'not',
+      'in',
+    ]) {
       builder[method] = (...args: unknown[]) => {
         calls.push([method, ...args]);
         return builder;
@@ -56,6 +68,8 @@ import {
   getIssuesPerZone,
   getOverviewMetrics,
   getRepairTimeByComponent,
+  getReportLocations,
+  getReportsPage,
   getRepairTrendData,
   getTeamPerformance,
 } from './queries';
@@ -68,6 +82,7 @@ const answer = (sources: Record<string, unknown>) => {
 beforeEach(() => {
   supabase.state.respond = () => ({ data: [] });
   supabase.state.rpcCalls = [];
+  supabase.state.queries = [];
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -198,5 +213,123 @@ describe('getTeamPerformance', () => {
       outstandingIssues: 2,
       medianDaysToResolve: null,
     });
+  });
+});
+
+describe('getReportsPage', () => {
+  const row = {
+    id: 'r1',
+    created_at: '2026-09-01T00:00:00Z',
+    status: 'pending',
+    priority: 'high',
+    category: 'inlets',
+    zone: 'Tipolo',
+    long: 123.9,
+    lat: 10.3,
+  };
+  // The head-only request is the unfiltered total; the other is the page.
+  const isHead = (calls: unknown[][]) =>
+    calls.some(
+      ([m, , opts]) => m === 'select' && (opts as { head?: boolean })?.head
+    );
+
+  it('filters, limits and counts in the database', async () => {
+    supabase.state.respond = (_source, calls) =>
+      isHead(calls) ? { data: null, count: 40 } : { data: [row], count: 3 };
+
+    const page = await getReportsPage(
+      {
+        priority: 'high',
+        status: 'all',
+        componentType: 'inlets',
+        includeRejected: false,
+      },
+      24
+    );
+
+    expect(page).toMatchObject({ matching: 3, total: 40 });
+    expect(page.reports).toHaveLength(1);
+    expect(page.reports[0]).toMatchObject({ id: 'r1', zone: 'Tipolo' });
+
+    const [pageQuery, totalQuery] = supabase.state.queries;
+    expect(pageQuery.calls).toEqual(
+      expect.arrayContaining([
+        ['eq', 'priority', 'high'],
+        ['eq', 'category', 'inlets'],
+        ['neq', 'review_status', 'rejected'],
+        ['limit', 24],
+      ])
+    );
+    expect(
+      pageQuery.calls.some(([m, col]) => m === 'eq' && col === 'status')
+    ).toBe(false);
+    expect(totalQuery.calls).toContainEqual([
+      'neq',
+      'review_status',
+      'rejected',
+    ]);
+  });
+
+  it('includes rejected reports only when asked', async () => {
+    await getReportsPage(
+      {
+        priority: 'all',
+        status: 'all',
+        componentType: 'all',
+        includeRejected: true,
+      },
+      24
+    );
+    for (const query of supabase.state.queries) {
+      expect(query.calls.some(([m]) => m === 'neq')).toBe(false);
+    }
+  });
+
+  it('ignores filter values that are not in the vocabulary', async () => {
+    await getReportsPage(
+      {
+        priority: 'urgent',
+        status: 'done',
+        componentType: 'x',
+        includeRejected: false,
+      },
+      24
+    );
+    expect(supabase.state.queries[0].calls.some(([m]) => m === 'eq')).toBe(
+      false
+    );
+  });
+
+  it('fails loudly instead of showing an empty list', async () => {
+    supabase.state.respond = () => ({ data: null, error: { message: 'x' } });
+    await expect(
+      getReportsPage(
+        {
+          priority: 'all',
+          status: 'all',
+          componentType: 'all',
+          includeRejected: false,
+        },
+        24
+      )
+    ).rejects.toMatchObject({ message: 'x' });
+  });
+});
+
+describe('getReportLocations', () => {
+  it('returns positions only, skipping reports without one', async () => {
+    answer({
+      reports: [
+        { id: 'a', long: 123.9, lat: 10.3, zone: 'Tipolo' },
+        { id: 'b', long: null, lat: null, zone: null },
+      ],
+    });
+    await expect(getReportLocations()).resolves.toEqual([
+      { coordinates: [123.9, 10.3], zone: 'Tipolo' },
+    ]);
+    expect(supabase.state.queries[0].calls).toContainEqual([
+      'select',
+      'id, long, lat, zone',
+    ]);
   });
 });

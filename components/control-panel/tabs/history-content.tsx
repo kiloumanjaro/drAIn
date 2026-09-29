@@ -4,7 +4,6 @@ import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import ReportHistoryList from '@/components/reports/report-history-list';
 import type { DateFilterValue } from '@/components/common/date-sort';
 import Maintenance from './maintenance';
-import type { Report } from '@/lib/supabase/report';
 
 export type HistoryContentProps = {
   activeAdminTab?: 'maintenance' | 'reports';
@@ -13,7 +12,6 @@ export type HistoryContentProps = {
   selectedOutlet?: Outlet | null;
   selectedPipe?: Pipe | null;
   selectedDrain?: Drain | null;
-  reports?: Report[];
   onRefreshReports?: () => Promise<void>;
   isRefreshingReports?: boolean;
   isSimulationMode?: boolean;
@@ -27,7 +25,6 @@ export default function HistoryContent({
   selectedOutlet,
   selectedPipe,
   selectedDrain,
-  reports = [],
   onRefreshReports,
   isRefreshingReports = false,
   isSimulationMode = false,
@@ -46,7 +43,6 @@ export default function HistoryContent({
       ) : (
         <ReportHistoryList
           dateFilter={dateFilter}
-          reports={reports}
           onRefresh={onRefreshReports}
           isRefreshing={isRefreshingReports}
           isSimulationMode={isSimulationMode}

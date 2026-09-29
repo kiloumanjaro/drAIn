@@ -4,7 +4,7 @@ import {
   getIssuesPerZone,
   getComponentTypeData,
   getRepairTimeByComponent,
-  getAllReports,
+  getReportLocations,
 } from '@/lib/dashboard/queries';
 import { dashboardKeys } from '@/lib/query/keys';
 import type {
@@ -12,7 +12,7 @@ import type {
   ZoneIssueData,
   ComponentTypeData,
   RepairTimeByComponentData,
-  ReportWithMetadata,
+  ReportLocation,
 } from '@/lib/dashboard/queries';
 
 const staleTime = 5 * 60 * 1000; // 5 minutes
@@ -23,7 +23,8 @@ interface AnalyticsData {
   zoneData: ZoneIssueData[];
   componentData: ComponentTypeData[];
   repairTimeData: RepairTimeByComponentData[];
-  allReports: ReportWithMetadata[];
+  /** Every report's position, for the heatmap. */
+  reportLocations: ReportLocation[];
   isLoading: boolean;
   error: Error | null;
 }
@@ -60,8 +61,8 @@ export function useAnalytics(): AnalyticsData {
         gcTime,
       },
       {
-        queryKey: dashboardKeys.analyticsDetails().allReports(),
-        queryFn: getAllReports,
+        queryKey: dashboardKeys.analyticsDetails().reportLocations(),
+        queryFn: getReportLocations,
         staleTime,
         gcTime,
       },
@@ -76,7 +77,7 @@ export function useAnalytics(): AnalyticsData {
     zoneData: (results[1].data as ZoneIssueData[]) || [],
     componentData: (results[2].data as ComponentTypeData[]) || [],
     repairTimeData: (results[3].data as RepairTimeByComponentData[]) || [],
-    allReports: (results[4].data as ReportWithMetadata[]) || [],
+    reportLocations: (results[4].data as ReportLocation[]) || [],
     isLoading,
     error: error as Error | null,
   };

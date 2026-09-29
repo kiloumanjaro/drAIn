@@ -1,5 +1,4 @@
 import type { DatasetType, Pipe, Inlet, Outlet, Drain } from '../types';
-import type { Report } from '@/lib/supabase/report';
 import { FIELD_CONFIGS, MODEL_URLS } from '../constants';
 import { DetailView } from './detail-view';
 import OverlaysContent from '../tabs/overlays-content';
@@ -101,7 +100,6 @@ interface ContentRendererProps {
   selectedPointForSimulation?: string | null;
 
   // Reports
-  reports: Report[];
   activeReportTab?: 'submission' | 'reports';
   activeAdminTab?: 'maintenance' | 'reports';
   dateFilter?: DateFilterValue;
@@ -154,7 +152,6 @@ interface ContentRendererProps {
 
   // Shared handler for opening node simulation slideshow
   onOpenNodeSimulation?: (nodeId: string) => void;
-  allReportsData: Report[]; // Added for comprehensive report history
   // Rain effect control
   isRainActive?: boolean;
   onToggleRain?: (enabled: boolean) => void;
@@ -240,7 +237,6 @@ export function ContentRenderer({
   showLinkPanel = false,
   onToggleLinkPanel = () => {},
   onOpenNodeSimulation,
-  allReportsData, // Destructure allReportsData
   isRainActive = false,
   onToggleRain,
   isFloodPropagationActive = false,
@@ -269,7 +265,6 @@ export function ContentRenderer({
           searchTerm={searchTerm}
           isDragEnabled={isDragEnabled}
           onToggleDrag={onToggleDrag}
-          reports={allReportsData}
           isSimulationMode={isSimulationMode}
           selectedFloodScenario={selectedFloodScenario}
           onChangeFloodScenario={onChangeFloodScenario}
@@ -332,7 +327,6 @@ export function ContentRenderer({
         <ReportsTab
           activeReportTab={activeReportTab}
           dateFilter={dateFilter}
-          reports={allReportsData}
           onRefreshReports={onRefreshReports}
           isRefreshingReports={isRefreshingReports}
           isSimulationMode={isSimulationMode}
@@ -367,7 +361,6 @@ export function ContentRenderer({
           selectedOutlet={selectedOutlet}
           selectedPipe={selectedPipe}
           selectedDrain={selectedDrain}
-          reports={allReportsData}
           onRefreshReports={onRefreshReports}
           isRefreshingReports={isRefreshingReports}
           isSimulationMode={isSimulationMode}

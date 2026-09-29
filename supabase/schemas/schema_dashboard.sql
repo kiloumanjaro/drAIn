@@ -85,6 +85,18 @@ CREATE OR REPLACE VIEW "public"."report_counts_by_category" WITH ("security_invo
 ALTER VIEW "public"."report_counts_by_category" OWNER TO "postgres";
 
 
+-- Reports filed per day (UTC): the chart on the map's reports toggle.
+CREATE OR REPLACE VIEW "public"."report_counts_by_day" WITH ("security_invoker"='true') AS
+ SELECT (("reports"."created_at" AT TIME ZONE 'UTC'::"text"))::"date" AS "day",
+    ("count"(*))::integer AS "report_count"
+   FROM "public"."reports"
+  WHERE ("reports"."review_status" <> 'rejected'::"public"."report_review")
+  GROUP BY ((("reports"."created_at" AT TIME ZONE 'UTC'::"text"))::"date");
+
+
+ALTER VIEW "public"."report_counts_by_day" OWNER TO "postgres";
+
+
 -- The one definition of repair time: days from a report to the maintenance
 -- that resolved it (resolved_at, set by record_maintenance). Work dated
 -- before its report is a wrong link, not a fast fix, and is left out.
@@ -229,6 +241,7 @@ GRANT SELECT ON TABLE "public"."latest_report_per_component" TO "anon", "authent
 GRANT SELECT ON TABLE "public"."report_counts_by_component" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."report_counts_by_zone" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."report_counts_by_category" TO "anon", "authenticated";
+GRANT SELECT ON TABLE "public"."report_counts_by_day" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."report_repair_days" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."repair_time_by_component" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."team_performance" TO "anon", "authenticated";

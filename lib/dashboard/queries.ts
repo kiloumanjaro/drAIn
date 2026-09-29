@@ -5,7 +5,12 @@ import {
   PUBLIC_REPORT_COLUMNS,
   type Report,
 } from '@/lib/supabase/report';
-import type { ComponentType } from '@/lib/supabase/enums';
+import {
+  isComponentType,
+  isReportPriority,
+  isReportStatus,
+  type ComponentType,
+} from '@/lib/supabase/enums';
 
 /*
  * The dashboard's numbers are computed in the database, by the views and
@@ -232,35 +237,105 @@ export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
   );
 }
 
-/**
- * Get all reports with metadata
- */
-export async function getAllReports(): Promise<ReportWithMetadata[]> {
-  try {
-    // Every report, a page at a time: a single select stops at 1,000 rows.
-    const reports = await fetchAllRows((from, to) =>
-      client
-        .from('reports')
-        .select(PUBLIC_REPORT_COLUMNS)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: false })
-        .range(from, to)
-    );
+export interface ReportFilter {
+  /** 'all' or a report_priority. */
+  priority: string;
+  /** 'all' or a report_status. */
+  status: string;
+  /** 'all' or a component_type. */
+  componentType: string;
+  /** Staff can include reports they rejected (spam, duplicates). */
+  includeRejected: boolean;
+}
 
-    // Rejected reports are included: staff filter them on the reports tab.
-    return reports.map(
-      (report): ReportWithMetadata => ({
-        ...formatReport(report),
-        image: report.image
-          ? client.storage.from('ReportImage').getPublicUrl(report.image).data
-              .publicUrl
-          : '',
-        componentId: report.component_id || '',
-        zone: report.zone ?? undefined,
-      })
-    );
-  } catch (error) {
-    console.error('Error fetching all reports:', error);
-    return [];
+export interface ReportsPage {
+  /** Newest first, at most `limit`. */
+  reports: ReportWithMetadata[];
+  /** Reports matching the filter. */
+  matching: number;
+  /** Reports before the priority/status/type filters (rejected ones only if included). */
+  total: number;
+}
+
+/**
+ * The dashboard's reports tab: filtered, newest first and cut off in the
+ * database, with exact counts for "N of M". It used to download every
+ * report and filter in the browser.
+ */
+export async function getReportsPage(
+  filter: ReportFilter,
+  limit: number
+): Promise<ReportsPage> {
+  let matching = client
+    .from('reports')
+    .select(PUBLIC_REPORT_COLUMNS, { count: 'exact' });
+  let all = client.from('reports').select('id', { count: 'exact', head: true });
+  if (!filter.includeRejected) {
+    matching = matching.neq('review_status', 'rejected');
+    all = all.neq('review_status', 'rejected');
   }
+  if (isReportPriority(filter.priority)) {
+    matching = matching.eq('priority', filter.priority);
+  }
+  if (isReportStatus(filter.status)) {
+    matching = matching.eq('status', filter.status);
+  }
+  if (isComponentType(filter.componentType)) {
+    matching = matching.eq('category', filter.componentType);
+  }
+
+  const [page, counted] = await Promise.all([
+    matching
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit),
+    all,
+  ]);
+  if (page.error) throw page.error;
+  if (counted.error) throw counted.error;
+
+  const reports = (page.data ?? []).map(
+    (report): ReportWithMetadata => ({
+      ...formatReport(report),
+      zone: report.zone ?? undefined,
+    })
+  );
+  return {
+    reports,
+    matching: page.count ?? reports.length,
+    total: counted.count ?? reports.length,
+  };
+}
+
+/** Where a report was filed, for the dashboard heatmap. */
+export interface ReportLocation {
+  coordinates: [number, number];
+  zone?: string;
+}
+
+/**
+ * Every report's position (not rejected), for the heatmap: three columns a
+ * row instead of the whole report.
+ */
+export async function getReportLocations(): Promise<ReportLocation[]> {
+  const rows = await fetchAllRows((from, to) =>
+    client
+      .from('reports')
+      .select('id, long, lat, zone')
+      .neq('review_status', 'rejected')
+      .not('long', 'is', null)
+      .not('lat', 'is', null)
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
+  return rows.flatMap((row) =>
+    row.long !== null && row.lat !== null
+      ? [
+          {
+            coordinates: [row.long, row.lat] as [number, number],
+            zone: row.zone ?? undefined,
+          },
+        ]
+      : []
+  );
 }

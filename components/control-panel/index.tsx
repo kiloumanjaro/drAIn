@@ -17,7 +17,6 @@ import {
 } from '@/lib/query/hooks/use-drainage-data';
 import client from '@/lib/supabase/client';
 import type { DateFilterValue } from '@/components/common/date-sort';
-import type { Report } from '@/lib/supabase/report';
 
 interface RainfallParams {
   total_precip: number;
@@ -30,8 +29,6 @@ const DEFAULT_RAINFALL_PARAMS: RainfallParams = {
 };
 
 export function ControlPanel({
-  reports,
-  allReportsData,
   activeTab,
   dataset,
   selectedInlet,
@@ -92,8 +89,7 @@ export function ControlPanel({
   isFloodPropagationActive = false,
   onToggleFloodPropagation,
   isFloodScenarioLoading = false,
-}: ControlPanelProps & { reports: Report[] }) {
-  // reports are latest, allReportsData are all
+}: ControlPanelProps) {
   const router = useRouter();
   const supabase = client;
   const authContext = useContext(AuthContext);
@@ -313,8 +309,6 @@ export function ControlPanel({
             onToggleDrag={handleToggleDrag}
             isSimulationMode={isSimulationMode}
             selectedPointForSimulation={selectedPointForSimulation}
-            reports={reports} // Still passing 'reports' for the map
-            allReportsData={allReportsData} // Pass all reports data down
             profileView={profileView}
             onProfileViewChange={setProfileView}
             activeReportTab={activeReportTab}

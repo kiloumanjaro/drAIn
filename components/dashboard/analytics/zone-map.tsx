@@ -7,10 +7,7 @@ import {
   createHeatmapPoints,
   createHeatmapFromReports,
 } from '@/lib/dashboard/geojson';
-import type {
-  ZoneIssueData,
-  ReportWithMetadata,
-} from '@/lib/dashboard/queries';
+import type { ZoneIssueData, ReportLocation } from '@/lib/dashboard/queries';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
@@ -20,7 +17,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 interface ZoneMapProps {
   data: ZoneIssueData[];
-  reports?: ReportWithMetadata[]; // Optional: use actual report coordinates
+  reports?: ReportLocation[]; // Optional: use actual report coordinates
   loading?: boolean;
 }
 

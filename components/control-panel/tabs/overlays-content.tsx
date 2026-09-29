@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Report } from '@/lib/supabase/report';
 import {
   DndContext,
   closestCenter,
@@ -44,7 +43,6 @@ interface OverlayContentProps {
   searchTerm?: string;
   isDragEnabled?: boolean;
   onToggleDrag?: (enabled: boolean) => void;
-  reports: Report[];
   isSimulationMode?: boolean;
   isFloodScenarioLoading?: boolean;
   floodProneAreas?: {
@@ -129,7 +127,6 @@ export default function OverlaysContent({
   onNavigateToDataSource,
   searchTerm = '',
   isDragEnabled = true,
-  reports,
   isSimulationMode = false,
   isFloodScenarioLoading = false,
   floodProneAreas = [],
@@ -319,7 +316,6 @@ export default function OverlaysContent({
             }
             onToggle={() => onToggleOverlay('reports-layer')}
             onNavigateToReportForm={onNavigateToReportForm}
-            reports={reports}
             isSimulationMode={isSimulationMode}
           />
         ),
@@ -331,7 +327,6 @@ export default function OverlaysContent({
       onNavigateToTable,
       onNavigateToReportForm,
       onNavigateToDataSource,
-      reports,
       isSimulationMode,
       selectedFloodScenario,
       onChangeFloodScenario,

@@ -1,14 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-import { getAllReports } from '@/lib/dashboard/queries';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { getReportsPage, type ReportFilter } from '@/lib/dashboard/queries';
 import { dashboardKeys } from '@/lib/query/keys';
-import type { ReportWithMetadata } from '@/lib/dashboard/queries';
 
-export function useAllReports() {
-  return useQuery<ReportWithMetadata[]>({
-    queryKey: dashboardKeys.reportsDetails().all(),
-    queryFn: getAllReports,
-    // Reports change more frequently than analytics data
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+/** One filtered page of the dashboard's reports tab; see getReportsPage. */
+export function useReportsPage(filter: ReportFilter, limit: number) {
+  return useQuery({
+    queryKey: dashboardKeys.reportsDetails().page(filter, limit),
+    queryFn: () => getReportsPage(filter, limit),
+    // Keep showing the current cards while a filter change or "Show more"
+    // loads.
+    placeholderData: keepPreviousData,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }

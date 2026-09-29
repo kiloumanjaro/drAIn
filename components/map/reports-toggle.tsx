@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Info, Power, AlertCircle } from 'lucide-react';
-import { useMemo } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import {
   ChartConfig,
@@ -18,13 +17,12 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { IconRepeat } from '@tabler/icons-react';
-import type { Report } from '@/lib/supabase/report';
+import { useReportCountsByDay } from '@/lib/query/hooks/use-report-queries';
 
 interface ReportsToggleProps {
   isVisible: boolean;
   onToggle: () => void;
   onNavigateToReportForm?: () => void;
-  reports: Report[];
   isSimulationMode?: boolean;
 }
 
@@ -39,29 +37,12 @@ export function ReportsToggle({
   isVisible,
   onToggle,
   onNavigateToReportForm,
-  reports = [],
   isSimulationMode = false,
 }: ReportsToggleProps) {
-  const totalReports = reports.length;
-
-  const chartData = useMemo(() => {
-    const dateCounts = reports.reduce(
-      (acc, item) => {
-        const date = new Date(item.date).toISOString().split('T')[0];
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    // Sort by date
-    const sortedDates = Object.keys(dateCounts).sort();
-
-    return sortedDates.map((date) => ({
-      date,
-      count: dateCounts[date],
-    }));
-  }, [reports]);
+  // Counted per day in the database (report_counts_by_day), not by
+  // downloading every report.
+  const { data: chartData = [] } = useReportCountsByDay();
+  const totalReports = chartData.reduce((sum, day) => sum + day.count, 0);
 
   return (
     <div className="rounded-xl border border-[#e2e2e2] bg-[#f7f7f7]">

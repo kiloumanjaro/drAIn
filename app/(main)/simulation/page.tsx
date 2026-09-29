@@ -1267,8 +1267,6 @@ export default function SimulationPage() {
           onChangeFloodScenario={setSelectedFloodScenario}
           isSimulationMode={isSimulationActive}
           selectedPointForSimulation={selectedPointForSimulation}
-          reports={[]}
-          allReportsData={[]}
           selectedComponentIds={selectedComponentIds}
           onComponentIdsChange={setSelectedComponentIds}
           selectedPipeIds={selectedPipeIds}

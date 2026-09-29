@@ -1,13 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Report } from '@/lib/supabase/report';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SpinnerEmpty } from '@/components/common/spinner-empty';
-import { format, subWeeks, subMonths, startOfDay } from 'date-fns';
+import { format } from 'date-fns';
+import { useReportList } from '@/lib/query/hooks/use-report-queries';
 import type { DateFilterValue } from '@/components/common/date-sort';
 import { RefreshCw } from 'lucide-react';
 import type {
@@ -19,7 +18,6 @@ import type {
 
 interface AllReportsListProps {
   dateFilter?: DateFilterValue;
-  reports?: Report[];
   onRefresh?: () => Promise<void>;
   isRefreshing?: boolean;
   isSimulationMode?: boolean;
@@ -31,7 +29,6 @@ interface AllReportsListProps {
 
 export default function AllReportsList({
   dateFilter = 'all',
-  reports = [],
   onRefresh,
   isRefreshing = false,
   isSimulationMode = false,
@@ -53,58 +50,17 @@ export default function AllReportsList({
     }
   };
 
-  // Filter reports based on date filter
-  const filteredReports = useMemo(() => {
-    let filtered = reports;
+  // Filtered, newest first and cut off in the database; see fetchReportList.
+  const selectedId =
+    selectedInlet?.id ||
+    selectedOutlet?.id ||
+    selectedPipe?.id ||
+    selectedDrain?.id;
+  const { data: list, isLoading } = useReportList(selectedId, dateFilter);
+  const filteredReports = list?.reports ?? [];
+  const totalReports = list?.total ?? 0;
 
-    const selectedId =
-      selectedInlet?.id ||
-      selectedOutlet?.id ||
-      selectedPipe?.id ||
-      selectedDrain?.id;
-
-    if (selectedId) {
-      filtered = filtered.filter((report) => report.componentId === selectedId);
-    }
-
-    if (dateFilter === 'all') {
-      return filtered;
-    }
-
-    const now = new Date();
-    let cutoffDate: Date;
-
-    switch (dateFilter) {
-      case 'today':
-        cutoffDate = startOfDay(now);
-        break;
-      case 'week':
-        cutoffDate = subWeeks(now, 1);
-        break;
-      case '2weeks':
-        cutoffDate = subWeeks(now, 2);
-        break;
-      case '3weeks':
-        cutoffDate = subWeeks(now, 3);
-        break;
-      case 'month':
-        cutoffDate = subMonths(now, 1);
-        break;
-      default:
-        return reports;
-    }
-
-    return filtered.filter((report) => new Date(report.date) >= cutoffDate);
-  }, [
-    reports,
-    dateFilter,
-    selectedInlet,
-    selectedOutlet,
-    selectedPipe,
-    selectedDrain,
-  ]);
-
-  if (isRefreshing) {
+  if (isRefreshing || isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <SpinnerEmpty
@@ -218,6 +174,12 @@ export default function AllReportsList({
               </div>
             ))}
           </div>
+        )}
+        {totalReports > filteredReports.length && (
+          <p className="text-muted-foreground pb-4 text-center text-xs">
+            Showing the {filteredReports.length} most recent of {totalReports}{' '}
+            reports.
+          </p>
         )}
       </ScrollArea>
     </div>

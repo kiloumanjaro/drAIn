@@ -1,58 +1,71 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { reportKeys } from '@/lib/query/keys';
 import {
-  getAllReports,
-  getLatestReportsPerComponent,
-} from '@/lib/reports/queries';
-import type { Report } from '@/lib/supabase/report';
+  fetchLatestReportsPerComponent,
+  fetchReportCountsByDay,
+  fetchReportList,
+  type Report,
+  type ReportList,
+} from '@/lib/supabase/report';
+import type { DateFilterValue } from '@/components/common/date-sort';
+import { dateFilterCutoff } from '@/lib/reports/date-filter';
 
 /**
- * Fetch all reports with TanStack Query
- * Cached for 2 minutes, stale after 1 minute
+ * The newest report on each component, for the map's pins. Realtime keeps
+ * it current between fetches (components/context/report-provider.tsx).
  */
-export function useAllReports(): UseQueryResult<Report[], Error> {
+export function useLatestReports(): UseQueryResult<Report[], Error> {
   return useQuery({
-    queryKey: reportKeys.list(),
-    queryFn: getAllReports,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    queryKey: reportKeys.latestPerComponent(),
+    queryFn: fetchLatestReportsPerComponent,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 2,
   });
 }
 
 /**
- * Fetch latest reports per component
- * Depends on allReports being loaded first
+ * Reports for one component (or all when none is selected), newest first,
+ * within the date filter. Loaded when a list is shown, not up front.
  */
-export function useLatestReports(): UseQueryResult<Report[], Error> {
-  const { data: allReports } = useAllReports();
-
+export function useReportList(
+  componentId: string | null | undefined,
+  dateFilter: DateFilterValue,
+  { enabled = true }: { enabled?: boolean } = {}
+): UseQueryResult<ReportList, Error> {
   return useQuery({
-    queryKey: reportKeys.latestPerComponent(),
-    queryFn: () => getLatestReportsPerComponent(allReports),
-    enabled: !!allReports && allReports.length > 0,
+    enabled,
+    queryKey: reportKeys.list(`${componentId ?? '*'}|${dateFilter}`),
+    queryFn: () =>
+      fetchReportList({ componentId, since: dateFilterCutoff(dateFilter) }),
+    placeholderData: keepPreviousData,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
+/** Reports filed per day, for the reports toggle's chart. */
+export function useReportCountsByDay() {
+  return useQuery({
+    queryKey: reportKeys.countsByDay(),
+    queryFn: fetchReportCountsByDay,
     staleTime: 1 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 }
 
-/**
- * Mutation to refresh all report data
- * Invalidates both all reports and latest reports
- */
+/** Refetch everything report-related that is on screen. */
 export function useRefreshReports() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      // Invalidate and refetch both queries
-      await queryClient.invalidateQueries({
-        queryKey: reportKeys.list(),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: reportKeys.latestPerComponent(),
-      });
-    },
+    mutationFn: () =>
+      queryClient.invalidateQueries({ queryKey: reportKeys.all }),
   });
 }

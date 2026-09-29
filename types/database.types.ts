@@ -816,6 +816,13 @@ export type Database = {
           },
         ];
       };
+      report_counts_by_day: {
+        Row: {
+          day: string | null;
+          report_count: number | null;
+        };
+        Relationships: [];
+      };
       report_counts_by_zone: {
         Row: {
           report_count: number | null;

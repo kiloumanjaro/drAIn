@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import type { Report as SupabaseReport } from '@/lib/supabase/report'; // Renamed to avoid conflict
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SpinnerEmpty } from '@/components/common/spinner-empty';
-import { format, subWeeks, subMonths, startOfDay } from 'date-fns';
+import { format } from 'date-fns';
+import { useReportList } from '@/lib/query/hooks/use-report-queries';
 import type { DateFilterValue } from '@/components/common/date-sort';
 import { RefreshCw, MapPin, History, ArrowRight } from 'lucide-react';
 import type {
@@ -23,7 +24,6 @@ interface Report extends SupabaseReport {
 
 interface ReportHistoryListProps {
   dateFilter?: DateFilterValue;
-  reports?: Report[]; // Use the extended Report interface
   onRefresh?: () => Promise<void>;
   isRefreshing?: boolean;
   isSimulationMode?: boolean;
@@ -48,7 +48,6 @@ const getComponentDisplayName = (
 
 export default function ReportHistoryList({
   dateFilter = 'all',
-  reports = [],
   onRefresh,
   isRefreshing = false,
   isSimulationMode = false,
@@ -94,70 +93,20 @@ export default function ReportHistoryList({
     }
   };
 
-  // Filter reports based on date filter
-  const filteredReports = useMemo(() => {
-    let currentFilteredReports = reports;
+  // Filtered, newest first and cut off in the database; see fetchReportList.
+  const selectedId =
+    selectedInlet?.id ||
+    selectedOutlet?.id ||
+    selectedPipe?.id ||
+    selectedDrain?.id;
+  // Only shown for a selected asset, so only fetched for one.
+  const { data: list, isLoading } = useReportList(selectedId, dateFilter, {
+    enabled: !!selectedId,
+  });
+  const filteredReports = list?.reports ?? [];
+  const totalReports = list?.total ?? 0;
 
-    const selectedId =
-      selectedInlet?.id ||
-      selectedOutlet?.id ||
-      selectedPipe?.id ||
-      selectedDrain?.id;
-
-    if (selectedId) {
-      currentFilteredReports = currentFilteredReports.filter(
-        (report) => report.componentId === selectedId
-      );
-    }
-
-    const now = new Date();
-    let cutoffDate: Date | null = null; // Initialize cutoffDate
-
-    switch (dateFilter) {
-      case 'today':
-        cutoffDate = startOfDay(now);
-        break;
-      case 'week':
-        cutoffDate = subWeeks(now, 1);
-        break;
-      case '2weeks':
-        cutoffDate = subWeeks(now, 2);
-        break;
-      case '3weeks':
-        cutoffDate = subWeeks(now, 3);
-        break;
-      case 'month':
-        cutoffDate = subMonths(now, 1);
-        break;
-      case 'all':
-      default:
-        // No date cutoff for 'all', but we still want to sort
-        break;
-    }
-
-    // Apply cutoffDate filtering if it exists
-    if (cutoffDate) {
-      currentFilteredReports = currentFilteredReports.filter(
-        (report) => new Date(report.date).getTime() >= cutoffDate!.getTime()
-      );
-    }
-
-    // Always sort the reports by date in descending order (latest to oldest)
-    currentFilteredReports.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    return currentFilteredReports;
-  }, [
-    reports,
-    dateFilter,
-    selectedInlet,
-    selectedOutlet,
-    selectedPipe,
-    selectedDrain,
-  ]);
-
-  if (isRefreshing) {
+  if (isRefreshing || isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <SpinnerEmpty
@@ -338,6 +287,12 @@ export default function ReportHistoryList({
                 </div>
               );
             })}
+            {totalReports > filteredReports.length && (
+              <p className="text-muted-foreground text-center text-xs">
+                Showing the {filteredReports.length} most recent of{' '}
+                {totalReports} reports.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -355,7 +310,7 @@ export default function ReportHistoryList({
           status={
             selectedReport.status as 'pending' | 'in-progress' | 'resolved'
           }
-          priority={'low'}
+          priority={selectedReport.priority}
           onClose={() => setShowImageViewer(false)}
         />
       )}

@@ -128,24 +128,45 @@ export const uploadReport = async (
   }
 };
 
-export const fetchAllReports = async (): Promise<Report[]> => {
-  try {
-    // Every report staff haven't rejected as spam or a duplicate, a page at
-    // a time: a single select stops at 1,000 rows.
-    const rows = await fetchAllRows((from, to) =>
-      client
-        .from('reports')
-        .select(PUBLIC_REPORT_COLUMNS)
-        .neq('review_status', 'rejected')
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
-        .range(from, to)
-    );
-    return rows.map(formatReport);
-  } catch (error) {
-    console.error('Error fetching all reports:', error);
-    throw error;
-  }
+/** How many reports a list shows before saying there are more. */
+export const REPORT_LIST_LIMIT = 50;
+
+export interface ReportList {
+  /** Newest first, at most the requested limit. */
+  reports: Report[];
+  /** How many reports match in all. */
+  total: number;
+}
+
+/**
+ * Reports staff haven't rejected, newest first: for one component, or all,
+ * and optionally only those filed since a date. Filtered and cut off in the
+ * database; the app used to download every report ever filed and filter it
+ * in the browser.
+ */
+export const fetchReportList = async ({
+  componentId,
+  since,
+  limit = REPORT_LIST_LIMIT,
+}: {
+  componentId?: string | null;
+  since?: Date | null;
+  limit?: number;
+} = {}): Promise<ReportList> => {
+  let query = client
+    .from('reports')
+    .select(PUBLIC_REPORT_COLUMNS, { count: 'exact' })
+    .neq('review_status', 'rejected');
+  if (componentId) query = query.eq('component_id', componentId);
+  if (since) query = query.gte('created_at', since.toISOString());
+
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  const reports = (data ?? []).map(formatReport);
+  return { reports, total: count ?? reports.length };
 };
 
 /**
@@ -245,40 +266,68 @@ export const fetchReportsForComponent = async (
   return (data ?? []).map(formatReport);
 };
 
-export const fetchLatestReportsPerComponent = async (
-  allReportsData?: Report[]
-): Promise<Report[]> => {
-  let reportsToProcess: Report[];
-
-  if (allReportsData) {
-    reportsToProcess = allReportsData;
-  } else {
-    // Fallback: if allReportsData is not provided, fetch all reports
-    reportsToProcess = await fetchAllReports();
-  }
-
-  if (!reportsToProcess || reportsToProcess.length === 0) return [];
-
-  // Group reports by componentId and find the latest for each
-  const latestReportsMap = new Map<string, Report>();
-
-  // Sort data by created_at to ensure the first encountered is the latest per component
-  const sortedData = [...reportsToProcess].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+/**
+ * The newest report on each component (latest_report_per_component in
+ * schema_dashboard.sql): what the map's pins show. One row per component
+ * rather than one per report.
+ */
+export const fetchLatestReportsPerComponent = async (): Promise<Report[]> => {
+  const rows = await fetchAllRows((from, to) =>
+    client
+      .from('latest_report_per_component')
+      .select('*')
+      .order('component_id', { ascending: true })
+      .range(from, to)
   );
-
-  sortedData.forEach((reportData: Report) => {
-    const componentId = reportData.componentId as string;
-
-    if (!latestReportsMap.has(componentId)) {
-      latestReportsMap.set(componentId, reportData);
-    }
+  return rows.flatMap((row) => {
+    const report = fromLatestRow(row);
+    return report ? [formatReport(report)] : [];
   });
+};
 
-  // Convert map values back to an array
-  const latestReports = Array.from(latestReportsMap.values());
+/**
+ * Views type every column as nullable. The ones a reports row always has
+ * are checked here instead of cast away.
+ */
+function fromLatestRow(
+  row: Tables<'latest_report_per_component'>
+): ReportRow | null {
+  const { id, created_at, status, priority, review_status, photo_check } = row;
+  if (
+    !id ||
+    !created_at ||
+    !status ||
+    !priority ||
+    !review_status ||
+    !photo_check
+  ) {
+    return null;
+  }
+  return {
+    ...row,
+    id,
+    created_at,
+    status,
+    priority,
+    review_status,
+    photo_check,
+  };
+}
 
-  return latestReports;
+/** Reports filed per day (UTC), oldest first. */
+export const fetchReportCountsByDay = async (): Promise<
+  Array<{ date: string; count: number }>
+> => {
+  const rows = await fetchAllRows((from, to) =>
+    client
+      .from('report_counts_by_day')
+      .select('day, report_count')
+      .order('day', { ascending: true })
+      .range(from, to)
+  );
+  return rows.flatMap((row) =>
+    row.day ? [{ date: row.day, count: row.report_count ?? 0 }] : []
+  );
 };
 
 export const formatReport = (report: ReportRow): Report => {
