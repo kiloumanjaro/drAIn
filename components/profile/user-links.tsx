@@ -3,6 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import AgencyLink from '@/components/profile/agency-link';
+import AgencyAdmin from '@/components/profile/agency-admin';
 import { toast } from 'sonner';
 
 interface UserLinksProps {
@@ -51,6 +52,12 @@ export default function UserLinks({
               You are linked to {(profile.agency_name as string) || 'an agency'}
               . You can now respond to reports.
             </div>
+            {profile.role === 'admin' && (
+              <AgencyAdmin
+                agencyId={profile.agency_id as string}
+                currentUserId={profile.id as string}
+              />
+            )}
             {/* Admins can't leave on their own; another admin demotes them. */}
             {profile.role !== 'admin' && (
               <Button

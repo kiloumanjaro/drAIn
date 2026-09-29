@@ -888,6 +888,16 @@ export type Database = {
       };
     };
     Functions: {
+      agency_members: {
+        Args: { p_agency_id: string };
+        Returns: {
+          account_created_at: string;
+          email: string;
+          full_name: string;
+          id: string;
+          role: Database['public']['Enums']['user_role'];
+        }[];
+      };
       consume_rate_limit: { Args: { p_bucket: string }; Returns: boolean };
       dashboard_overview: {
         Args: { p_month_start?: string };

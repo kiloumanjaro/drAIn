@@ -1,6 +1,7 @@
 import client from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import type { Tables } from '@/types/database.types';
+import type { UserRole } from '@/lib/supabase/enums';
 
 export type Profile = Pick<
   Tables<'profiles'>,
@@ -163,4 +164,53 @@ export const leaveAgency = async (): Promise<void> => {
     console.error('Error leaving agency:', error);
     throw new Error(error.message);
   }
+};
+
+/** One member of an agency, as its admin screen lists them. */
+export type AgencyMember = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: UserRole;
+  account_created_at: string;
+};
+
+/** The agency's members (admin only; the database checks). */
+export const fetchAgencyMembers = async (
+  agencyId: string
+): Promise<AgencyMember[]> => {
+  const { data, error } = await client.rpc('agency_members', {
+    p_agency_id: agencyId,
+  });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+};
+
+/**
+ * Make a new join code for the agency. The old one stops working at once,
+ * and the new one is only ever returned here: the database keeps a hash.
+ */
+export const rotateJoinCode = async (agencyId: string): Promise<string> => {
+  const { data, error } = await client.rpc('rotate_agency_join_code', {
+    p_agency_id: agencyId,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Change a member's role (admin only). 'citizen' removes them from the
+ * agency. Nobody can change their own role.
+ */
+export const setMemberRole = async (
+  userId: string,
+  agencyId: string,
+  role: UserRole
+): Promise<void> => {
+  const { error } = await client.rpc('set_member_agency', {
+    p_user_id: userId,
+    p_agency_id: agencyId,
+    p_role: role,
+  });
+  if (error) throw new Error(error.message);
 };

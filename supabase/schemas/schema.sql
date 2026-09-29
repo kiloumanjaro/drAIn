@@ -1166,6 +1166,11 @@ BEGIN
   IF NOT private.can_manage_members() THEN
     RAISE EXCEPTION 'Only an admin can change a role or agency.' USING ERRCODE = '42501';
   END IF;
+  -- An admin demoting themselves could leave an agency with no admin.
+  IF p_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'You can''t change your own role or agency; ask another admin.'
+      USING ERRCODE = '42501';
+  END IF;
 
   UPDATE public.profiles
   SET role = p_role,
@@ -1182,6 +1187,31 @@ $$;
 
 
 ALTER FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") OWNER TO "postgres";
+
+
+-- An agency's members, for its admin screen: name, sign-in email, role and
+-- when the account was made. Admin only; the email comes from auth.users,
+-- which clients can't read.
+CREATE OR REPLACE FUNCTION "public"."agency_members"("p_agency_id" "uuid") RETURNS TABLE("id" "uuid", "full_name" "text", "email" "text", "role" "public"."user_role", "account_created_at" timestamp with time zone)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF NOT private.can_manage_members() THEN
+    RAISE EXCEPTION 'Only an admin can list an agency''s members.' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+    SELECT p.id, p.full_name, u.email::text, p.role, p.created_at
+    FROM public.profiles p
+    JOIN auth.users u ON u.id = p.id
+    WHERE p.agency_id = p_agency_id
+    ORDER BY p.role DESC, p.full_name NULLS LAST, p.id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."agency_members"("p_agency_id" "uuid") OWNER TO "postgres";
 
 
 -- Staff record work on a component. In one transaction this inserts the
@@ -1241,6 +1271,8 @@ GRANT EXECUTE ON FUNCTION "public"."record_maintenance"("p_component_type" "publ
 GRANT EXECUTE ON FUNCTION "public"."join_agency"("p_code" "text") TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."leave_agency"() TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."agency_members"("p_agency_id" "uuid") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."agency_members"("p_agency_id" "uuid") TO "authenticated", "service_role";
 
 
 -- A user can insert, read and update only their own profile.
