@@ -34,10 +34,13 @@ interface ReportContextType {
 
 const ReportContext = createContext<ReportContextType | undefined>(undefined);
 
+/** Fallback while loading: one array, so the map doesn't redraw every render. */
+const NO_REPORTS: Report[] = [];
+
 export function ReportProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
-  const { data: latestReports = [], isLoading: isLoadingLatest } =
+  const { data: latestReports = NO_REPORTS, isLoading: isLoadingLatest } =
     useLatestReports();
   const refreshMutation = useRefreshReports();
 

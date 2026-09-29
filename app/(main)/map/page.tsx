@@ -75,6 +75,9 @@ const POPULATION_POPUP_CLOSE_BG = '#f3f4f6';
 /** Hover background colour for the popup close button. */
 const POPULATION_POPUP_CLOSE_BG_HOVER = '#e5e7eb';
 
+/** The drainage hooks' fallback while loading: one array, not a new one per render. */
+const NO_ITEMS: never[] = [];
+
 function MapPageContent() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
   const {
@@ -113,15 +116,19 @@ function MapPageContent() {
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
+  // True once the map has loaded, so effects that draw on it can wait for it.
+  const [mapReady, setMapReady] = useState(false);
 
-  // Load data from hooks with TanStack Query
-  const { data: inlets = [], error: inletsError } = useInlets();
+  // Load data from hooks with TanStack Query. The fallback is one shared
+  // empty array: a fresh `[]` each render made every callback built on
+  // these change on every render, and the report bubbles rebuild with them.
+  const { data: inlets = NO_ITEMS, error: inletsError } = useInlets();
 
-  const { data: outlets = [], error: outletsError } = useOutlets();
+  const { data: outlets = NO_ITEMS, error: outletsError } = useOutlets();
 
-  const { data: pipes = [], error: pipesError } = usePipes();
+  const { data: pipes = NO_ITEMS, error: pipesError } = usePipes();
 
-  const { data: drains = [], error: drainsError } = useDrains();
+  const { data: drains = NO_ITEMS, error: drainsError } = useDrains();
 
   const drainageDataError =
     inletsError || outletsError || pipesError || drainsError;
@@ -321,6 +328,7 @@ function MapPageContent() {
           addMapLayers(map, { floodScenario: selectedFloodScenario });
 
         map.on('load', addCustomLayers);
+        map.on('load', () => setMapReady(true));
         map.on('style.load', addCustomLayers);
 
         // Move click handler inside here where map is defined
@@ -660,14 +668,15 @@ function MapPageContent() {
     [inlets, outlets, pipes, drains]
   );
 
+  // One bubble per component's latest report. Rebuilt when the reports
+  // change; the cleanup removes the popups and unmounts their React roots,
+  // which used to pile up on every rebuild and outlive the page.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !reports || reports.length === 0) return;
+    if (!map || !mapReady || reports.length === 0) return;
 
-    // Remove old popups
-    reportPopupsRef.current.forEach((popup) => popup.remove());
-    reportPopupsRef.current = [];
-
+    const popups: mapboxgl.Popup[] = [];
+    const roots: ReactDOM.Root[] = [];
     const reportBubbleRefs: Array<ReportBubbleRef | null> = [];
     // One request for every pin's report count, not one per pin.
     const reportCounts = fetchReportCountsByComponent();
@@ -681,6 +690,7 @@ function MapPageContent() {
     reports.forEach((report, index) => {
       const container = document.createElement('div');
       const root = ReactDOM.createRoot(container);
+      roots.push(root);
 
       const popup = new mapboxgl.Popup({
         maxWidth: '320px',
@@ -689,10 +699,11 @@ function MapPageContent() {
         closeOnClick: false,
       })
         .setLngLat(report.coordinates)
-        .setDOMContent(container)
-        .addTo(map);
-
-      reportPopupsRef.current.push(popup);
+        .setDOMContent(container);
+      // Hidden while the reports layer is off; the visibility effect above
+      // adds them when it is switched on.
+      if (overlayVisibilityRef.current['reports-layer']) popup.addTo(map);
+      popups.push(popup);
 
       const handleOpenBubble = () => {
         reportBubbleRefs.forEach((ref, i) => {
@@ -720,7 +731,15 @@ function MapPageContent() {
         />
       );
     });
-  }, [reports, handleReportHistoryClick]);
+    reportPopupsRef.current = popups;
+
+    return () => {
+      popups.forEach((popup) => popup.remove());
+      if (reportPopupsRef.current === popups) reportPopupsRef.current = [];
+      // Unmounting a root during React's own render warns; do it just after.
+      queueMicrotask(() => roots.forEach((root) => root.unmount()));
+    };
+  }, [reports, mapReady, handleReportHistoryClick, overlayVisibilityRef]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -1061,6 +1080,16 @@ function MapPageContent() {
     currentTabRef.current = tab;
     setControlPanelTab(tab);
   }, [searchParams]);
+
+  // Declared last, so on unmount it runs after the effects above have taken
+  // their popups and layers off the map. Without it every visit to the map
+  // left a WebGL context and its listeners behind.
+  useEffect(() => {
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
 
   return (
     <>

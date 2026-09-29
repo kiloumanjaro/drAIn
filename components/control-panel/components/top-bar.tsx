@@ -8,11 +8,8 @@ import {
   Lock,
   LockOpen,
   LogOut,
-  Bell,
-  BellRing,
   ArrowLeft,
 } from 'lucide-react';
-import { Toggle } from '@/components/ui/toggle';
 import { SearchBar } from '@/components/common/search-bar';
 import { ComboboxForm } from '@/components/common/combobox-form';
 import { OverlayToggle } from '@/components/map/overlay-toggle';
@@ -36,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
+import { useAuth } from '@/components/context/auth-provider';
 import type { DatasetType } from '../types';
 import { LinkBar } from '@/components/control-panel/components/link-bar';
 import { ReportsTabControl } from '@/components/reports/reports-tab-control';
@@ -87,7 +84,6 @@ export function TopBar({
   onClosePopUps,
 }: TopBarProps) {
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   // map simModel query param to specific links
   const searchParams = useSearchParams();
@@ -100,27 +96,29 @@ export function TopBar({
     ? (modelLinkMap[simModel] ?? 'project-drain.vercel.app/simulation')
     : 'project-drain.vercel.app/simulation';
 
-  // Example profile setup steps - replace with actual data
+  // Profile setup, from the signed-in account. It used to be hard-coded, so
+  // everyone saw the same "2 of 4" whatever they had done.
+  const { user, profile } = useAuth();
   const profileSteps: ProfileStep[] = [
     {
       title: 'Basic Information',
       description: 'Complete your name',
-      completed: true,
+      completed: !!profile?.full_name?.trim(),
     },
     {
       title: 'Profile Picture',
       description: 'Upload a profile picture',
-      completed: true,
+      completed: !!profile?.avatar_url,
     },
     {
       title: 'Verification',
       description: 'Verify your email address',
-      completed: false,
+      completed: !!user?.email_confirmed_at,
     },
     {
       title: 'Link',
       description: 'Link your account to an agency for admin features',
-      completed: false,
+      completed: !!profile?.agency_id,
     },
   ];
 
@@ -133,21 +131,11 @@ export function TopBar({
   const showCombobox = activeTab === 'stats' && !hasSelectedItem;
   const showBackButton = hasSelectedItem && activeTab === 'stats';
   const showSignOut = activeTab === 'profile';
-  const showNotification = activeTab === 'profile';
-  const showProfileProgress = activeTab === 'profile';
+  const showProfileProgress = activeTab === 'profile' && !!user;
   const showLinkBar = activeTab === 'simulations' || activeTab === 'chatbot';
   const showReportTabs = activeTab === 'report';
   const showAdminTab = activeTab === 'admin';
   const showDateSort = activeTab === 'report' || activeTab === 'admin';
-
-  const handleNotificationToggle = (pressed: boolean) => {
-    setNotificationsEnabled(pressed);
-    if (pressed) {
-      toast.success('Notifications turned on');
-    } else {
-      toast.info('Notifications turned off');
-    }
-  };
 
   const router = useRouter();
   const pathname = usePathname();
@@ -243,20 +231,6 @@ export function TopBar({
       )}
 
       {/* Notification Button */}
-      {showNotification && (
-        <Toggle
-          pressed={notificationsEnabled}
-          onPressedChange={handleNotificationToggle}
-          className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0] data-[state=on]:bg-[#D0D0D0]"
-        >
-          {notificationsEnabled ? (
-            <BellRing className="h-4 w-4 text-[#8D8D8D]" />
-          ) : (
-            <Bell className="h-4 w-4 text-[#8D8D8D]" />
-          )}
-        </Toggle>
-      )}
-
       {/* Sign Out Button */}
       {showSignOut && (
         <>
