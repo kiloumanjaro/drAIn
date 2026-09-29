@@ -479,11 +479,11 @@ ALTER FUNCTION "public"."agency_members"("p_agency_id" "uuid") OWNER TO "postgre
 
 -- A user can insert, read and update only their own profile.
 -- protect_profile_privileges stops them changing role or agency_id.
-CREATE POLICY "Allow individual insert access" ON "public"."profiles" FOR INSERT WITH CHECK (((select "auth"."uid"()) = "id"));
+CREATE POLICY "People create their own profile" ON "public"."profiles" FOR INSERT WITH CHECK (((select "auth"."uid"()) = "id"));
 
-CREATE POLICY "Allow individual read access" ON "public"."profiles" FOR SELECT USING (((select "auth"."uid"()) = "id"));
-CREATE POLICY "Allow individual update access" ON "public"."profiles" FOR UPDATE USING (((select "auth"."uid"()) = "id")) WITH CHECK (((select "auth"."uid"()) = "id"));
-CREATE POLICY "Enable read access for all users" ON "public"."agencies" FOR SELECT USING (true);
+CREATE POLICY "People read their own profile" ON "public"."profiles" FOR SELECT USING (((select "auth"."uid"()) = "id"));
+CREATE POLICY "People edit their own profile" ON "public"."profiles" FOR UPDATE USING (((select "auth"."uid"()) = "id")) WITH CHECK (((select "auth"."uid"()) = "id"));
+CREATE POLICY "Anyone can read agencies" ON "public"."agencies" FOR SELECT USING (true);
 ALTER TABLE "public"."agencies" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
@@ -675,15 +675,15 @@ $$;
 
 ALTER FUNCTION "private"."extract_barangay_from_coordinates"("longitude" double precision, "latitude" double precision) OWNER TO "postgres";
 ALTER TABLE "public"."components" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Enable read access for all users" ON "public"."components" FOR SELECT USING (true);
+CREATE POLICY "Anyone can read components" ON "public"."components" FOR SELECT USING (true);
 ALTER TABLE "public"."flood_results" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Enable read access for all users" ON "public"."flood_results" FOR SELECT USING (true);
+CREATE POLICY "Anyone can read flood results" ON "public"."flood_results" FOR SELECT USING (true);
 
 -- Barangay polygons feed the zone trigger on every report, so only the
 -- service role may change them (the seed loads them as postgres).
 ALTER TABLE "public"."barangay_boundaries" ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Enable read access for all users" ON "public"."barangay_boundaries" FOR SELECT USING (true);
+CREATE POLICY "Anyone can read barangays" ON "public"."barangay_boundaries" FOR SELECT USING (true);
 
 
 -- ===========================================================================
@@ -775,7 +775,7 @@ $$;
 
 ALTER FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") OWNER TO "postgres";
 ALTER TABLE "public"."maintenance" ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Enable read access for all users" ON "public"."maintenance" FOR SELECT USING (true);
+CREATE POLICY "Anyone can read maintenance" ON "public"."maintenance" FOR SELECT USING (true);
 
 
 -- ===========================================================================
@@ -927,9 +927,9 @@ ALTER TABLE ONLY "public"."reports"
 
 -- Anyone, signed in or not, may file a report, but only as a new pending
 -- report under their own id (anonymous reports carry no user_id).
-CREATE POLICY "Public insert reports" ON "public"."reports" FOR INSERT WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
+CREATE POLICY "Anyone can file a pending report" ON "public"."reports" FOR INSERT WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
 
-CREATE POLICY "Public select reports" ON "public"."reports" FOR SELECT USING (true);
+CREATE POLICY "Anyone can read reports" ON "public"."reports" FOR SELECT USING (true);
 ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 

@@ -23,4 +23,4 @@ CREATE POLICY "Allow public read access to avatars" ON "storage"."objects" FOR S
 -- so the bucket can't be used to host files under chosen names. Size (10
 -- MiB) and type (images) are limited on the bucket, in config.toml.
 CREATE POLICY "Report photos under a random name" ON "storage"."objects" FOR INSERT WITH CHECK ((("bucket_id" = 'ReportImage'::"text") AND ("name" ~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$'::"text")));
-CREATE POLICY "Public read access" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'ReportImage'::"text"));
+CREATE POLICY "Anyone can view report photos" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'ReportImage'::"text"));
