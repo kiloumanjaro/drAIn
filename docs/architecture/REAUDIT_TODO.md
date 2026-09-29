@@ -49,7 +49,7 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:518-521 — population popup built with `innerHTML` from GeoJSON properties (first-party file today) — use `textContent`. — done: Phase 3
 - [x] [backend] [med] [S] drain/flooding.py:156-157 — every node is sent twice (`nodes_dict` and `nodes_list`), `app/runs.py:96` rebuilds the dict on read-back — check the frontend's use, drop one. Pairs with 2.15 (gzip). — done: Phase 3 (backend fcd4a88), 1.39 MB to 0.70 MB
 - [x] [backend] [med] [S] drain/flooding.py:120 — barangay matching of ~1,400 nodes recomputed per request against static data — cache node→exposure once. (Overlaps 2.12, do together.) — done: 2.12 (backend 8ba5d1a)
-- [ ] [backend] [med] [S] drain/vulnerability.py:323 — `pickle.load` of the legacy k-means model on every startup (runs any code in the file) — export to JSON/npz or drop the legacy fields. Needs user if dropping `Legacy_Cluster_*`.
+- [ ] [backend] [med] [S] drain/vulnerability.py:323 — `pickle.load` of the legacy k-means model on every startup (runs any code in the file) — export to JSON/npz or drop the legacy fields. Needs user if dropping `Legacy_Cluster_*`. — **needs user:** retire the Legacy*Cluster*\* fields (roadmap F), or keep them and export the k-means model to plain arrays. sklearn also warns that the pickle was made with 1.6.1 and is read with 1.9.1
 - [x] [docs] [med] [M] docs/README.md:3, docs/architecture/SYSTEM*ARCHITECTURE.md:5,157, docs/architecture/TECH_STACK.md:219-235, docs/features/POSTGIS*\*.md — "AI/ML-powered", "flood prediction", "99%/100% accurate" with nothing behind them — same wording as 2.9. — done: 2.9 (2b6a0ee)
 - [x] [tooling] [med] [S] frontend `.gitignore:50` — `playwright.config.ts` is ignored, which is why `e2e/` has specs and no config — un-ignore and commit a minimal config (Phase 4 needs it anyway). — done: Phase 3; all 27 e2e specs pass locally (`pnpm test:e2e`)
 - [x] [tooling] [med] [S] frontend `BACKEND-DrAin` — a git submodule (`.gitmodules` → github.com/4Chronosx/drAIn) with an empty checkout; nothing references it — remove with 2.8. — done: 2.8 (5344cb8)
@@ -70,17 +70,17 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [low] [S] components/control-panel/tabs/maintenance.tsx:765 — says photos "must" have GPS and be under 12 h old, but unverifiable photos are accepted and marked — reword. — done: Phase 3
 - [x] [frontend] [low] [S] components/dashboard/analytics/component-type-chart.tsx:145,166 — "NaN%" when all counts are 0 — guard. — done: Phase 3
 - [x] [frontend] [low] [S] lib/supabase/report.ts:136,215 — `fetchMyReports`, `fetchReportsForComponent` unpaged (filtered, so only an edge case) — `fetchAllRows`. — done: Phase 3
-- [ ] [backend] [low] [S] app/jobs.py:282 — raw exception text returned to the client and stored (may contain server paths) — generic message; details stay in the log.
-- [ ] [backend] [low] [S] app/config.py:91 — preview-origin regex accepts anyone's `drain-*.vercel.app`, with `allow_credentials=True` though auth is a Bearer header — drop `allow_credentials`; tie the regex to the team slug (needs user: slug).
+- [x] [backend] [low] [S] app/jobs.py:282 — raw exception text returned to the client and stored (may contain server paths) — generic message; details stay in the log. — done: backend b3c3615 (paths cut to the file name; the meaning stays)
+- [ ] [backend] [low] [S] app/config.py:91 — preview-origin regex accepts anyone's `drain-*.vercel.app`, with `allow_credentials=True` though auth is a Bearer header — drop `allow_credentials`; tie the regex to the team slug (needs user: slug). — half done: allow_credentials is off (backend b3c3615). **Needs user:** the Vercel team slug, to tie the preview-origin pattern to your own deployments
 - [x] [backend] [low] [S] app/runs.py:207 — recorder queue unbounded — `maxsize`, log drops. (With 2.17.) — done: 2.17 (backend d8e3b75)
-- [ ] [backend] [low] [S] drain/swmm_runner.py:168 — suffix matching with `endswith` (0 wrong matches today, verified over all 1,570 keys) — match exactly.
-- [ ] [backend] [low] [S] drain/swmm_runner.py:244 — the no-override baseline summary is rebuilt per request — cache per `event_hours`.
-- [ ] [tooling] [low] [S] drAIn-backend/logo.png — 5 MB PNG used only by the README — resize to ~100 KB.
+- [x] [backend] [low] [S] drain/swmm_runner.py:168 — suffix matching with `endswith` (0 wrong matches today, verified over all 1,570 keys) — match exactly. — done: backend b3c3615, with tests
+- [x] [backend] [low] [S] drain/swmm_runner.py:244 — the no-override baseline summary is rebuilt per request — cache per `event_hours`. — not needed: since node exposures are cached (2.12), rebuilding the baseline summary takes 0.14 s
+- [x] [tooling] [low] [S] drAIn-backend/logo.png — 5 MB PNG used only by the README — resize to ~100 KB. — done: backend b3c3615 (5.1 MB to 78 KB)
 
 ## Large refactors (Phase 3 only if time remains; not started blind)
 
-- [ ] [frontend] [med] [L] app/(main)/map/page.tsx:78-1105 — `MapPageContent` ~1,030 lines — split into `useMapInstance`, `useReportBubbles`, `useOverlayVisibility`, `useComponentSelection` (line ranges in the audit notes below).
-- [ ] [frontend] [med] [L] app/(main)/simulation/page.tsx:113-1430 — `SimulationPage` ~1,320 lines, 35+ `useState` — split into `useFloodPropagationAnimation`, `useVulnerabilityTables`, `useSimulationMap`, `useNodeSlideshow`, `<FloatingTable>`.
+- [ ] [frontend] [med] [L] app/(main)/map/page.tsx:78-1105 — `MapPageContent` ~1,030 lines — split into `useMapInstance`, `useReportBubbles`, `useOverlayVisibility`, `useComponentSelection` (line ranges in the audit notes below). — not started: needs a Mapbox token locally to check the map by hand after splitting
+- [ ] [frontend] [med] [L] app/(main)/simulation/page.tsx:113-1430 — `SimulationPage` ~1,320 lines, 35+ `useState` — split into `useFloodPropagationAnimation`, `useVulnerabilityTables`, `useSimulationMap`, `useNodeSlideshow`, `<FloatingTable>`. — not started, for the same reason
 
 ## 1a. The 19 lint warnings
 
