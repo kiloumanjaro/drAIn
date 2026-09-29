@@ -108,7 +108,7 @@ Do the audit as narrow passes, inline or with small background subagents (see Me
   - frontend CI runs no tests and no pgTAP.
 - [ ] Order `REAUDIT_TODO.md` by value divided by effort, and commit it (`docs: re-audit to-do list`).
 
-## Phase 2: Known backlog (about 10–12 h with the database cleanup; can run before Phase 1 finishes)
+## Phase 2: Known backlog (about 20 h of timeboxes: frontend 7.3 h, database cleanup 7.8 h, backend 5.2 h; can run before Phase 1 finishes)
 
 These are already verified. Each is one commit.
 
