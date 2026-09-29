@@ -65,7 +65,16 @@ export default function ReportHistoryList({
     setShowImageViewer(true);
   };
 
-  const handleToggleImage = (e: React.MouseEvent, report: Report) => {
+  /** Enter or Space on something that acts like a button. */
+  const onActivate =
+    (action: (e: React.SyntheticEvent) => void) => (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        action(e);
+      }
+    };
+
+  const handleToggleImage = (e: React.SyntheticEvent, report: Report) => {
     if (!report.resolvedImage) return;
     e.stopPropagation();
 
@@ -146,7 +155,7 @@ export default function ReportHistoryList({
           />
         </button>
       </CardHeader>
-      <div className="boverflow-y-auto flex-1 pb-5">
+      <div className="flex-1 overflow-y-auto pb-5">
         {!selectedInlet &&
         !selectedOutlet &&
         !selectedPipe &&
@@ -193,8 +202,12 @@ export default function ReportHistoryList({
               return (
                 <div
                   key={report.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open the report on ${report.componentId}`}
                   className="hover:bg-accent flex cursor-pointer flex-row gap-3 rounded-lg border p-3 transition-colors"
                   onClick={() => handleReportClick(report)}
+                  onKeyDown={onActivate(() => handleReportClick(report))}
                 >
                   <div className="flex items-start gap-3">
                     {/* Image Thumbnail with Badges */}
@@ -202,6 +215,16 @@ export default function ReportHistoryList({
                       {displayImage ? (
                         <div
                           className="group relative"
+                          {...(hasResolvedImage && {
+                            role: 'button',
+                            tabIndex: 0,
+                            'aria-label': isSwapped
+                              ? 'Show the reported photo'
+                              : 'Show the photo after the fix',
+                            onKeyDown: onActivate((e) =>
+                              handleToggleImage(e, report)
+                            ),
+                          })}
                           onClick={(e) =>
                             hasResolvedImage && handleToggleImage(e, report)
                           }

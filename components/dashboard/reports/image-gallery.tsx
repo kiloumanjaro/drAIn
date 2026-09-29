@@ -61,8 +61,10 @@ export default function ImageGallery({
       {/* Thumbnail Grid */}
       <div className="mb-2 grid grid-cols-3 gap-2">
         {images.slice(0, 3).map((image, index) => (
-          <div
+          <button
+            type="button"
             key={index}
+            aria-label={`Open photo ${index + 1}`}
             className="relative aspect-square w-full cursor-pointer overflow-hidden rounded-lg bg-gray-100 transition-opacity hover:opacity-80"
             onClick={() => setSelectedIndex(index)}
           >
@@ -77,7 +79,7 @@ export default function ImageGallery({
                 +{images.length - 3}
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
 

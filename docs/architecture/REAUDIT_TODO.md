@@ -30,15 +30,15 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [med] [S] lib/dashboard/queries.ts:98,119,141,159,179,207,258 — dashboard readers log and `return []` / zeros on error; TanStack caches that as success and shows "no data" instead of an error — throw. — done: Phase 3; the dashboard says the figures could not load instead of showing zeros
 - [x] [frontend] [med] [S] lib/supabase/report.ts:200,371 — `fetchMyResolutionVerdicts` and `fetchReportCountsByComponent` return empty maps on error (users re-asked for verdicts; every pin shows 0) — throw. — done: Phase 3 for the answers lookup (the profile list says it could not load); the per-pin counts reader still logs and returns empty, because its caller (the bubbles) has no error state
 - [x] [frontend] [med] [S] lib/query/hooks/use-report-queries.ts:32-34 — latest-per-component query key omits the data its `queryFn` uses, and `enabled` requires `length > 0` (pending forever with zero reports) — superseded by 2.D2, which reads the database view instead. — done: 2.D2 (af5aef6)
-- [ ] [frontend] [med] [S] components/reports/submit-tab.tsx:90 — `clearInputs` sets `categoryIndex` to 0 after the reset to -1, so the next report has a component pre-selected that the user never chose — set -1.
-- [ ] [frontend] [med] [S] components/reports/submit-tab.tsx:270 — cancelling the spinner doesn't stop `handlePreSubmit`, the confirm dialog pops up afterwards — track cancellation with a ref.
+- [x] [frontend] [med] [S] components/reports/submit-tab.tsx:90 — `clearInputs` sets `categoryIndex` to 0 after the reset to -1, so the next report has a component pre-selected that the user never chose — set -1. — done: Phase 3
+- [x] [frontend] [med] [S] components/reports/submit-tab.tsx:270 — cancelling the spinner doesn't stop `handlePreSubmit`, the confirm dialog pops up afterwards — track cancellation with a ref. — done: Phase 3
 - [x] [frontend] [med] [S] components/control-panel/tabs/maintenance.tsx:396 — "Refresh reports" button has no `onClick` — call `handleViewHistory(...)`. — done: Phase 3
 - [x] [frontend] [med] [S] components/control-panel/components/top-bar.tsx:143 — notification toggle only flips local state and says "Notifications turned on" — remove it (nothing to connect it to). — done: Phase 3
-- [ ] [frontend] [med] [S] components/dashboard/reports/report-card.tsx:114 — badge wrappers stop clicks but not keys; Enter on a badge filters and also navigates the card — also stop `onKeyDown`.
-- [ ] [frontend] [med] [S] components/reports/report-history-list.tsx:146 — sorts the `reports` prop in place — copy first.
-- [ ] [frontend] [med] [S] components/reports/report-history-list.tsx:200 — typo `boverflow-y-auto`, the list never scrolls — fix class.
-- [ ] [frontend] [med] [S] components/reports/report-history-list.tsx:245,254 — clickable `div`s with no role/tabIndex/keys — use buttons.
-- [ ] [frontend] [med] [S] components/dashboard/reports/download-reports-modal.tsx:111 — download errors only go to the console — `toast.error`.
+- [x] [frontend] [med] [S] components/dashboard/reports/report-card.tsx:114 — badge wrappers stop clicks but not keys; Enter on a badge filters and also navigates the card — also stop `onKeyDown`. — done: Phase 3
+- [x] [frontend] [med] [S] components/reports/report-history-list.tsx:146 — sorts the `reports` prop in place — copy first. — done: 2.D2 (the list comes sorted from the database; no sort left)
+- [x] [frontend] [med] [S] components/reports/report-history-list.tsx:200 — typo `boverflow-y-auto`, the list never scrolls — fix class. — done: Phase 3
+- [x] [frontend] [med] [S] components/reports/report-history-list.tsx:245,254 — clickable `div`s with no role/tabIndex/keys — use buttons. — done: Phase 3
+- [x] [frontend] [med] [S] components/dashboard/reports/download-reports-modal.tsx:111 — download errors only go to the console — `toast.error`. — done: Phase 3
 - [x] [frontend] [med] [S] components/dashboard/analytics/zone-map.tsx:369 — click handlers keep the first `data` — read through a ref. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:660 — `const { data: inlets = [] }` defaults create new arrays every render, so the report-bubble effect tears down and refetches counts on every render while loading — module-level `EMPTY` constant. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:665 — report bubbles: old popups not removed when the list empties; no re-run once the map becomes ready — remove first, add `mapReady` state. — done: Phase 3
@@ -62,13 +62,13 @@ Ordered by value per effort within each band. Tick as items land.
 - [ ] [frontend] [low] [S] app/(main)/map/page.tsx:830,848; simulation/page.tsx:416,665 — timeouts never cleared on unmount — refs + one cleanup.
 - [ ] [frontend] [low] [S] app/(main)/simulation/page.tsx:488,506 — `componentParams` updated from closure value; two quick edits lose one — functional `setState`.
 - [ ] [frontend] [low] [S] app/(main)/simulation/page.tsx:1155 — node slideshow chains `setTimeout`s with no cancellation — request counter.
-- [ ] [frontend] [low] [S] components/control-panel/tabs/tables-content/{drain,inlet,outlet,pipe}-table.tsx — clickable rows without keyboard access — `tabIndex`, Enter/Space.
-- [ ] [frontend] [low] [S] components/dashboard/reports/report-card.tsx:171, image-gallery.tsx:64 — clickable divs — buttons.
-- [ ] [frontend] [low] [S] components/reports/submit-tab.tsx:78 — label typo "Manduae Pipe".
-- [ ] [frontend] [low] [S] components/dashboard/reports/report-card.tsx:55 — missing category shown as "Inlets" — show "Unknown".
-- [ ] [frontend] [low] [S] components/control-panel/components/link-bar.tsx:22 — favourite star is local-only; popover always says "Jupyter Notebook" — remove star, fix text.
+- [x] [frontend] [low] [S] components/control-panel/tabs/tables-content/{drain,inlet,outlet,pipe}-table.tsx — clickable rows without keyboard access — `tabIndex`, Enter/Space. — done: Phase 3
+- [x] [frontend] [low] [S] components/dashboard/reports/report-card.tsx:171, image-gallery.tsx:64 — clickable divs — buttons. — done: Phase 3
+- [x] [frontend] [low] [S] components/reports/submit-tab.tsx:78 — label typo "Manduae Pipe". — done: Phase 3
+- [x] [frontend] [low] [S] components/dashboard/reports/report-card.tsx:55 — missing category shown as "Inlets" — show "Unknown". — done: Phase 3
+- [x] [frontend] [low] [S] components/control-panel/components/link-bar.tsx:22 — favourite star is local-only; popover always says "Jupyter Notebook" — remove star, fix text. — done: Phase 3
 - [x] [frontend] [low] [S] components/control-panel/tabs/maintenance.tsx:765 — says photos "must" have GPS and be under 12 h old, but unverifiable photos are accepted and marked — reword. — done: Phase 3
-- [ ] [frontend] [low] [S] components/dashboard/analytics/component-type-chart.tsx:145,166 — "NaN%" when all counts are 0 — guard.
+- [x] [frontend] [low] [S] components/dashboard/analytics/component-type-chart.tsx:145,166 — "NaN%" when all counts are 0 — guard. — done: Phase 3
 - [ ] [frontend] [low] [S] lib/supabase/report.ts:136,215 — `fetchMyReports`, `fetchReportsForComponent` unpaged (filtered, so only an edge case) — `fetchAllRows`.
 - [ ] [backend] [low] [S] app/jobs.py:282 — raw exception text returned to the client and stored (may contain server paths) — generic message; details stay in the log.
 - [ ] [backend] [low] [S] app/config.py:91 — preview-origin regex accepts anyone's `drain-*.vercel.app`, with `allow_credentials=True` though auth is a Bearer header — drop `allow_credentials`; tie the regex to the team slug (needs user: slug).

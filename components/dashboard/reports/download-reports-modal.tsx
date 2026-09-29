@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -90,7 +91,12 @@ export default function DownloadReportsModal({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to download reports');
+        // The route explains a refusal (not staff, bad month) in its body.
+        const body = await response.json().catch(() => null);
+        throw new Error(
+          (body && typeof body.error === 'string' && body.error) ||
+            `Download failed (HTTP ${response.status}).`
+        );
       }
 
       // Get the blob from the response
@@ -110,6 +116,10 @@ export default function DownloadReportsModal({
       handleCancel();
     } catch (error) {
       console.error('Download failed:', error);
+      // It used to go back to the form without a word.
+      toast.error(
+        error instanceof Error ? error.message : 'The download failed.'
+      );
       setIsLoading(false);
     }
   };

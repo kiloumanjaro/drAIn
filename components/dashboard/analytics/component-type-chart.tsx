@@ -57,6 +57,9 @@ export default function ComponentTypeChart({
   }));
 
   const total = chartData.reduce((sum, it) => sum + it.value, 0);
+  // With no reports yet every share is 0 of 0; say 0%, not "NaN%".
+  const share = (value: number) =>
+    `${total > 0 ? ((value / total) * 100).toFixed(1) : '0.0'}%`;
 
   return (
     <TooltipProvider>
@@ -142,7 +145,7 @@ export default function ComponentTypeChart({
                   {chartData[0]?.value !== 1 ? 's' : ''}
                 </td>
                 <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
-                  {((chartData[0]?.value / total) * 100).toFixed(1)}%
+                  {share(chartData[0]?.value ?? 0)}
                 </td>
               </tr>
               {/* Remaining data rows */}
@@ -163,7 +166,7 @@ export default function ComponentTypeChart({
                     {item.value} issue{item.value !== 1 ? 's' : ''}
                   </td>
                   <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
-                    {((item.value / total) * 100).toFixed(1)}%
+                    {share(item.value)}
                   </td>
                 </tr>
               ))}

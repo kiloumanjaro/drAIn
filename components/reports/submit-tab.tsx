@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import ImageUploader from '@/components/common/image-uploader';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,6 +56,7 @@ export default function SubmitTab() {
   const [errorCode, setErrorCode] = useState('');
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const checkRun = useRef(0);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isManual, setIsManual] = useState(false);
   const [alertNow, setAlertNow] = useState(false);
@@ -75,7 +76,7 @@ export default function SubmitTab() {
     } else if (value === 'storm_drains') {
       setCategoryLabel('Storm Drain');
     } else if (value === 'man_pipes') {
-      setCategoryLabel('Manduae Pipe');
+      setCategoryLabel('Man Pipe');
     } else if (value === 'outlets') {
       setCategoryLabel('Outlet');
     }
@@ -87,7 +88,9 @@ export default function SubmitTab() {
     setCategory('');
     setCategoryLabel('');
     setCategoryData([]);
-    setCategoryIndex(0);
+    // -1 is "nothing picked". It was 0, which left the first component of
+    // the next report pre-selected without the user choosing it.
+    setCategoryIndex(-1);
     setSeverity('low');
     setPhotoExif(null);
   };
@@ -95,14 +98,20 @@ export default function SubmitTab() {
   const handlePreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    // Cancelling the spinner bumps checkRun; a check that was overtaken
+    // stops at its next await instead of opening a dialog afterwards.
+    const run = ++checkRun.current;
+    const cancelled = () => checkRun.current !== run;
 
     if (!image) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (cancelled()) return;
       setIsSubmitting(false);
       setIsErrorModalOpen(true);
       setErrorCode('Not a valid image');
     } else {
       const location = await extractExifLocation(image);
+      if (cancelled()) return;
       setPhotoExif(location);
       // const location = {
       //   latitude: 10.360832542295604,
@@ -111,6 +120,7 @@ export default function SubmitTab() {
       //need to fix bug
       if (!location.latitude || !location.longitude) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (cancelled()) return;
         setIsSubmitting(false);
         setIsErrorModalOpen(true);
         setErrorCode('No GPS data found in image');
@@ -125,9 +135,11 @@ export default function SubmitTab() {
           { lat: location.latitude, lon: location.longitude },
           category
         );
+        if (cancelled()) return;
 
         if (Pipedata.length === 0) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
+          if (cancelled()) return;
           setIsSubmitting(false);
           setIsErrorModalOpen(true);
           setErrorCode('No component found within your location!');
@@ -151,6 +163,7 @@ export default function SubmitTab() {
         setIsSubmitting(false);
         return;
       } catch (error) {
+        if (cancelled()) return;
         setIsErrorModalOpen(true);
         setErrorCode(String(error));
         setIsSubmitting(false);
@@ -268,6 +281,7 @@ export default function SubmitTab() {
       <div className="flex h-full w-full items-center justify-center">
         <SpinnerEmpty
           onCancel={() => {
+            checkRun.current++;
             setIsSubmitting(false);
             setIsModalOpen(false);
           }}

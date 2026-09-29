@@ -10,6 +10,7 @@ import { formatDateShort } from '@/lib/dashboard/calculations';
 import type { ReportWithMetadata } from '@/lib/dashboard/queries';
 import { MapPin, MapPinHouse, FileText, Copy } from 'lucide-react';
 import { useState } from 'react';
+import { isComponentType } from '@/lib/supabase/enums';
 
 interface ReportCardProps {
   report: ReportWithMetadata;
@@ -51,8 +52,10 @@ export default function ReportCard({
     return filteredParts.slice(0, 2).join(', ');
   };
 
-  // Get component type from report category
-  const componentType = report.category || 'inlets';
+  // A report with no category gets no type badge; it used to say "Inlets".
+  const componentType = isComponentType(report.category)
+    ? report.category
+    : null;
 
   const images = report.image ? [report.image] : [];
 
@@ -111,30 +114,35 @@ export default function ReportCard({
         <div className="max-h-38 space-y-3 overflow-y-auto p-4">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
-            <div onClick={(e) => e.stopPropagation()}>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <PriorityBadge
                 priority={report.priority}
                 size="sm"
                 onClick={onPriorityFilter}
               />
             </div>
-            <div onClick={(e) => e.stopPropagation()}>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <StatusBadge
                 status={report.status as 'pending' | 'in-progress' | 'resolved'}
                 onClick={onStatusFilter}
               />
             </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              <ComponentTypeBadge
-                componentType={
-                  componentType as
-                    | 'inlets'
-                    | 'outlets'
-                    | 'storm_drains'
-                    | 'man_pipes'
-                }
-                onClick={onComponentTypeFilter}
-              />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              {componentType && (
+                <ComponentTypeBadge
+                  componentType={componentType}
+                  onClick={onComponentTypeFilter}
+                />
+              )}
             </div>
           </div>
 
@@ -168,17 +176,20 @@ export default function ReportCard({
           {report.description && (
             <div className="flex items-center gap-2">
               <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500" />
-              <div
+              <button
+                type="button"
+                aria-expanded={expandedDescription}
                 onClick={(e) => {
                   e.stopPropagation();
                   setExpandedDescription(!expandedDescription);
                 }}
+                onKeyDown={(e) => e.stopPropagation()}
                 className={`cursor-pointer text-left text-xs text-gray-600 transition-all ${
                   expandedDescription ? '' : 'line-clamp-1'
                 }`}
               >
                 {report.description}
-              </div>
+              </button>
             </div>
           )}
         </div>

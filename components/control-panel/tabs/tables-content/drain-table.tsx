@@ -133,7 +133,15 @@ export function DrainTable({
                   <TableRow
                     key={drain.In_Name}
                     onClick={() => onSelectDrain(drain)}
-                    className="hover:bg-muted/50 cursor-pointer transition-colors"
+                    // Selectable from the keyboard too, like the mouse.
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectDrain(drain);
+                      }
+                    }}
+                    className="hover:bg-muted/50 focus-visible:bg-muted/50 cursor-pointer transition-colors outline-none"
                   >
                     <TableCell className="text-center font-mono text-sm">
                       {drain.In_Name}
