@@ -17,8 +17,8 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [high] [S] next.config.ts:5-10 — `remotePatterns: [{ protocol: 'https', hostname: '**' }]` lets `/_next/image` fetch and resize images from any host — allow only the Supabase storage host(s) actually used. — done: Phase 4 (7e9d886)
 - [x] [frontend] [high] [S] components/reports/report-history-list.tsx:358 — `priority={'low'}` hard-coded, so every report's image viewer says Low — pass `selectedReport.priority`. — done: 2.D2 (af5aef6)
 - [x] [frontend] [high] [S] components/control-panel/components/top-bar.tsx:103 — "profile setup" progress is hard-coded (`// Example ... replace with actual data`), every user sees 2 of 4 done — derive from the profile or remove. — done: Phase 3
-- [ ] [frontend] [high] [S] components/dashboard/analytics/zone-map.tsx:51 — map init runs once on mount, but while `loading` the container isn't rendered, so on a cold load the map never draws — always render the container, overlay the skeleton.
-- [ ] [frontend] [high] [M] components/control-panel/tabs/maintenance.tsx:250 — recording maintenance reports errors into state that is only shown inside a view that was just closed; failures (and successes) are silent — use `toast.error` / `toast.success`.
+- [x] [frontend] [high] [S] components/dashboard/analytics/zone-map.tsx:51 — map init runs once on mount, but while `loading` the container isn't rendered, so on a cold load the map never draws — always render the container, overlay the skeleton. — done: Phase 3
+- [x] [frontend] [high] [M] components/control-panel/tabs/maintenance.tsx:250 — recording maintenance reports errors into state that is only shown inside a view that was just closed; failures (and successes) are silent — use `toast.error` / `toast.success`. — done: Phase 3
 - [x] [frontend] [high] [S] app/(main)/simulation/page.tsx:312 — the map click handler reads `isSimulationActive` from the first render (guarded re-init never re-registers) — read it through a latest-value ref. — done: 2.2 (3370ecc)
 - [ ] [frontend] [high] [M] app/(main)/simulation/page.tsx:806 — `runSimulation` polls up to 30 min and can't be cancelled; after leaving the page it still sets state and paints the map — add an `AbortSignal` to `RunOptions`, abort on unmount.
 
@@ -32,14 +32,14 @@ Ordered by value per effort within each band. Tick as items land.
 - [x] [frontend] [med] [S] lib/query/hooks/use-report-queries.ts:32-34 — latest-per-component query key omits the data its `queryFn` uses, and `enabled` requires `length > 0` (pending forever with zero reports) — superseded by 2.D2, which reads the database view instead. — done: 2.D2 (af5aef6)
 - [ ] [frontend] [med] [S] components/reports/submit-tab.tsx:90 — `clearInputs` sets `categoryIndex` to 0 after the reset to -1, so the next report has a component pre-selected that the user never chose — set -1.
 - [ ] [frontend] [med] [S] components/reports/submit-tab.tsx:270 — cancelling the spinner doesn't stop `handlePreSubmit`, the confirm dialog pops up afterwards — track cancellation with a ref.
-- [ ] [frontend] [med] [S] components/control-panel/tabs/maintenance.tsx:396 — "Refresh reports" button has no `onClick` — call `handleViewHistory(...)`.
+- [x] [frontend] [med] [S] components/control-panel/tabs/maintenance.tsx:396 — "Refresh reports" button has no `onClick` — call `handleViewHistory(...)`. — done: Phase 3
 - [x] [frontend] [med] [S] components/control-panel/components/top-bar.tsx:143 — notification toggle only flips local state and says "Notifications turned on" — remove it (nothing to connect it to). — done: Phase 3
 - [ ] [frontend] [med] [S] components/dashboard/reports/report-card.tsx:114 — badge wrappers stop clicks but not keys; Enter on a badge filters and also navigates the card — also stop `onKeyDown`.
 - [ ] [frontend] [med] [S] components/reports/report-history-list.tsx:146 — sorts the `reports` prop in place — copy first.
 - [ ] [frontend] [med] [S] components/reports/report-history-list.tsx:200 — typo `boverflow-y-auto`, the list never scrolls — fix class.
 - [ ] [frontend] [med] [S] components/reports/report-history-list.tsx:245,254 — clickable `div`s with no role/tabIndex/keys — use buttons.
 - [ ] [frontend] [med] [S] components/dashboard/reports/download-reports-modal.tsx:111 — download errors only go to the console — `toast.error`.
-- [ ] [frontend] [med] [S] components/dashboard/analytics/zone-map.tsx:369 — click handlers keep the first `data` — read through a ref.
+- [x] [frontend] [med] [S] components/dashboard/analytics/zone-map.tsx:369 — click handlers keep the first `data` — read through a ref. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:660 — `const { data: inlets = [] }` defaults create new arrays every render, so the report-bubble effect tears down and refetches counts on every render while loading — module-level `EMPTY` constant. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:665 — report bubbles: old popups not removed when the list empties; no re-run once the map becomes ready — remove first, add `mapReady` state. — done: Phase 3
 - [x] [frontend] [med] [S] app/(main)/map/page.tsx:693 — bubbles re-added while the reports layer is hidden — respect `overlayVisibilityRef`. — done: Phase 3
@@ -67,7 +67,7 @@ Ordered by value per effort within each band. Tick as items land.
 - [ ] [frontend] [low] [S] components/reports/submit-tab.tsx:78 — label typo "Manduae Pipe".
 - [ ] [frontend] [low] [S] components/dashboard/reports/report-card.tsx:55 — missing category shown as "Inlets" — show "Unknown".
 - [ ] [frontend] [low] [S] components/control-panel/components/link-bar.tsx:22 — favourite star is local-only; popover always says "Jupyter Notebook" — remove star, fix text.
-- [ ] [frontend] [low] [S] components/control-panel/tabs/maintenance.tsx:765 — says photos "must" have GPS and be under 12 h old, but unverifiable photos are accepted and marked — reword.
+- [x] [frontend] [low] [S] components/control-panel/tabs/maintenance.tsx:765 — says photos "must" have GPS and be under 12 h old, but unverifiable photos are accepted and marked — reword. — done: Phase 3
 - [ ] [frontend] [low] [S] components/dashboard/analytics/component-type-chart.tsx:145,166 — "NaN%" when all counts are 0 — guard.
 - [ ] [frontend] [low] [S] lib/supabase/report.ts:136,215 — `fetchMyReports`, `fetchReportsForComponent` unpaged (filtered, so only an edge case) — `fetchAllRows`.
 - [ ] [backend] [low] [S] app/jobs.py:282 — raw exception text returned to the client and stored (may contain server paths) — generic message; details stay in the log.

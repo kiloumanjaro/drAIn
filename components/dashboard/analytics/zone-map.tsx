@@ -10,6 +10,7 @@ import {
 import type { ZoneIssueData, ReportLocation } from '@/lib/dashboard/queries';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/use-latest-ref';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -34,6 +35,13 @@ export default function ZoneMap({
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const layersAdded = useRef(false);
+  // The zone click handlers are added once, with the layers; they read the
+  // latest zones through this rather than the ones from that render.
+  const dataRef = useLatestRef(data);
+  // The map container only exists once loaded and with zones to show, so the
+  // map is set up (and torn down) as that changes. It used to be set up once
+  // on mount, when a first load was still showing the skeleton, and never drew.
+  const showsMap = !loading && !!data && data.length > 0;
 
   // Load GeoJSON on mount
   useEffect(() => {
@@ -44,8 +52,8 @@ export default function ZoneMap({
     loadGeoJson();
   }, []);
 
-  // Initialize map immediately (no data dependency)
   useEffect(() => {
+    if (!showsMap) return;
     if (!mapContainer.current || !MAPBOX_TOKEN) {
       if (!MAPBOX_TOKEN) {
         setMapError('Mapbox token not configured');
@@ -104,11 +112,11 @@ export default function ZoneMap({
       layersAdded.current = false;
       setMapReady(false);
     };
-  }, []);
+  }, [showsMap]);
 
   // Handle container resize
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!showsMap || !mapContainer.current) return;
 
     const resizeObserver = new ResizeObserver(() => {
       if (map.current) {
@@ -121,7 +129,7 @@ export default function ZoneMap({
     return () => {
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [showsMap]);
 
   // Add layers once map is ready and data is available
   useEffect(() => {
@@ -366,7 +374,7 @@ export default function ZoneMap({
     map.current.on('click', 'issues-circle', (e) => {
       if (e.features && e.features[0]) {
         const clickedName = e.features[0].properties?.name;
-        const matchedZone = data.find(
+        const matchedZone = dataRef.current.find(
           (z) => z.zone.toLowerCase() === clickedName?.toLowerCase()
         );
         if (matchedZone) {
@@ -381,7 +389,7 @@ export default function ZoneMap({
     map.current.on('click', 'issues-heatmap', (e) => {
       if (e.features && e.features[0]) {
         const clickedName = e.features[0].properties?.name;
-        const matchedZone = data.find(
+        const matchedZone = dataRef.current.find(
           (z) => z.zone.toLowerCase() === clickedName?.toLowerCase()
         );
         if (matchedZone) {

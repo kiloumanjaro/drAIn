@@ -247,11 +247,16 @@ ${note}`
     setMaintenanceImage(null);
     setMaintenanceDescription('');
 
+    // A toast, because the upload view that could show a message has just
+    // closed: failures (and successes) used to pass without a word.
     if (result.error) {
-      setReportStatus({ type: 'error', message: `Error: ${result.error}` });
-      setMessage(`Error: ${result.error}`);
+      toast.error(`Could not record the maintenance: ${result.error}`);
     } else {
-      setMessage(`Maintenance recorded successfully as ${status}.`);
+      toast.success(
+        status === 'resolved'
+          ? 'Recorded as fixed. Someone other than you can now confirm it.'
+          : 'Recorded as in progress.'
+      );
       handleViewHistory(type, id);
       loadReports(id);
     }
@@ -399,6 +404,12 @@ ${note}`
           <button
             className="flex h-8 w-8 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0] disabled:cursor-not-allowed disabled:opacity-50"
             title="Refresh reports"
+            disabled={!selectedAsset || isLoading}
+            onClick={() => {
+              if (!selectedAsset) return;
+              handleViewHistory(selectedAsset.type, selectedAsset.id);
+              loadReports(selectedAsset.id);
+            }}
           >
             <RefreshCw className="h-4 w-4 text-[#8D8D8D]" />
           </button>
@@ -765,8 +776,10 @@ ${note}`
                     image={maintenanceImage}
                   />
                   <p className="text-muted-foreground text-xs">
-                    * Photo must contain GPS data and be taken within the last
-                    12 hours.
+                    * The photo&apos;s own location and time are checked: one
+                    taken more than 50 m from the asset or over 12 hours ago is
+                    refused. A photo without them is accepted but marked
+                    unverified.
                   </p>
                 </div>
 
