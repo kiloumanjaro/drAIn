@@ -59,9 +59,10 @@ select is_empty(
   'turning it back on shows their current name on every report'
 );
 
+-- A report with no account on it: the anonymous ones filed before
+-- 2026-09-29, or one the service role files.
 reset role;
-set local role anon;
-set local request.jwt.claims = '{"role":"anon"}';
+set local request.jwt.claims = '{}';
 
 insert into public.reports (id, category, status, component_id, reporter_name)
 values ('00000000-0000-4000-b000-0000000000ac', 'inlets', 'pending', 'I-0', 'Walk-in Wendy');
@@ -69,7 +70,7 @@ values ('00000000-0000-4000-b000-0000000000ac', 'inlets', 'pending', 'I-0', 'Wal
 select is(
   (select reporter_name from public.reports where id = '00000000-0000-4000-b000-0000000000ac'),
   'Walk-in Wendy',
-  'an anonymous reporter keeps the name they typed'
+  'a report with no account keeps the name it was filed with'
 );
 
 reset role;

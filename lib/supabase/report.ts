@@ -26,7 +26,7 @@ export interface Report {
   resolvedImage?: string | null;
   resolvedAt?: string | null;
   priority: ReportPriority;
-  /** Null for a report filed while signed out. */
+  /** Null for a report filed while signed out, possible until 2026-09-29. */
   userId: string | null;
   /** What agency staff made of it. Rejected reports are hidden from the public. */
   reviewStatus: ReportReview;
@@ -71,7 +71,8 @@ export const uploadReport = async (
   component_id: string,
   long: number,
   lat: number,
-  userId: string | null,
+  /** Reporting needs an account; the database refuses signed-out reports. */
+  userId: string,
   reporterName: string,
   priority: ReportPriority = 'low',
   /** What the photo's EXIF says about where and when it was taken. */
@@ -108,7 +109,7 @@ export const uploadReport = async (
         lat: lat,
         address: null,
         geocoded_status: 'pending',
-        user_id: userId ?? null,
+        user_id: userId,
         priority: priority,
         // The database measures these against the component and labels the
         // report (photo_check); staff see it when they review.

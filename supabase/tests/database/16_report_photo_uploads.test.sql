@@ -1,19 +1,38 @@
--- Report photos can only be uploaded under the random names the app makes
--- (run plan 2.5). Impersonation pattern: see 01_baseline.test.sql.
+-- Report photos: only signed-in users upload (since 2026-09-29), and only
+-- under the random names the app makes (run plan 2.5).
+-- Impersonation pattern: see 01_baseline.test.sql.
 
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(6);
+select plan(7);
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name)
+    values ('ReportImage', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a10.jpg')$$,
+  '42501', null,
+  'a signed-out visitor cannot upload a report photo'
+);
+
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name)
+    values ('Avatars', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a14.jpg')$$,
+  '42501', null,
+  'visitors cannot upload avatars'
+);
+
+reset role;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000003","role":"authenticated"}';
+
 select lives_ok(
   $$insert into storage.objects (bucket_id, name)
     values ('ReportImage', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a11.jpg')$$,
-  'a visitor can upload a report photo under a random name'
+  'a citizen can upload a report photo under a random name'
 );
 
 select throws_ok(
@@ -37,15 +56,6 @@ select throws_ok(
   'the dot before the extension is a real dot'
 );
 
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name)
-    values ('Avatars', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a14.jpg')$$,
-  '42501', null,
-  'visitors cannot upload avatars'
-);
-
-reset role;
-set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
 
 select lives_ok(

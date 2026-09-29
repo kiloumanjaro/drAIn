@@ -23,7 +23,7 @@ This file is the working copy; tick boxes here as steps land, and delete it when
    - Users can leave their agency themselves.
    - An admin can still assign a role or agency directly through an RPC. There is no admin UI yet (Studio/SQL).
 2. **Existing staff:** local seed only. `admin@` becomes `admin` and `staff@` becomes `staff`, both on the City Engineer Office. The 8 hosted self-linked profiles are out of scope (hosted isn't a target).
-3. **Anonymous reports:** kept, insert only. Signed-out users submit pending reports and can't edit or delete any report.
+3. **Anonymous reports:** kept, insert only. Signed-out users submit pending reports and can't edit or delete any report. **Changed 2026-09-29:** reporting now needs an account, because signed-out photo uploads had no limit (`…_signed_in_reporting`).
 4. **Reporter name visibility:** users get a profile setting to show or hide their name on their reports.
    - Default: shown, which matches today's behaviour.
    - When it's off, the database stores `Anonymous` instead of the name; the real name is never written to a hidden report.

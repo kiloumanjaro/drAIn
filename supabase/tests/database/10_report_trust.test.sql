@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(17);
 
 -- A citizen files a report on ISD-10, with a photo taken right there, and
 -- tries to mark it confirmed and to pick its own photo distance.
@@ -69,26 +69,15 @@ select lives_ok(
   'a different person may report the same component'
 );
 
--- Signed out: limited per address.
+-- Signed out: no reports at all since 2026-09-29.
 reset role;
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
-set local request.headers = '{"x-real-ip":"203.0.113.9"}';
-
-insert into public.reports (category, component_id)
-select 'storm_drains', 'ISD-' || n from generate_series(20, 22) n;
 
 select throws_ok(
   $$insert into public.reports (category, component_id) values ('storm_drains', 'ISD-23')$$,
-  'P0001', null,
-  'a fourth signed-out report from one address within the hour is refused'
-);
-
-set local request.headers = '{"x-real-ip":"198.51.100.4"}';
-
-select lives_ok(
-  $$insert into public.reports (category, component_id) values ('storm_drains', 'ISD-23')$$,
-  'another address is not held back by the first'
+  '42501', null,
+  'a signed-out visitor cannot file a report'
 );
 
 select throws_ok(

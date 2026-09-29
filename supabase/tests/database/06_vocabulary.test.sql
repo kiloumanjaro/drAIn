@@ -13,8 +13,8 @@ select enum_has_labels('public', 'report_priority', array['low', 'medium', 'high
   'report priorities');
 select hasnt_type('public', 'asset_point_type', 'unused enums are gone');
 
-set local role anon;
-set local request.jwt.claims = '{"role":"anon"}';
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000004","role":"authenticated"}';
 
 select throws_ok(
   $$insert into public.reports (category, status, component_id) values ('inlets', 'unresolved', 'I-0')$$,
@@ -34,8 +34,8 @@ select throws_ok(
   'a misspelt category (singular) is refused'
 );
 
-insert into public.reports (id, category, component_id)
-values ('00000000-0000-4000-b000-0000000000dd', 'inlets', 'I-0');
+insert into public.reports (id, category, component_id, user_id)
+values ('00000000-0000-4000-b000-0000000000dd', 'inlets', 'I-0', '00000000-0000-4000-a000-000000000004');
 
 reset role;
 

@@ -6,7 +6,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(21);
+select plan(22);
 
 -- Signed-out visitors -------------------------------------------------------
 
@@ -33,10 +33,13 @@ select is(
   'anon cannot edit or delete a report'
 );
 
-select lives_ok(
+-- Signed-out filing ended on 2026-09-29 (every report needs a photo, and
+-- signed-out photo uploads were unlimited).
+select throws_ok(
   $$insert into public.reports (category, description, status, component_id, long, lat, reporter_name)
     values ('inlets', 'Blocked', 'pending', 'I-0', 123.9154, 10.3601, 'Walk-in')$$,
-  'anon can file a pending report'
+  '42501', null,
+  'anon cannot file a report'
 );
 
 select throws_ok(
@@ -98,6 +101,13 @@ select lives_ok(
   $$insert into public.reports (category, status, component_id, user_id)
     values ('inlets', 'pending', 'I-0', '00000000-0000-4000-a000-000000000003')$$,
   'a citizen can file a report under their own account'
+);
+
+select throws_ok(
+  $$insert into public.reports (category, status, component_id)
+    values ('inlets', 'pending', 'I-1')$$,
+  '42501', null,
+  'a citizen cannot file a report with no account on it'
 );
 
 select throws_ok(

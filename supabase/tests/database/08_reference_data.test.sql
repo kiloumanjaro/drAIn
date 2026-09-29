@@ -45,14 +45,19 @@ select fk_ok('public', 'reports', 'component_id', 'public', 'components', 'name'
 select fk_ok('public', 'maintenance', 'component_name', 'public', 'components', 'name',
   'maintenance points at a real component');
 
-set local role anon;
-set local request.jwt.claims = '{"role":"anon"}';
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000004","role":"authenticated"}';
 
 select throws_ok(
-  $$insert into public.reports (category, component_id) values ('inlets', 'NO-SUCH-THING')$$,
+  $$insert into public.reports (category, component_id, user_id)
+    values ('inlets', 'NO-SUCH-THING', '00000000-0000-4000-a000-000000000004')$$,
   '23503', null,
   'a report on a component that does not exist is refused'
 );
+
+reset role;
+set local role anon;
+set local request.jwt.claims = '{"role":"anon"}';
 
 select throws_ok(
   $$delete from public.flood_results$$,

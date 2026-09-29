@@ -8,7 +8,7 @@ set local search_path = public, extensions;
 select plan(12);
 
 -- No client role can write to any table except the two the app writes:
--- reports (INSERT) and profiles (INSERT/UPDATE of one's own row).
+-- reports (INSERT, signed in only) and profiles (INSERT/UPDATE of one's own row).
 select is(
   (select coalesce(string_agg(format('%s %s %s', grantee, privilege_type, table_name), ', '
                               order by table_name, grantee, privilege_type), '')
@@ -16,7 +16,7 @@ select is(
     where table_schema = 'public'
       and grantee in ('anon', 'authenticated')
       and privilege_type not in ('SELECT')),
-  'authenticated INSERT profiles, authenticated UPDATE profiles, anon INSERT reports, authenticated INSERT reports',
+  'authenticated INSERT profiles, authenticated UPDATE profiles, authenticated INSERT reports',
   'the only client writes are report inserts and own-profile edits'
 );
 

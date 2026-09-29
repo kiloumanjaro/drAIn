@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import ImageUploader from '@/components/common/image-uploader';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,7 +42,7 @@ interface CategoryData {
 }
 
 export default function SubmitTab() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [severity, setSeverity] = useState<ReportPriority>('low');
@@ -176,10 +177,13 @@ export default function SubmitTab() {
     // The confirm button only shows once a component, and so a category,
     // has been picked.
     if (!category) return;
+
+    // The form is only shown signed in; the database refuses the rest.
+    if (!user) return;
     setIsConfirming(true);
 
     try {
-      const userID = user?.id ?? null;
+      const userID = user.id;
       const profileName = profile?.full_name ?? 'Anonymous';
 
       const long = categoryData[categoryIndex].long;
@@ -275,6 +279,31 @@ export default function SubmitTab() {
   const handleCancel = () => {
     clearInputs();
   };
+
+  // Reporting needs an account (since 2026-09-29). Every report carries a
+  // photo, and signed-out photo uploads could not be limited.
+  if (!user) {
+    if (authLoading) return null;
+    return (
+      <div className="flex h-full w-full flex-col gap-4 pt-3 pr-2 pb-5 pl-5">
+        <CardHeader className="px-1 py-0">
+          <CardTitle>Report an issue</CardTitle>
+          <CardDescription className="text-xs">
+            Sign in to report a problem with a drain. Your reports and their
+            progress show up on your profile.
+          </CardDescription>
+        </CardHeader>
+        <div className="flex gap-3">
+          <Button asChild className="flex-1">
+            <Link href="/login">Sign in</Link>
+          </Button>
+          <Button asChild variant="outline" className="flex-1">
+            <Link href="/signup">Create an account</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isSubmitting) {
     return (

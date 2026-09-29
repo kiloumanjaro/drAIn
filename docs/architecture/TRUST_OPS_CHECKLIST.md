@@ -115,7 +115,9 @@ Backend: ruff clean, pytest 252.
   deployed too. Deploy both together.
 - Signed-out report limits are per IP address. Many phones share one
   address on mobile networks, so three an hour may be tight there; the
-  numbers are in `check_report_submission`.
+  numbers are in `check_report_submission`. Since 2026-09-29 signed-out
+  visitors can't file reports or upload photos at all, so only the
+  signed-in limits apply.
 - The photo check trusts the phone's EXIF data. It helps staff triage; it
   isn't proof, and the UI words it as "the photo says".
 - UI changes were type-checked and unit-tested but not looked at in a

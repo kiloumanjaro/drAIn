@@ -926,9 +926,11 @@ ALTER TABLE ONLY "public"."reports"
 ALTER TABLE ONLY "public"."reports"
     ADD CONSTRAINT "reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
 
--- Anyone, signed in or not, may file a report, but only as a new pending
--- report under their own id (anonymous reports carry no user_id).
-CREATE POLICY "Anyone can file a pending report" ON "public"."reports" FOR INSERT WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" IS NOT DISTINCT FROM ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
+-- Signed-in users file reports, only as a new pending report under their own
+-- id. Signed-out filing ended on 2026-09-29: every report needs a photo, and
+-- signed-out photo uploads were unlimited (schema_auth_storage.sql). Older
+-- anonymous reports keep a null user_id.
+CREATE POLICY "Signed-in users file pending reports" ON "public"."reports" FOR INSERT TO "authenticated" WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
 
 CREATE POLICY "Anyone can read reports" ON "public"."reports" FOR SELECT USING (true);
 ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
@@ -1034,8 +1036,7 @@ REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
 -- (user_id), where the reporter stood (photo_lat/photo_lon) and which staff
 -- member reviewed it (reviewed_by). A new column is hidden from them until
 -- it is added here; realtime leaves ungranted columns out of its payloads.
-GRANT INSERT ON TABLE "public"."reports" TO "anon";
-
+-- They cannot file reports (see the INSERT policy).
 GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
 GRANT SELECT, INSERT ON TABLE "public"."reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."reports" TO "service_role";

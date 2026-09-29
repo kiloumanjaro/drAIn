@@ -41,7 +41,10 @@ ALTER FUNCTION "private"."request_ip"() OWNER TO "postgres";
 -- Who is filing, for limits: 'user:<id>' when signed in, 'ip:<sha256>' when
 -- not, null for a direct database session (seeds, migrations, the SQL
 -- editor) and the service role, which are not limited. The IP is only ever
--- stored hashed, and only in private.report_sources.
+-- stored hashed, and only in private.report_sources. Signed-out users can no
+-- longer file reports (the INSERT policy in schema.sql), so the 'ip:' branch
+-- is not reached today. It is kept so the limits still hold if anonymous
+-- reporting ever returns.
 CREATE OR REPLACE FUNCTION "private"."reporter_key"() RETURNS "text"
     LANGUAGE "sql" STABLE
     SET "search_path" TO ''

@@ -308,7 +308,7 @@ Evaluated against the local database on 2026-09-28. Item 2 of that evaluation is
 3. `components/_unused/` (with the `/gallery` page) and `control-panel-portable/`: delete or keep. Both look deliberate, so they were left. **Decided: keep for now.**
 4. The pickled k-means model (backend): retire the `Legacy_Cluster_*` fields (roadmap F), or export the model to plain arrays. sklearn warns the pickle was written by 1.6.1 and read by 1.9.1. **Decided: retired** (backend eacb592): the fields, the pickle and scikit-learn are gone.
 5. Backend CORS: your Vercel team slug, to limit the preview-origin pattern to your deployments.
-6. Report photo uploads have no rate limit (anyone can upload many photos without filing reports); a fix needs signed upload URLs or an edge function.
+6. Report photo uploads have no rate limit (anyone can upload many photos without filing reports); a fix needs signed upload URLs or an edge function. **Decided 2026-09-29: reporting needs an account.** Every report needs a photo, so signed-out uploads and signed-out reports end together; the form shows "Sign in" / "Create an account" instead. Older anonymous reports stay as they are.
 7. Still open from before: rotate the service-role key in the hosted geocode trigger; delete the stray `Project Drain/supabase/` folder.
 
 **Deploy order** (on top of the one in `TRUST_OPS_CHECKLIST.md`):
@@ -317,4 +317,4 @@ Evaluated against the local database on 2026-09-28. Item 2 of that evaluation is
    - `…_barangay_numbers` strips thousands separators while converting.
    - `…_one_network_table` copies the GIS attributes and pipe lines into `components` before dropping the four GIS tables. It was checked on a copy holding those tables.
 2. Then deploy the backend. It writes `simulation_runs.model_version`, which fails without that migration, and it no longer sends `nodes_dict`. The frontend never read it.
-3. Then deploy the frontend. Its image allow-list is built from `NEXT_PUBLIC_SUPABASE_URL`, so that must be set at build time; the new security headers apply to every page.
+3. Then deploy the frontend. Once `…_signed_in_reporting` is applied, the old frontend still shows signed-out visitors the report form, and their upload fails with a permission error, so keep the gap between the two short. Its image allow-list is built from `NEXT_PUBLIC_SUPABASE_URL`, so that must be set at build time; the new security headers apply to every page.

@@ -25,12 +25,30 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(url ?? '')) {
 }
 const client = () =>
   createClient(url, anonKey, { auth: { persistSession: false } });
+// A 1x1 PNG, so the bucket's image-only limit is never the reason for a
+// refusal.
+const png = () =>
+  new Blob(
+    [
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        'base64'
+      ),
+    ],
+    { type: 'image/png' }
+  );
+const photoName = () => `public/${crypto.randomUUID()}.png`;
 const out = (label, error) =>
   console.log(error ? `FAIL ${label}: ${error.message}` : `ok   ${label}`);
 
-// Anonymous report insert.
+// Signed out: no reports and no photo uploads (since 2026-09-29).
 {
   const c = client();
+  const up = await c.storage.from('ReportImage').upload(photoName(), png());
+  out(
+    'anon photo upload is refused',
+    up.error ? null : { message: 'the upload was allowed' }
+  );
   const { error } = await c.from('reports').insert({
     category: 'inlets',
     component_id: 'I-10',
@@ -39,7 +57,10 @@ const out = (label, error) =>
     lat: 10.3601,
     reporter_name: 'Walk-in',
   });
-  out('anon report insert', error);
+  out(
+    'anon report insert is refused',
+    error ? null : { message: 'the insert was allowed' }
+  );
   const t = await c
     .from('reports')
     .update({ description: 'x' })
@@ -64,6 +85,8 @@ async function signIn(email) {
 {
   const c = await signIn('citizen2@drain.local');
   const { data: u } = await c.auth.getUser();
+  const up = await c.storage.from('ReportImage').upload(photoName(), png());
+  out('signed-in photo upload', up.error);
   const r = await c.from('reports').insert({
     category: 'inlets',
     component_id: 'I-11',
