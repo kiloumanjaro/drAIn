@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS "public"."simulation_runs" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "started_at" timestamp with time zone,
     "finished_at" timestamp with time zone,
+    "model_version" "text",
     CONSTRAINT "simulation_runs_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "simulation_runs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE,
     CONSTRAINT "simulation_runs_outcome_check" CHECK ((("status" <> 'succeeded'::"public"."simulation_status") OR ("result" IS NOT NULL)))
@@ -129,6 +130,9 @@ COMMENT ON COLUMN "public"."simulation_runs"."id" IS 'The simulation server''s j
 
 COMMENT ON COLUMN "public"."simulation_runs"."request" IS 'What was asked for: node and link overrides and the storm.';
 
+
+
+COMMENT ON COLUMN "public"."simulation_runs"."model_version" IS 'SHA-256 of the network (.inp) file the run used, from metadata.model_info.network_sha256. Null for runs recorded before it was stamped.';
 
 
 COMMENT ON COLUMN "public"."simulation_runs"."result" IS 'The finished payload without nodes_dict, which repeats nodes_list keyed by node and is rebuilt on read.';

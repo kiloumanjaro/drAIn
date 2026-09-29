@@ -11,6 +11,12 @@ export interface ModelInfo {
   network: string;
   /** When the network file was generated from GIS data (YYYY-MM-DD). */
   network_built_on: string | null;
+  /**
+   * SHA-256 of the network file a live run used. Runs with the same one
+   * used the same model. Absent for the stored scenarios, whose network
+   * file isn't recorded.
+   */
+  network_sha256?: string | null;
   calibrated: boolean;
   hazard_score: {
     weights: Record<string, number>;
@@ -106,5 +112,10 @@ export function caveatDetails(info: ModelInfo, source: RatingSource): string[] {
     );
   }
   details.push(`Exposure: ${info.exposure}`);
+  if (info.network_sha256) {
+    details.push(
+      `Model version ${info.network_sha256.slice(0, 8)}: a fingerprint of the network file. Runs showing the same one used the same model.`
+    );
+  }
   return details;
 }

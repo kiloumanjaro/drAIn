@@ -616,6 +616,7 @@ export type Database = {
           error: string | null;
           finished_at: string | null;
           id: string;
+          model_version: string | null;
           request: NonNullable<Json>;
           result: Json | null;
           started_at: string | null;
@@ -627,6 +628,7 @@ export type Database = {
           error?: string | null;
           finished_at?: string | null;
           id: string;
+          model_version?: string | null;
           request?: NonNullable<Json>;
           result?: Json | null;
           started_at?: string | null;
@@ -638,6 +640,7 @@ export type Database = {
           error?: string | null;
           finished_at?: string | null;
           id?: string;
+          model_version?: string | null;
           request?: NonNullable<Json>;
           result?: Json | null;
           started_at?: string | null;

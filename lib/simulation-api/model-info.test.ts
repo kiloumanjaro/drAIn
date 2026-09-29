@@ -54,3 +54,19 @@ describe('caveatDetails', () => {
     );
   });
 });
+
+describe('the model version', () => {
+  it('shows the first 8 characters of the network fingerprint', () => {
+    const live = caveatDetails(
+      { ...FALLBACK_MODEL_INFO, network_sha256: '6bf7241f51d91524ab5627' },
+      'live'
+    ).join(' ');
+    expect(live).toContain('Model version 6bf7241f');
+  });
+
+  it('claims no version for the stored scenarios', () => {
+    expect(FALLBACK_MODEL_INFO.network_sha256).toBeUndefined();
+    const stored = caveatDetails(FALLBACK_MODEL_INFO, 'stored').join(' ');
+    expect(stored).not.toContain('Model version');
+  });
+});
