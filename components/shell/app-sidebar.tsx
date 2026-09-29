@@ -71,6 +71,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (cachedProfile) {
         const { profile: cachedData, publicAvatarUrl: cachedAvatarUrl } =
           JSON.parse(cachedProfile);
+        // localStorage is outside React and unavailable during server
+        // rendering, so it can only be read here, after mount.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setProfile(cachedData);
         setPublicAvatarUrl(cachedAvatarUrl);
       } else {

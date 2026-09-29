@@ -217,7 +217,8 @@ function MapPageContent() {
   }, [searchParams, inlets, outlets, pipes, drains]);
 
   // Function to clear all selections
-  const clearSelections = () => {
+  // Only setters and refs inside, so it never needs to change.
+  const clearSelections = useCallback(() => {
     setSelectedInlet(null);
     setSelectedOutlet(null);
     setSelectedPipe(null);
@@ -234,7 +235,7 @@ function MapPageContent() {
       );
       setSelectedFeature(null);
     }
-  };
+  }, [selectedFeatureRef]);
 
   const handleFloodScenarioChange = (scenarioId: string) => {
     if (!mapRef.current) {
@@ -955,71 +956,89 @@ function MapPageContent() {
     setControlPanelTab('stats');
   };
 
-  const handleSelectInlet = useCallback((inlet: Inlet) => {
-    const map = mapRef.current;
-    if (!map) return;
+  const handleSelectInlet = useCallback(
+    (inlet: Inlet) => {
+      const map = mapRef.current;
+      if (!map) return;
 
-    clearSelections();
+      clearSelections();
 
-    setSelectedInlet(inlet);
-    // The tab is chosen by the click handler, not here.
-    setControlPanelDataset('inlets');
+      setSelectedInlet(inlet);
+      // The tab is chosen by the click handler, not here.
+      setControlPanelDataset('inlets');
 
-    const center = inlet.coordinates;
-    setSelectedFeature(
-      focusFeatureOnMap(map, 'inlets', inlet.id, center, CAMERA_ANIMATION)
-    );
-  }, []);
+      const center = inlet.coordinates;
+      setSelectedFeature(
+        focusFeatureOnMap(map, 'inlets', inlet.id, center, CAMERA_ANIMATION)
+      );
+    },
+    [clearSelections]
+  );
 
-  const handleSelectOutlet = useCallback((outlet: Outlet) => {
-    const map = mapRef.current;
-    if (!map) return;
+  const handleSelectOutlet = useCallback(
+    (outlet: Outlet) => {
+      const map = mapRef.current;
+      if (!map) return;
 
-    clearSelections();
+      clearSelections();
 
-    setSelectedOutlet(outlet);
-    // The tab is chosen by the click handler, not here.
-    setControlPanelDataset('outlets');
+      setSelectedOutlet(outlet);
+      // The tab is chosen by the click handler, not here.
+      setControlPanelDataset('outlets');
 
-    const center = outlet.coordinates;
-    setSelectedFeature(
-      focusFeatureOnMap(map, 'outlets', outlet.id, center, CAMERA_ANIMATION)
-    );
-  }, []);
+      const center = outlet.coordinates;
+      setSelectedFeature(
+        focusFeatureOnMap(map, 'outlets', outlet.id, center, CAMERA_ANIMATION)
+      );
+    },
+    [clearSelections]
+  );
 
-  const handleSelectDrain = useCallback((drain: Drain) => {
-    const map = mapRef.current;
-    if (!map) return;
+  const handleSelectDrain = useCallback(
+    (drain: Drain) => {
+      const map = mapRef.current;
+      if (!map) return;
 
-    clearSelections();
+      clearSelections();
 
-    setSelectedDrain(drain);
-    // The tab is chosen by the click handler, not here.
-    setControlPanelDataset('storm_drains');
+      setSelectedDrain(drain);
+      // The tab is chosen by the click handler, not here.
+      setControlPanelDataset('storm_drains');
 
-    const center = drain.coordinates;
-    setSelectedFeature(
-      focusFeatureOnMap(map, 'storm_drains', drain.id, center, CAMERA_ANIMATION)
-    );
-  }, []);
+      const center = drain.coordinates;
+      setSelectedFeature(
+        focusFeatureOnMap(
+          map,
+          'storm_drains',
+          drain.id,
+          center,
+          CAMERA_ANIMATION
+        )
+      );
+    },
+    [clearSelections]
+  );
 
-  const handleSelectPipe = useCallback((pipe: Pipe) => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (!pipe.coordinates || pipe.coordinates.length === 0) return;
+  const handleSelectPipe = useCallback(
+    (pipe: Pipe) => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (!pipe.coordinates || pipe.coordinates.length === 0) return;
 
-    clearSelections();
+      clearSelections();
 
-    setSelectedPipe(pipe);
-    // The tab is chosen by the click handler, not here.
-    setControlPanelDataset('man_pipes');
+      setSelectedPipe(pipe);
+      // The tab is chosen by the click handler, not here.
+      setControlPanelDataset('man_pipes');
 
-    // A pipe is a line, so the camera targets its midpoint.
-    const center = pipe.coordinates[Math.floor(pipe.coordinates.length / 2)];
-    setSelectedFeature(
-      focusFeatureOnMap(map, 'man_pipes', pipe.id, center, CAMERA_ANIMATION)
-    );
-  }, []);
+      // A pipe is a line, so the camera targets its midpoint.
+      const center = pipe.coordinates[Math.floor(pipe.coordinates.length / 2)];
+      setSelectedFeature(
+        focusFeatureOnMap(map, 'man_pipes', pipe.id, center, CAMERA_ANIMATION)
+      );
+    },
+    [clearSelections]
+  );
 
   // Add a ref to track current tab
   const currentTabRef = useRef(initialTab);

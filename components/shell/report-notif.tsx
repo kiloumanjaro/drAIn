@@ -64,7 +64,7 @@ export default function NotificationBell() {
                 )} */}
 
                 <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
-                  <span>{new Date(n.date || Date.now()).toLocaleString()}</span>
+                  <span>{new Date(n.date).toLocaleString()}</span>
                 </div>
               </li>
             ))}

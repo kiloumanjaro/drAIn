@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import Image from 'next/image';
 import { AddIcon } from '@/components/common/add-icon';
@@ -17,28 +17,26 @@ export default function ImageUploader({
   placeholder = 'Drag Your Files Here',
   disabled = false,
 }: ImageUploaderProps) {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  // The parent can own the file (pass `image`) or leave it to this component.
+  const [localFile, setLocalFile] = useState<File | null>(null);
+  const file = image !== undefined ? image : localFile;
+  const fileName = file?.name ?? null;
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+  // One preview URL per file, released when the file changes or on unmount.
+  const fileUrl = useMemo(
+    () => (file ? URL.createObjectURL(file) : null),
+    [file]
+  );
   useEffect(() => {
-    if (image) {
-      const newUrl = URL.createObjectURL(image);
-      setFileName(image.name);
-      setFileUrl(newUrl);
-
-      return () => {
-        URL.revokeObjectURL(newUrl);
-      };
-    } else {
-      setFileName(null);
-      setFileUrl(null);
-    }
-  }, [image]);
+    return () => {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+    };
+  }, [fileUrl]);
 
   const handleFile = (file: File | undefined) => {
     if (!file || disabled) return;
@@ -54,12 +52,7 @@ export default function ImageUploader({
     }
 
     setError(null);
-    if (fileUrl) {
-      URL.revokeObjectURL(fileUrl);
-    }
-
-    setFileName(file.name);
-    setFileUrl(URL.createObjectURL(file));
+    setLocalFile(file);
     setIsDragging(false);
     onImageChange?.(file);
   };
@@ -77,12 +70,8 @@ export default function ImageUploader({
 
   const handleReset = () => {
     if (disabled) return;
-    setFileName(null);
+    setLocalFile(null);
     setError(null);
-    if (fileUrl) {
-      URL.revokeObjectURL(fileUrl);
-    }
-    setFileUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

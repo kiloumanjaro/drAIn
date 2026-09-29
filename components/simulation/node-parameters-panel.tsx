@@ -53,15 +53,11 @@ export function NodeParametersPanel({
   const tabsListRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Update active tab when selections change
-  useEffect(() => {
-    if (
-      selectedComponentIds.length > 0 &&
-      !selectedComponentIds.includes(activeTab)
-    ) {
-      setActiveTab(selectedComponentIds[0]);
-    }
-  }, [selectedComponentIds, activeTab]);
+  // The chosen tab, or the first node once the chosen one is deselected.
+  const currentTab =
+    selectedComponentIds.length > 0 && !selectedComponentIds.includes(activeTab)
+      ? selectedComponentIds[0]
+      : activeTab;
 
   // Drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -237,7 +233,7 @@ export function NodeParametersPanel({
             No components selected
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={currentTab} onValueChange={setActiveTab}>
             {/* Tab List with Horizontal Scrollbar */}
             <div className="tabs-scroll-container mb-4" ref={tabsListRef}>
               <TabsList className="inline-flex w-fit min-w-full justify-start">

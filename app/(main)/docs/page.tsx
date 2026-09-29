@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 
@@ -36,30 +36,35 @@ function DocsContent() {
     (searchParams.get('section') as SectionID) || 'overview';
   const [activeSection, setActiveSection] = useState<SectionID>(initialSection);
 
-  useEffect(() => {
-    const section = searchParams.get('section') as SectionID | null;
-    if (section) setActiveSection(section);
-  }, [searchParams]);
+  // Follow ?section= when it changes (a link to another section), while
+  // still letting clicks in the page pick a section. Adjusted during render,
+  // as React recommends, rather than in an effect.
+  const sectionParam = searchParams.get('section') as SectionID | null;
+  const [seenSectionParam, setSeenSectionParam] = useState(sectionParam);
+  if (sectionParam !== seenSectionParam) {
+    setSeenSectionParam(sectionParam);
+    if (sectionParam) setActiveSection(sectionParam);
+  }
 
   const [reportEvents, setReportEvents] = useState<FloodEvent[]>([]);
-  const [comparisonEvent, setComparisonEvent] = useState<FloodEvent | null>(
-    null
-  );
 
   useEffect(() => {
     fetch('/api/reports')
       .then((r) => r.json())
       .then((data) => setReportEvents(data.events ?? []));
+  }, []);
 
-    const param = searchParams.get('compareEvent');
-    if (param) {
-      try {
-        setComparisonEvent(JSON.parse(decodeURIComponent(param)));
-      } catch (e) {
-        console.error('Failed to parse comparison event:', e);
-      }
+  // The event to compare against, passed in the URL by the map.
+  const compareParam = searchParams.get('compareEvent');
+  const comparisonEvent = useMemo<FloodEvent | null>(() => {
+    if (!compareParam) return null;
+    try {
+      return JSON.parse(decodeURIComponent(compareParam));
+    } catch (e) {
+      console.error('Failed to parse comparison event:', e);
+      return null;
     }
-  }, [searchParams]);
+  }, [compareParam]);
 
   const [expandedSections, setExpandedSections] = useState<ExpandedSections>(
     {}

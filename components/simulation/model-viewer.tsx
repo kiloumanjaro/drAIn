@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useEffect,
   useMemo,
+  useState,
 } from 'react';
 import {
   Canvas,
@@ -467,7 +468,8 @@ const ModelViewer: FC<ViewerProps> = ({
   onModelLoaded,
 }) => {
   useEffect(() => void useGLTF.preload(url), [url]);
-  const pivot = useRef(new THREE.Vector3()).current;
+  // One vector for the life of the component, created once.
+  const [pivot] = useState(() => new THREE.Vector3());
   const contactRef = useRef<THREE.Mesh>(null);
   const rendererRef = useRef<THREE.WebGLRenderer>(null);
   const sceneRef = useRef<THREE.Scene>(null);

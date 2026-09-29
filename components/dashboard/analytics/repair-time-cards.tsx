@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDays } from '@/lib/dashboard/calculations';
 import type { RepairTimeByComponentData } from '@/lib/dashboard/queries';
@@ -119,13 +119,14 @@ export default function RepairTimeCards({
   data,
   loading = false,
 }: RepairTimeCardsProps) {
+  // A local copy the user can reorder by dragging, reset when new data
+  // arrives (adjusted during render rather than in an effect).
   const [items, setItems] = useState<RepairTimeByComponentData[]>(data);
-
-  useEffect(() => {
-    if (data && data.length > 0) {
-      setItems(data);
-    }
-  }, [data]);
+  const [seenData, setSeenData] = useState(data);
+  if (data !== seenData) {
+    setSeenData(data);
+    if (data && data.length > 0) setItems(data);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor),

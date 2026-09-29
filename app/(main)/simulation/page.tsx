@@ -258,31 +258,45 @@ export default function SimulationPage() {
   const pipesRef = useLatestRef(pipes);
   const drainsRef = useLatestRef(drains);
 
+  // The map's click and hover handlers are registered once, when the map is
+  // created, so they call this render's functions through a ref (refreshed
+  // by an effect further down, after the handlers are defined).
+  const mapHandlersRef = useRef<{
+    isSimulationActive: boolean;
+    onEmptyClick: () => void;
+    selectPipe: (pipe: Pipe) => void;
+    selectInlet: (inlet: Inlet) => void;
+    selectOutlet: (outlet: Outlet) => void;
+    selectDrain: (drain: Drain) => void;
+  } | null>(null);
+
   // Auto-open node panel when components selected
+  const componentCount = selectedComponentIds.length;
   useEffect(() => {
-    if (selectedComponentIds.length > 0 && activePanel !== 'node') {
-      setActivePanel('node');
-    } else if (selectedComponentIds.length === 0 && activePanel === 'node') {
-      setActivePanel(null);
-    }
-  }, [selectedComponentIds.length]);
+    setActivePanel((panel) => {
+      if (componentCount > 0) return 'node';
+      return panel === 'node' ? null : panel;
+    });
+  }, [componentCount]);
 
   // Auto-open link panel when pipes selected
+  const pipeCount = selectedPipeIds.length;
   useEffect(() => {
-    if (selectedPipeIds.length > 0 && activePanel !== 'link') {
-      setActivePanel('link');
-    } else if (selectedPipeIds.length === 0 && activePanel === 'link') {
-      setActivePanel(null);
-    }
-  }, [selectedPipeIds.length]);
+    setActivePanel((panel) => {
+      if (pipeCount > 0) return 'link';
+      return panel === 'link' ? null : panel;
+    });
+  }, [pipeCount]);
 
-  // Auto-close sidebar when simulation page loads (only once on mount)
+  // Close the sidebar once, when the page opens, so the map gets the room.
+  // Not again when the viewport changes: that would fight the user.
   useEffect(() => {
     if (isMobile) {
       setOpenMobile(false);
     } else {
       setOpen(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -309,7 +323,8 @@ export default function SimulationPage() {
 
       // Click handlers
       map.on('click', (e) => {
-        if (!isSimulationActive) return;
+        const handlers = mapHandlersRef.current;
+        if (!handlers?.isSimulationActive) return;
 
         const validLayers = [
           'inlets-layer',
@@ -325,8 +340,7 @@ export default function SimulationPage() {
         });
 
         if (!features.length) {
-          clearSelections();
-          setControlPanelTab('simulations');
+          handlers.onEmptyClick();
           return;
         }
 
@@ -337,24 +351,24 @@ export default function SimulationPage() {
         switch (feature.layer.id) {
           case 'man_pipes-layer': {
             const pipe = pipesRef.current.find((p) => p.id === props.Name);
-            if (pipe) handleSelectPipe(pipe);
+            if (pipe) handlers.selectPipe(pipe);
             break;
           }
           case 'inlets-layer': {
             const inlet = inletsRef.current.find((i) => i.id === props.In_Name);
-            if (inlet) handleSelectInlet(inlet);
+            if (inlet) handlers.selectInlet(inlet);
             break;
           }
           case 'outlets-layer': {
             const outlet = outletsRef.current.find(
               (o) => o.id === props.Out_Name
             );
-            if (outlet) handleSelectOutlet(outlet);
+            if (outlet) handlers.selectOutlet(outlet);
             break;
           }
           case 'storm_drains-layer': {
             const drain = drainsRef.current.find((d) => d.id === props.In_Name);
-            if (drain) handleSelectDrain(drain);
+            if (drain) handlers.selectDrain(drain);
             break;
           }
         }
@@ -363,7 +377,7 @@ export default function SimulationPage() {
       // Cursor style
       layerIds.forEach((layerId) => {
         map.on('mouseenter', layerId, () => {
-          if (isSimulationActive) {
+          if (mapHandlersRef.current?.isSimulationActive) {
             map.getCanvas().style.cursor = 'pointer';
           }
         });
@@ -372,7 +386,7 @@ export default function SimulationPage() {
         });
       });
     }
-  }, [layerIds, isSimulationActive, open]);
+  }, [layerIds, open, inletsRef, outletsRef, pipesRef, drainsRef]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -1200,11 +1214,28 @@ export default function SimulationPage() {
     setIsTable3Minimized(false);
   };
 
-  // Cleanup effects when component unmounts (flood clears automatically with map)
+  useEffect(() => {
+    mapHandlersRef.current = {
+      isSimulationActive,
+      onEmptyClick: () => {
+        clearSelections();
+        setControlPanelTab('simulations');
+      },
+      selectPipe: handleSelectPipe,
+      selectInlet: handleSelectInlet,
+      selectOutlet: handleSelectOutlet,
+      selectDrain: handleSelectDrain,
+    };
+  });
+
+  // On unmount: stop the rain, then remove the map. Without remove() every
+  // visit to this page left a WebGL context and its listeners behind.
   useEffect(() => {
     return () => {
       if (mapRef.current) {
         disableRain(mapRef.current);
+        mapRef.current.remove();
+        mapRef.current = null;
       }
     };
   }, []);

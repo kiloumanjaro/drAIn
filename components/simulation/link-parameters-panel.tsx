@@ -53,12 +53,11 @@ export function LinkParametersPanel({
   const tabsListRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Update active tab when selections change
-  useEffect(() => {
-    if (selectedPipeIds.length > 0 && !selectedPipeIds.includes(activeTab)) {
-      setActiveTab(selectedPipeIds[0]);
-    }
-  }, [selectedPipeIds, activeTab]);
+  // The chosen tab, or the first pipe once the chosen one is deselected.
+  const currentTab =
+    selectedPipeIds.length > 0 && !selectedPipeIds.includes(activeTab)
+      ? selectedPipeIds[0]
+      : activeTab;
 
   // Check scroll buttons visibility
   useEffect(() => {
@@ -265,7 +264,7 @@ export function LinkParametersPanel({
             No pipes selected
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={currentTab} onValueChange={setActiveTab}>
             {/* Tab List with Scroll Buttons */}
             <div className="relative mb-4">
               {showLeftScroll && (
