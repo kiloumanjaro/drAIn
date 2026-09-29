@@ -45,11 +45,40 @@ jobs:
       - name: Run unit tests
         run: pnpm run test
 
-  # --- JOB 2: Vercel Deployment ---
+  # --- JOB 2: Database tests ---
+  # Builds a throwaway local database from supabase/migrations and
+  # supabase/seed.sql, then runs the pgTAP tests in supabase/tests/database
+  # (permissions, row-level security, the dashboard's numbers).
+  database:
+    name: Database (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+
+      - name: Start local Supabase (applies migrations and seed)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+
+      - name: Run pgTAP tests
+        run: supabase test db
+
+      - name: Check the database advisors
+        run: supabase db advisors --local --fail-on warn
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  # --- JOB 3: Vercel Deployment ---
   deploy:
     name: Vercel Deploy
     runs-on: ubuntu-latest
-    needs: quality
+    needs: [quality, database]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     steps:
