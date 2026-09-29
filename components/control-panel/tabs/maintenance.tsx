@@ -300,9 +300,12 @@ ${note}`
       }
 
       // 2. Upload Image to 'ReportImage' bucket
-      const fileExt = maintenanceImage.name.split('.').pop();
-      const fileName = `${selectedAsset.type}_${selectedAsset.id}_${Date.now()}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      // public/<uuid>.<ext>: the only name the bucket's upload policy
+      // accepts (schema_auth_storage.sql).
+      const fileExt = maintenanceImage.name.includes('.')
+        ? maintenanceImage.name.split('.').pop()!.toLowerCase()
+        : 'jpg';
+      const filePath = `public/${crypto.randomUUID()}.${fileExt}`;
 
       const { error: uploadError } = await client.storage
         .from('ReportImage')
