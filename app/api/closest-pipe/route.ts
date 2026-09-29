@@ -26,8 +26,10 @@ export async function POST(req: NextRequest) {
     // Validate input
     if (
       !location ||
-      typeof location.lat !== 'number' ||
-      typeof location.lon !== 'number'
+      !Number.isFinite(location.lat) ||
+      !Number.isFinite(location.lon) ||
+      Math.abs(location.lat) > 90 ||
+      Math.abs(location.lon) > 180
     ) {
       return NextResponse.json(
         {
@@ -38,7 +40,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!category) {
+    // A number or object here used to reach .toLowerCase() and answer 500.
+    if (!category || typeof category !== 'string') {
       return NextResponse.json(
         { error: 'Category is required.' },
         { status: 400 }

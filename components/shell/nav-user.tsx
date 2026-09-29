@@ -121,7 +121,8 @@ export function NavUser({
                     onClick={() =>
                       window.open(
                         'https://github.com/eliseoalcaraz/pjdsc',
-                        '_blank'
+                        '_blank',
+                        'noopener,noreferrer'
                       )
                     }
                   >

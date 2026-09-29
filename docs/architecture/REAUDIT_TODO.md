@@ -24,9 +24,9 @@ Ordered by value per effort within each band. Tick as items land.
 
 ## Medium
 
-- [ ] [frontend] [med] [S] app/api/reports/download/route.ts:135-146 — CSV export doesn't neutralise leading `= + - @ \t \r` in user text (formula injection when staff open it in Excel) — prefix `'`.
-- [ ] [frontend] [med] [S] app/api/reports/download/route.ts:39-47,94,105 — `month`/`year` unvalidated (Invalid Date → 500, month 13 rolls over; raw `year` goes into the `Content-Disposition` filename) — validate `^\d{4}$` and 1–12, return 400; build filename from the parsed numbers.
-- [ ] [frontend] [med] [S] next.config.ts:3 — no security headers at all — add `headers()` with `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/microphone off, geolocation self). CSP left as a follow-up (Mapbox needs care).
+- [x] [frontend] [med] [S] app/api/reports/download/route.ts:135-146 — CSV export doesn't neutralise leading `= + - @ \t \r` in user text (formula injection when staff open it in Excel) — prefix `'`. — done: Phase 3
+- [x] [frontend] [med] [S] app/api/reports/download/route.ts:39-47,94,105 — `month`/`year` unvalidated (Invalid Date → 500, month 13 rolls over; raw `year` goes into the `Content-Disposition` filename) — validate `^\d{4}$` and 1–12, return 400; build filename from the parsed numbers. — done: Phase 3
+- [x] [frontend] [med] [S] next.config.ts:3 — no security headers at all — add `headers()` with `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/microphone off, geolocation self). CSP left as a follow-up (Mapbox needs care). — done: Phase 3
 - [ ] [frontend] [med] [S] lib/dashboard/queries.ts:98,119,141,159,179,207,258 — dashboard readers log and `return []` / zeros on error; TanStack caches that as success and shows "no data" instead of an error — throw.
 - [ ] [frontend] [med] [S] lib/supabase/report.ts:200,371 — `fetchMyResolutionVerdicts` and `fetchReportCountsByComponent` return empty maps on error (users re-asked for verdicts; every pin shows 0) — throw.
 - [x] [frontend] [med] [S] lib/query/hooks/use-report-queries.ts:32-34 — latest-per-component query key omits the data its `queryFn` uses, and `enabled` requires `length > 0` (pending forever with zero reports) — superseded by 2.D2, which reads the database view instead. — done: 2.D2 (af5aef6)
@@ -56,8 +56,8 @@ Ordered by value per effort within each band. Tick as items land.
 
 ## Low
 
-- [ ] [frontend] [low] [S] app/api/closest-pipe/route.ts:27-49 — `category` not type-checked (non-string → 500), lat/lon not range-checked — validate, 400.
-- [ ] [frontend] [low] [S] components/control-panel/index.tsx:229, components/shell/nav-user.tsx:122 — `window.open(url, '_blank')` without `noopener,noreferrer`.
+- [x] [frontend] [low] [S] app/api/closest-pipe/route.ts:27-49 — `category` not type-checked (non-string → 500), lat/lon not range-checked — validate, 400. — done: Phase 3
+- [x] [frontend] [low] [S] components/control-panel/index.tsx:229, components/shell/nav-user.tsx:122 — `window.open(url, '_blank')` without `noopener,noreferrer`. — done: Phase 3
 - [ ] [frontend] [low] [S] app/(main)/map/page.tsx:150-153 — duplicate of the `activetab` sync effect at 1041 — delete one.
 - [ ] [frontend] [low] [S] app/(main)/map/page.tsx:830,848; simulation/page.tsx:416,665 — timeouts never cleared on unmount — refs + one cleanup.
 - [ ] [frontend] [low] [S] app/(main)/simulation/page.tsx:488,506 — `componentParams` updated from closure value; two quick edits lose one — functional `setState`.

@@ -24,6 +24,27 @@ const nextConfig: NextConfig = {
     // only the local stack needs it.
     dangerouslyAllowLocalIP: localSupabase,
   },
+  // Baseline headers on every response. Not framed by other sites
+  // (clickjacking); files served as their declared type; no full URL sent to
+  // other sites; no camera or microphone. Geolocation stays on for this
+  // origin: the report form uses the phone's location. A content security
+  // policy would need care around Mapbox and Supabase and is left for later.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(self)',
+          },
+        ],
+      },
+    ];
+  },
   turbopack: {
     rules: {
       '*.svg': {

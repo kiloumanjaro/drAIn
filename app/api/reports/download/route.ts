@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRequestClient } from '@/lib/supabase/server';
 import type { Tables } from '@/types/database.types';
+import { csvField, parseMonthYear } from '@/lib/reports/csv';
 
 type ReportRecord = Tables<'reports'>;
 
@@ -33,27 +34,23 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
-
-    if (!month || !year) {
+    const period = parseMonthYear(
+      searchParams.get('month'),
+      searchParams.get('year')
+    );
+    if (!period) {
       return NextResponse.json(
-        { error: 'Month and year are required' },
+        { error: 'Give a month (1-12) and a four-digit year' },
         { status: 400 }
       );
     }
+    const { month, year } = period;
+    // Built from the parsed numbers only, never from the raw query.
+    const filename = `reports_${getMonthName(month)}_${year}.csv`;
 
     // Calculate date range for the selected month
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(
-      parseInt(year),
-      parseInt(month),
-      0,
-      23,
-      59,
-      59,
-      999
-    );
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
     // Fetch reports for the specified month
     const { data: reports, error } = await supabase
@@ -91,7 +88,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csv, {
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="reports_${getMonthName(parseInt(month))}_${year}.csv"`,
+          'Content-Disposition': `attachment; filename="${filename}"`,
         },
       });
     }
@@ -102,7 +99,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="reports_${getMonthName(parseInt(month))}_${year}.csv"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
@@ -132,20 +129,6 @@ function getMonthName(month: number): string {
   return months[month - 1] || 'Unknown';
 }
 
-function escapeCSVField(field: string | number | null | undefined): string {
-  if (field === null || field === undefined) return '';
-  const stringField = String(field);
-  // If the field contains comma, newline, or double quote, wrap it in quotes
-  if (
-    stringField.includes(',') ||
-    stringField.includes('\n') ||
-    stringField.includes('"')
-  ) {
-    return `"${stringField.replace(/"/g, '""')}"`;
-  }
-  return stringField;
-}
-
 function generateCSV(reports: ReportRecord[]): string {
   const headers = [
     'ID',
@@ -171,17 +154,17 @@ function generateCSV(reports: ReportRecord[]): string {
       : '';
 
     return [
-      escapeCSVField(report.id),
-      escapeCSVField(date),
-      escapeCSVField(report.category),
-      escapeCSVField(report.description),
-      escapeCSVField(report.reporter_name),
-      escapeCSVField(report.status),
-      escapeCSVField(report.priority),
-      escapeCSVField(report.address),
-      escapeCSVField(report.zone),
-      escapeCSVField(report.lat),
-      escapeCSVField(report.long),
+      csvField(report.id),
+      csvField(date),
+      csvField(report.category),
+      csvField(report.description),
+      csvField(report.reporter_name),
+      csvField(report.status),
+      csvField(report.priority),
+      csvField(report.address),
+      csvField(report.zone),
+      csvField(report.lat),
+      csvField(report.long),
     ].join(',');
   });
 

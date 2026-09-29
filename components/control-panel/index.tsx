@@ -224,7 +224,8 @@ export function ControlPanel({
   const handleNavigateToDataSource = () => {
     window.open(
       'https://psa.gov.ph/statistics/population-and-housing/node/166426',
-      '_blank'
+      '_blank',
+      'noopener,noreferrer'
     );
   };
 
