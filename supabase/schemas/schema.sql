@@ -417,7 +417,8 @@ ALTER SEQUENCE "public"."barangay_boundaries_id_seq" OWNED BY "public"."barangay
 -- A one-row lock for the geocodeWorker edge function, so only one run
 -- geocodes at a time. RLS is on with no policies on purpose: only the
 -- service role (the edge function) touches it. The function's source is
--- not in this repo yet (see DATABASE_AUDIT.md, D7).
+-- not in this repo yet (see DATABASE_AUDIT.md, D7, and the note on
+-- trigger-geocode-on-insert).
 CREATE TABLE IF NOT EXISTS "public"."geocode_worker_lock" (
     "id" integer DEFAULT 1 NOT NULL,
     "is_running" boolean DEFAULT false,
@@ -606,6 +607,7 @@ CREATE TABLE IF NOT EXISTS "public"."reports" (
     "component_id" "text",
     "long" double precision,
     "lat" double precision,
+    -- Written only by the hosted geocodeWorker; see trigger-geocode-on-insert.
     "geocoded_status" "text" DEFAULT 'pending'::"text",
     "address" "text",
     "user_id" "uuid",
@@ -867,6 +869,14 @@ CREATE OR REPLACE TRIGGER "protect_profile_privileges" BEFORE INSERT OR UPDATE O
 
 
 
+-- Geocoding runs on the hosted project only. This webhook calls the
+-- geocodeWorker edge function, which fills reports.address and
+-- geocoded_status and takes geocode_worker_lock. The function's source isn't
+-- in this repo, and supabase/seed.sql disables this trigger locally, so local
+-- reports stay 'pending' with no address and the UI shows "Unknown address".
+-- reports.zone doesn't depend on it: update_report_zone takes it from the
+-- coordinates. Kept until someone decides to bring geocodeWorker into the
+-- repo or retire geocoding (AUTONOMOUS_RUN_PLAN.md, 2.D3).
 CREATE OR REPLACE TRIGGER "trigger-geocode-on-insert" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "supabase_functions"."http_request"('https://jpwbdhksmnrtfutcmpht.supabase.co/functions/v1/geocodeWorker', 'POST', '{"Content-type":"application/json","Authorization":"Bearer <SERVICE_ROLE_JWT>"}', '{}', '5000');
 
 
