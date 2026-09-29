@@ -67,8 +67,8 @@ Repos, both on branch `reaudit`, which is on top of `trust-and-ops` and not merg
 
 ## Phase 0: Setup (15 min)
 
-- [ ] Check both repos are on branch `reaudit` with clean trees. Run `npx supabase status`; if the stack is down, start Docker and run `npx supabase start`.
-- [ ] Run every gate once on both repos, and record the baseline numbers in the run log. Expected: pgTAP 140, vitest 215, 19 lint warnings, pytest 252.
+- [x] Check both repos are on branch `reaudit` with clean trees. Run `npx supabase status`; if the stack is down, start Docker and run `npx supabase start`.
+- [x] Run every gate once on both repos, and record the baseline numbers in the run log. Expected: pgTAP 140, vitest 215, 19 lint warnings, pytest 252.
 
 ## Phase 1: Re-audit into a to-do list (about 1.5 h)
 
@@ -78,21 +78,21 @@ Goal: `docs/architecture/REAUDIT_TODO.md`, a list of **verified** findings, each
 
 Do the audit as narrow passes, inline or with small background subagents (see Mechanics). Read `DATABASE_AUDIT.md`, `DB_HARDENING_CHECKLIST.md`, `TRUST_OPS_CHECKLIST.md` and `drAIn-backend/docs/SCIENCE_ROADMAP.md` first, so nothing already fixed or already planned gets re-reported.
 
-- [ ] **1a. Lint and types.** Explain each of the 19 lint warnings: real problem, or not.
-- [ ] **1b. Map and simulation pages** (`app/(main)/map/page.tsx`, `app/(main)/simulation/page.tsx`): effect cleanups (map listeners, intervals, realtime), stale closures, very large functions. Propose splits.
-- [ ] **1c. Control panel, reports, profile and dashboard components:**
+- [x] **1a. Lint and types.** Explain each of the 19 lint warnings: real problem, or not.
+- [x] **1b. Map and simulation pages** (`app/(main)/map/page.tsx`, `app/(main)/simulation/page.tsx`): effect cleanups (map listeners, intervals, realtime), stale closures, very large functions. Propose splits.
+- [x] **1c. Control panel, reports, profile and dashboard components:**
   - bugs;
   - fake or hard-coded data shown to users (like the mock trends removed earlier);
   - wrong field use;
   - clickable `div`s with no keyboard handling.
-- [ ] **1d. `lib/` and `hooks/`:** query keys, error handling, anything still reading more than 1,000 rows without paging.
-- [ ] **1e. API routes, `proxy.ts`, `next.config.ts`:** security headers, image hosts, input validation, error leakage, `window.open` without `noopener`, rendering model output as HTML.
-- [ ] **1f. Database:**
+- [x] **1d. `lib/` and `hooks/`:** query keys, error handling, anything still reading more than 1,000 rows without paging.
+- [x] **1e. API routes, `proxy.ts`, `next.config.ts`:** security headers, image hosts, input validation, error leakage, `window.open` without `noopener`, rendering model output as HTML.
+- [x] **1f. Database:**
   - anon-readable personal data (`reports.user_id`);
   - SECURITY DEFINER functions still executable by anon;
   - storage bucket abuse (anon uploads to ReportImage with no size or rate limit);
   - text-typed numeric columns (barangay population).
-- [ ] **1g. Backend engineering:**
+- [x] **1g. Backend engineering:**
   - thread safety (JobStore, RunRecorder);
   - repeated heavy work per request;
   - response size (duplicated `nodes_dict`, no gzip);
@@ -100,13 +100,13 @@ Do the audit as narrow passes, inline or with small background subagents (see Me
   - `init_flow` actually setting `flow_limit`;
   - unpickling the legacy model;
   - logging and CORS.
-- [ ] **1h. Claims and docs:** every "AI-powered", "satellite", "real-time", "predict" or accuracy claim in the landing page, docs pages, READMEs, metadata and chatbot prompt, each with accurate replacement wording. Stale docs: `docs/api/SUPABASE.md`, component READMEs.
-- [ ] **1i. Hygiene and tooling:**
+- [x] **1h. Claims and docs:** every "AI-powered", "satellite", "real-time", "predict" or accuracy claim in the landing page, docs pages, READMEs, metadata and chatbot prompt, each with accurate replacement wording. Stale docs: `docs/api/SUPABASE.md`, component READMEs.
+- [x] **1i. Hygiene and tooling:**
   - `control-panel-portable/`, `components/_unused/`, `BACKEND-DrAin/`, the 5 MB backend `logo.png`;
   - `.gitignore` gaps;
   - `e2e/` has no Playwright config;
   - frontend CI runs no tests and no pgTAP.
-- [ ] Order `REAUDIT_TODO.md` by value divided by effort, and commit it (`docs: re-audit to-do list`).
+- [x] Order `REAUDIT_TODO.md` by value divided by effort, and commit it (`docs: re-audit to-do list`).
 
 ## Phase 2: Known backlog (about 20 h of timeboxes: frontend 7.3 h, database cleanup 7.8 h, backend 5.2 h; can run before Phase 1 finishes)
 
@@ -257,3 +257,10 @@ Evaluated against the local database on 2026-09-28. Item 2 of that evaluation is
 ## Run log
 
 (Append: time, item, commit hash, gate numbers, notes, skips and why.)
+
+### 2026-09-29
+
+| Item    | Commit        | Notes                                                                                                                                                                                                                              |
+| ------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | —             | Docker was down; started it and the stack. Baseline: type-check clean, vitest 215, lint 19 warnings, pgTAP 140, advisors 0 WARN / 0 ERROR; backend ruff clean, pytest 252.                                                         |
+| Phase 1 | (this commit) | Six narrow background audits (1b, 1c, 1d, 1e, 1g, 1h), all finished in under 3 min; 1a, 1f, 1i done inline. 1f maps entirely onto 2.3 / 2.D1 / 2.4 / 2.5. CI already runs type-check and unit tests, so 2.1 is only the pgTAP job. |
