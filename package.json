@@ -41,7 +41,7 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-three/drei": "^10.7.6",
-    "@react-three/fiber": "^9.3.0",
+    "@react-three/fiber": "^9.8.1",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "@tabler/icons-react": "^3.35.0",
@@ -54,14 +54,14 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
-    "exifreader": "^4.32.0",
+    "exifreader": "^4.46.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.544.0",
     "mapbox-gl": "^3.15.0",
-    "next": "16.1.6",
+    "next": "16.3.7",
     "next-themes": "^0.4.6",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-draggable": "^4.5.0",
     "react-hook-form": "^7.63.0",
     "recharts": "^2.15.4",
@@ -79,12 +79,12 @@
     "@tailwindcss/postcss": "^4",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/three": "^0.180.0",
-    "baseline-browser-mapping": "^2.9.19",
+    "baseline-browser-mapping": "^2.11.26",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.3.7",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
@@ -107,5 +107,20 @@
     "*.{css,scss,md,html,json}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "@xmldom/xmldom": "^0.9.12",
+      "nanoid@<3.3.18": "^3.3.19",
+      "lodash": "^4.18.1",
+      "browserslist": "^4.29.3",
+      "ws@>=8.0.0 <8.21.0": "^8.22.0",
+      "fflate@>=0.6.0 <0.6.11": "^0.6.11",
+      "fflate@>=0.8.0 <0.8.3": "^0.8.3",
+      "protocol-buffers-schema": "^3.6.1",
+      "baseline-browser-mapping": "^2.11.26",
+      "@babel/core@<7.29.6": "^7.29.7",
+      "postcss@<8.5.23": "^8.5.23"
+    }
   }
 }
