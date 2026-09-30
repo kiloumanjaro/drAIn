@@ -32,7 +32,7 @@ Gate per backend step: `ruff format --check`, `ruff check`, `pytest`.
 - **Duplicates.** One open report per reporter per component. A second
   person reporting the same component is corroboration, and is allowed.
 - **Rate limits.** In the database, per reporter: signed in 5/hour and
-  20/day; signed out 3/hour and 10/day, keyed by a hash of the client IP
+  10/day (since 2026-09-30); descriptions ≤ 1,000 chars; signed out 3/hour and 10/day, keyed by a hash of the client IP
   from the request headers. Stored in `private`, never on the report.
 - **Photo location.** The photo's EXIF GPS and time are sent with the
   report. A trigger measures the distance to the component and labels it

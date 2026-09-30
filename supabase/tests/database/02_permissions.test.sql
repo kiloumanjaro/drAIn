@@ -66,9 +66,11 @@ select throws_ok(
 
 -- Joining and leaving with a code --------------------------------------------
 
-select throws_ok(
-  $$select public.join_agency('WRONG-CODE-00')$$,
-  'P0001', 'That code is not valid.',
+-- A wrong code returns null rather than raising, so the try it cost stays
+-- counted (see join_agency and 12_rate_limits).
+select is(
+  (public.join_agency('WRONG-CODE-00')).id,
+  null::uuid,
   'a wrong code is refused'
 );
 
@@ -136,9 +138,9 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000003","role":"authenticated"}';
 
-select throws_ok(
-  $$select public.join_agency('DRAIN-LOCAL-01')$$,
-  'P0001', 'That code is not valid.',
+select is(
+  (public.join_agency('DRAIN-LOCAL-01')).id,
+  null::uuid,
   'the old code stops working after rotation'
 );
 

@@ -33,8 +33,11 @@ CREATE INDEX "idx_rate_limit_events_created_at" ON "private"."rate_limit_events"
 -- Takes one request from the signed-in caller's allowance for a named
 -- service. True if allowed (and counted), false if the allowance is used
 -- up. Limits per bucket:
---   chatbot: 20 in 10 minutes, 100 in a day.
+--   chatbot:     20 in 10 minutes, 100 in a day.
+--   join_agency: 10 in an hour, 20 in a day (join codes; see join_agency).
 -- An unknown bucket is an error, so a typo can't mean "unlimited".
+-- A per-caller advisory lock makes concurrent requests take turns; without
+-- it, several at once could all count the same rows and all pass.
 CREATE OR REPLACE FUNCTION "public"."consume_rate_limit"("p_bucket" "text") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -52,9 +55,13 @@ BEGIN
   CASE p_bucket
     WHEN 'chatbot' THEN
       short_max := 20; short_window := interval '10 minutes'; day_max := 100;
+    WHEN 'join_agency' THEN
+      short_max := 10; short_window := interval '1 hour'; day_max := 20;
     ELSE
       RAISE EXCEPTION 'Unknown rate limit %.', p_bucket USING ERRCODE = '22023';
   END CASE;
+
+  PERFORM pg_advisory_xact_lock(hashtext('rate_limit:' || p_bucket || ':' || caller::text));
 
   IF (SELECT count(*) FROM private.rate_limit_events
       WHERE bucket = p_bucket AND user_id = caller

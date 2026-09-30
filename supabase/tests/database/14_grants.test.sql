@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(12);
+select plan(13);
 
 -- No client role can write to any table except the two the app writes:
 -- reports (INSERT, signed in only) and profiles (INSERT/UPDATE of one's own row).
@@ -38,6 +38,20 @@ select is(
       and grantee in ('anon', 'authenticated')),
   0,
   'clients hold no sequence privileges'
+);
+
+-- MAINTAIN (Postgres 17: VACUUM, ANALYZE, REINDEX, CLUSTER, REFRESH, LOCK)
+-- is part of ALL, and information_schema doesn't list it.
+select is(
+  (select coalesce(string_agg(c.relname, ', ' order by c.relname), '')
+     from pg_class c
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relkind in ('r', 'v', 'm', 'p')
+      and (has_table_privilege('anon', c.oid, 'MAINTAIN')
+           or has_table_privilege('authenticated', c.oid, 'MAINTAIN'))),
+  '',
+  'no client role holds MAINTAIN on any table or view'
 );
 
 -- Trigger functions can't be called through the API.

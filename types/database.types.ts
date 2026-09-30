@@ -750,6 +750,44 @@ export type Database = {
           verification_status: Database['public']['Enums']['verification_status'];
         }[];
       };
+      my_reports: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          address: string | null;
+          category: Database['public']['Enums']['component_type'] | null;
+          component_id: string | null;
+          created_at: string;
+          description: string | null;
+          geocoded_status: string | null;
+          id: string;
+          image: string | null;
+          lat: number | null;
+          long: number | null;
+          photo_check: Database['public']['Enums']['photo_location_check'];
+          photo_distance_m: number | null;
+          photo_lat: number | null;
+          photo_lon: number | null;
+          photo_taken_at: string | null;
+          priority: Database['public']['Enums']['report_priority'];
+          reporter_name: string | null;
+          resolved_at: string | null;
+          resolved_by_maintenance_id: string | null;
+          resolved_image: string | null;
+          review_note: string | null;
+          review_status: Database['public']['Enums']['report_review'];
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: Database['public']['Enums']['report_status'];
+          user_id: string | null;
+          zone: string | null;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'reports';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       nearest_components: {
         Args: {
           p_lat: number;
@@ -802,6 +840,16 @@ export type Database = {
         Returns: {
           average_days: number;
           day: string;
+        }[];
+      };
+      report_private_details: {
+        Args: { p_report_id: string };
+        Returns: {
+          id: string;
+          photo_lat: number;
+          photo_lon: number;
+          reviewed_by: string;
+          user_id: string;
         }[];
       };
       respond_to_resolution: {

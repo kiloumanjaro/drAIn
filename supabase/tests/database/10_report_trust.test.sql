@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(17);
+select plan(25);
 
 -- A citizen files a report on ISD-10, with a photo taken right there, and
 -- tries to mark it confirmed and to pick its own photo distance.
@@ -48,10 +48,26 @@ select throws_ok(
   'a second open report on the same component from the same person is refused'
 );
 
--- Three more fill the hourly allowance of five.
+-- A third and a fourth; one more fills the hourly allowance of five.
 insert into public.reports (category, component_id, user_id)
-select 'storm_drains', 'ISD-' || n, '00000000-0000-4000-a000-000000000003'
-from generate_series(12, 14) n;
+values ('storm_drains', 'ISD-12', '00000000-0000-4000-a000-000000000003');
+insert into public.reports (category, component_id, user_id)
+values ('storm_drains', 'ISD-13', '00000000-0000-4000-a000-000000000003');
+
+-- Each row of one INSERT is counted before the next is checked: here the
+-- first row is the fifth, and the second is refused. The count used to be
+-- written after the statement, so one request of many rows skipped the
+-- limits entirely.
+select throws_ok(
+  $$insert into public.reports (category, component_id, user_id)
+    values ('storm_drains', 'ISD-14', '00000000-0000-4000-a000-000000000003'),
+           ('storm_drains', 'ISD-16', '00000000-0000-4000-a000-000000000003')$$,
+  'P0001', 'You have sent a lot of reports recently. Please try again later.',
+  'rows of one statement count against the limit as they go'
+);
+
+insert into public.reports (category, component_id, user_id)
+values ('storm_drains', 'ISD-14', '00000000-0000-4000-a000-000000000003');
 
 select throws_ok(
   $$insert into public.reports (category, component_id, user_id)
@@ -67,6 +83,46 @@ select lives_ok(
   $$insert into public.reports (category, component_id, user_id)
     values ('storm_drains', 'ISD-10', '00000000-0000-4000-a000-000000000004')$$,
   'a different person may report the same component'
+);
+
+select throws_ok(
+  $$insert into public.reports (category, component_id, user_id)
+    values ('storm_drains', 'ISD-40', '00000000-0000-4000-a000-000000000004'),
+           ('storm_drains', 'ISD-40', '00000000-0000-4000-a000-000000000004')$$,
+  'P0001', 'You already have an open report on ISD-40. It will update when staff record work on it.',
+  'two reports on one component in one statement are a duplicate too'
+);
+
+select throws_ok(
+  $$insert into public.reports (category, component_id, user_id)
+    values ('storm_drains', 'ISD-41', '00000000-0000-4000-a000-000000000004'),
+           ('storm_drains', 'ISD-42', '00000000-0000-4000-a000-000000000004')$$,
+  'P0001', 'File one report at a time.',
+  'the API files one report per request'
+);
+
+-- Columns only the server writes: whatever the client sends is replaced.
+insert into public.reports (id, category, component_id, user_id, image, created_at,
+                            resolved_at, geocoded_status, address)
+values ('00000000-0000-4000-e000-000000000031', 'storm_drains', 'ISD-31',
+        '00000000-0000-4000-a000-000000000004',
+        'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a31.jpg', '2000-01-01',
+        now(), 'completed', 'Somewhere Else St');
+
+select results_eq(
+  $$select created_at = now(), resolved_at, geocoded_status, address, image
+    from public.reports where id = '00000000-0000-4000-e000-000000000031'$$,
+  $$values (true, null::timestamptz, 'pending'::text, null::text,
+            'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a31.jpg'::text)$$,
+  'created_at, resolved_at, geocoded_status and address are the server''s'
+);
+
+select throws_ok(
+  $$insert into public.reports (category, component_id, user_id, image)
+    values ('storm_drains', 'ISD-32', '00000000-0000-4000-a000-000000000004',
+            'https://example.com/not-ours.png')$$,
+  '22023', 'The photo must be uploaded through the app.',
+  'the photo must be one the app uploaded, not any URL'
 );
 
 -- Signed out: no reports at all since 2026-09-29.
@@ -153,6 +209,27 @@ select lives_ok(
   'a second person is only held to their own allowance'
 );
 
+-- Table checks hold for everyone, the seed included.
 reset role;
+set local request.jwt.claims = '{}';
+
+select throws_ok(
+  $$insert into public.reports (category, component_id, lat, long) values ('inlets', 'I-0', 91, 123.9)$$,
+  '23514', null,
+  'a latitude outside -90..90 is refused'
+);
+
+select throws_ok(
+  $$insert into public.reports (category, component_id, lat, long) values ('inlets', 'I-0', 10.3, 'NaN')$$,
+  '23514', null,
+  'so is a longitude that is not a number'
+);
+
+select throws_ok(
+  $$insert into public.reports (category, component_id, description) values ('inlets', 'I-0', repeat('x', 1001))$$,
+  '23514', null,
+  'a description over 1000 characters is refused'
+);
+
 select * from finish();
 rollback;

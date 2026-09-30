@@ -4,9 +4,11 @@
 -- Started as a dump of the hosted project on 2026-09-26
 -- (`npx supabase db dump --linked --schema public`).
 --
--- REDACTED: trigger "trigger-geocode-on-insert" embeds a service_role JWT in
--- its Authorization header. It is replaced below with <SERVICE_ROLE_JWT>.
--- Never commit a fresh dump without redacting it the same way.
+-- The hosted dump's trigger "trigger-geocode-on-insert" embedded a
+-- service_role JWT in its arguments. Since 2026-09-30 the trigger reads its
+-- URL and shared secret from Supabase Vault instead (private.request_geocode),
+-- so no secret lives in the schema. Still: never commit a fresh dump without
+-- checking it for keys.
 --
 -- Grouped by area: types; people, agencies and the permission helpers;
 -- reference data; maintenance; reports; grants; default privileges. Within a
@@ -167,12 +169,15 @@ ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 -- a request from the API arrives as anon/authenticated and is refused, while
 -- the SECURITY DEFINER functions below (join_agency, leave_agency,
 -- set_member_agency), which run as postgres, pass after their own checks.
+-- Admins get no exemption: until 2026-09-30 they could rewrite their own
+-- role and agency_id with a plain UPDATE, e.g. move themselves into another
+-- agency. They change members through set_member_agency like everyone else.
 CREATE OR REPLACE FUNCTION "public"."protect_profile_privileges"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO ''
     AS $$
 BEGIN
-  IF current_user IN ('anon', 'authenticated') AND NOT private.is_admin() THEN
+  IF current_user IN ('anon', 'authenticated') THEN
     IF TG_OP = 'INSERT' AND (NEW.role <> 'citizen' OR NEW.agency_id IS NOT NULL) THEN
       RAISE EXCEPTION 'New profiles start as citizens.' USING ERRCODE = '42501';
     END IF;
@@ -297,18 +302,25 @@ $$;
 
 ALTER FUNCTION "private"."is_admin"() OWNER TO "postgres";
 
--- True for an admin, the service role, or a direct database session (SQL
+-- True if the caller may manage this agency's members and join code: an
+-- admin of that agency, the service role, or a direct database session (SQL
 -- editor, seeds, migrations), which carries no API role claim. API callers
--- always carry one, so anon and ordinary signed-in users get false.
-CREATE OR REPLACE FUNCTION "private"."can_manage_members"() RETURNS boolean
+-- always carry one, so anon, ordinary signed-in users and admins of another
+-- agency get false. (Until 2026-09-30 any admin could manage every agency.)
+CREATE OR REPLACE FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
   select coalesce(auth.role(), 'postgres') not in ('anon', 'authenticated')
-         or private.is_admin()
+         or (p_agency_id is not null
+             and private.is_admin()
+             and private.current_agency_id() = p_agency_id)
 $$;
 
-ALTER FUNCTION "private"."can_manage_members"() OWNER TO "postgres";
+ALTER FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") OWNER TO "postgres";
+
+-- Only reached from the SECURITY DEFINER functions below.
+REVOKE ALL ON FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") FROM PUBLIC, "anon", "authenticated";
 
 -- One join code per agency. Only a bcrypt hash is kept; the plain code is
 -- returned once by rotate_agency_join_code and must be passed on by hand.
@@ -334,7 +346,7 @@ $$;
 
 ALTER FUNCTION "private"."normalize_join_code"("code" "text") OWNER TO "postgres";
 
--- Admin only. Replaces the agency's join code and returns the new one, e.g.
+-- The agency's own admin only. Replaces its join code and returns the new one, e.g.
 -- 'K7QM-W2XP-9D'. 10 characters from a 32-letter alphabet (no 0/O, 1/I) is
 -- about 50 bits, and every guess costs a bcrypt comparison per agency.
 -- From the SQL editor: select public.rotate_agency_join_code('<agency id>');
@@ -346,7 +358,7 @@ DECLARE
   alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   raw text := '';
 BEGIN
-  IF NOT private.can_manage_members() THEN
+  IF NOT private.can_manage_agency(p_agency_id) THEN
     RAISE EXCEPTION 'Only an admin can rotate a join code.' USING ERRCODE = '42501';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.agencies WHERE id = p_agency_id) THEN
@@ -370,8 +382,11 @@ $$;
 ALTER FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") OWNER TO "postgres";
 
 -- A signed-in citizen enters their agency's code and becomes its staff.
--- Returns the agency. The error for a wrong code doesn't say whether any
--- agency exists.
+-- Returns the agency, or null for a wrong code (which says nothing about
+-- whether any agency exists). Each try uses one of the caller's
+-- 'join_agency' allowance (consume_rate_limit: 10 an hour, 20 a day), so
+-- codes can't be guessed at speed. A wrong code returns null rather than
+-- raising, because raising would roll back the try that was just counted.
 CREATE OR REPLACE FUNCTION "public"."join_agency"("p_code" "text") RETURNS "public"."agencies"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -386,6 +401,10 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role <> 'citizen') THEN
     RAISE EXCEPTION 'You are already part of an agency. Leave it first.' USING ERRCODE = 'P0001';
   END IF;
+  IF NOT public.consume_rate_limit('join_agency') THEN
+    RAISE EXCEPTION 'Too many tries. Please wait an hour and try again.'
+      USING ERRCODE = 'P0001', HINT = 'rate_limited';
+  END IF;
 
   SELECT a.* INTO matched
   FROM private.agency_join_codes c
@@ -394,7 +413,7 @@ BEGIN
   LIMIT 1;
 
   IF matched.id IS NULL THEN
-    RAISE EXCEPTION 'That code is not valid.' USING ERRCODE = 'P0001';
+    RETURN NULL;
   END IF;
 
   UPDATE public.profiles SET role = 'staff', agency_id = matched.id WHERE id = auth.uid();
@@ -421,22 +440,35 @@ $$;
 
 ALTER FUNCTION "public"."leave_agency"() OWNER TO "postgres";
 
--- Admin only: set anyone's role and agency directly. A citizen's agency is
--- cleared; staff and admins must be given one (profiles_staff_have_agency).
+-- An agency's admin sets the role of someone in their agency, or brings a
+-- citizen into it. A citizen's agency is cleared; staff and admins must be
+-- given one (profiles_staff_have_agency). An admin can only name their own
+-- agency, and can't touch members of another agency: they would have to
+-- leave it (or be removed by its admin) first. The service role and direct
+-- database sessions may set anyone's.
 CREATE OR REPLACE FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") RETURNS "public"."profiles"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 DECLARE
+  target_agency uuid;
   result public.profiles;
 BEGIN
-  IF NOT private.can_manage_members() THEN
+  IF NOT private.can_manage_agency(p_agency_id) THEN
     RAISE EXCEPTION 'Only an admin can change a role or agency.' USING ERRCODE = '42501';
   END IF;
   -- An admin demoting themselves could leave an agency with no admin.
   IF p_user_id = auth.uid() THEN
     RAISE EXCEPTION 'You can''t change your own role or agency; ask another admin.'
       USING ERRCODE = '42501';
+  END IF;
+
+  SELECT agency_id INTO target_agency FROM public.profiles WHERE id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No such user.' USING ERRCODE = 'P0002';
+  END IF;
+  IF target_agency IS NOT NULL AND NOT private.can_manage_agency(target_agency) THEN
+    RAISE EXCEPTION 'That person belongs to another agency.' USING ERRCODE = '42501';
   END IF;
 
   UPDATE public.profiles
@@ -455,14 +487,14 @@ $$;
 ALTER FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") OWNER TO "postgres";
 
 -- An agency's members, for its admin screen: name, sign-in email, role and
--- when the account was made. Admin only; the email comes from auth.users,
--- which clients can't read.
+-- when the account was made. That agency's admin only; the email comes from
+-- auth.users, which clients can't read.
 CREATE OR REPLACE FUNCTION "public"."agency_members"("p_agency_id" "uuid") RETURNS TABLE("id" "uuid", "full_name" "text", "email" "text", "role" "public"."user_role", "account_created_at" timestamp with time zone)
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 BEGIN
-  IF NOT private.can_manage_members() THEN
+  IF NOT private.can_manage_agency(p_agency_id) THEN
     RAISE EXCEPTION 'Only an admin can list an agency''s members.' USING ERRCODE = '42501';
   END IF;
 
@@ -869,8 +901,29 @@ CREATE TABLE IF NOT EXISTS "public"."reports" (
     "review_note" "text",
     CONSTRAINT "reports_photo_lat_range" CHECK ((("photo_lat" >= ('-90'::integer)::double precision) AND ("photo_lat" <= (90)::double precision))),
     CONSTRAINT "reports_photo_lon_range" CHECK ((("photo_lon" >= ('-180'::integer)::double precision) AND ("photo_lon" <= (180)::double precision))),
-    CONSTRAINT "reports_geocoded_status_check" CHECK (("geocoded_status" = ANY (ARRAY['pending'::"text", 'processing'::"text", 'completed'::"text", 'failed'::"text"])))
+    CONSTRAINT "reports_geocoded_status_check" CHECK (("geocoded_status" = ANY (ARRAY['pending'::"text", 'processing'::"text", 'completed'::"text", 'failed'::"text"]))),
+    -- A range check also refuses NaN and ±Infinity, which compare outside it.
+    CONSTRAINT "reports_lat_range" CHECK ((("lat" >= ('-90'::integer)::double precision) AND ("lat" <= (90)::double precision))),
+    CONSTRAINT "reports_long_range" CHECK ((("long" >= ('-180'::integer)::double precision) AND ("long" <= (180)::double precision)))
 );
+
+-- The next two are NOT VALID: they hold for every new row and every row
+-- that is updated, but rows filed before 2026-09-30 aren't checked when the
+-- constraint is added. A hosted row that breaks one would make updates to
+-- it (review_report, record_maintenance) fail, so the migration that added
+-- them reports how many there are. Once none are left, run
+-- ALTER TABLE public.reports VALIDATE CONSTRAINT <name>.
+--
+-- image is a path in the ReportImage bucket (formatReport turns it into the
+-- public URL), never a URL: public/<file name>, no further folders, no '..'.
+-- Loose enough for the phone file names used before 2026-09-29; API inserts
+-- are held to public/<uuid>.<ext> by check_report_submission.
+ALTER TABLE "public"."reports"
+    ADD CONSTRAINT "reports_image_path" CHECK ((("image" IS NULL) OR (("image" ~ '^public/[^/[:cntrl:]]+$'::"text") AND ("strpos"("image", '..'::"text") = 0)))) NOT VALID;
+
+-- The report form stops at 1000 characters too (components/reports/submit-tab.tsx).
+ALTER TABLE "public"."reports"
+    ADD CONSTRAINT "reports_description_length" CHECK (("char_length"(("description")::"text") <= 1000)) NOT VALID;
 
 ALTER TABLE "public"."reports" OWNER TO "postgres";
 COMMENT ON COLUMN "public"."reports"."priority" IS 'Set by the reporter when filing; staff may change it when they review the report (review_report).';
@@ -899,17 +952,57 @@ CREATE INDEX "idx_reports_priority" ON "public"."reports" USING "btree" ("priori
 CREATE INDEX "idx_reports_status" ON "public"."reports" USING "btree" ("status");
 CREATE INDEX "idx_reports_zone" ON "public"."reports" USING "btree" ("zone");
 
--- Geocoding runs on the hosted project only. This webhook calls the
+-- Geocoding runs on the hosted project only. This trigger calls the
 -- geocodeWorker edge function, which fills reports.address and
 -- geocoded_status and takes geocode_worker_lock. Its source is
--- supabase/functions/geocodeWorker (downloaded as deployed, version 3, on
--- 2026-09-29): it reverse-geocodes pending reports through OpenStreetMap's
--- Nominatim, one a second, for up to 90 s a run, and re-triggers itself while
--- any remain. supabase/seed.sql disables this trigger locally, so local
+-- supabase/functions/geocodeWorker: it reverse-geocodes pending reports
+-- through OpenStreetMap's Nominatim, one a second, for up to 90 s a run, and
+-- re-triggers itself while any remain. reports.zone doesn't depend on it:
+-- update_report_zone takes it from the coordinates.
+--
+-- The URL and the shared secret come from Supabase Vault, so neither lives in
+-- the schema (until 2026-09-30 the trigger carried the service-role JWT in
+-- its arguments). On the hosted project, once:
+--   select vault.create_secret('https://<ref>.supabase.co/functions/v1/geocodeWorker', 'geocode_worker_url');
+--   select vault.create_secret('<random secret>', 'geocode_worker_secret');
+-- and give the edge function the same secret as GEOCODE_WORKER_SECRET.
+-- Without both secrets (the local stack) the trigger does nothing, so local
 -- reports stay 'pending' with no address and the UI shows "Unknown address".
--- reports.zone doesn't depend on it: update_report_zone takes it from the
--- coordinates.
-CREATE OR REPLACE TRIGGER "trigger-geocode-on-insert" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "supabase_functions"."http_request"('https://jpwbdhksmnrtfutcmpht.supabase.co/functions/v1/geocodeWorker', 'POST', '{"Content-type":"application/json","Authorization":"Bearer <SERVICE_ROLE_JWT>"}', '{}', '5000');
+-- A failure here never blocks filing a report; it is logged as a warning.
+CREATE OR REPLACE FUNCTION "private"."request_geocode"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  worker_url text;
+  worker_secret text;
+BEGIN
+  SELECT s.decrypted_secret INTO worker_url
+  FROM vault.decrypted_secrets s WHERE s.name = 'geocode_worker_url';
+  SELECT s.decrypted_secret INTO worker_secret
+  FROM vault.decrypted_secrets s WHERE s.name = 'geocode_worker_secret';
+  IF worker_url IS NULL OR worker_secret IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  PERFORM net.http_post(
+    url := worker_url,
+    body := '{}'::jsonb,
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                  'x-geocode-secret', worker_secret),
+    timeout_milliseconds := 5000);
+  RETURN NULL;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'Geocoding was not requested: %', SQLERRM;
+  RETURN NULL;
+END;
+$$;
+
+ALTER FUNCTION "private"."request_geocode"() OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."request_geocode"() FROM PUBLIC, "anon", "authenticated";
+
+CREATE OR REPLACE TRIGGER "trigger-geocode-on-insert" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "private"."request_geocode"();
 
 CREATE OR REPLACE TRIGGER "set_reporter_name" BEFORE INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."set_reporter_name"();
 CREATE OR REPLACE TRIGGER "trigger_update_report_zone" BEFORE INSERT OR UPDATE OF "long", "lat" ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."update_report_zone"();
@@ -937,7 +1030,42 @@ ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 
 -- The app subscribes to report inserts and updates (subscribeToReportChanges).
+-- Realtime sends each subscriber only the columns their role may SELECT, so
+-- the private columns (see the column grants below) never go out.
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
+
+-- The signed-in person's own reports with every column, including any staff
+-- rejected. Nobody else's: the column grants below hide user_id,
+-- photo_lat/photo_lon and reviewed_by from every client, so this is how a
+-- reporter reads theirs (fetchMyReports).
+CREATE OR REPLACE FUNCTION "public"."my_reports"() RETURNS SETOF "public"."reports"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select r.* from public.reports r where r.user_id = (select auth.uid())
+$$;
+
+ALTER FUNCTION "public"."my_reports"() OWNER TO "postgres";
+
+-- The private columns of one report, for its reporter or agency staff (who
+-- triage with the photo's position). Nothing for anyone else.
+CREATE OR REPLACE FUNCTION "public"."report_private_details"("p_report_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "photo_lat" double precision, "photo_lon" double precision, "reviewed_by" "uuid")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select r.id, r.user_id, r.photo_lat, r.photo_lon, r.reviewed_by
+  from public.reports r
+  where r.id = p_report_id
+    and (r.user_id = (select auth.uid())
+         or (select private.current_agency_id()) is not null)
+$$;
+
+ALTER FUNCTION "public"."report_private_details"("p_report_id" "uuid") OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "public"."my_reports"() FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."my_reports"() TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."report_private_details"("p_report_id" "uuid") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."report_private_details"("p_report_id" "uuid") TO "authenticated", "service_role";
 
 
 -- ===========================================================================
@@ -994,10 +1122,12 @@ GRANT SELECT ON TABLE "public"."flood_results" TO "authenticated";
 GRANT ALL ON TABLE "public"."flood_results" TO "service_role";
 
 -- Reference data: the default privileges grant ALL; clients only read.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."components" FROM "anon", "authenticated";
+-- MAINTAIN (Postgres 17: VACUUM, ANALYZE, REINDEX, REFRESH, CLUSTER, LOCK)
+-- is part of ALL and must be named too.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."components" FROM "anon", "authenticated";
 
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."component_locations" FROM "anon", "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."flood_results" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."component_locations" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."flood_results" FROM "anon", "authenticated";
 
 -- Client table privileges are only what the app uses: revoke what
 -- Supabase's defaults granted, then grant back. RLS still filters on top;
@@ -1009,7 +1139,7 @@ GRANT SELECT ON TABLE "public"."agencies" TO "authenticated";
 GRANT ALL ON TABLE "public"."agencies" TO "service_role";
 GRANT SELECT ON TABLE "public"."barangay_boundaries" TO "anon";
 GRANT SELECT ON TABLE "public"."barangay_boundaries" TO "authenticated";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."barangay_boundaries" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."barangay_boundaries" FROM "anon", "authenticated";
 REVOKE ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."barangay_boundaries" TO "service_role";
 GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "service_role";
@@ -1024,7 +1154,7 @@ GRANT SELECT ON TABLE "public"."maintenance" TO "authenticated";
 GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
 
 -- Default privileges grant ALL; writes go through record_maintenance only.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE "public"."maintenance" FROM "anon", "authenticated";
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."profiles" TO "anon";
@@ -1032,13 +1162,17 @@ GRANT SELECT, INSERT, UPDATE ON TABLE "public"."profiles" TO "authenticated";
 GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
 
--- Signed-out visitors read every column except who filed the report
+-- Clients, signed in or not, read every column except who filed the report
 -- (user_id), where the reporter stood (photo_lat/photo_lon) and which staff
--- member reviewed it (reviewed_by). A new column is hidden from them until
--- it is added here; realtime leaves ungranted columns out of its payloads.
--- They cannot file reports (see the INSERT policy).
+-- member reviewed it (reviewed_by). A new column is hidden until it is added
+-- here; realtime leaves ungranted columns out of its payloads. Reporters read
+-- their own reports in full through my_reports, staff the private columns
+-- through report_private_details. (Until 2026-09-30 signed-in users could
+-- read every column of every report.) Only signed-in users file reports
+-- (see the INSERT policy).
 GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
-GRANT SELECT, INSERT ON TABLE "public"."reports" TO "authenticated";
+GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "authenticated";
+GRANT INSERT ON TABLE "public"."reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."reports" TO "service_role";
 
 
