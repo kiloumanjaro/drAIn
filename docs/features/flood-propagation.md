@@ -6,7 +6,7 @@ Flood Propagation is an animated heatmap visualization that displays flood risk 
 
 ## Location & Implementation
 
-- **Main Logic**: [`app/simulation/page.tsx`](../../app/simulation/page.tsx) (lines 379-550 for layer setup, 1282-1449 for animation)
+- **Main Logic**: [`app/(main)/simulation/page.tsx`](../../app/%28main%29/simulation/page.tsx) (lines 379-550 for layer setup, 1282-1449 for animation)
 - **Animation**: Lines 1720-1830 (`animateFloodPropagationIntensity`)
 - **Toggle Handler**: Lines 1832-1875 (`handleToggleFloodPropagation`)
 - **Mapbox Layer IDs**:
@@ -35,9 +35,12 @@ Two separate heatmap layers allow independent control:
 
 1. **Nodes Layer** (`flood_propagation-nodes-layer`)
    - Displays intensity at inlet and drain points
-   - Higher weight for "High Risk" nodes (5.0x multiplier)
-   - Medium weight for "Medium Risk" (1.5x multiplier)
-   - Low weight for "Low Risk" (0.6x multiplier)
+   - Higher weight for high-hazard nodes (5.0x multiplier)
+   - Medium weight for medium-hazard nodes (1.5x multiplier)
+   - Low weight for low-hazard nodes (0.6x multiplier)
+   - Everything else, "No hazard" included, weighs 0.2
+   - The category is read in either vocabulary: a live run's `High` and a
+     stored scenario's `High Risk` weigh the same (`floodHeatmapWeight`)
    - Zoom-dependent radius: 3px → 80px (zoom 0 → 15)
 
 2. **Lines Layer** (`flood_propagation-lines-layer`)
@@ -91,7 +94,8 @@ Simulation Output
      ↓
 NodeDetails[] with:
   - Node_ID
-  - Vulnerability_Category (High/Medium/Low/None Risk)
+  - Vulnerability_Category (live: High/Medium/Low/No hazard;
+    stored scenarios: High/Medium/Low/No Risk)
   - Total_Flood_Volume
   - Maximum_Rate
   - Hours_Flooded
@@ -304,7 +308,7 @@ useEffect(() => {
 
 ### Customizable Parameters
 
-Edit values in `app/simulation/page.tsx`:
+Edit values in `app/(main)/simulation/page.tsx`:
 
 ```typescript
 // Heatmap color gradient (line 389-407)
@@ -316,17 +320,14 @@ const heatmapColor = [
   // ... color stops
 ];
 
-// Node heatmap weight (line 489-501)
+// Node heatmap weight (lib/map/simulation-layers.ts). Each point carries
+// its weight as `hazardWeight`, set by floodHeatmapWeight() in
+// lib/map/effects/flood-propagation.ts. Customize the weights there, in
+// HEATMAP_WEIGHT_BY_LEVEL: { high: 5, medium: 1.5, low: 0.6, none: 0.2 }.
 'heatmap-weight': [
   '*',
   ['coalesce', ['get', 'pulseMultiplier'], 1],
-  [
-    'case',
-    ['==', ['get', 'vulnerability'], 'High Risk'], 5.0,    // Customize
-    ['==', ['get', 'vulnerability'], 'Medium Risk'], 1.5,  // Customize
-    ['==', ['get', 'vulnerability'], 'Low Risk'], 0.6,     // Customize
-    0.2,
-  ],
+  ['coalesce', ['get', 'hazardWeight'], 0.2],
 ];
 
 // Animation parameters (line 1748-1750)
@@ -367,7 +368,7 @@ const pulseAmount = 0.35;      // 35% depth
 
 - [3D Lines](./3d-lines.md) - Gradient-colored flood propagation lines
 - [Rain Effect Toggle](./rain-effect.md) - Weather visualization
-- [Vulnerability Data Tables](./vulnerability-visualization.md) - Node metrics
+- [Vulnerability Data Tables](./VISUALIZATION-SUITE.md) - Node metrics
 
 ## Future Enhancements
 

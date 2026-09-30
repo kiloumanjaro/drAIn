@@ -17,7 +17,7 @@
   <br />
   <p align="center">
     <br />
-      Predict, Simulate, and Strengthen Urban Drainage Systems
+      Simulate, Assess, and Strengthen Urban Drainage Systems
     <br />
     <br />
     <p align="center">
@@ -55,16 +55,16 @@
 
 ## 🗺️ Project Overview
 
-**drAIn** is an **AI/machine learning - powered platform for flood resilience**. It is designed to help engineers, planners, and local governments **predict, simulate, and strengthen urban drainage systems**.
+**drAIn** is a **SWMM-based simulation and citizen-reporting platform for flood resilience**. It is designed to help engineers, planners, and local governments **simulate, assess, and strengthen urban drainage systems**. Its hazard ratings come from a simulation that has not yet been calibrated against field records, so treat them as a way to compare places, not as forecasts.
 
-The project moves beyond simple hazard mapping by integrating **SWMM-based (Storm Water Management Model) hydraulic simulations** with **AI-driven analytics** and **community participation**. It transforms complex flood data into actionable insights to support proactive maintenance, infrastructure upgrades, and data-driven resilience planning.
+The project moves beyond simple hazard mapping by integrating **SWMM-based (Storm Water Management Model) hydraulic simulations** with a **transparent hazard score** and **community participation**. It transforms complex flood data into actionable insights to support proactive maintenance, infrastructure upgrades, and data-driven resilience planning.
 
 ### 💡 Why drAIn?
 
 Urban flooding is a critical problem, often caused by heavy rainfall and poor drainage maintenance. While many existing tools focus on flood hazard mapping or risk assessment, they often remain theoretical. They typically lack real-time data integration, community participation, and operational decision support.
 
-- 🧠 **Machine learning - Driven Vulnerability Ranking:** Assesses each drainage component using metrics like flooding volume and overflow duration. It then applies machine learning (K-Means clustering) to classify and rank structural vulnerabilities.
-- 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to simulate the impact of rainfall or structural changes in real time.
+- 🧠 **Flood Hazard and Risk Ranking:** Scores each drainage component by how severely it floods in simulation (flood volume, how long it stays flooded, peak rate), using a transparent hazard score rather than clustering. That hazard is then weighted by how many people live nearby, so work lists rank on risk, not on flooding alone.
+- 🌊 **Interactive Simulation:** Provides interactive "what-if" scenario testing, allowing users to re-run the simulation on demand with changed rainfall or structural parameters.
 - 👥 **Community Participation:** Incorporates citizen reporting, allowing communities to contribute real-world drainage data for model validation and maintenance tracking.
 - 📊 **Actionable Intelligence:** Converts complex simulation data into clear, actionable intelligence for engineers and planners to make informed decisions.
 
@@ -142,6 +142,23 @@ Edit the `.env` file with your configuration (API keys, database URL, etc.)
 pnpm run dev
 ```
 
+### ✅ Checks
+
+The gates CI runs:
+
+```sh
+pnpm run lint         # ESLint
+pnpm run type-check   # tsc --noEmit
+pnpm run test         # Vitest unit tests
+pnpm run format:check # Prettier
+npx supabase test db  # pgTAP: permissions, row-level security, dashboard numbers
+npx supabase db advisors --local --fail-on warn
+```
+
+The database checks need the local stack (`npx supabase start`).
+`pnpm run test:e2e` runs the Playwright suite; it starts the dev server on
+port 3055 itself (see `playwright.config.ts`).
+
 <!-- CONTRIBUTING -->
 
 ## 📬 Contributing
@@ -165,23 +182,36 @@ Don't forget to give the project a star! Thanks again!
 
 ```
 drAIn/
-├── app/                    # Next.js App Router pages
-│   ├── (auth)/            # Authentication routes
-│   ├── map/               # Interactive map interface
-│   ├── dashboard/         # Analytics dashboard
-│   ├── simulation/        # SWMM simulation
-│   └── reports/           # Flood reporting
-├── components/            # React components
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Login and sign-up, with their own layout
+│   ├── (main)/            # The app proper
+│   │   ├── map/           # Interactive map interface
+│   │   ├── simulation/    # SWMM simulation
+│   │   ├── dashboard/     # Analytics dashboard
+│   │   └── docs/          # In-app documentation, one file per section
+│   └── api/               # Route handlers
+├── components/            # React components, grouped by feature
 │   ├── ui/               # Base UI components (shadcn/ui)
+│   ├── common/           # Shared across features
+│   ├── shell/            # App chrome: sidebar, nav, notifications
+│   ├── map/              # Map controls and overlays
+│   ├── simulation/       # Simulation setup and results
+│   ├── reports/          # Citizen reporting flow
+│   ├── profile/          # User and agency
 │   ├── control-panel/    # Control panel feature
 │   ├── dashboard/        # Dashboard components
+│   ├── docs-page/        # Building blocks for the /docs route
+│   ├── landing/          # Landing page
 │   └── context/          # Context providers
 ├── lib/                   # Utilities and libraries
-│   ├── map/              # Map configuration
+│   ├── map/              # Map config, layer setup and visual effects
 │   ├── supabase/         # Database operations
 │   ├── simulation-api/   # SWMM API client
+│   ├── query/            # TanStack Query hooks
 │   └── dashboard/        # Dashboard queries
-├── hooks/                 # Custom React hooks
+├── hooks/                 # Shared React hooks
+├── types/                 # Shared type definitions
+├── e2e/                   # Playwright specs
 ├── public/                # Static assets
 │   ├── drainage/         # GeoJSON data
 │   └── images/           # Images and icons
@@ -193,6 +223,8 @@ drAIn/
 │   └── features/         # Feature documentation
 └── scripts/              # Build and utility scripts
 ```
+
+Unit tests sit next to what they cover, as `*.test.ts`.
 
 For a detailed architecture overview, see [System Architecture Documentation](docs/architecture/SYSTEM_ARCHITECTURE.md).
 

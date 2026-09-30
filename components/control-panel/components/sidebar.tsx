@@ -1,6 +1,6 @@
 'use client';
 
-import { SideNavigation } from '@/components/side-navigation';
+import { SideNavigation } from '@/components/control-panel/components/side-navigation';
 
 interface SidebarProps {
   activeTab: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckIcon } from '@/components/check-icon';
+import { CheckIcon } from '@/components/common/check-icon';
 import {
   IconCircleCheckFilled,
   IconInfoCircleFilled,

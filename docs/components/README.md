@@ -69,14 +69,14 @@ import ControlPanel from '@/components/control-panel';
 
 #### Report Bubble
 
-**Location:** [components/report-bubble.tsx](../../components/report-bubble.tsx)
+**Location:** [components/map/report-bubble.tsx](../../components/map/report-bubble.tsx)
 
 Displays flood reports as interactive markers on the map.
 
 **Usage:**
 
 ```tsx
-import ReportBubble from '@/components/report-bubble';
+import ReportBubble from '@/components/map/report-bubble';
 
 <ReportBubble report={report} onClick={() => handleReportClick(report)} />;
 ```
@@ -88,21 +88,21 @@ import ReportBubble from '@/components/report-bubble';
 
 #### Flood Prone Toggle
 
-**Location:** [components/flood-prone-toggle.tsx](../../components/flood-prone-toggle.tsx)
+**Location:** [components/map/flood-prone-toggle.tsx](../../components/map/flood-prone-toggle.tsx)
 
 Toggle to show/hide flood-prone areas on the map.
 
 **Usage:**
 
 ```tsx
-import FloodProneToggle from '@/components/flood-prone-toggle';
+import FloodProneToggle from '@/components/map/flood-prone-toggle';
 
 <FloodProneToggle enabled={showFloodZones} onToggle={setShowFloodZones} />;
 ```
 
 #### Population Toggle
 
-**Location:** [components/population-toggle.tsx](../../components/population-toggle.tsx)
+**Location:** [components/map/population-toggle.tsx](../../components/map/population-toggle.tsx)
 
 Toggle to show/hide population density overlay.
 
@@ -119,7 +119,7 @@ Displays key metrics and statistics.
 **Usage:**
 
 ```tsx
-import OverviewTab from '@/components/dashboard/overview/OverviewTab';
+import AnalyticsTab from '@/components/dashboard/analytics/analytics-tab';
 
 <OverviewTab />;
 ```
@@ -156,7 +156,7 @@ List and manage all reports.
 
 #### DataFlow Pipeline
 
-**Location:** [components/data-flow.tsx](../../components/data-flow.tsx)
+**Location:** [components/landing/data-flow.tsx](../../components/landing/data-flow.tsx)
 
 **Full Documentation:** [DataFlow Component](data-flow-README.md)
 
@@ -165,7 +165,7 @@ Animated SVG pipeline visualization with optional map overlay.
 **Usage:**
 
 ```tsx
-import DataFlowPipeline from '@/components/data-flow';
+import DataFlowPipeline from '@/components/landing/data-flow';
 
 <DataFlowPipeline
   background
@@ -178,7 +178,7 @@ import DataFlowPipeline from '@/components/data-flow';
 
 #### Model Viewer
 
-**Location:** [components/ModelViewer.tsx](../../components/ModelViewer.tsx)
+**Location:** [components/simulation/model-viewer.tsx](../../components/simulation/model-viewer.tsx)
 
 3D visualization using Three.js.
 
@@ -192,14 +192,14 @@ import ModelViewer from '@/components/ModelViewer';
 
 #### Vulnerability Data Table
 
-**Location:** [components/vulnerability-data-table.tsx](../../components/vulnerability-data-table.tsx)
+**Location:** [components/simulation/vulnerability-data-table.tsx](../../components/simulation/vulnerability-data-table.tsx)
 
 Displays SWMM simulation results in a sortable table.
 
 **Usage:**
 
 ```tsx
-import VulnerabilityDataTable from '@/components/vulnerability-data-table';
+import VulnerabilityDataTable from '@/components/simulation/vulnerability-data-table';
 
 <VulnerabilityDataTable
   data={vulnerabilityData}
@@ -213,7 +213,7 @@ import VulnerabilityDataTable from '@/components/vulnerability-data-table';
 
 #### Flood Report Form
 
-**Location:** [app/reports/FloodReportClient.tsx](../../app/reports/FloodReportClient.tsx)
+**Location:** [components/reports/submit-tab.tsx](../../components/reports/submit-tab.tsx)
 
 Form for submitting flood reports.
 
@@ -235,14 +235,14 @@ import FloodReportClient from '@/app/reports/FloodReportClient';
 
 #### Image Uploader
 
-**Location:** [components/image-uploader.tsx](../../components/image-uploader.tsx)
+**Location:** [components/common/image-uploader.tsx](../../components/common/image-uploader.tsx)
 
 Drag-and-drop image upload component.
 
 **Usage:**
 
 ```tsx
-import ImageUploader from '@/components/image-uploader';
+import ImageUploader from '@/components/common/image-uploader';
 
 <ImageUploader
   onImageSelect={(file) => setImage(file)}
@@ -280,14 +280,14 @@ User registration form.
 
 #### Sidebar Layout
 
-**Location:** [components/sidebar-layout.tsx](../../components/sidebar-layout.tsx)
+**Location:** [components/shell/app-sidebar.tsx](../../components/shell/app-sidebar.tsx)
 
 Main application layout with collapsible sidebar.
 
 **Usage:**
 
 ```tsx
-import SidebarLayout from '@/components/sidebar-layout';
+import SidebarLayout from '@/components/shell/app-sidebar';
 
 <SidebarLayout>
   <YourPageContent />
@@ -296,13 +296,13 @@ import SidebarLayout from '@/components/sidebar-layout';
 
 #### Nav Main
 
-**Location:** [components/nav-main.tsx](../../components/nav-main.tsx)
+**Location:** [components/shell/nav-main.tsx](../../components/shell/nav-main.tsx)
 
 Main navigation menu items.
 
 #### Nav User
 
-**Location:** [components/nav-user.tsx](../../components/nav-user.tsx)
+**Location:** [components/shell/nav-user.tsx](../../components/shell/nav-user.tsx)
 
 User profile dropdown with settings and logout.
 
@@ -312,14 +312,14 @@ User profile dropdown with settings and logout.
 
 #### AuthProvider
 
-**Location:** [components/context/AuthProvider.tsx](../../components/context/AuthProvider.tsx)
+**Location:** [components/context/auth-provider.tsx](../../components/context/auth-provider.tsx)
 
 Manages authentication state.
 
 **Usage:**
 
 ```tsx
-import { useAuth } from '@/components/context/AuthProvider';
+import { useAuth } from '@/components/context/auth-provider';
 
 function MyComponent() {
   const { user, profile, signOut } = useAuth();
@@ -332,14 +332,14 @@ function MyComponent() {
 
 #### ReportProvider
 
-**Location:** [components/context/ReportProvider.tsx](../../components/context/ReportProvider.tsx)
+**Location:** [components/context/report-provider.tsx](../../components/context/report-provider.tsx)
 
 Manages flood reports with real-time updates.
 
 **Usage:**
 
 ```tsx
-import { useReports } from '@/components/context/ReportProvider';
+import { useReports } from '@/components/context/report-provider';
 
 function ReportsMap() {
   const { reports, latestReports, loading, refreshReports } = useReports();
@@ -496,7 +496,7 @@ Recommended testing approach:
 
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react'
-import ReportBubble from '@/components/report-bubble'
+import ReportBubble from '@/components/map/report-bubble'
 
 describe('ReportBubble', () => {
   it('renders report details', () => {

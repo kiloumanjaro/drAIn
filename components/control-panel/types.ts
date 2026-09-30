@@ -1,5 +1,4 @@
 import type { NodeParams, LinkParams } from './tabs/simulation-models/model3';
-import type { Report } from '@/lib/supabase/report';
 
 export interface Pipe {
   id: string;
@@ -149,7 +148,6 @@ export interface ControlPanelProps {
   // Admin tab state
   activeAdminTab?: 'maintenance' | 'reports';
   onAdminTabChange?: (tab: 'maintenance' | 'reports') => void;
-  allReportsData: Report[]; // Added for comprehensive report history
   onClosePopUps?: () => void;
   // Rain effect control
   isRainActive?: boolean;

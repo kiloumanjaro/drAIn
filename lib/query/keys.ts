@@ -28,11 +28,21 @@ export const dashboardKeys = {
       'details',
       'repair-time-by-component',
     ],
-    allReports: () => [...dashboardKeys.analytics(), 'details', 'all-reports'],
+    reportLocations: () => [
+      ...dashboardKeys.analytics(),
+      'details',
+      'report-locations',
+    ],
   }),
   reports: () => [...dashboardKeys.all, 'reports'],
   reportsDetails: () => ({
-    all: () => [...dashboardKeys.reports(), 'details', 'all'],
+    page: (filter: object, limit: number) => [
+      ...dashboardKeys.reports(),
+      'details',
+      'page',
+      filter,
+      limit,
+    ],
   }),
 };
 
@@ -77,5 +87,6 @@ export const reportKeys = {
   detail: (id: string) => [...reportKeys.details(), id],
   latest: () => [...reportKeys.all, 'latest'],
   latestPerComponent: () => [...reportKeys.latest(), 'per-component'],
+  countsByDay: () => [...reportKeys.all, 'counts-by-day'],
   notifications: () => [...reportKeys.all, 'notifications'],
 };

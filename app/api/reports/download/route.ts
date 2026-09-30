@@ -1,52 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createRequestClient } from '@/lib/supabase/server';
+import type { Tables } from '@/types/database.types';
+import { csvField, parseMonthYear } from '@/lib/reports/csv';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-interface ReportRecord {
-  id: string;
-  created_at: string;
-  category: string | null;
-  description: string | null;
-  image: string | null;
-  reporter_name: string | null;
-  status: string | null;
-  component_id: string | null;
-  lat: string | null;
-  long: string | null;
-  geocoded_status: string | null;
-  address: string | null;
-  priority: string | null;
-  zone: string | null;
-}
+type ReportRecord = Tables<'reports'>;
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
+    // The export lists every report with reporter details, so it is for
+    // agency staff only. The caller's own token is used for the query too.
+    const authorization = request.headers.get('authorization');
+    const supabase = createRequestClient(authorization);
+    const token = authorization?.replace(/^Bearer\s+/i, '');
+    const {
+      data: { user },
+    } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
 
-    if (!month || !year) {
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role === 'citizen') {
       return NextResponse.json(
-        { error: 'Month and year are required' },
-        { status: 400 }
+        { error: 'Only agency staff can download reports' },
+        { status: 403 }
       );
     }
 
-    // Calculate date range for the selected month
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(
-      parseInt(year),
-      parseInt(month),
-      0,
-      23,
-      59,
-      59,
-      999
+    const searchParams = request.nextUrl.searchParams;
+    const period = parseMonthYear(
+      searchParams.get('month'),
+      searchParams.get('year')
     );
+    if (!period) {
+      return NextResponse.json(
+        { error: 'Give a month (1-12) and a four-digit year' },
+        { status: 400 }
+      );
+    }
+    const { month, year } = period;
+    // Built from the parsed numbers only, never from the raw query.
+    const filename = `reports_${getMonthName(month)}_${year}.csv`;
+
+    // Calculate date range for the selected month
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
     // Fetch reports for the specified month
     const { data: reports, error } = await supabase
@@ -84,18 +88,18 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csv, {
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="reports_${getMonthName(parseInt(month))}_${year}.csv"`,
+          'Content-Disposition': `attachment; filename="${filename}"`,
         },
       });
     }
 
     // Generate CSV content
-    const csv = generateCSV(reports as ReportRecord[]);
+    const csv = generateCSV(reports);
 
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="reports_${getMonthName(parseInt(month))}_${year}.csv"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
@@ -125,20 +129,6 @@ function getMonthName(month: number): string {
   return months[month - 1] || 'Unknown';
 }
 
-function escapeCSVField(field: string | null | undefined): string {
-  if (field === null || field === undefined) return '';
-  const stringField = String(field);
-  // If the field contains comma, newline, or double quote, wrap it in quotes
-  if (
-    stringField.includes(',') ||
-    stringField.includes('\n') ||
-    stringField.includes('"')
-  ) {
-    return `"${stringField.replace(/"/g, '""')}"`;
-  }
-  return stringField;
-}
-
 function generateCSV(reports: ReportRecord[]): string {
   const headers = [
     'ID',
@@ -164,17 +154,17 @@ function generateCSV(reports: ReportRecord[]): string {
       : '';
 
     return [
-      escapeCSVField(report.id),
-      escapeCSVField(date),
-      escapeCSVField(report.category),
-      escapeCSVField(report.description),
-      escapeCSVField(report.reporter_name),
-      escapeCSVField(report.status),
-      escapeCSVField(report.priority),
-      escapeCSVField(report.address),
-      escapeCSVField(report.zone),
-      escapeCSVField(report.lat),
-      escapeCSVField(report.long),
+      csvField(report.id),
+      csvField(date),
+      csvField(report.category),
+      csvField(report.description),
+      csvField(report.reporter_name),
+      csvField(report.status),
+      csvField(report.priority),
+      csvField(report.address),
+      csvField(report.zone),
+      csvField(report.lat),
+      csvField(report.long),
     ].join(',');
   });
 

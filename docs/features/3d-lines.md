@@ -7,7 +7,7 @@ The 3D Lines feature provides a real-time visualization of flood propagation thr
 ## Location & Implementation
 
 - **Main Logic**: [`lib/map/effects/flood-3d-utils.ts`](../../lib/map/effects/flood-3d-utils.ts)
-- **Integration**: [`app/simulation/page.tsx`](../../app/simulation/page.tsx)
+- **Integration**: [`app/(main)/simulation/page.tsx`](../../app/%28main%29/simulation/page.tsx)
 - **Mapbox Layer ID**: `flood-gradient-layer`
 
 ## Features
@@ -251,7 +251,10 @@ For very large networks (10,000+ pipes):
 
 ### Lines appearing in wrong colors
 
-- Verify vulnerability categories match expected values: 'High Risk', 'Medium Risk', 'Low Risk', 'No Risk'
+- Verify the hazard categories are ones the colouring recognises. A live
+  simulation sends `High`, `Medium`, `Low` and `No hazard`; the stored
+  per-return-period scenarios use `High Risk`, `Medium Risk`, `Low Risk` and
+  `No Risk`. `getFloodColorRGB()` matches by substring, so both work.
 - Check color interpolation logic in `getFloodColorRGB()`
 - Ensure data isn't malformed
 
@@ -266,7 +269,7 @@ For very large networks (10,000+ pipes):
 
 - [Flood Propagation (Heatmap)](./flood-propagation.md) - Animated node/line heatmap
 - [Rain Effect Toggle](./rain-effect.md) - Environmental weather visualization
-- [Vulnerability Data Visualization](./vulnerability-visualization.md) - Node flood metrics
+- [Vulnerability Data Visualization](./VISUALIZATION-SUITE.md) - Node flood metrics
 
 ## Future Enhancements
 

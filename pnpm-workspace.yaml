@@ -1,5 +1,10 @@
+allowBuilds:
+  exifreader: true
+  sharp: true
+  unrs-resolver: true
 onlyBuiltDependencies:
   - '@heroui/shared-utils'
   - '@tailwindcss/oxide'
+  - exifreader
   - sharp
   - unrs-resolver

@@ -42,7 +42,7 @@ All dashboard components have been created and are ready to deploy.
 
 ### Main Page
 
-- ✅ `app/dashboard/page.tsx` - Dashboard main page
+- ✅ `app/(main)/dashboard/page.tsx` - Dashboard main page
 
 ### Utilities & Libraries
 
@@ -58,19 +58,19 @@ All dashboard components have been created and are ready to deploy.
 
 ### Tab 2: Analytics Components
 
-- ✅ `components/dashboard/analytics/AnalyticsTab.tsx`
-- ✅ `components/dashboard/analytics/ZoneMap.tsx`
-- ✅ `components/dashboard/analytics/ComponentTypeChart.tsx`
-- ✅ `components/dashboard/analytics/RepairTimeCards.tsx`
-- ✅ `components/dashboard/analytics/TeamTable.tsx`
+- ✅ `components/dashboard/analytics/analytics-tab.tsx`
+- ✅ `components/dashboard/analytics/zone-map.tsx`
+- ✅ `components/dashboard/analytics/component-type-chart.tsx`
+- ✅ `components/dashboard/analytics/repair-time-cards.tsx`
+- ✅ `components/dashboard/analytics/team-table.tsx`
 
 ### Tab 3: Reports Components
 
-- ✅ `components/dashboard/reports/ReportsTab.tsx`
-- ✅ `components/dashboard/reports/ReportCard.tsx`
-- ✅ `components/dashboard/reports/ReportFilters.tsx`
-- ✅ `components/dashboard/reports/PriorityBadge.tsx`
-- ✅ `components/dashboard/reports/ImageGallery.tsx`
+- ✅ `components/dashboard/reports/reports-tab.tsx`
+- ✅ `components/dashboard/reports/report-card.tsx`
+- ✅ `components/dashboard/reports/report-filters.tsx`
+- ✅ `components/dashboard/reports/priority-badge.tsx`
+- ✅ `components/dashboard/reports/image-gallery.tsx`
 
 ### Database
 

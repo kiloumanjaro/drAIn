@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthContext } from '@/components/context/AuthProvider';
+import { AuthContext } from '@/components/context/auth-provider';
 import type { ControlPanelProps } from './types';
 import { DETAIL_TITLES } from './constants';
 import { useControlPanelState } from './hooks/use-control-panel-state';
@@ -14,10 +14,9 @@ import {
   useInlets,
   useOutlets,
   useDrains,
-} from '@/lib/query/hooks/useDrainageData';
-import client from '@/app/api/client';
-import type { DateFilterValue } from '../date-sort';
-import type { Report } from '@/lib/supabase/report';
+} from '@/lib/query/hooks/use-drainage-data';
+import client from '@/lib/supabase/client';
+import type { DateFilterValue } from '@/components/common/date-sort';
 
 interface RainfallParams {
   total_precip: number;
@@ -30,8 +29,6 @@ const DEFAULT_RAINFALL_PARAMS: RainfallParams = {
 };
 
 export function ControlPanel({
-  reports,
-  allReportsData,
   activeTab,
   dataset,
   selectedInlet,
@@ -92,9 +89,7 @@ export function ControlPanel({
   isFloodPropagationActive = false,
   onToggleFloodPropagation,
   isFloodScenarioLoading = false,
-  isFloodPropagationLoading = false,
-}: ControlPanelProps & { reports: Report[] }) {
-  // reports are latest, allReportsData are all
+}: ControlPanelProps) {
   const router = useRouter();
   const supabase = client;
   const authContext = useContext(AuthContext);
@@ -110,9 +105,6 @@ export function ControlPanel({
       const COMMON_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 
       const fetchProfile = async () => {
-        console.log(
-          'PROFILE LOAD: Initiating forced database fetch and URL regeneration.'
-        );
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -155,16 +147,6 @@ export function ControlPanel({
                 console.warn(`Fetch failed for ${ext}. Skipping.`);
               }
             }
-
-            if (!publicUrl) {
-              console.log(
-                'AVATAR URL: No valid public URL found after trying common extensions.'
-              );
-            }
-          } else {
-            console.log(
-              "AVATAR URL: The 'avatar_url' column is empty/null in the database."
-            );
           }
 
           setProfile(data);
@@ -173,10 +155,6 @@ export function ControlPanel({
           localStorage.setItem(
             cacheKey,
             JSON.stringify({ profile: data, publicAvatarUrl: publicUrl })
-          );
-        } else {
-          console.log(
-            'PROFILE LOAD: No profile found for user ID. Data is null/undefined.'
           );
         }
       };
@@ -246,7 +224,8 @@ export function ControlPanel({
   const handleNavigateToDataSource = () => {
     window.open(
       'https://psa.gov.ph/statistics/population-and-housing/node/166426',
-      '_blank'
+      '_blank',
+      'noopener,noreferrer'
     );
   };
 
@@ -331,8 +310,6 @@ export function ControlPanel({
             onToggleDrag={handleToggleDrag}
             isSimulationMode={isSimulationMode}
             selectedPointForSimulation={selectedPointForSimulation}
-            reports={reports} // Still passing 'reports' for the map
-            allReportsData={allReportsData} // Pass all reports data down
             profileView={profileView}
             onProfileViewChange={setProfileView}
             activeReportTab={activeReportTab}
@@ -378,7 +355,6 @@ export function ControlPanel({
             isFloodPropagationActive={isFloodPropagationActive}
             onToggleFloodPropagation={onToggleFloodPropagation}
             isFloodScenarioLoading={isFloodScenarioLoading}
-            isFloodPropagationLoading={isFloodPropagationLoading}
           />
         </div>
       </div>

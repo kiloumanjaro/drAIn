@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp/
+.yarn/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+*.generated.*
+
+# Caches & tooling
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+coverage/
+.nyc_output/
+
+# Environment & secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Version control & OS
+.git/
+.DS_Store
+Thumbs.db
+
+# Vendor / third-party
+vendor/
+bower_components/
+public/assets/vendor/
+
+# Unused & archived (project-specific)
+components/_unused/
+docs/_archive/

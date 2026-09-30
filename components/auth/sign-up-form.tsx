@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import { updateUserProfile } from '@/lib/supabase/profile';
 
 export default function SignUpForm() {

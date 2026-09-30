@@ -132,7 +132,7 @@ Each visualization uses different node properties:
 ```json
 {
   "Node_ID": "string",
-  "Vulnerability_Category": "High Risk|Medium Risk|Low Risk|No Risk",
+  "Vulnerability_Category": "High|Medium|Low|No hazard (live) or High Risk|Medium Risk|Low Risk|No Risk (stored scenarios)",
   "Total_Flood_Volume": "number"
 }
 ```
@@ -329,8 +329,8 @@ enableRain(map, 1.0); // Maximum rain
 - [3D Lines](./3d-lines.md) - Detailed gradient line documentation
 - [Flood Propagation](./flood-propagation.md) - Heatmap animation details
 - [Rain Effect](./rain-effect.md) - Weather visualization guide
-- [Simulation Guide](../guides/simulation.md) - Running simulations
-- [Control Panel](../components/control-panel.md) - UI controls
+- [Simulation Guide](../api/SIMULATION.md) - Running simulations
+- [Control Panel](../components/README.md) - UI controls
 
 ## Future Roadmap
 

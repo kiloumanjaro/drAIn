@@ -7,7 +7,7 @@ The Rain Effect feature adds a realistic weather simulation to the map, displayi
 ## Location & Implementation
 
 - **Main Logic**: [`lib/map/effects/rain-utils.ts`](../../lib/map/effects/rain-utils.ts)
-- **Integration**: [`app/simulation/page.tsx`](../../app/simulation/page.tsx)
+- **Integration**: [`app/(main)/simulation/page.tsx`](../../app/%28main%29/simulation/page.tsx)
 - **Control Panel**: [`components/control-panel/index.tsx`](../../components/control-panel/index.tsx)
 - **Mapbox API**: `map.setRain()` (Mapbox Standard style only)
 
@@ -373,7 +373,7 @@ const factor = Math.max(0, Math.min(1, (zoom - 8) / 4)); // Show from zoom 8
 
 - [3D Lines](./3d-lines.md) - Flood propagation visualization
 - [Flood Propagation](./flood-propagation.md) - Animated heatmap effect
-- [Simulation Controls](../guides/simulation.md) - Running flood simulations
+- [Simulation Controls](../api/SIMULATION.md) - Running flood simulations
 
 ## Future Enhancements
 

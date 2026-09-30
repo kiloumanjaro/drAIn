@@ -1,7 +1,14 @@
-/* eslint-disable */
-
-import client from '@/app/api/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import client from '@/lib/supabase/client';
+import type { Tables } from '@/types/database.types';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import type {
+  ComponentType,
+  PhotoLocationCheck,
+  ReportPriority,
+  ReportReview,
+  ReviewVerdict,
+} from '@/lib/supabase/enums';
+import type { ExifData } from '@/lib/reports/extract-exif';
 
 export interface Report {
   id: string;
@@ -16,27 +23,73 @@ export interface Report {
   geocoded_status: string;
   address: string;
   resolvedByMaintenanceId?: string | null;
-  resolvedByMaintenanceType?: string | null;
   resolvedImage?: string | null;
+  resolvedAt?: string | null;
+  priority: ReportPriority;
+  /** Null for a report filed while signed out, possible until 2026-09-29. */
+  userId: string | null;
+  /** What agency staff made of it. Rejected reports are hidden from the public. */
+  reviewStatus: ReportReview;
+  reviewNote: string | null;
+  /**
+   * Where the photo says it was taken, against the component: 'match'
+   * (within 100 m), 'mismatch' or 'missing'. Measured by the database from
+   * the photo's EXIF, which is easy to edit, so a hint rather than proof.
+   */
+  photoCheck: PhotoLocationCheck;
+  photoDistanceM: number | null;
+  photoTakenAt: string | null;
 }
+
+/**
+ * Columns only signed-in users can read (column grants in schema.sql): who
+ * filed the report, where the reporter stood when taking the photo, and who
+ * reviewed it. Signed-out requests that name them fail, and realtime leaves
+ * them out of its payloads.
+ */
+type PrivateReportColumn =
+  | 'user_id'
+  | 'photo_lat'
+  | 'photo_lon'
+  | 'reviewed_by';
+
+/** Every other column: what the shared report lists select. */
+export const PUBLIC_REPORT_COLUMNS =
+  'id, created_at, category, description, image, reporter_name, status, component_id, long, lat, geocoded_status, address, priority, zone, resolved_by_maintenance_id, resolved_image, resolved_at, photo_taken_at, photo_distance_m, reviewed_at, review_note, photo_check, review_status' as const;
+
+/**
+ * A reports row as the database returns it (and as realtime sends it). The
+ * private columns are missing from public reads and signed-out realtime.
+ */
+export type ReportRow = Omit<Tables<'reports'>, PrivateReportColumn> &
+  Partial<Pick<Tables<'reports'>, PrivateReportColumn>>;
 
 export const uploadReport = async (
   file: File,
-  category: string,
+  category: ComponentType,
   description: string,
   component_id: string,
   long: number,
   lat: number,
-  userId: string | null,
+  /** Reporting needs an account; the database refuses signed-out reports. */
+  userId: string,
   reporterName: string,
-  priority: 'low' | 'medium' | 'high' | 'critical' = 'low'
+  priority: ReportPriority = 'low',
+  /** What the photo's EXIF says about where and when it was taken. */
+  photo: ExifData | null = null
 ) => {
   try {
+    // A fresh name per upload. Using the phone's own file name meant a second
+    // "image.jpg" silently replaced the first report's photo.
+    const extension = file.name.includes('.')
+      ? file.name.split('.').pop()!.toLowerCase()
+      : 'jpg';
+    const imagePath = `public/${crypto.randomUUID()}.${extension}`;
+
     const { error } = await client.storage
       .from('ReportImage')
-      .upload(`public/${file.name}`, file, {
+      .upload(imagePath, file, {
         cacheControl: '3600',
-        upsert: true,
         contentType: file.type,
       });
     if (error) {
@@ -48,7 +101,7 @@ export const uploadReport = async (
       {
         category,
         description,
-        image: `public/${file.name}`,
+        image: imagePath,
         reporter_name: reporterName,
         status: 'pending',
         component_id: component_id,
@@ -56,8 +109,13 @@ export const uploadReport = async (
         lat: lat,
         address: null,
         geocoded_status: 'pending',
-        user_id: userId ?? null,
+        user_id: userId,
         priority: priority,
+        // The database measures these against the component and labels the
+        // report (photo_check); staff see it when they review.
+        photo_lat: photo?.latitude ?? null,
+        photo_lon: photo?.longitude ?? null,
+        photo_taken_at: photo?.date?.toISOString() ?? null,
       },
     ]);
 
@@ -71,199 +129,271 @@ export const uploadReport = async (
   }
 };
 
-export const fetchAllReports = async (): Promise<Report[]> => {
+/** How many reports a list shows before saying there are more. */
+export const REPORT_LIST_LIMIT = 50;
+
+export interface ReportList {
+  /** Newest first, at most the requested limit. */
+  reports: Report[];
+  /** How many reports match in all. */
+  total: number;
+}
+
+/**
+ * Reports staff haven't rejected, newest first: for one component, or all,
+ * and optionally only those filed since a date. Filtered and cut off in the
+ * database; the app used to download every report ever filed and filter it
+ * in the browser.
+ */
+export const fetchReportList = async ({
+  componentId,
+  since,
+  limit = REPORT_LIST_LIMIT,
+}: {
+  componentId?: string | null;
+  since?: Date | null;
+  limit?: number;
+} = {}): Promise<ReportList> => {
+  let query = client
+    .from('reports')
+    .select(PUBLIC_REPORT_COLUMNS, { count: 'exact' })
+    .neq('review_status', 'rejected');
+  if (componentId) query = query.eq('component_id', componentId);
+  if (since) query = query.gte('created_at', since.toISOString());
+
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  const reports = (data ?? []).map(formatReport);
+  return { reports, total: count ?? reports.length };
+};
+
+/**
+ * The signed-in person's own reports, newest first, including any staff
+ * rejected, so they can see why.
+ */
+export const fetchMyReports = async (userId: string): Promise<Report[]> => {
   try {
-    const { data, error } = await client
-      .from('reports')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching all reports:', error);
-      throw error;
-    }
-
-    if (!data) return [];
-
-    const formattedReports: Report[] = data.map(
-      (report: Record<string, unknown>) => formatReport(report)
+    // Paged like every list that can grow past the API's 1,000-row limit.
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('reports')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
     );
-    return formattedReports;
+    return rows.map(formatReport);
   } catch (error) {
-    console.error('Error fetching all reports:', error);
+    console.error('Error fetching your reports:', error);
     throw error;
   }
 };
 
-export const fetchLatestReportsPerComponent = async (
-  allReportsData?: Report[]
-): Promise<Report[]> => {
-  let reportsToProcess: Report[];
-
-  if (allReportsData) {
-    reportsToProcess = allReportsData;
-  } else {
-    // Fallback: if allReportsData is not provided, fetch all reports
-    reportsToProcess = await fetchAllReports();
-  }
-
-  if (!reportsToProcess || reportsToProcess.length === 0) return [];
-
-  // Group reports by componentId and find the latest for each
-  const latestReportsMap = new Map<string, Report>();
-
-  // Sort data by created_at to ensure the first encountered is the latest per component
-  const sortedData = [...reportsToProcess].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  sortedData.forEach((reportData: Report) => {
-    const componentId = reportData.componentId as string;
-
-    if (!latestReportsMap.has(componentId)) {
-      latestReportsMap.set(componentId, reportData);
-    }
-  });
-
-  // Convert map values back to an array
-  const latestReports = Array.from(latestReportsMap.values());
-
-  return latestReports;
-};
-
-const _updateReportStatusById = async (
+/**
+ * Staff confirm a report, or reject it with a reason, and may correct its
+ * priority (review_report in supabase/schemas/schema_trust.sql).
+ */
+export const reviewReport = async (
   reportId: string,
-  status: 'in-progress' | 'resolved'
-) => {
-  try {
-    const { error } = await client
-      .from('reports')
-      .update({ status })
-      .eq('id', reportId);
-
-    if (error) {
-      console.error('Error updating report status:', error);
-      throw error;
-    }
-  } catch (error) {
-    console.error('Error updating report status:', error);
-    throw error;
-  }
+  verdict: Exclude<ReportReview, 'unreviewed'>,
+  note?: string,
+  priority?: ReportPriority
+): Promise<ReportRow> => {
+  const { data, error } = await client.rpc('review_report', {
+    p_report_id: reportId,
+    p_verdict: verdict,
+    p_note: note,
+    p_priority: priority,
+  });
+  if (error) throw new Error(error.message);
+  return data;
 };
 
-export const updateReportsStatusForComponent = async (
-  componentId: string,
-  status: 'in-progress' | 'resolved',
-  maintenanceDate: string,
-  maintenanceId?: string,
-  maintenanceType?: string,
-  maintenanceImage?: string
-) => {
+/**
+ * The reporter says whether the work that closed their report fixed it. "Not
+ * fixed" needs a reason and reopens the report (respond_to_resolution in
+ * supabase/schemas/schema_trust.sql).
+ */
+export const respondToResolution = async (
+  reportId: string,
+  verdict: ReviewVerdict,
+  note?: string
+): Promise<ReportRow> => {
+  const { data, error } = await client.rpc('respond_to_resolution', {
+    p_report_id: reportId,
+    p_verdict: verdict,
+    p_note: note,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * The signed-in person's answers to "was it fixed?", by the report they
+ * answered for. Row-level security returns only their own.
+ */
+export const fetchMyResolutionVerdicts = async (
+  userId: string
+): Promise<Map<string, ReviewVerdict>> => {
+  const { data, error } = await client
+    .from('maintenance_reviews')
+    .select('report_id, verdict')
+    .eq('reviewer_id', userId)
+    .not('report_id', 'is', null);
+  // Thrown rather than read as "no answers yet", which would ask people
+  // again about fixes they already answered for.
+  if (error) {
+    console.error('Error fetching your answers:', error);
+    throw error;
+  }
+  return new Map(
+    (data ?? []).flatMap((row) =>
+      row.report_id ? [[row.report_id, row.verdict] as const] : []
+    )
+  );
+};
+
+/** The reports filed against one component, oldest first. */
+export const fetchReportsForComponent = async (
+  componentId: string
+): Promise<Report[]> => {
   try {
-    const updates: any = { status };
-    if (maintenanceId) updates.resolved_by_maintenance_id = maintenanceId;
-    if (maintenanceType) updates.resolved_by_maintenance_type = maintenanceType;
-    if (maintenanceImage) updates.resolved_image = maintenanceImage;
-
-    // Hierarchy Logic: Only update reports with a LOWER status.
-    // Resolved > In-Progress > Pending
-    // - Resolved can update: Pending, In-Progress
-    // - In-Progress can update: Pending
-
-    const targetStatuses =
-      status === 'resolved' ? ['pending', 'in-progress'] : ['pending'];
-
-    const { error } = await client
-      .from('reports')
-      .update(updates)
-      .eq('component_id', componentId)
-      .in('status', targetStatuses)
-      .lte('created_at', maintenanceDate);
-
-    if (error) {
-      console.error(
-        'Error updating multiple report statuses for component:',
-        error
-      );
-      throw error;
-    }
-  } catch (error) {
-    console.error(
-      'Error updating multiple report statuses for component:',
-      error
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('reports')
+        .select(PUBLIC_REPORT_COLUMNS)
+        .eq('component_id', componentId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
     );
-    throw error;
-  }
-};
-
-export const deleteReportsByComponentId = async (componentId: string) => {
-  try {
-    const { error } = await client
-      .from('reports')
-      .delete()
-      .eq('component_id', componentId);
-
-    if (error) {
-      console.error('Error deleting reports:', error);
-      throw error;
-    }
+    return rows.map(formatReport);
   } catch (error) {
-    console.error('Error deleting reports:', error);
+    console.error('Error fetching reports for component:', error);
     throw error;
   }
 };
 
-export const formatReport = (
-  report: Record<string, unknown> | Report
-): Report => {
+/**
+ * The newest report on each component (latest_report_per_component in
+ * schema_dashboard.sql): what the map's pins show. One row per component
+ * rather than one per report.
+ */
+export const fetchLatestReportsPerComponent = async (): Promise<Report[]> => {
+  const rows = await fetchAllRows((from, to) =>
+    client
+      .from('latest_report_per_component')
+      .select('*')
+      .order('component_id', { ascending: true })
+      .range(from, to)
+  );
+  return rows.flatMap((row) => {
+    const report = fromLatestRow(row);
+    return report ? [formatReport(report)] : [];
+  });
+};
+
+/**
+ * Views type every column as nullable. The ones a reports row always has
+ * are checked here instead of cast away.
+ */
+function fromLatestRow(
+  row: Tables<'latest_report_per_component'>
+): ReportRow | null {
+  const { id, created_at, status, priority, review_status, photo_check } = row;
+  if (
+    !id ||
+    !created_at ||
+    !status ||
+    !priority ||
+    !review_status ||
+    !photo_check
+  ) {
+    return null;
+  }
+  return {
+    ...row,
+    id,
+    created_at,
+    status,
+    priority,
+    review_status,
+    photo_check,
+  };
+}
+
+/** Reports filed per day (UTC), oldest first. */
+export const fetchReportCountsByDay = async (): Promise<
+  Array<{ date: string; count: number }>
+> => {
+  const rows = await fetchAllRows((from, to) =>
+    client
+      .from('report_counts_by_day')
+      .select('day, report_count')
+      .order('day', { ascending: true })
+      .range(from, to)
+  );
+  return rows.flatMap((row) =>
+    row.day ? [{ date: row.day, count: row.report_count ?? 0 }] : []
+  );
+};
+
+export const formatReport = (report: ReportRow): Report => {
   const { data: img } = client.storage
     .from('ReportImage')
-    .getPublicUrl((report as any).image || '');
+    .getPublicUrl(report.image ?? '');
 
   let resolvedImageUrl = '';
-  if ((report as any).resolved_image) {
+  if (report.resolved_image) {
     const { data: rImg } = client.storage
       .from('ReportImage')
-      .getPublicUrl((report as any).resolved_image);
+      .getPublicUrl(report.resolved_image);
     resolvedImageUrl = rImg?.publicUrl || '';
   }
 
-  const rawDate = (report as any).created_at || (report as any).date || null;
-  const parsedDate = new Date(rawDate);
+  const parsedDate = report.created_at ? new Date(report.created_at) : null;
   const safeDate =
-    !rawDate || isNaN(parsedDate.getTime())
+    !parsedDate || isNaN(parsedDate.getTime())
       ? new Date().toISOString()
       : parsedDate.toISOString();
 
-  const long = parseFloat((report as any).long);
-  const lat = parseFloat((report as any).lat);
-  const safeCoords =
-    !isNaN(long) && !isNaN(lat)
-      ? ([long, lat] as [number, number])
-      : ([0, 0] as [number, number]);
+  const safeCoords: [number, number] =
+    report.long !== null && report.lat !== null
+      ? [report.long, report.lat]
+      : [0, 0];
 
   return {
-    id: (report as any).id?.toString() ?? crypto.randomUUID(),
+    id: report.id,
     date: safeDate,
-    category: (report as any).category ?? 'Uncategorized',
-    description: (report as any).description ?? 'No description provided.',
+    category: report.category ?? 'Uncategorized',
+    description: report.description ?? 'No description provided.',
     image: img?.publicUrl ?? '',
-    reporterName: (report as any).reporter_name ?? 'Anonymous',
-    status: (report as any).status ?? 'Pending',
-    componentId: (report as any).component_id ?? 'N/A',
+    reporterName: report.reporter_name ?? 'Anonymous',
+    status: report.status,
+    componentId: report.component_id ?? 'N/A',
     coordinates: safeCoords,
-    geocoded_status: (report as any).geocoded_status ?? 'pending',
-    address: (report as any).address ?? 'Unknown address',
-    resolvedByMaintenanceId: (report as any).resolved_by_maintenance_id ?? null,
-    resolvedByMaintenanceType:
-      (report as any).resolved_by_maintenance_type ?? null,
+    geocoded_status: report.geocoded_status ?? 'pending',
+    address: report.address ?? 'Unknown address',
+    resolvedByMaintenanceId: report.resolved_by_maintenance_id ?? null,
     resolvedImage: resolvedImageUrl || null,
+    resolvedAt: report.resolved_at,
+    priority: report.priority,
+    userId: report.user_id ?? null,
+    reviewStatus: report.review_status,
+    reviewNote: report.review_note,
+    photoCheck: report.photo_check,
+    photoDistanceM: report.photo_distance_m,
+    photoTakenAt: report.photo_taken_at,
   };
 };
 
 export function subscribeToReportChanges(
-  onInsert?: (r: Report) => void,
-  onUpdate?: (r: Report) => void
+  onInsert?: (r: ReportRow) => void,
+  onUpdate?: (r: ReportRow) => void
 ) {
   const channel = client.channel('reports');
 
@@ -272,8 +402,7 @@ export function subscribeToReportChanges(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'reports' },
       (payload) => {
-        // console.log("Channel Insert:", payload.new);
-        onInsert(payload.new as Report);
+        onInsert(payload.new as ReportRow);
       }
     );
   }
@@ -283,36 +412,48 @@ export function subscribeToReportChanges(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'reports' },
       (payload) => {
-        // console.log("Channel Update:", payload.new);
-        onUpdate(payload.new as Report);
+        onUpdate(payload.new as ReportRow);
       }
     );
   }
 
-  channel.subscribe((status, err) => {
-    // console.log("Report Channel status:", status, err || "");
-  });
+  channel.subscribe();
 
   return () => {
     client.removeChannel(channel);
   };
 }
 
-export const getreportCategoryCount = async (
-  targetCategory: string,
-  categoryId: string
-): Promise<number> => {
+/**
+ * How many reports each component has, keyed by `reportCountKey`. One
+ * request for the whole map, instead of one count query per map pin.
+ */
+export const fetchReportCountsByComponent = async (): Promise<
+  Map<string, number>
+> => {
+  const counts = new Map<string, number>();
   try {
-    const { count: categoryCount, error: _error } = await client
-      .from('reports')
-      .select('category', { count: 'exact', head: true })
-      .eq('category', targetCategory)
-      .eq('component_id', categoryId);
-
-    // console.log(targetCategory, categoryId, categoryCount);
-    return categoryCount ?? 0;
+    const rows = await fetchAllRows((from, to) =>
+      client
+        .from('report_counts_by_component')
+        .select('category, component_id, report_count')
+        .order('component_id', { ascending: true })
+        .order('category', { ascending: true })
+        .range(from, to)
+    );
+    for (const row of rows) {
+      if (row.category && row.component_id) {
+        counts.set(
+          reportCountKey(row.category, row.component_id),
+          row.report_count ?? 0
+        );
+      }
+    }
   } catch (error) {
-    console.error('Error fetching reports:', error);
-    return 0;
+    console.error('Error fetching report counts:', error);
   }
+  return counts;
 };
+
+export const reportCountKey = (category: string, componentId: string) =>
+  `${category}:${componentId}`;

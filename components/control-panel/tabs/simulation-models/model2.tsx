@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 import { Loader2, Minimize2, Maximize2, CloudRain, Flame } from 'lucide-react';
-import { LoadingScreen } from '@/components/loading-screen';
+import { LoadingScreen } from '@/components/common/loading-screen';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
 import { useState } from 'react';
 
@@ -88,7 +88,7 @@ export default function Model2({
       <LoadingScreen
         title="Analyzing Hydraulic Capacity"
         messages={[
-          'Fetching vulnerability data...',
+          'Fetching flood hazard data...',
           'Analyzing drainage system...',
           'Calculating flow rates...',
           'Preparing results table...',
@@ -150,7 +150,7 @@ export default function Model2({
           {/* Vulnerability Indicator Legend */}
           <div className="space-y-3 px-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm">Vulnerability Indicator</span>
+              <span className="text-sm">Flood Hazard Indicator</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -266,7 +266,7 @@ export default function Model2({
                     <TooltipContent>
                       <p className="max-w-xs text-xs">
                         {hasTable
-                          ? 'Toggle vulnerability density heatmap showing flood-prone areas'
+                          ? 'Toggle flood hazard density heatmap showing flood-prone areas'
                           : 'Generate table first to enable heatmap'}
                       </p>
                     </TooltipContent>

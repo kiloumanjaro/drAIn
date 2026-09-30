@@ -1,6 +1,4 @@
-/* eslint-disable */
-
-import type { FeatureCollection } from 'geojson';
+import type { FeatureCollection, Point } from 'geojson';
 
 export interface DrainagePipe {
   id: string;
@@ -11,21 +9,26 @@ export interface DrainagePipe {
   lastInspection: string;
 }
 
+interface InletProperties {
+  In_Name?: string;
+  Inv_Elev?: number;
+}
+
 export function mapInletsToDrainagePipes(
-  geojson: FeatureCollection
+  geojson: FeatureCollection<Point, InletProperties>
 ): DrainagePipe[] {
   return geojson.features.map((feature, index) => {
-    const props = feature.properties as any;
-    const [lng, lat] = (feature.geometry as any).coordinates;
+    const props = feature.properties ?? {};
+    const [lng, lat] = feature.geometry.coordinates;
+    const elev = props.Inv_Elev ?? 0;
 
     return {
       id: props.In_Name || `inlet-${index}`,
       geocode: props.In_Name || `inlet-${index}`,
-      vulnerabilityRating:
-        props.Inv_Elev > 30 ? 'high' : props.Inv_Elev > 20 ? 'moderate' : 'low',
+      vulnerabilityRating: elev > 30 ? 'high' : elev > 20 ? 'moderate' : 'low',
       location: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-      installDate: '2020-01-01', // placeholder
-      lastInspection: '2025-01-01', // placeholder
+      installDate: '2020-01-01',
+      lastInspection: '2025-01-01',
     };
   });
 }

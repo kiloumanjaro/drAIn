@@ -1,6 +1,6 @@
 # drAIn Documentation
 
-Welcome to the comprehensive documentation for drAIn - an AI/machine learning-powered platform for flood resilience and urban drainage system management.
+Welcome to the comprehensive documentation for drAIn - a SWMM-based simulation and citizen-reporting platform for flood resilience and urban drainage system management.
 
 ## Documentation Structure
 
@@ -25,7 +25,7 @@ API documentation for backend endpoints and integrations.
 
 - [Supabase Integration](api/SUPABASE.md) - Database and authentication
 - [SWMM Simulation API](api/SIMULATION.md) - Hydraulic simulation endpoints
-- [Report API](api/REPORTS.md) - Flood report endpoints
+- [Report API](guides/FLOOD_REPORTS_GUIDE.md) - Flood report endpoints
 
 ### [Guides](guides/)
 
@@ -39,8 +39,8 @@ Step-by-step guides for common tasks.
 
 Documentation for major features and implementations.
 
-- [Dashboard Implementation](features/DASHBOARD_IMPLEMENTATION_COMPLETE.md) - Dashboard feature documentation
-- [Dashboard Plan](features/DASHBOARD_IMPLEMENTATION_PLAN.md) - Original implementation plan
+- [Dashboard Implementation](_archive/DASHBOARD_IMPLEMENTATION_COMPLETE.md) - Dashboard feature documentation
+- [Dashboard Plan](_archive/DASHBOARD_IMPLEMENTATION_PLAN.md) - Original implementation plan
 - [PostGIS Barangay Zones](features/POSTGIS_BARANGAY_ZONES.md) - Geographic zone implementation
 - [PostGIS Implementation](features/POSTGIS_IMPLEMENTATION_SUMMARY.md) - PostGIS integration summary
 
@@ -48,12 +48,12 @@ Documentation for major features and implementations.
 
 Developer resources and internal documentation.
 
-- [Fixes Applied](development/FIXES_APPLIED.md) - History of bug fixes and improvements
+- [Fixes Applied](_archive/FIXES_APPLIED.md) - History of bug fixes and improvements
 
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and setup instructions
-- [Contributing Guidelines](../CONTRIBUTING.md) - How to contribute to the project
+- [Contributing Guidelines](../README.md#-contributing) - How to contribute to the project
 - [License](../LICENSE) - GPL-2.0 License information
 
 ## Getting Help

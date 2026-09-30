@@ -186,7 +186,7 @@ async function fetchGeoJSON(path: string): Promise<FeatureCollection> {
 
   try {
     return await response.json();
-  } catch (error) {
+  } catch {
     throw new GeoJSONFetchError(path, response.status, 'Invalid JSON response');
   }
 }

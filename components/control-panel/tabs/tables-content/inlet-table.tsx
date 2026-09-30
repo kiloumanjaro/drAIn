@@ -135,7 +135,15 @@ export function InletTable({
                   <TableRow
                     key={inlet.id}
                     onClick={() => onSelectInlet(inlet)}
-                    className="hover:bg-muted/50 cursor-pointer transition-colors"
+                    // Selectable from the keyboard too, like the mouse.
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectInlet(inlet);
+                      }
+                    }}
+                    className="hover:bg-muted/50 focus-visible:bg-muted/50 cursor-pointer transition-colors outline-none"
                   >
                     <TableCell className="text-center font-mono text-sm">
                       {inlet.id}

@@ -52,9 +52,9 @@ sql += `CREATE TABLE IF NOT EXISTS barangay_boundaries (\n`;
 sql += `  id SERIAL PRIMARY KEY,\n`;
 sql += `  name VARCHAR(255) NOT NULL UNIQUE,\n`;
 sql += `  boundary GEOGRAPHY(POLYGON, 4326) NOT NULL,\n`;
-sql += `  population_count VARCHAR(50),\n`;
-sql += `  population_density VARCHAR(50),\n`;
-sql += `  land_area VARCHAR(50),\n`;
+sql += `  population_count INTEGER,\n`;
+sql += `  population_density NUMERIC, -- people per km²\n`;
+sql += `  land_area NUMERIC, -- km²\n`;
 sql += `  created_at TIMESTAMP DEFAULT NOW()\n`;
 sql += `);\n\n`;
 
@@ -100,9 +100,12 @@ barangays.forEach((feature, _index) => {
   sql += `VALUES (\n`;
   sql += `  '${name}',\n`;
   sql += `  ST_GeogFromText('${wkt}'),\n`;
-  sql += `  ${popCount ? `'${popCount}'` : 'NULL'},\n`;
-  sql += `  ${popDensity ? `'${popDensity}'` : 'NULL'},\n`;
-  sql += `  ${landArea ? `'${landArea}'` : 'NULL'}\n`;
+  // The source figures carry thousands separators ("4,387").
+  const num = (value: string | null) =>
+    value ? value.replace(/,/g, '') : 'NULL';
+  sql += `  ${num(popCount)},\n`;
+  sql += `  ${num(popDensity)},\n`;
+  sql += `  ${num(landArea)}\n`;
   sql += `);\n\n`;
 });
 

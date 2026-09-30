@@ -1,35 +1,4 @@
 /**
- * Calculate repair days between report creation and maintenance completion
- * Based on maintenance tab pattern from components/control-panel/tabs/maintenance.tsx
- */
-export function calculateRepairDays(
-  createdAt: string | Date,
-  lastCleanedAt: string | Date
-): number {
-  const created = new Date(createdAt).getTime();
-  const cleaned = new Date(lastCleanedAt).getTime();
-
-  const differenceMs = cleaned - created;
-  const days = differenceMs / (1000 * 60 * 60 * 24);
-
-  // Round to 1 decimal place
-  return Math.round(days * 10) / 10;
-}
-
-/**
- * Calculate average days from array of repair days
- */
-export function calculateAverageDays(days: number[]): number {
-  if (days.length === 0) return 0;
-
-  const sum = days.reduce((acc, day) => acc + day, 0);
-  const average = sum / days.length;
-
-  // Round to 1 decimal place
-  return Math.round(average * 10) / 10;
-}
-
-/**
  * Format number of days to human readable string
  * e.g., 1.5 days -> "1.5 days"
  */
@@ -37,67 +6,6 @@ export function formatDays(days: number): string {
   if (days === 0) return '0 days';
   if (days === 1) return '1 day';
   return `${days} days`;
-}
-
-/**
- * Group repair data by date (for trend chart)
- */
-export interface DailyRepairData {
-  date: string;
-  totalDays: number;
-  count: number;
-  averageDays: number;
-}
-
-export function groupRepairDataByDate(
-  reports: Array<{
-    created_at: string;
-    component_id: string;
-    last_cleaned_at?: string;
-  }>
-): DailyRepairData[] {
-  const dateMap = new Map<string, DailyRepairData>();
-
-  reports.forEach((report) => {
-    if (!report.last_cleaned_at) return;
-
-    const createdDate = new Date(report.created_at);
-    const dateKey = createdDate.toISOString().split('T')[0];
-
-    const repairDays = calculateRepairDays(
-      report.created_at,
-      report.last_cleaned_at
-    );
-
-    const existing = dateMap.get(dateKey);
-
-    if (existing) {
-      dateMap.set(dateKey, {
-        date: dateKey,
-        totalDays: existing.totalDays + repairDays,
-        count: existing.count + 1,
-        averageDays: 0, // Will calculate below
-      });
-    } else {
-      dateMap.set(dateKey, {
-        date: dateKey,
-        totalDays: repairDays,
-        count: 1,
-        averageDays: 0, // Will calculate below
-      });
-    }
-  });
-
-  // Calculate averages
-  const result = Array.from(dateMap.values()).map((data) => ({
-    ...data,
-    averageDays: Math.round((data.totalDays / data.count) * 10) / 10,
-  }));
-
-  // Sort by date
-  return result.sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
 }
 
 /**

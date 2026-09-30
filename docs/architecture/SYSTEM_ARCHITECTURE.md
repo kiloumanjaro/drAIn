@@ -2,7 +2,7 @@
 
 ## Overview
 
-drAIn is a modern full-stack web application built with Next.js 15, featuring real-time data synchronization, 3D visualization, and AI-powered flood prediction. The system integrates multiple technologies to provide a comprehensive urban drainage management platform.
+drAIn is a modern full-stack web application built with Next.js 15, featuring real-time data synchronization, 3D visualization, and SWMM flood simulation with an AI chat assistant. The system integrates multiple technologies to provide a comprehensive urban drainage management platform.
 
 ## High-Level Architecture
 
@@ -154,7 +154,7 @@ Each loaded via custom hooks (useInlets, usePipes, etc.)
 2. **Railway (Simulation Backend)**
    - FastAPI application
    - SWMM (Storm Water Management Model) integration
-   - Machine learning prediction models
+   - Hazard scoring of simulated flooding (a k-means model is kept only for legacy fields)
    - Python/PySWMM runtime
 
 3. **Mapbox GL**
@@ -192,9 +192,9 @@ Component Re-render
 
 **Files:**
 
-- `app/map/page.tsx` - Main map page
+- `app/(main)/map/page.tsx` - Main map page
 - `lib/map/config.ts` - Mapbox configuration
-- `components/report-bubble.tsx` - Report markers
+- `components/map/report-bubble.tsx` - Report markers
 
 **Flow:**
 
@@ -209,9 +209,9 @@ Component Re-render
 
 **Files:**
 
-- `app/simulation/page.tsx` - Simulation UI
+- `app/(main)/simulation/page.tsx` - Simulation UI
 - `lib/simulation-api/simulation.ts` - API client
-- `components/ModelViewer.tsx` - 3D visualization
+- `components/simulation/model-viewer.tsx` - 3D visualization
 
 **Flow:**
 
@@ -243,7 +243,7 @@ Component Re-render
 
 **Files:**
 
-- `app/dashboard/page.tsx` - Dashboard page
+- `app/(main)/dashboard/page.tsx` - Dashboard page
 - `lib/dashboard/queries.ts` - Data queries
 - `components/dashboard/` - Tab components
 
@@ -262,7 +262,7 @@ Component Re-render
 - Supabase Auth for user management
 - JWT tokens for API authentication
 - Row-level security (RLS) policies in PostgreSQL
-- Protected routes with middleware
+- Protected routes with proxy
 
 ### Data Validation
 
