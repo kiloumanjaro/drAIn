@@ -307,7 +307,7 @@ Evaluated against the local database on 2026-09-28. Item 2 of that evaluation is
 2. Geocoding (2.D3): bring the hosted `geocodeWorker` edge function into the repo, or retire geocoding and drop `address`, `geocoded_status`, `geocode_worker_lock` and the trigger. **Decided: brought in** (`supabase/functions/geocodeWorker`, frontend 63a5b75).
 3. `components/_unused/` (with the `/gallery` page) and `control-panel-portable/`: delete or keep. Both look deliberate, so they were left. **Decided: keep for now.**
 4. The pickled k-means model (backend): retire the `Legacy_Cluster_*` fields (roadmap F), or export the model to plain arrays. sklearn warns the pickle was written by 1.6.1 and read by 1.9.1. **Decided: retired** (backend eacb592): the fields, the pickle and scikit-learn are gone.
-5. Backend CORS: your Vercel team slug, to limit the preview-origin pattern to your deployments.
+5. Backend CORS: your Vercel team slug, to limit the preview-origin pattern to your deployments. **Decided 2026-09-30:** anchored on `kiloumanjaros-projects` (found from the first `develop` preview URL).
 6. Report photo uploads have no rate limit (anyone can upload many photos without filing reports); a fix needs signed upload URLs or an edge function. **Decided 2026-09-29: reporting needs an account.** Every report needs a photo, so signed-out uploads and signed-out reports end together; the form shows "Sign in" / "Create an account" instead. Older anonymous reports stay as they are.
 7. Still open from before: rotate the service-role key in the hosted geocode trigger; delete the stray `Project Drain/supabase/` folder.
 
