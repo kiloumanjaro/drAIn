@@ -9,6 +9,7 @@ import type {
   ReviewVerdict,
 } from '@/lib/supabase/enums';
 import type { ExifData } from '@/lib/reports/extract-exif';
+import { sanitizeImage } from '@/lib/reports/sanitize-image';
 
 export interface Report {
   id: string;
@@ -42,10 +43,12 @@ export interface Report {
 }
 
 /**
- * Columns only signed-in users can read (column grants in schema.sql): who
- * filed the report, where the reporter stood when taking the photo, and who
- * reviewed it. Signed-out requests that name them fail, and realtime leaves
- * them out of its payloads.
+ * Columns no client can select from the table (column grants in
+ * schema.sql): who filed the report, where the reporter stood when taking
+ * the photo, and who reviewed it. Requests that name them fail, and realtime
+ * leaves them out of its payloads. A reporter gets them for their own
+ * reports from my_reports (fetchMyReports); staff from
+ * report_private_details.
  */
 type PrivateReportColumn =
   | 'user_id'
@@ -59,7 +62,7 @@ export const PUBLIC_REPORT_COLUMNS =
 
 /**
  * A reports row as the database returns it (and as realtime sends it). The
- * private columns are missing from public reads and signed-out realtime.
+ * private columns are missing from table reads and from realtime.
  */
 export type ReportRow = Omit<Tables<'reports'>, PrivateReportColumn> &
   Partial<Pick<Tables<'reports'>, PrivateReportColumn>>;
@@ -79,18 +82,20 @@ export const uploadReport = async (
   photo: ExifData | null = null
 ) => {
   try {
+    // The bucket is public, so the original (with the phone's GPS position
+    // and device in its EXIF) never goes up: only a re-encoded JPEG with no
+    // metadata. `photo` was read from the original before this point.
+    const clean = await sanitizeImage(file);
+
     // A fresh name per upload. Using the phone's own file name meant a second
     // "image.jpg" silently replaced the first report's photo.
-    const extension = file.name.includes('.')
-      ? file.name.split('.').pop()!.toLowerCase()
-      : 'jpg';
-    const imagePath = `public/${crypto.randomUUID()}.${extension}`;
+    const imagePath = `public/${crypto.randomUUID()}.jpg`;
 
     const { error } = await client.storage
       .from('ReportImage')
-      .upload(imagePath, file, {
+      .upload(imagePath, clean, {
         cacheControl: '3600',
-        contentType: file.type,
+        contentType: clean.type,
       });
     if (error) {
       console.error('Error uploading file:', error);
@@ -172,16 +177,16 @@ export const fetchReportList = async ({
 
 /**
  * The signed-in person's own reports, newest first, including any staff
- * rejected, so they can see why.
+ * rejected, so they can see why. Read through my_reports, which returns
+ * every column of the caller's own reports only: clients can't select
+ * reports.user_id, so filtering the table by it isn't possible.
  */
-export const fetchMyReports = async (userId: string): Promise<Report[]> => {
+export const fetchMyReports = async (): Promise<Report[]> => {
   try {
     // Paged like every list that can grow past the API's 1,000-row limit.
     const rows = await fetchAllRows((from, to) =>
       client
-        .from('reports')
-        .select('*')
-        .eq('user_id', userId)
+        .rpc('my_reports')
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
         .range(from, to)

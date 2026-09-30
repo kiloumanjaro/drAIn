@@ -2,8 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRequestClient } from '@/lib/supabase/server';
 import type { Tables } from '@/types/database.types';
 import { csvField, parseMonthYear } from '@/lib/reports/csv';
+import type { UserRole } from '@/lib/supabase/enums';
 
-type ReportRecord = Tables<'reports'>;
+// Roles allowed to export reports. An allowlist, so a role added to the enum
+// later gets no access until it is listed here.
+const EXPORT_ROLES: readonly UserRole[] = ['staff', 'admin'];
+
+// Only the columns the CSV writes. The private ones (user_id, photo_lat,
+// photo_lon, reviewed_by) aren't selectable from the table, so '*' fails.
+const CSV_COLUMNS =
+  'id, created_at, category, description, reporter_name, status, priority, address, zone, lat, long' as const;
+type ReportRecord = Pick<
+  Tables<'reports'>,
+  | 'id'
+  | 'created_at'
+  | 'category'
+  | 'description'
+  | 'reporter_name'
+  | 'status'
+  | 'priority'
+  | 'address'
+  | 'zone'
+  | 'lat'
+  | 'long'
+>;
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +48,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.role === 'citizen') {
+    if (!profile || !EXPORT_ROLES.includes(profile.role)) {
       return NextResponse.json(
         { error: 'Only agency staff can download reports' },
         { status: 403 }
@@ -55,7 +77,7 @@ export async function GET(request: NextRequest) {
     // Fetch reports for the specified month
     const { data: reports, error } = await supabase
       .from('reports')
-      .select('*')
+      .select(CSV_COLUMNS)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
       .order('created_at', { ascending: false });

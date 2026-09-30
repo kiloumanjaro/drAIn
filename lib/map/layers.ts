@@ -1,5 +1,6 @@
 import mapboxgl from 'mapbox-gl';
 
+import { escapeHtml } from '@/lib/escape-html';
 import { FLOOD_PRONE_AREAS } from '@/lib/map/flood-prone-areas';
 import {
   getCircleHitAreaPaintConfig,
@@ -276,7 +277,7 @@ export function addMapLayers(
         const content = document.createElement('div');
         content.innerHTML = `
           <h3 style="margin: 0; font-size: 12px; font-weight: 600;">
-            ${props.Name || 'Flood Prone Area'}
+            ${escapeHtml(props.Name || 'Flood Prone Area')}
           </h3>
         `;
 

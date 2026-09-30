@@ -11,11 +11,13 @@ export default function SignUpForm() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setLoading(true);
 
     const { data, error } = await client.auth.signUp({
@@ -36,6 +38,9 @@ export default function SignUpForm() {
       await updateUserProfile(data.session, fullName, null, {});
       // ✅ Success — redirect to root
       router.push('/');
+    } else {
+      // Email confirmation is on: no session until the link is clicked.
+      setNotice(`Check ${email} for a confirmation link, then log in.`);
     }
 
     setLoading(false);
@@ -63,11 +68,13 @@ export default function SignUpForm() {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
+        placeholder="Password (8+ characters, upper, lower and a digit)"
         className="w-full rounded border p-2"
+        minLength={8}
         required
       />
       {error && <p className="text-sm text-red-500">{error}</p>}
+      {notice && <p className="text-sm text-green-600">{notice}</p>}
       <button
         type="submit"
         disabled={loading}

@@ -60,6 +60,7 @@ import {
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
+import { escapeHtml } from '@/lib/escape-html';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -74,21 +75,6 @@ const POPULATION_POPUP_CLOSE_BG = '#f3f4f6';
 
 /** Hover background colour for the popup close button. */
 const POPULATION_POPUP_CLOSE_BG_HOVER = '#e5e7eb';
-
-/**
- * Text for the population popup, which is built as HTML. The values come
- * from a GeoJSON file we ship, but are escaped so that stays harmless if the
- * source ever changes.
- */
-function escapeHtml(value: unknown): string {
-  return String(value).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ]!
-  );
-}
 
 /** The drainage hooks' fallback while loading: one array, not a new one per render. */
 const NO_ITEMS: never[] = [];

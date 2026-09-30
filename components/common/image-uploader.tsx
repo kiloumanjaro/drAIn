@@ -3,6 +3,12 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import Image from 'next/image';
 import { AddIcon } from '@/components/common/add-icon';
+import {
+  acceptedImageType,
+  decodeImage,
+  IMAGE_ACCEPT_ATTRIBUTE,
+  isHeic,
+} from '@/lib/reports/sanitize-image';
 
 interface ImageUploaderProps {
   onImageChange?: (file: File | null) => void;
@@ -38,17 +44,32 @@ export default function ImageUploader({
     };
   }, [fileUrl]);
 
-  const handleFile = (file: File | undefined) => {
+  const handleFile = async (file: File | undefined) => {
     if (!file || disabled) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Only image files are allowed.');
+    // JPEG, PNG, WebP or HEIC only: no SVG (it can carry script), GIF or
+    // AVIF. Report photos are re-encoded to JPEG before upload as well.
+    if (!acceptedImageType(file)) {
+      setError('Only JPEG, PNG, WebP or HEIC photos are allowed.');
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
       setError('File size exceeds 10 MB limit.');
       return;
+    }
+
+    // Most browsers other than Safari can't decode HEIC. Say so now rather
+    // than at upload, since the photo can't be re-encoded without it.
+    if (isHeic(file)) {
+      try {
+        (await decodeImage(file)).close();
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : 'This photo could not be read.'
+        );
+        return;
+      }
     }
 
     setError(null);
@@ -61,11 +82,11 @@ export default function ImageUploader({
     e.preventDefault();
     if (disabled) return;
     setIsDragging(false);
-    handleFile(e.dataTransfer.files[0]);
+    void handleFile(e.dataTransfer.files[0]);
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFile(e.target.files?.[0]);
+    void handleFile(e.target.files?.[0]);
   };
 
   const handleReset = () => {
@@ -109,7 +130,7 @@ export default function ImageUploader({
               <AddIcon className="h-5 w-5" />
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_ACCEPT_ATTRIBUTE}
                 onChange={handleUpload}
                 className="hidden"
                 ref={fileInputRef}

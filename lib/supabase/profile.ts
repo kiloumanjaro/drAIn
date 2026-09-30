@@ -2,6 +2,7 @@ import client from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import type { Tables } from '@/types/database.types';
 import type { UserRole } from '@/lib/supabase/enums';
+import { sanitizeImage } from '@/lib/reports/sanitize-image';
 
 export type Profile = Pick<
   Tables<'profiles'>,
@@ -66,17 +67,19 @@ export const updateUserProfile = async (
     let newAvatarPath: string | null = null;
 
     if (avatarFile) {
-      const fileExt = avatarFile.name.split('.').pop();
+      // Avatars are public: upload a re-encoded copy with no EXIF (GPS,
+      // device), capped small since it's only ever shown as an avatar.
+      const cleanAvatar = await sanitizeImage(avatarFile, { maxEdge: 512 });
       // New file path to align with RLS policies (user_id/avatar.ext)
-      const filePath = `${user.id}/avatar.${fileExt}`;
+      const filePath = `${user.id}/avatar.jpg`;
       newAvatarPath = filePath;
 
       const { error: uploadError } = await client.storage
         .from('Avatars')
-        .upload(filePath, avatarFile, {
+        .upload(filePath, cleanAvatar, {
           cacheControl: '3600',
           upsert: true,
-          contentType: avatarFile.type,
+          contentType: cleanAvatar.type,
         });
 
       if (uploadError) {
@@ -142,8 +145,10 @@ export const updateUserProfile = async (
 
 /**
  * Join an agency with its join code, making the signed-in user its staff.
- * The database checks the code (see join_agency in supabase/schemas) and
- * rejects a wrong one with a message fit to show the user.
+ * The database checks the code (see join_agency in supabase/schemas). A
+ * wrong code comes back as no agency rather than an error, so that the try
+ * still counts against the caller's allowance (10 an hour); too many tries
+ * is an error with a message fit to show the user.
  */
 export const joinAgency = async (code: string): Promise<Tables<'agencies'>> => {
   const { data, error } = await client.rpc('join_agency', { p_code: code });
@@ -151,6 +156,11 @@ export const joinAgency = async (code: string): Promise<Tables<'agencies'>> => {
   if (error) {
     console.error('Error joining agency:', error);
     throw new Error(error.message);
+  }
+
+  // A null composite arrives as null or as an object of nulls.
+  if (!data?.id) {
+    throw new Error('That code is not valid.');
   }
 
   return data;

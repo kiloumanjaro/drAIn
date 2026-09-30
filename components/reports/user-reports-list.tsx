@@ -83,7 +83,7 @@ export default function UserReportsList({
     setLoading(true);
     try {
       const [mine, answers] = await Promise.all([
-        fetchMyReports(userId),
+        fetchMyReports(),
         fetchMyResolutionVerdicts(userId),
       ]);
       setReports(mine);

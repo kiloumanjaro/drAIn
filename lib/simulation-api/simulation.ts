@@ -270,6 +270,17 @@ export async function runSimulation(
   if (created.status === 401) {
     throw new Error('Sign in to run simulations.');
   }
+  if (created.status === 403) {
+    // Signed in, but the server won't run for this account yet (for
+    // example, the email address isn't confirmed); the server says why.
+    throw new Error(
+      (await refusalDetail(created)) ??
+        'Confirm your email address before running simulations.'
+    );
+  }
+  if (created.status === 413) {
+    throw new Error('Too many changes for one simulation run.');
+  }
   if (created.status === 429) {
     // Either the server is full, or this person already has a run going or
     // has used their hourly allowance; the server says which.
@@ -307,6 +318,12 @@ export async function runSimulation(
     }
     if (polled.status === 404) {
       throw new Error('The simulation result expired before it was read.');
+    }
+    if (polled.status === 429) {
+      // Polled too often (several people behind one address share a limit):
+      // the run is unaffected, so wait as asked and poll again.
+      interval = retryAfterMs(polled);
+      continue;
     }
     if (!polled.ok) {
       throw new Error(
