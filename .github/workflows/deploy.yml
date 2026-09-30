@@ -115,10 +115,16 @@ jobs:
             vercel build --token=${{ secrets.VERCEL_TOKEN }}
           fi
 
+      # develop gets a preview deployment to test on before merging to main.
+      # Its link is printed at the top of the run's summary page.
       - name: Deploy Project Artifacts to Vercel
         run: |
           if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
-            vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+            url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+            label=Production
           else
-            vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+            url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+            label=Preview
           fi
+          echo "$label: $url"
+          echo "### $label deployment: $url" >> "$GITHUB_STEP_SUMMARY"
