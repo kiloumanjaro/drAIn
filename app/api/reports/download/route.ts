@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRequestClient } from '@/lib/supabase/server';
 import type { Tables } from '@/types/database.types';
-import { csvField, parseMonthYear } from '@/lib/reports/csv';
+import { csvField, monthRangeUtc, parseMonthYear } from '@/lib/reports/csv';
 import type { UserRole } from '@/lib/supabase/enums';
 
 // Roles allowed to export reports. An allowlist, so a role added to the enum
@@ -70,16 +70,17 @@ export async function GET(request: NextRequest) {
     // Built from the parsed numbers only, never from the raw query.
     const filename = `reports_${getMonthName(month)}_${year}.csv`;
 
-    // Calculate date range for the selected month
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    // The month's bounds in Manila time, independent of the server's zone.
+    const { start, end } = monthRangeUtc(month, year);
 
-    // Fetch reports for the specified month
+    // The month's reports, except rejected ones (spam and duplicates), which
+    // every other surface leaves out too.
     const { data: reports, error } = await supabase
       .from('reports')
       .select(CSV_COLUMNS)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .gte('created_at', start.toISOString())
+      .lt('created_at', end.toISOString())
+      .neq('review_status', 'rejected')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -169,6 +170,9 @@ function generateCSV(reports: ReportRecord[]): string {
   const rows = reports.map((report) => {
     const date = report.created_at
       ? new Date(report.created_at).toLocaleDateString('en-US', {
+          // The reader's calendar, not the server's: a UTC host would
+          // otherwise date early-morning reports to the previous day.
+          timeZone: 'Asia/Manila',
           year: 'numeric',
           month: 'long',
           day: 'numeric',

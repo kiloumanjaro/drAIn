@@ -515,11 +515,52 @@ describe('runSimulation', () => {
   it('reports a failed poll other than an expired result', async () => {
     fetchMock
       .mockResolvedValueOnce(accepted())
-      .mockResolvedValueOnce(jsonResponse({ detail: 'oops' }, { status: 502 }));
+      .mockResolvedValueOnce(jsonResponse({ detail: 'oops' }, { status: 400 }));
 
     await expect(
       runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
-    ).rejects.toThrow(/progress \(HTTP 502\)/);
+    ).rejects.toThrow(/progress \(HTTP 400\)/);
+  });
+
+  it('rides out a brief server hiccup while polling', async () => {
+    // The server answers 503 during restarts while the run carries on.
+    const result = { nodes_list: [] };
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(
+        jsonResponse({}, { status: 503, headers: { 'Retry-After': '5' } })
+      )
+      .mockResolvedValueOnce(jsonResponse({}, { status: 502 }))
+      .mockResolvedValueOnce(state('succeeded', { result }));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).resolves.toEqual(result);
+  });
+
+  it('gives up after too many server errors in a row', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/simulations')
+        ? accepted()
+        : jsonResponse({}, { status: 503 })
+    );
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow(/progress \(HTTP 503\)/);
+  });
+
+  it('spells out a field-level validation refusal', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { detail: [{ msg: 'Input should be less than 500' }] },
+        { status: 422 }
+      )
+    );
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow('Input should be less than 500');
   });
 
   it('gives a generic reason when a failed run carries none', async () => {

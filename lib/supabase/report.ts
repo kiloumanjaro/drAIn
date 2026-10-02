@@ -99,6 +99,13 @@ export const uploadReport = async (
       });
     if (error) {
       console.error('Error uploading file:', error);
+      // The app generates the name and type itself, so the bucket's rules
+      // can only refuse our own upload for one reason: the daily allowance.
+      if (/row-level security/i.test(error.message)) {
+        throw new Error(
+          "Today's photo upload limit has been reached. Please try again tomorrow."
+        );
+      }
       throw error;
     }
 
@@ -126,6 +133,16 @@ export const uploadReport = async (
 
     if (insertError) {
       console.error('Error inserting report:', insertError);
+      // The refused report's photo is already up. Remove it so it neither
+      // lingers in the public bucket nor keeps counting against the
+      // uploader's daily allowance; the bucket lets owners delete a fresh
+      // upload nothing references yet.
+      const { error: removeError } = await client.storage
+        .from('ReportImage')
+        .remove([imagePath]);
+      if (removeError) {
+        console.error('Error removing the unused photo:', removeError);
+      }
       throw insertError;
     }
   } catch (error) {

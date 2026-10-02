@@ -181,6 +181,13 @@ const DEFAULT_POLL_INTERVAL_MS = 3000;
  */
 const POLL_TIMEOUT_MS = 30 * 60 * 1000;
 
+/**
+ * Transient server errors tolerated in a row while polling. The server
+ * answers 503 (with a Retry-After) during restarts and sign-in hiccups
+ * while the run itself carries on, so one bad poll must not fail the run.
+ */
+const MAX_CONSECUTIVE_SERVER_ERRORS = 5;
+
 function apiBaseUrl(): string {
   return API_BASE_URL?.replace(/\/$/, '') || '';
 }
@@ -240,7 +247,19 @@ function abortReason(signal: AbortSignal): unknown {
 async function refusalDetail(response: Response): Promise<string | null> {
   try {
     const body = (await response.json()) as { detail?: unknown };
-    return typeof body.detail === 'string' ? body.detail : null;
+    if (typeof body.detail === 'string') return body.detail;
+    // Field-level validation refusals arrive as an array of {msg} objects.
+    if (Array.isArray(body.detail)) {
+      const messages = body.detail
+        .map((item) =>
+          item && typeof item === 'object' && 'msg' in item
+            ? String((item as { msg: unknown }).msg)
+            : null
+        )
+        .filter((msg): msg is string => Boolean(msg));
+      return messages.length > 0 ? messages.join(' ') : null;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -305,6 +324,7 @@ export async function runSimulation(
   let interval = retryAfterMs(created);
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   let lastStatus: SimulationJobStatus = job.status;
+  let serverErrors = 0;
 
   while (Date.now() < deadline) {
     await delay(interval, signal);
@@ -325,11 +345,23 @@ export async function runSimulation(
       interval = retryAfterMs(polled);
       continue;
     }
+    if (polled.status >= 500) {
+      // Briefly unavailable, not failed: wait as asked and ask again.
+      serverErrors += 1;
+      if (serverErrors <= MAX_CONSECUTIVE_SERVER_ERRORS) {
+        interval = retryAfterMs(polled);
+        continue;
+      }
+      throw new Error(
+        `Could not read the simulation's progress (HTTP ${polled.status}).`
+      );
+    }
     if (!polled.ok) {
       throw new Error(
         `Could not read the simulation's progress (HTTP ${polled.status}).`
       );
     }
+    serverErrors = 0;
 
     const state = (await polled.json()) as JobState;
     if (state.status !== lastStatus) {

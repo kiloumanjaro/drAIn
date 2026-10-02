@@ -16,6 +16,10 @@ CREATE POLICY "Allow authenticated users to upload their own avatars" ON "storag
 CREATE POLICY "Allow authenticated users to replace their own avatars" ON "storage"."objects" FOR UPDATE TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1]))) WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1])));
 CREATE POLICY "Allow public read access to avatars" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'Avatars'::"text"));
 
+-- The avatar flow removes the old upload after a failed profile save; without
+-- a DELETE policy that remove was a silent no-op.
+CREATE POLICY "Users remove their own avatars" ON "storage"."objects" FOR DELETE TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND ((( SELECT "auth"."uid"() AS "uid"))::"text" = ("storage"."foldername"("name"))[1])));
+
 -- ReportImage: anyone reads; only signed-in users upload. Signed-out uploads
 -- were allowed until 2026-09-29, and nothing limited them: the photo is
 -- uploaded before the report, so the report limits never applied. Nobody
@@ -61,3 +65,15 @@ GRANT EXECUTE ON FUNCTION "private"."can_upload_report_photo"() TO "authenticate
 
 CREATE POLICY "Signed-in users upload report photos under a random name" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'ReportImage'::"text") AND ("name" ~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$'::"text") AND ( SELECT "private"."can_upload_report_photo"() AS "can_upload_report_photo")));
 CREATE POLICY "Anyone can view report photos" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'ReportImage'::"text"));
+
+-- Cleanup of a photo whose report was refused: the owner may delete their own
+-- fresh upload while nothing references it (reports.image,
+-- reports.resolved_image, maintenance.evidence_image). The 1-hour window
+-- keeps the policy to its purpose; it is not an "undo" for published photos.
+-- Deleting restores the uploader's daily allowance, which
+-- can_upload_report_photo counts from storage.objects.
+CREATE POLICY "Uploaders remove their own fresh unused report photo" ON "storage"."objects" FOR DELETE TO "authenticated" USING ((("bucket_id" = 'ReportImage'::"text") AND ("owner_id" = (( SELECT "auth"."uid"() AS "uid"))::"text") AND ("created_at" > ("now"() - '01:00:00'::interval)) AND (NOT (EXISTS ( SELECT 1
+   FROM "public"."reports" "r"
+  WHERE (("r"."image" = "objects"."name") OR ("r"."resolved_image" = "objects"."name"))))) AND (NOT (EXISTS ( SELECT 1
+   FROM "public"."maintenance" "m"
+  WHERE ("m"."evidence_image" = "objects"."name"))))));

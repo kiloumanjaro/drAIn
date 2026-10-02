@@ -19,6 +19,7 @@ const supabase = vi.hoisted(() => {
     const builder: Record<string, unknown> = {};
     for (const method of [
       'select',
+      'insert',
       'eq',
       'neq',
       'gte',
@@ -41,19 +42,43 @@ const supabase = vi.hoisted(() => {
   return { state, from: (table: string) => chain(table) };
 });
 
+/** Records uploads and removals, so cleanup after a failure is checkable. */
+const storage = vi.hoisted(() => {
+  const calls: Array<{ method: string; bucket: string; path: string }> = [];
+  return {
+    calls,
+    from: (bucket: string) => ({
+      getPublicUrl: () => ({ data: { publicUrl: '' } }),
+      upload: async (path: string) => {
+        calls.push({ method: 'upload', bucket, path });
+        return { error: null };
+      },
+      remove: async (paths: string[]) => {
+        calls.push({ method: 'remove', bucket, path: paths[0] });
+        return { error: null };
+      },
+    }),
+  };
+});
+
 vi.mock('@/lib/supabase/client', () => ({
   default: {
     from: supabase.from,
-    storage: {
-      from: () => ({ getPublicUrl: () => ({ data: { publicUrl: '' } }) }),
-    },
+    storage: { from: storage.from },
   },
+}));
+
+// uploadReport re-encodes the photo through a canvas, which the test
+// runtime lacks; the upload itself is what's under test here.
+vi.mock('@/lib/reports/sanitize-image', () => ({
+  sanitizeImage: async (file: File) => file,
 }));
 
 import {
   fetchLatestReportsPerComponent,
   fetchReportCountsByDay,
   fetchReportList,
+  uploadReport,
 } from './report';
 
 const row = (id: string, extra: Record<string, unknown> = {}) => ({
@@ -73,6 +98,7 @@ const row = (id: string, extra: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   supabase.state.respond = () => ({ data: [] });
   supabase.state.queries = [];
+  storage.calls.length = 0;
 });
 
 describe('fetchLatestReportsPerComponent', () => {
@@ -149,5 +175,53 @@ describe('fetchReportCountsByDay', () => {
       { date: '2026-09-01', count: 2 },
     ]);
     expect(supabase.state.queries[0].source).toBe('report_counts_by_day');
+  });
+});
+
+describe('uploadReport', () => {
+  const photo = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+
+  it('removes the uploaded photo when the report insert is refused', async () => {
+    // A refused insert (rate limit, duplicate) must not leave the photo in
+    // the public bucket burning the uploader's daily allowance.
+    supabase.state.respond = (source) =>
+      source === 'reports'
+        ? { data: null, error: { message: 'Too many reports today.' } }
+        : { data: [] };
+
+    await expect(
+      uploadReport(
+        photo,
+        'inlets',
+        'Blocked',
+        'I-1',
+        123.9,
+        10.3,
+        'user-1',
+        'Ana'
+      )
+    ).rejects.toMatchObject({ message: 'Too many reports today.' });
+
+    const [upload, remove] = storage.calls;
+    expect(upload).toMatchObject({ method: 'upload', bucket: 'ReportImage' });
+    expect(remove).toMatchObject({
+      method: 'remove',
+      bucket: 'ReportImage',
+      path: upload.path,
+    });
+  });
+
+  it('keeps the photo when the report insert succeeds', async () => {
+    await uploadReport(
+      photo,
+      'inlets',
+      'Blocked',
+      'I-1',
+      123.9,
+      10.3,
+      'user-1',
+      'Ana'
+    );
+    expect(storage.calls.map((c) => c.method)).toEqual(['upload']);
   });
 });

@@ -118,8 +118,7 @@ export default function SubmitTab() {
       //   latitude: 10.360832542295604,
       //   longitude: 123.927200298236968,
       // };
-      //need to fix bug
-      if (!location.latitude || !location.longitude) {
+      if (location.latitude == null || location.longitude == null) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         if (cancelled()) return;
         setIsSubmitting(false);

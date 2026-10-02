@@ -701,7 +701,7 @@ export type Database = {
         Returns: {
           account_created_at: string;
           email: string;
-          full_name: string;
+          full_name: string | null;
           id: string;
           role: Database['public']['Enums']['user_role'];
         }[];
@@ -720,12 +720,14 @@ export type Database = {
       };
       join_agency: {
         Args: { p_code: string };
+        // NULL when the code matches no agency (a wrong code is not an
+        // error, so a failed try still counts against the rate limit).
         Returns: {
           contact_details: Json | null;
           created_at: string;
           id: string;
           name: string;
-        };
+        } | null;
         SetofOptions: {
           from: '*';
           to: 'agencies';
@@ -739,13 +741,13 @@ export type Database = {
         Returns: {
           agency_name: string;
           can_review: boolean;
-          description: string;
-          evidence_image: string;
+          description: string | null;
+          evidence_image: string | null;
           id: string;
-          latest_dispute: string;
-          my_verdict: Database['public']['Enums']['review_verdict'];
+          latest_dispute: string | null;
+          my_verdict: Database['public']['Enums']['review_verdict'] | null;
           performed_at: string;
-          performed_by_name: string;
+          performed_by_name: string | null;
           status: Database['public']['Enums']['maintenance_status'];
           verification_status: Database['public']['Enums']['verification_status'];
         }[];
@@ -846,10 +848,10 @@ export type Database = {
         Args: { p_report_id: string };
         Returns: {
           id: string;
-          photo_lat: number;
-          photo_lon: number;
-          reviewed_by: string;
-          user_id: string;
+          photo_lat: number | null;
+          photo_lon: number | null;
+          reviewed_by: string | null;
+          user_id: string | null;
         }[];
       };
       respond_to_resolution: {
