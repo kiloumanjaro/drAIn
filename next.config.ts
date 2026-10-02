@@ -139,6 +139,19 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // The flood overlays are versioned exports (see
+        // scripts/slim-flood-hazard.mjs): a change ships under a new name,
+        // so browsers may keep these forever instead of revalidating 2-4 MB
+        // downloads on every map visit.
+        source: '/flood-hazard/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },

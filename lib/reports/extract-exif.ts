@@ -1,5 +1,3 @@
-import ExifReader from 'exifreader';
-
 export interface ExifData {
   latitude: number | null;
   longitude: number | null;
@@ -47,6 +45,9 @@ export function parseExifDateTime(value: string): Date | null {
 export async function extractExifLocation(file: File): Promise<ExifData> {
   try {
     const arrayBuffer = await file.arrayBuffer();
+    // Loaded on first use: the parser only matters once a photo is picked,
+    // so it stays out of the page's initial script.
+    const { default: ExifReader } = await import('exifreader');
     const tags: Record<string, unknown> = await ExifReader.load(arrayBuffer);
 
     const lat = tags.GPSLatitude;
