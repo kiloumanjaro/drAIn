@@ -32,23 +32,31 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-500">
+          {error}
+        </p>
+      )}
 
       <input
         type="email"
         placeholder="Email"
+        aria-label="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
+        aria-invalid={error ? true : undefined}
         className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
       />
 
       <input
         type="password"
         placeholder="Password"
+        aria-label="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
+        aria-invalid={error ? true : undefined}
         className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
       />
 

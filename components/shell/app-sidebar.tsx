@@ -125,8 +125,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {...props}
     >
       <SidebarHeader
+        role="button"
+        tabIndex={0}
+        aria-label="Go to home"
         className="flex cursor-pointer items-center justify-center border-b py-4"
         onClick={() => router.push('/')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            router.push('/');
+          }
+        }}
       >
         <Logo className="h-7 w-auto text-[#5a87e7]" />
       </SidebarHeader>

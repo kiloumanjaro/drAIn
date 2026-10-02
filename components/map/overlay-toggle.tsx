@@ -15,6 +15,7 @@ export function OverlayToggle({
     <div className="flex items-center space-x-2">
       <Switch
         id="overlay-toggle"
+        aria-label="Toggle map overlays"
         checked={overlaysVisible}
         onCheckedChange={onToggle}
         className="cursor-pointer"

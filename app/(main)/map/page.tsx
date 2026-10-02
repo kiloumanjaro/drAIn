@@ -1086,7 +1086,8 @@ function MapPageContent() {
 
   return (
     <>
-      <main className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
+      {/* div, not main: SidebarInset is already the main landmark */}
+      <div className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
         <div className="h-screen w-full" ref={mapContainerRef}>
           {mapError && (
             <div className="bg-background/95 absolute inset-0 z-50 flex items-center justify-center">
@@ -1137,7 +1138,7 @@ function MapPageContent() {
           onResetPosition={handleResetPosition}
           onChangeStyle={handleChangeStyle}
         />
-      </main>
+      </div>
     </>
   );
 }

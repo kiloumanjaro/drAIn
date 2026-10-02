@@ -35,7 +35,10 @@ const centuryGothic = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'drAIn',
+  title: {
+    default: 'drAIn',
+    template: '%s | drAIn',
+  },
   description:
     'Drainage flood simulation and citizen flood reporting for Mandaue City.',
 };

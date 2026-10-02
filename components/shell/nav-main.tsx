@@ -62,6 +62,7 @@ export function NavMain({
                   <SidebarMenuButton
                     tooltip={item.title}
                     isActive={active}
+                    aria-current={active ? 'page' : undefined}
                     className={
                       active ? 'hover:bg-sidebar-accent bg-transparent' : ''
                     }

@@ -5,7 +5,8 @@ import { ExploreMapButton } from '@/components/landing/explore-map-button';
 
 export default function WelcomePage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#e8e8e8]/50">
+    // div, not main: the sidebar shell (SidebarInset) is already the main landmark
+    <div className="relative min-h-screen overflow-hidden bg-[#e8e8e8]/50">
       <div className="pointer-events-auto absolute top-4 right-4 z-20">
         <FullscreenButton />
       </div>
@@ -29,7 +30,7 @@ export default function WelcomePage() {
             <span>a blueprint</span>
             <Image
               src="/images/logo.png"
-              alt="Logo"
+              alt="drAIn logo"
               width={80}
               height={60}
               className="animate-rotate-in pointer-events-auto mb-1 rotate-0 transition-transform duration-300 hover:rotate-12"
@@ -43,6 +44,6 @@ export default function WelcomePage() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

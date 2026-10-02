@@ -53,6 +53,7 @@ export default function SignUpForm() {
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}
         placeholder="Full Name"
+        aria-label="Full Name"
         className="w-full rounded border p-2"
         required
       />
@@ -61,6 +62,7 @@ export default function SignUpForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
+        aria-label="Email"
         className="w-full rounded border p-2"
         required
       />
@@ -69,12 +71,21 @@ export default function SignUpForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password (8+ characters, upper, lower and a digit)"
+        aria-label="Password (8+ characters, upper, lower and a digit)"
         className="w-full rounded border p-2"
         minLength={8}
         required
       />
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {notice && <p className="text-sm text-green-600">{notice}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-500">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="text-sm text-green-600">
+          {notice}
+        </p>
+      )}
       <button
         type="submit"
         disabled={loading}

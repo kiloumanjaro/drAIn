@@ -128,13 +128,15 @@ export default function ImageUploader({
               }`}
             >
               <AddIcon className="h-5 w-5" />
+              {/* sr-only (not hidden) keeps the input keyboard-focusable */}
               <input
                 type="file"
                 accept={IMAGE_ACCEPT_ATTRIBUTE}
                 onChange={handleUpload}
-                className="hidden"
+                className="sr-only"
                 ref={fileInputRef}
                 disabled={disabled}
+                aria-label="Upload a photo"
               />
             </label>
             <div className="flex flex-col gap-1">
@@ -144,7 +146,9 @@ export default function ImageUploader({
               </span>
             </div>
             {error && (
-              <span className="mt-2 text-xs text-red-500">{error}</span>
+              <span role="alert" className="mt-2 text-xs text-red-500">
+                {error}
+              </span>
             )}
           </div>
         ) : (
@@ -164,6 +168,7 @@ export default function ImageUploader({
               <button
                 onClick={handleReset}
                 disabled={disabled}
+                aria-label="Remove photo"
                 className={`rounded-full border border-[#cd152b] bg-[#f34445] p-1.5 text-white shadow-lg transition-colors duration-200 ${
                   disabled
                     ? 'cursor-not-allowed opacity-50'

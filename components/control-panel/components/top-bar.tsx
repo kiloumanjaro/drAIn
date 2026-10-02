@@ -159,7 +159,10 @@ export function TopBar({
       {showSettings && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex h-8.5 w-8.5 cursor-pointer items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0]">
+            <button
+              aria-label="Panel settings"
+              className="flex h-8.5 w-8.5 cursor-pointer items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0]"
+            >
               <MoreHorizontal className="h-5 w-5 text-[#8D8D8D]" />
             </button>
           </DropdownMenuTrigger>
@@ -214,6 +217,7 @@ export function TopBar({
       {/* Back Button */}
       {showBackButton && (
         <button
+          aria-label="Back"
           className="flex h-8.5 w-8.5 cursor-pointer items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors"
           onClick={onBack}
         >
@@ -236,6 +240,7 @@ export function TopBar({
         <>
           <button
             onClick={() => setShowSignOutDialog(true)}
+            aria-label="Sign out"
             className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0]"
           >
             <LogOut className="h-4 w-4 text-[#8D8D8D]" />

@@ -200,7 +200,8 @@ function DocsContent() {
           </nav>
 
           {/* Main Content */}
-          <main className="mt-5 flex min-h-[calc(100vh-60px)] flex-1 flex-col">
+          {/* div, not main: SidebarInset is already the main landmark */}
+          <div className="mt-5 flex min-h-[calc(100vh-60px)] flex-1 flex-col">
             {/* Header */}
             <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
               <div className="flex items-center justify-between gap-4">
@@ -274,7 +275,7 @@ function DocsContent() {
             <div className="rounded-b-xl border border-[#dfdfdf] bg-white px-6 py-3.5 text-center text-sm text-gray-600">
               © 2026 drAIn Project. All rights reserved.
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </div>

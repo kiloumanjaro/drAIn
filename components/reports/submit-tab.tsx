@@ -344,10 +344,14 @@ export default function SubmitTab() {
 
         {/* Severity Selector */}
         <div className="flex w-full flex-col">
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="report-severity"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
             Severity Level
           </label>
           <select
+            id="report-severity"
             value={severity}
             onChange={(e) =>
               setSeverity(
@@ -372,6 +376,7 @@ export default function SubmitTab() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter description"
+              aria-label="Description"
               rows={4}
               // reports_description_length in supabase/schemas/schema.sql
               maxLength={1000}
@@ -577,7 +582,10 @@ export default function SubmitTab() {
         </DialogContent>
       </Dialog>
       {alertNow && (
-        <div className="fixed top-4 right-4 z-[9999] flex items-start gap-2 rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg">
+        <div
+          role="status"
+          className="fixed top-4 right-4 z-[9999] flex items-start gap-2 rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg"
+        >
           <CheckCircle2Icon />
           <AlertTitle>Success! Your report has been submitted.</AlertTitle>
         </div>

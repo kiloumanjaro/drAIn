@@ -50,6 +50,8 @@ export function SideNavigation({
       <button
         key={tab.id}
         onClick={() => onTabChange(tab.id)}
+        aria-label={tab.label}
+        aria-current={isActive ? 'true' : undefined}
         className="relative flex cursor-pointer items-center justify-center"
       >
         <Icon className="h-5 w-5 text-[#B2ADAB] hover:text-black" />
