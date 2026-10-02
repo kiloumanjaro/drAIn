@@ -270,7 +270,21 @@ CREATE POLICY "Allow authenticated users to replace their own avatars" ON "stora
   USING (((bucket_id = 'Avatars'::text) AND ((( SELECT auth.uid() AS uid))::text = (storage.foldername(name))[1])))
   WITH CHECK (((bucket_id = 'Avatars'::text) AND ((( SELECT auth.uid() AS uid))::text = (storage.foldername(name))[1])));
 
-ALTER PUBLICATION "supabase_realtime" ADD TABLE "public"."reports";
+-- The hosted project already carried reports in the publication (added from
+-- the dashboard before the migration workflow existed), and ADD TABLE has no
+-- IF NOT EXISTS.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1
+                 FROM pg_publication_rel pr
+                 JOIN pg_class c ON c.oid = pr.prrelid
+                 JOIN pg_publication p ON p.oid = pr.prpubid
+                 WHERE p.pubname = 'supabase_realtime'
+                   AND c.relname = 'reports'
+                   AND c.relnamespace = 'public'::regnamespace) THEN
+    ALTER PUBLICATION "supabase_realtime" ADD TABLE "public"."reports";
+  END IF;
+END $$;
 
 REVOKE ALL ON TABLE "public"."barangay_boundaries" FROM "anon";
 
