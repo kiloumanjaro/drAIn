@@ -52,6 +52,21 @@ select throws_ok(
 -- Deleting one's own fresh, unreferenced report photo ---------------------------
 
 reset role;
+-- Supabase guards storage.objects against direct SQL deletes; the real path
+-- is the Storage API, which runs the same RLS policies these tests check.
+-- pgTAP speaks SQL, so park that guard for this rolled-back transaction
+-- (it doesn't exist on the plain-Postgres harness, hence the lookup).
+do $$
+declare guard text;
+begin
+  select tgname into guard from pg_trigger
+    where tgrelid = 'storage.objects'::regclass
+      and tgfoid = to_regproc('storage.protect_delete');
+  if guard is not null then
+    execute format('alter table storage.objects disable trigger %I', guard);
+  end if;
+end $$;
+
 -- Photos: one referenced by the maintenance above, one orphaned (upload whose
 -- report insert failed), one belonging to someone else.
 insert into storage.objects (bucket_id, name, owner_id) values
