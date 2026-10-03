@@ -35,3 +35,24 @@ export function parseMonthYear(
   if (m < 1 || m > 12) return null;
   return { month: m, year: Number(year) };
 }
+
+/** Mandaue's clock. The app serves one city, so months are Manila months. */
+const MANILA_UTC_OFFSET_HOURS = 8;
+
+/**
+ * The UTC instants where a Manila calendar month starts and where the next
+ * one begins (use them as `created_at >= start AND created_at < end`).
+ * Built from Date.UTC, so the server's own timezone never leaks in: on a
+ * UTC host, a report filed at 00:30 Manila time on the 1st belongs to the
+ * new month, not the old one.
+ */
+export function monthRangeUtc(
+  month: number,
+  year: number
+): { start: Date; end: Date } {
+  const offset = MANILA_UTC_OFFSET_HOURS * 60 * 60 * 1000;
+  return {
+    start: new Date(Date.UTC(year, month - 1, 1) - offset),
+    end: new Date(Date.UTC(year, month, 1) - offset),
+  };
+}

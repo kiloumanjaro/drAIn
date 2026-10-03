@@ -1298,7 +1298,8 @@ export default function SimulationPage() {
           overflow: hidden !important;
         }
       `}</style>
-      <main
+      {/* div, not main: SidebarInset is already the main landmark */}
+      <div
         className="relative flex min-h-screen flex-col overflow-hidden"
         style={{ backgroundColor: '#1e1e1e' }}
       >
@@ -1509,7 +1510,7 @@ export default function SimulationPage() {
             />
           </div>
         )}
-      </main>
+      </div>
     </>
   );
 }

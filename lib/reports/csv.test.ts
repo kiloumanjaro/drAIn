@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvField, parseMonthYear } from './csv';
+import { csvField, monthRangeUtc, parseMonthYear } from './csv';
 
 describe('csvField', () => {
   it('leaves plain text and numbers alone', () => {
@@ -37,5 +37,29 @@ describe('parseMonthYear', () => {
     expect(parseMonthYear('abc', '2026')).toBeNull();
     expect(parseMonthYear('9', '2026"; x=1')).toBeNull();
     expect(parseMonthYear(null, '2026')).toBeNull();
+  });
+});
+
+describe('monthRangeUtc', () => {
+  it('starts and ends a month on Manila midnights, expressed in UTC', () => {
+    const { start, end } = monthRangeUtc(10, 2026);
+    expect(start.toISOString()).toBe('2026-09-30T16:00:00.000Z');
+    expect(end.toISOString()).toBe('2026-10-31T16:00:00.000Z');
+  });
+
+  it('rolls over the year for December', () => {
+    const { start, end } = monthRangeUtc(12, 2026);
+    expect(start.toISOString()).toBe('2026-11-30T16:00:00.000Z');
+    expect(end.toISOString()).toBe('2026-12-31T16:00:00.000Z');
+  });
+
+  it('keeps a report from the first Manila hours of a month in that month', () => {
+    // Filed 2026-10-01 00:30 in Mandaue, stored as 2026-09-30T16:30Z. A
+    // server-local range on a UTC host put it in September.
+    const filed = new Date('2026-09-30T16:30:00Z');
+    const october = monthRangeUtc(10, 2026);
+    const september = monthRangeUtc(9, 2026);
+    expect(filed >= october.start && filed < october.end).toBe(true);
+    expect(filed >= september.start && filed < september.end).toBe(false);
   });
 });

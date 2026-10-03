@@ -782,6 +782,12 @@ BEGIN
     RAISE EXCEPTION 'Only agency staff can record maintenance.' USING ERRCODE = '42501';
   END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM public.components c
+                 WHERE c.name = p_component_name AND c.type = p_component_type) THEN
+    RAISE EXCEPTION 'No % named %.', p_component_type, p_component_name
+      USING ERRCODE = '22023';
+  END IF;
+
   INSERT INTO public.maintenance
     (component_type, component_name, agency_id, performed_by, status, description, evidence_image)
   VALUES
@@ -792,7 +798,11 @@ BEGIN
   UPDATE public.reports
   SET status = p_status::text::public.report_status,
       resolved_by_maintenance_id = result.id,
-      resolved_image = coalesce(p_evidence_image, resolved_image),
+      -- The "photo after the fix" only exists once the work is resolved; an
+      -- in-progress photo stays on the maintenance row alone.
+      resolved_image = CASE WHEN p_status = 'resolved'
+                            THEN coalesce(p_evidence_image, resolved_image)
+                            ELSE resolved_image END,
       resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE resolved_at END
   WHERE component_id = p_component_name
     AND created_at <= result.performed_at

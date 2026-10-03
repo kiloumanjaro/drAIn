@@ -10,9 +10,14 @@ import {
   getLinePaintConfig,
 } from '@/lib/map/config';
 
-/** Where a flood-hazard scenario's GeoJSON lives. */
+/**
+ * Where a flood-hazard scenario's GeoJSON lives. The files are slimmed,
+ * versioned exports (scripts/slim-flood-hazard.mjs) served with immutable
+ * caching (next.config.ts), so a re-export must bump the version in both
+ * places.
+ */
 export function floodHazardDataUrl(scenarioId: string): string {
-  return `/flood-hazard/${scenarioId} Flood Hazard.json`;
+  return `/flood-hazard/${scenarioId} Flood Hazard.v2.json`;
 }
 
 /**

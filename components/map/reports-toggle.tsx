@@ -47,8 +47,16 @@ export function ReportsToggle({
   return (
     <div className="rounded-xl border border-[#e2e2e2] bg-[#f7f7f7]">
       <div
+        role="button"
+        tabIndex={0}
         className="flex cursor-pointer flex-row items-center justify-between rounded-t-xl px-4 py-2 transition-colors hover:bg-[#e8e8e8]"
         onClick={onNavigateToReportForm}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onNavigateToReportForm?.();
+          }
+        }}
       >
         <span className="text-xs">Community Reports</span>
         <Info className="h-3.5 w-3.5 opacity-70" />

@@ -108,15 +108,12 @@ export function OverlayLegend({
                     {overlay.name}
                   </Label>
                 </div>
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleOverlay(overlay.id);
-                  }}
-                >
+                {/* stopPropagation keeps the row's onClick from double-toggling */}
+                <div onClick={(e) => e.stopPropagation()}>
                   <Switch
+                    id={overlay.id}
                     checked={overlay.visible}
-                    onCheckedChange={() => {}}
+                    onCheckedChange={() => onToggleOverlay(overlay.id)}
                     className="ml-auto cursor-pointer"
                   />
                 </div>

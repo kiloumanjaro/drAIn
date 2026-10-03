@@ -98,15 +98,12 @@ export function FloodProneToggle({
                   {area.name}
                 </Label>
               </div>
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleFloodProneArea(area.id);
-                }}
-              >
+              {/* stopPropagation keeps the row's onClick from double-toggling */}
+              <div onClick={(e) => e.stopPropagation()}>
                 <Switch
+                  id={area.id}
                   checked={area.visible}
-                  onCheckedChange={() => {}}
+                  onCheckedChange={() => onToggleFloodProneArea(area.id)}
                   className="ml-auto cursor-pointer"
                 />
               </div>

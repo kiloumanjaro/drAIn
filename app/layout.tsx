@@ -21,12 +21,12 @@ const geistMono = Geist_Mono({
 const centuryGothic = localFont({
   src: [
     {
-      path: '../public/fonts/centurygothic.ttf',
+      path: '../public/fonts/centurygothic.woff2',
       weight: '400',
       style: 'normal',
     },
     {
-      path: '../public/fonts/centurygothic_bold.ttf',
+      path: '../public/fonts/centurygothic_bold.woff2',
       weight: '700',
       style: 'normal',
     },
@@ -35,7 +35,10 @@ const centuryGothic = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'drAIn',
+  title: {
+    default: 'drAIn',
+    template: '%s | drAIn',
+  },
   description:
     'Drainage flood simulation and citizen flood reporting for Mandaue City.',
 };

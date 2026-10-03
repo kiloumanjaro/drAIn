@@ -49,6 +49,7 @@ export default function EventWidget() {
           <h3 className="text-lg font-bold">{eventData.eventName}</h3>
           <button
             onClick={closeWidget}
+            aria-label="Close"
             className="text-gray-500 hover:text-red-600"
           >
             &times;

@@ -38,7 +38,7 @@ export function FloodScenarioSelector({
       </div>
 
       <Select value={selectedScenario} onValueChange={onScenarioChange}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger aria-label="Return Period" className="w-full">
           <SelectValue placeholder="Select a scenario" />
         </SelectTrigger>
         <SelectContent>

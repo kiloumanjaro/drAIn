@@ -841,18 +841,6 @@ function MapPageContent() {
       [layerId]: newVisibility,
     }));
 
-    // Add delay feature for flood hazard layer
-    if (layerId === 'flood_hazard-layer') {
-      if (newVisibility) {
-        // If flood hazard layer is being turned ON
-        setIsFloodScenarioLoading(true);
-        // Simulate a loading delay
-        setTimeout(() => {
-          setIsFloodScenarioLoading(false);
-        }, 1500); // 1.5 seconds delay
-      }
-    }
-
     // If turning on an overlay, hide all flood prone areas
     if (newVisibility) {
       const anyFloodProneVisible = Object.values(floodProneVisibility).some(
@@ -1098,7 +1086,8 @@ function MapPageContent() {
 
   return (
     <>
-      <main className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
+      {/* div, not main: SidebarInset is already the main landmark */}
+      <div className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
         <div className="h-screen w-full" ref={mapContainerRef}>
           {mapError && (
             <div className="bg-background/95 absolute inset-0 z-50 flex items-center justify-center">
@@ -1149,7 +1138,7 @@ function MapPageContent() {
           onResetPosition={handleResetPosition}
           onChangeStyle={handleChangeStyle}
         />
-      </main>
+      </div>
     </>
   );
 }

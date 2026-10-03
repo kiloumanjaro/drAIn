@@ -50,7 +50,7 @@
  * <DataFlowPipeline background showMap mapOpacity={0.5} debug />
  */
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { MAP_PATHS } from '@/components/landing/data-flow.paths';
 import React, { useEffect, useState } from 'react';
@@ -116,6 +116,9 @@ export default function DataFlowPipeline({
   className = '',
 }: Props) {
   const preserve = cover ? 'xMidYMid slice' : 'xMidYMid meet';
+
+  // Users who prefer reduced motion see the pipes fully drawn, no path-draw.
+  const prefersReducedMotion = useReducedMotion();
 
   // Animation delay state
   const [startAnim, setStartAnim] = useState(false);
@@ -367,13 +370,19 @@ export default function DataFlowPipeline({
             stroke="#949b9f"
             strokeWidth="20"
             strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
+            initial={
+              prefersReducedMotion ? false : { pathLength: 0, opacity: 0 }
+            }
             animate={
-              startAnim
+              prefersReducedMotion || startAnim
                 ? { pathLength: 1, opacity: 1 }
                 : { pathLength: 0, opacity: 0 }
             }
-            transition={{ duration: 1.6, ease: 'easeInOut' }}
+            transition={
+              prefersReducedMotion
+                ? { duration: 0 }
+                : { duration: 1.6, ease: 'easeInOut' }
+            }
           />
 
           {/* blue flowing stroke with gradient and glow */}
@@ -383,9 +392,17 @@ export default function DataFlowPipeline({
             stroke="url(#flowGradient)"
             strokeWidth="18"
             strokeLinecap="round"
-            initial={{ pathLength: 0 }}
-            animate={startAnim ? { pathLength: 1 } : { pathLength: 0 }}
-            transition={{ duration: 8, ease: 'linear' }}
+            initial={prefersReducedMotion ? false : { pathLength: 0 }}
+            animate={
+              prefersReducedMotion || startAnim
+                ? { pathLength: 1 }
+                : { pathLength: 0 }
+            }
+            transition={
+              prefersReducedMotion
+                ? { duration: 0 }
+                : { duration: 8, ease: 'linear' }
+            }
           />
         </svg>
       </div>

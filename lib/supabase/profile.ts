@@ -91,35 +91,25 @@ export const updateUserProfile = async (
       avatar_url = filePath;
     }
 
-    let data, error;
-
-    if (currentProfile) {
-      // Update existing profile
-      ({ data, error } = await client
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          avatar_url: avatar_url,
-          ...(showNameOnReports === undefined
-            ? {}
-            : { show_name_on_reports: showNameOnReports }),
-        })
-        .eq('id', user.id)
-        .select()
-        .single());
-    } else {
-      // Create new profile. Role and agency are left to their defaults;
-      // the database refuses anything else from a client.
-      ({ data, error } = await client
-        .from('profiles')
-        .insert({
-          id: user.id,
-          full_name: fullName,
-          avatar_url: avatar_url,
-        })
-        .select()
-        .single());
-    }
+    // handle_new_user creates every profile at sign-up, so this is almost
+    // always an update. An upsert covers the stray case where the caller
+    // couldn't read the profile (currentProfile null) without tripping over
+    // the existing row, and never clobbers an avatar it didn't change: the
+    // avatar column is only written when a new file was uploaded. Role and
+    // agency are left to their defaults; the database refuses anything else
+    // from a client.
+    const { data, error } = await client
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        full_name: fullName,
+        ...(newAvatarPath === null ? {} : { avatar_url }),
+        ...(showNameOnReports === undefined
+          ? {}
+          : { show_name_on_reports: showNameOnReports }),
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error updating profile:', error);
