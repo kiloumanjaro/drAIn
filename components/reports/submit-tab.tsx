@@ -374,6 +374,8 @@ export default function SubmitTab() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter description"
               rows={4}
+              // reports_description_length in supabase/schemas/schema.sql
+              maxLength={1000}
             />
           </FieldContent>
         </Field>

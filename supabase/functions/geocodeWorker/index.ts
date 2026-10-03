@@ -1,16 +1,57 @@
 // Downloaded from the hosted project as deployed (version 3) on 2026-09-29
-// with `supabase functions download geocodeWorker`; unchanged. Called by the
-// trigger-geocode-on-insert webhook (supabase/schemas/schema.sql). Nominatim's
-// usage policy asks for a contact in the User-Agent; that is the one below.
+// with `supabase functions download geocodeWorker`. Changed 2026-09-30:
+//   * callers must send x-geocode-secret equal to the GEOCODE_WORKER_SECRET
+//     env var (compared in constant time); with the env var unset every call
+//     is refused. The database trigger (private.request_geocode in
+//     supabase/schemas/schema.sql) reads the same secret from Vault. Deploy
+//     with --no-verify-jwt: the trigger no longer sends the service-role JWT.
+//   * a lock held for more than 3 minutes (a run that crashed before
+//     releasing it) is taken over instead of blocking geocoding for good.
+//   * no CORS: only the database and this function itself call it.
+// Nominatim's usage policy asks for a contact in the User-Agent; that is the
+// one below.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+const jsonHeaders = {
+  'Content-Type': 'application/json'
 };
+// A run lasts at most MAX_RUNTIME (90 s) plus one request; a lock older than
+// this was left by a run that died.
+const STALE_LOCK_MS = 3 * 60 * 1000;
+function timingSafeEqual(a, b) {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  // Compare every byte of the longer input so the time doesn't reveal where
+  // the first difference is, or (beyond the length check) how long it is.
+  let diff = x.length ^ y.length;
+  const n = Math.max(x.length, y.length);
+  for(let i = 0; i < n; i++){
+    diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  }
+  return diff === 0;
+}
+function isAuthorised(req) {
+  const expected = Deno.env.get('GEOCODE_WORKER_SECRET') ?? '';
+  // Fail closed: without a configured secret nobody may run the worker.
+  if (expected.length < 16) return false;
+  const given = req.headers.get('x-geocode-secret') ?? '';
+  return timingSafeEqual(given, expected);
+}
 Deno.serve(async (req)=>{
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: corsHeaders
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({
+      error: 'Method not allowed'
+    }), {
+      headers: jsonHeaders,
+      status: 405
+    });
+  }
+  if (!isAuthorised(req)) {
+    return new Response(JSON.stringify({
+      error: 'Unauthorized'
+    }), {
+      headers: jsonHeaders,
+      status: 401
     });
   }
   const invocationId = crypto.randomUUID().substring(0, 8);
@@ -18,22 +59,20 @@ Deno.serve(async (req)=>{
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
     console.log(`[${invocationId}] Attempting to acquire lock...`);
-    // Try to acquire lock
+    // Try to acquire lock: free, or held by a run that died (stale).
+    const staleBefore = new Date(Date.now() - STALE_LOCK_MS).toISOString();
     const { data: lock, error: lockError } = await supabase.from('geocode_worker_lock').update({
       is_running: true,
       started_at: new Date().toISOString(),
       started_by: invocationId
-    }).eq('id', 1).eq('is_running', false).select().single();
+    }).eq('id', 1).or(`is_running.eq.false,is_running.is.null,started_at.is.null,started_at.lt.${staleBefore}`).select().single();
     if (lockError || !lock) {
       console.log(`[${invocationId}] Lock already acquired by another instance, exiting gracefully`);
       return new Response(JSON.stringify({
         message: 'Worker already running',
         skipped: true
       }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: jsonHeaders
       });
     }
     lockAcquired = true;
@@ -76,11 +115,11 @@ Deno.serve(async (req)=>{
       head: true
     }).eq('geocoded_status', 'pending');
     console.log(`[${invocationId}] Finished processing ${totalProcessed} reports`);
-    // Release lock once
+    // Release lock once (only if it is still ours, not taken over as stale)
     if (lockAcquired) {
       await supabase.from('geocode_worker_lock').update({
         is_running: false
-      }).eq('id', 1);
+      }).eq('id', 1).eq('started_by', invocationId);
       lockAcquired = false;
       console.log(`[${invocationId}] Lock released`);
     }
@@ -90,7 +129,7 @@ Deno.serve(async (req)=>{
       fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/geocodeWorker`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+          'x-geocode-secret': Deno.env.get('GEOCODE_WORKER_SECRET') ?? ''
         }
       }).catch(()=>{});
     }
@@ -99,20 +138,14 @@ Deno.serve(async (req)=>{
       remaining: count || 0,
       invocationId
     }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: jsonHeaders
     });
   } catch (error) {
     console.error(`[${invocationId}] Worker error:`, error);
     return new Response(JSON.stringify({
-      error: error.message
+      error: 'Worker failed'
     }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      },
+      headers: jsonHeaders,
       status: 500
     });
   } finally{
@@ -122,7 +155,7 @@ Deno.serve(async (req)=>{
         const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
         await supabase.from('geocode_worker_lock').update({
           is_running: false
-        }).eq('id', 1);
+        }).eq('id', 1).eq('started_by', invocationId);
         console.log(`[${invocationId}] Lock released (finally block)`);
       } catch (err) {
         console.error(`[${invocationId}] Failed to release lock in finally:`, err);

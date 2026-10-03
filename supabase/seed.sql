@@ -1,8 +1,26 @@
+-- ###########################################################################
+-- LOCAL DEVELOPMENT ONLY. NEVER RUN THIS AGAINST THE HOSTED PROJECT
+-- (no `supabase db push --include-seed`, no pasting into the SQL editor).
+-- It creates an admin account with a published password and gives the REAL
+-- City Engineer Office (6b307b70-..., from seed/reference_data.sql) a
+-- published join code. On a live database that would hand anyone admin
+-- access. The block below refuses to run on a database that already has
+-- users or reports, which a local `supabase db reset` never does.
+-- ###########################################################################
+do $$
+begin
+  if exists (select 1 from auth.users) or exists (select 1 from public.reports) then
+    raise exception 'supabase/seed.sql is for an empty local database only; this one already has users or reports.';
+  end if;
+end
+$$;
+
 -- Made-up app data for local development. Runs after
 -- seed/reference_data.sql, so the agency and every component name used
 -- below (I-0, O-0, ISD-1, C-0) already exist.
 --
--- Everyone signs in with password `password123`:
+-- Everyone signs in with password `password123` (older than the password
+-- rules in config.toml, which apply only when a password is set):
 --   admin@drain.local    admin, City Engineer Office
 --   staff@drain.local    staff, City Engineer Office
 --   citizen@drain.local  citizen
@@ -10,9 +28,15 @@
 --
 -- The City Engineer Office join code is DRAIN-LOCAL-01. A citizen who enters
 -- it on the profile screen becomes staff.
+--
+-- The agency is the real one because the pgTAP tests and dashboard fixtures
+-- (tests 02, 05, 07) name it; the guard above is what keeps these accounts
+-- and this code off the hosted project.
 
--- The geocode webhook posts every new report to the hosted geocodeWorker
--- edge function. Locally that would call production, so switch it off.
+-- The geocode trigger posts new reports to the geocodeWorker edge function.
+-- It already does nothing without the Vault secrets (private.request_geocode),
+-- which the local stack doesn't have; switched off as well so adding them
+-- locally can't make seeding call the hosted worker.
 alter table public.reports disable trigger "trigger-geocode-on-insert";
 
 -- ---------------------------------------------------------------------------

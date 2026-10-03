@@ -488,6 +488,30 @@ describe('runSimulation', () => {
     await expect(settled).resolves.toMatch(/did not finish in time/i);
   });
 
+  it('keeps polling after a rate-limited poll', async () => {
+    const result = { nodes_list: [] };
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(
+        jsonResponse({}, { status: 429, headers: { 'Retry-After': '10' } })
+      )
+      .mockResolvedValueOnce(state('succeeded', { result }));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).resolves.toEqual(result);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("passes on the server's reason for refusing an account", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ detail: 'Confirm your email first.' }, { status: 403 })
+    );
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow('Confirm your email first.');
+  });
+
   it('reports a failed poll other than an expired result', async () => {
     fetchMock
       .mockResolvedValueOnce(accepted())

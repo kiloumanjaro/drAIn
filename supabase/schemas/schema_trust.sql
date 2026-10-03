@@ -62,14 +62,15 @@ ALTER FUNCTION "private"."reporter_key"() OWNER TO "postgres";
 
 -- Which reporter sent each report, so limits and duplicate checks work for
 -- signed-out reporters too. Not exposed through the API. Hashed IPs are
--- dropped after 30 days (record_report_source); signed-in keys stay with
--- their report.
+-- dropped after 30 days (check_report_submission); signed-in keys stay with
+-- their report. Rows are written before their report exists (see
+-- check_report_submission), so the foreign key is checked at commit.
 CREATE TABLE IF NOT EXISTS "private"."report_sources" (
     "report_id" "uuid" NOT NULL,
     "reporter_key" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     CONSTRAINT "report_sources_pkey" PRIMARY KEY ("report_id"),
-    CONSTRAINT "report_sources_report_id_fkey" FOREIGN KEY ("report_id") REFERENCES "public"."reports"("id") ON DELETE CASCADE
+    CONSTRAINT "report_sources_report_id_fkey" FOREIGN KEY ("report_id") REFERENCES "public"."reports"("id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 
 
@@ -90,13 +91,26 @@ CREATE INDEX "idx_report_sources_created_at" ON "private"."report_sources" USING
 -- ---------------------------------------------------------------------------
 
 -- Runs before a report is stored. For API callers it:
---   * clears the review fields (only review_report sets them);
+--   * sets the columns only the server writes, whatever the client sent:
+--     created_at (now), the review fields (only review_report sets them),
+--     resolved_at (record_maintenance), and address and geocoded_status
+--     (the geocodeWorker);
+--   * accepts only a photo named the way the app uploads it,
+--     public/<uuid>.<ext> (the ReportImage upload policy's pattern);
 --   * refuses a reporter's second open report on the same component;
---   * refuses more than 5 an hour or 20 a day from a signed-in reporter, or
+--   * refuses more than 5 an hour or 10 a day from a signed-in reporter, or
 --     3 and 10 from one signed-out address.
 -- For every insert it measures the photo's GPS position against the
 -- component and sets photo_distance_m and photo_check, overwriting whatever
 -- the client sent.
+--
+-- The limits count private.report_sources, and each report's row there is
+-- written here, before the next report is checked. It used to be written by
+-- an AFTER trigger, so every row of a multi-row INSERT was checked against
+-- the count from before the statement, and one request could file any
+-- number of reports. A per-reporter advisory lock makes concurrent requests
+-- take turns, so two at once can't both pass on the same count.
+-- reject_bulk_report_insert below also refuses multi-row inserts outright.
 --
 -- SECURITY DEFINER to read private.report_sources. The error HINTs
 -- ('rate_limited', 'duplicate_report') let the app tell the two apart.
@@ -107,16 +121,26 @@ CREATE OR REPLACE FUNCTION "public"."check_report_submission"() RETURNS "trigger
 DECLARE
   key text := private.reporter_key();
   per_hour integer := CASE WHEN auth.uid() IS NULL THEN 3 ELSE 5 END;
-  per_day integer := CASE WHEN auth.uid() IS NULL THEN 10 ELSE 20 END;
+  per_day integer := 10;
 BEGIN
   IF auth.role() IN ('anon', 'authenticated') THEN
+    NEW.created_at := now();
     NEW.review_status := 'unreviewed';
     NEW.reviewed_by := NULL;
     NEW.reviewed_at := NULL;
     NEW.review_note := NULL;
+    NEW.resolved_at := NULL;
+    NEW.address := NULL;
+    NEW.geocoded_status := 'pending';
+    IF NEW.image IS NOT NULL
+       AND NEW.image !~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$' THEN
+      RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
+    END IF;
   END IF;
 
   IF key IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtext('report_submission:' || key));
+
     IF (SELECT count(*) FROM private.report_sources
         WHERE reporter_key = key AND created_at > now() - interval '1 hour') >= per_hour
        OR (SELECT count(*) FROM private.report_sources
@@ -138,7 +162,11 @@ BEGIN
         NEW.component_id
         USING ERRCODE = 'P0001', HINT = 'duplicate_report';
     END IF;
+
+    INSERT INTO private.report_sources (report_id, reporter_key) VALUES (NEW.id, key);
   END IF;
+  DELETE FROM private.report_sources
+  WHERE reporter_key LIKE 'ip:%' AND created_at < now() - interval '30 days';
 
   NEW.photo_distance_m := NULL;
   IF NEW.photo_lat IS NOT NULL AND NEW.photo_lon IS NOT NULL THEN
@@ -163,32 +191,29 @@ $$;
 ALTER FUNCTION "public"."check_report_submission"() OWNER TO "postgres";
 
 
--- Remembers who sent the report, once it is stored (the foreign key needs
--- the row), and forgets hashed IPs older than 30 days.
-CREATE OR REPLACE FUNCTION "public"."record_report_source"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
+-- One report per request from the API. The app never sends more, and a
+-- multi-row INSERT was how the limits above were once skipped.
+CREATE OR REPLACE FUNCTION "public"."reject_bulk_report_insert"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
     SET "search_path" TO ''
     AS $$
-DECLARE
-  key text := private.reporter_key();
 BEGIN
-  IF key IS NOT NULL THEN
-    INSERT INTO private.report_sources (report_id, reporter_key) VALUES (NEW.id, key);
+  IF auth.role() IN ('anon', 'authenticated')
+     AND (SELECT count(*) FROM new_reports) > 1 THEN
+    RAISE EXCEPTION 'File one report at a time.' USING ERRCODE = 'P0001', HINT = 'rate_limited';
   END IF;
-  DELETE FROM private.report_sources
-  WHERE reporter_key LIKE 'ip:%' AND created_at < now() - interval '30 days';
-  RETURN NEW;
+  RETURN NULL;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."record_report_source"() OWNER TO "postgres";
+ALTER FUNCTION "public"."reject_bulk_report_insert"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE TRIGGER "check_report_submission" BEFORE INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."check_report_submission"();
 
 
-CREATE OR REPLACE TRIGGER "record_report_source" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."record_report_source"();
+CREATE OR REPLACE TRIGGER "reject_bulk_report_insert" AFTER INSERT ON "public"."reports" REFERENCING NEW TABLE AS "new_reports" FOR EACH STATEMENT EXECUTE FUNCTION "public"."reject_bulk_report_insert"();
 
 
 -- ---------------------------------------------------------------------------
@@ -240,7 +265,7 @@ GRANT EXECUTE ON FUNCTION "public"."review_report"("p_report_id" "uuid", "p_verd
 
 -- Trigger functions are not meant to be called directly.
 REVOKE ALL ON FUNCTION "public"."check_report_submission"() FROM PUBLIC, "anon", "authenticated";
-REVOKE ALL ON FUNCTION "public"."record_report_source"() FROM PUBLIC, "anon", "authenticated";
+REVOKE ALL ON FUNCTION "public"."reject_bulk_report_insert"() FROM PUBLIC, "anon", "authenticated";
 
 
 -- ---------------------------------------------------------------------------

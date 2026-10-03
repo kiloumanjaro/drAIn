@@ -39,12 +39,19 @@ CREATE TYPE "public"."user_role" AS ENUM (
 );
 
 -- Hand-edited: existing rows hold the old default 'user', which isn't a
--- user_role. On a database that has profiles with an agency_id (the hosted
--- project has 8), decide their role before applying: the
--- profiles_staff_have_agency check below rejects citizens with an agency.
+-- user_role. Everyone converts to citizen first; the next statement then
+-- settles the rows the profiles_staff_have_agency check below would
+-- reject.
 ALTER TABLE "public"."profiles"
   ALTER COLUMN "role" TYPE public.user_role
   USING (CASE "role" WHEN 'user' THEN 'citizen' ELSE "role" END)::public.user_role;
+
+-- The live database's profiles predate this vocabulary: the ones linked to
+-- the City Engineer Office are its team (the old app gated staff screens on
+-- that link), so they become its staff. Unlinked profiles stay citizens.
+-- No-op on databases built from the seeds.
+UPDATE public.profiles SET role = 'staff'
+WHERE agency_id IS NOT NULL AND role = 'citizen';
 
 ALTER TABLE "public"."profiles"
   ALTER COLUMN "role" SET DEFAULT 'citizen'::public.user_role;

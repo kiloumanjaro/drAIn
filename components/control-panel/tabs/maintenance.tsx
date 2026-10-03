@@ -38,6 +38,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldContent } from '@/components/ui/field';
 import ImageUploader from '@/components/common/image-uploader';
 import { extractExifLocation } from '@/lib/reports/extract-exif';
+import { sanitizeImage } from '@/lib/reports/sanitize-image';
 import { useAuth } from '@/components/context/auth-provider';
 import {
   Dialog,
@@ -307,14 +308,14 @@ ${note}`
       // 2. Upload Image to 'ReportImage' bucket
       // public/<uuid>.<ext>: the only name the bucket's upload policy
       // accepts (schema_auth_storage.sql).
-      const fileExt = maintenanceImage.name.includes('.')
-        ? maintenanceImage.name.split('.').pop()!.toLowerCase()
-        : 'jpg';
-      const filePath = `public/${crypto.randomUUID()}.${fileExt}`;
+      // The bucket is public: upload a re-encoded copy with no EXIF (GPS,
+      // device), as reports do. The location was read from the original above.
+      const cleanImage = await sanitizeImage(maintenanceImage);
+      const filePath = `public/${crypto.randomUUID()}.jpg`;
 
       const { error: uploadError } = await client.storage
         .from('ReportImage')
-        .upload(filePath, maintenanceImage);
+        .upload(filePath, cleanImage, { contentType: cleanImage.type });
 
       if (uploadError) {
         throw new Error(`Image upload failed: ${uploadError.message}`);

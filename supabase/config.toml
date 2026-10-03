@@ -124,17 +124,19 @@ file_size_limit = "50MiB"
 # objects_path = "./images"
 
 # Buckets the app uses (lib/supabase/report.ts, lib/supabase/profile.ts).
-# Photos only. Keep these limits in step with the hosted project's bucket
-# settings if it's ever used again.
+# Photos only, in the formats phones and browsers produce: not "image/*",
+# which also admits SVG (scriptable) and anything else labelled image/.
+# Migration 20260930120000_security_hardening sets the same types on the
+# hosted buckets; keep the two in step.
 [storage.buckets.ReportImage]
 public = true
 file_size_limit = "10MiB"
-allowed_mime_types = ["image/*"]
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]
 
 [storage.buckets.Avatars]
 public = true
 file_size_limit = "5MiB"
-allowed_mime_types = ["image/*"]
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
@@ -191,10 +193,12 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = ""
+# Only checked when a password is set (sign-up, change), so the seeded
+# accounts' password123 still signs in locally.
+password_requirements = "lower_upper_letters_digits"
 
 # Configure passkey sign-ins.
 # [auth.passkey]
@@ -223,10 +227,15 @@ token_verifications = 30
 web3 = 30
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
+# Recommended on the hosted project (Authentication > Attack Protection) to
+# slow scripted sign-ups: create a Turnstile or hCaptcha site, put its secret
+# here as env(SUPABASE_AUTH_CAPTCHA_SECRET), and pass the widget's token as
+# options.captchaToken to signUp/signInWithPassword in the app. Left off
+# until the app sends a token, or every sign-in would fail.
 # [auth.captcha]
 # enabled = true
-# provider = "hcaptcha"
-# secret = ""
+# provider = "turnstile"
+# secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
@@ -235,9 +244,11 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# Locally the confirmation email lands in Mailpit (http://127.0.0.1:54324).
+# The seeded accounts are created already confirmed.
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
@@ -383,10 +394,11 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
-# The deployed geocodeWorker requires a JWT (the trigger sends the service
-# role's). Keep it that way on redeploy.
+# geocodeWorker checks a shared secret (x-geocode-secret, compared with its
+# GEOCODE_WORKER_SECRET) instead of a JWT: the database trigger no longer
+# carries the service-role key. Deploy with --no-verify-jwt.
 [functions.geocodeWorker]
-verify_jwt = true
+verify_jwt = false
 
 [edge_runtime]
 enabled = true

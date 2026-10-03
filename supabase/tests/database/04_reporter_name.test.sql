@@ -34,9 +34,10 @@ select lives_ok(
   'a user can turn the setting off themselves'
 );
 
+-- Clients can't read reports.user_id (15_private_report_columns); a
+-- reporter lists their own reports through my_reports.
 select is_empty(
-  $$select 1 from public.reports
-    where user_id = '00000000-0000-4000-a000-000000000003' and reporter_name <> 'Anonymous'$$,
+  $$select 1 from public.my_reports() where reporter_name <> 'Anonymous'$$,
   'turning it off hides the name on their existing reports'
 );
 
@@ -54,8 +55,7 @@ update public.profiles set show_name_on_reports = true, full_name = 'Cora C.'
 where id = '00000000-0000-4000-a000-000000000003';
 
 select is_empty(
-  $$select 1 from public.reports
-    where user_id = '00000000-0000-4000-a000-000000000003' and reporter_name <> 'Cora C.'$$,
+  $$select 1 from public.my_reports() where reporter_name <> 'Cora C.'$$,
   'turning it back on shows their current name on every report'
 );
 

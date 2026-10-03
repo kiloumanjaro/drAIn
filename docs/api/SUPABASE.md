@@ -27,13 +27,15 @@ The schema files, in load order:
 
 Clients never write tables directly except in two places: filing a report
 (`reports` INSERT) and editing one's own profile. Everything else goes
-through a function that checks the caller. Signed-out visitors read the
-public columns only: not who filed a report, where the reporter stood, or
-which staff member reviewed it or did the work.
+through a function that checks the caller. No client reads who filed a
+report, where the reporter stood, or which staff member reviewed it; a
+reporter gets those for their own reports from `my_reports`, staff from
+`report_private_details`. Signed-out visitors also can't see which staff
+member did the work.
 
 | Table                                                                                                              | Signed out             | Signed in               | Written by                                                                       |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------- | ----------------------- | -------------------------------------------------------------------------------- |
-| `reports`                                                                                                          | public columns; insert | all columns; insert     | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
+| `reports`                                                                                                          | public columns         | public columns; insert  | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
 | `profiles`                                                                                                         | nothing (RLS)          | own row; update own row | sign-up trigger; `join_agency`, `leave_agency`, `set_member_agency`              |
 | `maintenance`                                                                                                      | all but `performed_by` | all                     | `record_maintenance`                                                             |
 | `maintenance_reviews`                                                                                              | nothing                | own rows, staff all     | `review_maintenance`, `respond_to_resolution`                                    |
@@ -49,11 +51,14 @@ which staff member reviewed it or did the work.
 | `review_maintenance`                           | staff (not the crew) | Confirms or disputes finished work; a dispute reopens the reports           |
 | `respond_to_resolution`                        | the reporter         | "Is it fixed?" for their own report                                         |
 | `join_agency` / `leave_agency`                 | signed in            | Join with the agency's code / leave                                         |
-| `rotate_agency_join_code`, `set_member_agency` | admin                | Manage an agency's code and members                                         |
+| `rotate_agency_join_code`, `set_member_agency` | that agency's admin  | Manage an agency's code and members                                         |
+| `agency_members`                               | that agency's admin  | The admin screen's member list, with sign-in emails                         |
+| `my_reports`                                   | signed in            | The caller's own reports, every column                                      |
+| `report_private_details`                       | reporter or staff    | One report's reporter, photo position and reviewer                          |
 | `maintenance_history`                          | staff                | A component's maintenance, with who did it and its checks                   |
 | `dashboard_overview`, `repair_trend`           | anyone               | Dashboard numbers                                                           |
 | `nearest_components`                           | anyone               | Components near a point (report form)                                       |
-| `consume_rate_limit`                           | signed in            | The chatbot route's per-user allowance                                      |
+| `consume_rate_limit`                           | signed in            | Per-user allowances: the chatbot route, and `join_agency` tries             |
 
 Read models (views, readable by anyone): `latest_report_per_component`,
 `report_counts_by_component`, `report_counts_by_day`,
@@ -81,15 +86,16 @@ Two things to know:
 
 - A plain `select` returns at most 1,000 rows and doesn't say it stopped.
   Page with `fetchAllRows`, or count in SQL.
-- Signed-out requests that name a private column (`reports.user_id`,
-  `photo_lat`, `photo_lon`, `reviewed_by`; `maintenance.performed_by`) or
-  use `select('*')` on those tables fail. Shared lists select
-  `PUBLIC_REPORT_COLUMNS`.
+- Requests that name a private report column (`user_id`, `photo_lat`,
+  `photo_lon`, `reviewed_by`) or use `select('*')` on `reports` fail,
+  signed in or not; so do signed-out requests for
+  `maintenance.performed_by`. Report lists select `PUBLIC_REPORT_COLUMNS`.
 
 ## Realtime and storage
 
 - Realtime publishes `reports`. Each subscriber gets only the columns their
-  role can read, so signed-out maps never receive the private ones.
-- Buckets: `ReportImage` (public, images, 10 MiB; uploads must be named
-  `public/<uuid>.<ext>`, nobody overwrites) and `Avatars` (public, images,
+  role can read, so no client receives the private ones.
+- Buckets: `ReportImage` (public, JPEG/PNG/WebP/HEIC, 10 MiB; uploads
+  must be named `public/<uuid>.<ext>`, nobody overwrites; 10 uploads a day
+  per citizen, 100 per staff member) and `Avatars` (public, same types,
   5 MiB; each user writes only under `<their id>/`).
