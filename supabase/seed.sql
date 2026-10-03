@@ -1,0 +1,150 @@
+-- ###########################################################################
+-- LOCAL DEVELOPMENT ONLY. NEVER RUN THIS AGAINST THE HOSTED PROJECT
+-- (no `supabase db push --include-seed`, no pasting into the SQL editor).
+-- It creates an admin account with a published password and gives the REAL
+-- City Engineer Office (6b307b70-..., from seed/reference_data.sql) a
+-- published join code. On a live database that would hand anyone admin
+-- access. The block below refuses to run on a database that already has
+-- users or reports, which a local `supabase db reset` never does.
+-- ###########################################################################
+do $$
+begin
+  if exists (select 1 from auth.users) or exists (select 1 from public.reports) then
+    raise exception 'supabase/seed.sql is for an empty local database only; this one already has users or reports.';
+  end if;
+end
+$$;
+
+-- Made-up app data for local development. Runs after
+-- seed/reference_data.sql, so the agency and every component name used
+-- below (I-0, O-0, ISD-1, C-0) already exist.
+--
+-- Everyone signs in with password `password123` (older than the password
+-- rules in config.toml, which apply only when a password is set):
+--   admin@drain.local    admin, City Engineer Office
+--   staff@drain.local    staff, City Engineer Office
+--   citizen@drain.local  citizen
+--   citizen2@drain.local citizen who hides their name on reports
+--
+-- The City Engineer Office join code is DRAIN-LOCAL-01. A citizen who enters
+-- it on the profile screen becomes staff.
+--
+-- The agency is the real one because the pgTAP tests and dashboard fixtures
+-- (tests 02, 05, 07) name it; the guard above is what keeps these accounts
+-- and this code off the hosted project.
+
+-- The geocode trigger posts new reports to the geocodeWorker edge function.
+-- It already does nothing without the Vault secrets (private.request_geocode),
+-- which the local stack doesn't have; switched off as well so adding them
+-- locally can't make seeding call the hosted worker.
+alter table public.reports disable trigger "trigger-geocode-on-insert";
+
+-- ---------------------------------------------------------------------------
+-- Users. on_auth_user_created creates each profiles row as a citizen, taking
+-- only full_name from the metadata.
+-- ---------------------------------------------------------------------------
+
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+)
+select
+  '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated',
+  u.email, extensions.crypt('password123', extensions.gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}',
+  jsonb_build_object('full_name', u.full_name),
+  now(), now(), '', '', '', ''
+from (values
+  ('00000000-0000-4000-a000-000000000001'::uuid, 'admin@drain.local',    'Ana Admin'),
+  ('00000000-0000-4000-a000-000000000002'::uuid, 'staff@drain.local',    'Sam Staff'),
+  ('00000000-0000-4000-a000-000000000003'::uuid, 'citizen@drain.local',  'Cora Citizen'),
+  ('00000000-0000-4000-a000-000000000004'::uuid, 'citizen2@drain.local', 'Carl Citizen')
+) as u (id, email, full_name);
+
+-- Email sign-in needs a matching identity per user.
+insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), id, id::text,
+       jsonb_build_object('sub', id::text, 'email', email, 'email_verified', true),
+       'email', now(), now(), now()
+from auth.users
+where email like '%@drain.local';
+
+-- Roles and agency are set here directly; seeds run as postgres, which
+-- protect_profile_privileges lets through.
+update public.profiles
+set role = case id when '00000000-0000-4000-a000-000000000001' then 'admin'::public.user_role
+                   else 'staff'::public.user_role end,
+    agency_id = '6b307b70-0fa4-46df-a66c-0df8a16cca3d'
+where id in ('00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000002');
+
+-- Carl hides his name, so his report below shows as Anonymous
+-- (set_reporter_name overrides the reporter_name inserted here).
+update public.profiles set show_name_on_reports = false
+where id = '00000000-0000-4000-a000-000000000004';
+
+-- Join code DRAIN-LOCAL-01, stored the way rotate_agency_join_code stores
+-- codes: normalised, then bcrypt-hashed.
+insert into private.agency_join_codes (agency_id, code_hash)
+values ('6b307b70-0fa4-46df-a66c-0df8a16cca3d',
+        extensions.crypt(private.normalize_join_code('DRAIN-LOCAL-01'), extensions.gen_salt('bf')));
+
+-- ---------------------------------------------------------------------------
+-- Reports, one per status and priority (and one rejected), placed on real
+-- components so the map and the zone trigger have something to work with.
+-- Images point at paths with no uploaded file, so they render as broken
+-- images.
+-- ---------------------------------------------------------------------------
+
+insert into public.reports (
+  id, created_at, category, description, image, reporter_name, status,
+  priority, component_id, long, lat, address, geocoded_status, user_id,
+  photo_lat, photo_lon, photo_taken_at
+) values
+  ('00000000-0000-4000-b000-000000000001', now() - interval '20 days', 'inlets', 'Inlet grate clogged with leaves and plastic.', 'public/seed-1.jpg', 'Cora Citizen', 'resolved',    'medium',   'I-0',   123.915424397261, 10.360172475881,  null, 'pending', '00000000-0000-4000-a000-000000000003', null, null, null),
+  ('00000000-0000-4000-b000-000000000002', now() - interval '6 days',  'outlets', 'Outlet blocked, water backing up onto the road.', 'public/seed-2.jpg', 'Carl Citizen', 'in-progress', 'high', 'O-0',   123.930881802134, 10.3287419155488, null, 'pending', '00000000-0000-4000-a000-000000000004', null, null, null),
+  -- The photo's GPS is a few metres from ISD-1, so photo_check is 'match'.
+  ('00000000-0000-4000-b000-000000000003', now() - interval '2 days',  'storm_drains', 'Storm drain overflowing after light rain.', 'public/seed-3.jpg', 'Cora Citizen', 'pending', 'critical', 'ISD-1', 123.923200288885, 10.3145439635574, null, 'pending', '00000000-0000-4000-a000-000000000003', 10.31456, 123.92322, now() - interval '2 days 1 hour'),
+  ('00000000-0000-4000-b000-000000000004', now() - interval '1 day',   'man_pipes', 'Manhole cover cracked.', 'public/seed-4.jpg', 'Anonymous', 'pending', 'low', 'C-0', 123.948852671767, 10.3248457286088, null, 'pending', null, null, null, null),
+  -- Photo taken about 2 km away ('mismatch'); staff rejected it below.
+  ('00000000-0000-4000-b000-000000000005', now() - interval '3 days',  'storm_drains', 'Flooding here!!', 'public/seed-5.jpg', 'Anonymous', 'pending', 'critical', 'ISD-2', 123.923281736004, 10.3146480062604, null, 'pending', null, 10.33, 123.93, now() - interval '40 days');
+
+-- Staff rejected report 5 (review_report does the same through the API).
+update public.reports
+set review_status = 'rejected',
+    reviewed_by = '00000000-0000-4000-a000-000000000002',
+    reviewed_at = now() - interval '2 days',
+    review_note = 'Photo is from somewhere else and weeks old.'
+where id = '00000000-0000-4000-b000-000000000005';
+
+-- Sam confirmed report 3 on sight.
+update public.reports
+set review_status = 'confirmed',
+    reviewed_by = '00000000-0000-4000-a000-000000000002',
+    reviewed_at = now() - interval '1 day'
+where id = '00000000-0000-4000-b000-000000000003';
+
+-- ---------------------------------------------------------------------------
+-- Maintenance: one finished job that resolved report 1, one in progress for
+-- report 2. Inserted directly, with the report links that record_maintenance
+-- would have set; the app itself only writes maintenance through that RPC.
+-- ---------------------------------------------------------------------------
+
+insert into public.maintenance (
+  id, performed_at, component_type, component_name, agency_id, performed_by, status, description
+) values
+  ('00000000-0000-4000-c000-000000000001', now() - interval '15 days', 'inlets', 'I-0',
+   '6b307b70-0fa4-46df-a66c-0df8a16cca3d', '00000000-0000-4000-a000-000000000002',
+   'resolved', 'Cleared debris from grate.'),
+  ('00000000-0000-4000-c000-000000000002', now() - interval '3 days', 'outlets', 'O-0',
+   '6b307b70-0fa4-46df-a66c-0df8a16cca3d', '00000000-0000-4000-a000-000000000001',
+   'in-progress', 'Crew dispatched; partial clearing done.');
+
+update public.reports
+set resolved_by_maintenance_id = '00000000-0000-4000-c000-000000000001',
+    resolved_at = now() - interval '15 days'
+where id = '00000000-0000-4000-b000-000000000001';
+
+update public.reports
+set resolved_by_maintenance_id = '00000000-0000-4000-c000-000000000002'
+where id = '00000000-0000-4000-b000-000000000002';

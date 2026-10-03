@@ -1,481 +1,237 @@
-# SWMM Simulation API Documentation
+# SWMM Simulation API
 
-Documentation for the Storm Water Management Model (SWMM) simulation API hosted on Railway.
+How the frontend talks to the [drAIn backend](https://github.com/4Chronosx/BACKEND-DrAin),
+a FastAPI service wrapping PySWMM.
 
 ## Overview
 
-The SWMM API is a FastAPI backend that integrates PySWMM (Python wrapper for EPA SWMM) to run hydraulic simulations of urban drainage systems. It provides endpoints for:
+A simulation of the Mandaue network takes around **two minutes**. That is
+longer than browsers and platform proxies will hold a request open, so runs
+are **queued and polled**: the request that starts one returns immediately
+with a job id.
 
-- Running drainage network simulations
-- Predicting flood scenarios for different rainfall return periods
-- Calculating vulnerability metrics for drainage components
+`lib/simulation-api/simulation.ts` hides this. `runSimulation()` starts the
+job, polls it, and resolves with the results — callers await it as if it
+were a single request.
 
 ## Base URL
 
-```
-NEXT_PUBLIC_BACKEND_URL=https://your-app.onrender.com
-```
+`process.env.NEXT_PUBLIC_BACKEND_URL`.
 
 ## Authentication
 
-Currently, the API is open (no authentication required). In production, consider adding API key authentication.
+None. The caller is a public browser app, so it cannot hold a secret; the
+backend protects itself with a bounded queue instead (see below).
 
 ## Endpoints
 
-### 1. Run SWMM Simulation
+### `POST /simulations`
 
-Run a complete SWMM simulation with custom parameters.
+Queue a run. Returns `202` straight away.
 
-**Endpoint:** `POST /swmm-simulate`
+**Request** — all three sections are optional. Sending none of them asks for
+the unmodified network, whose results are pre-computed and return almost
+immediately. Every field inside them is optional too: one left out keeps the
+model's own value. The client sends only the values that are set
+(`buildSimulationRequest`), since a zero, an invert elevation of 0 m say, is
+taken literally.
 
-**Request Body:**
-
-```typescript
-interface SimulationRequest {
-  nodes: Array<{
-    id: string;
-    inlet_type: string;
-    max_depth: number;
-    clog_factor: number;
-    inv_elev: number;
-    length: number;
-    width: number;
-    weir_coeff: number;
-  }>;
-  links: Array<{
-    id: string;
-    from_node: string;
-    to_node: string;
-    length: number;
-    roughness: number;
-    inlet_offset: number;
-    outlet_offset: number;
-    shape: string;
-    geom1: number;
-    geom2: number;
-    barrels: number;
-  }>;
-  rainfall: {
-    total_precipitation: number;
-    duration_hours: number;
-    time_step_minutes: number;
-  };
+```jsonc
+{
+  "nodes": {
+    "I-4": {
+      "inv_elev": 16,
+      "init_depth": 0,
+      "ponding_area": 0,
+      "surcharge_depth": 0,
+    },
+  },
+  "links": {
+    "C-1": {
+      "init_flow": 0,
+      "upstrm_offset_depth": 0,
+      "downstrm_offset_depth": 0,
+      "avg_conduit_loss": 0,
+    },
+  },
+  "rainfall": { "total_precip": 400, "duration_hr": 24 },
 }
 ```
 
-**Example Request:**
+**Response `202`**
 
-```typescript
-// lib/simulation-api/simulation.ts
-export async function runSimulation(params: SimulationRequest) {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_BACKEND_URL}/swmm-simulate`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Simulation failed: ${response.statusText}`);
-  }
-
-  return await response.json();
+```jsonc
+{
+  "job_id": "8bde9cd8b485431589405858f5f820cf",
+  "status": "queued",
+  "poll_url": "/simulations/8bde9cd8b485431589405858f5f820cf",
 }
 ```
 
-**Response:**
+`status` is always `queued` here: it describes the request being accepted,
+not a live reading. A `Location` header carries the same poll URL, and
+`Retry-After` suggests how long to wait between polls.
+
+A browser only lets the page read a cross-origin response header the
+server lists in `Access-Control-Expose-Headers`. Until the backend exposes
+`Retry-After` that way (a fix is landing), `runSimulation` cannot see it
+and polls every 3 seconds; it reads the header as soon as it is exposed. A
+missing, zero or non-numeric value also falls back to 3 seconds.
+
+**Other responses**
+
+| Status | Meaning                                                                                                          |
+| ------ | ---------------------------------------------------------------------------------------------------------------- |
+| `422`  | The request is invalid — a negative depth, or a storm longer than the model's 24-hour window. Nothing is queued. |
+| `429`  | Too much work is already outstanding. Retry later; `Retry-After` suggests when.                                  |
+
+### `GET /simulations/{job_id}`
+
+Report a job's state, and its results once it succeeds.
+
+```jsonc
+{
+  "job_id": "8bde9cd8...",
+  "status": "queued" | "running" | "succeeded" | "failed",
+  "created_at": "2026-09-23T16:13:11Z",
+  "started_at": "2026-09-23T16:13:11Z",
+  "finished_at": "2026-09-23T16:15:27Z",
+  "result": { /* present once succeeded */ },
+  "error":  "…"  /* present once failed */
+}
+```
+
+A failed run still answers `200`: reading the job succeeded; the simulation
+is what failed. `404` means the job never existed, or its result has expired
+— finished results are kept for a limited window because each is close to a
+megabyte.
+
+### `GET /health`
+
+Liveness probe. Answers `{"status": "ok"}`.
+
+### `POST /run-simulation` — deprecated
+
+Runs the simulation and waits for it, holding the request open throughout.
+Kept only so a frontend deployed before the queued endpoints keeps working.
+Do not build on it.
+
+## The result payload
 
 ```typescript
 interface SimulationResponse {
-  node_results: {
-    [nodeId: string]: {
-      max_flooding: number; // Maximum flooding rate (CMS)
-      total_flooding: number; // Total flood volume (cubic meters)
-      peak_inflow: number; // Peak inflow rate (CMS)
-      flooding_volume: number; // Flooding volume (cubic meters)
-      overflow_duration: number; // Duration of overflow (minutes)
-      max_depth: number; // Maximum depth (meters)
-    };
+  metadata: {
+    total_nodes: number;
+    flooded_nodes: number;
+    non_flooded_nodes: number;
+    rpt_file: string; // the SWMM report file the figures were read from
+    out_file: string; // the SWMM binary output file
+    event_hours: number; // length of the simulated event, in hours
+    inconsistent_nodes: number; // nodes the report floods but the output does not
+    exposure_basis_counts: { inside: number; nearest: number; unknown: number };
+    model_info: ModelInfo; // what the ratings can claim; see lib/simulation-api/model-info.ts
+    scoring: unknown; // the settings behind the three ratings
   };
-  link_results: {
-    [linkId: string]: {
-      peak_flow: number; // Peak flow rate (CMS)
-      max_velocity: number; // Maximum velocity (m/s)
-      max_depth: number; // Maximum depth (meters)
-      capacity_ratio: number; // Flow / Full capacity
-    };
-  };
-  summary: {
-    total_simulation_time: number; // Total simulation time (hours)
-    total_rainfall: number; // Total rainfall (mm)
-    total_flooding: number; // System-wide flooding (cubic meters)
-    critical_nodes: string[]; // IDs of nodes with critical flooding
-  };
+  nodes_list: NodeSimulationResult[]; // one row per node
 }
 ```
 
-**Usage Example:**
+The frontend reads only `nodes_list`. The metadata fields past the node
+counts are diagnostic; their exact shape is the backend's, so check its
+README before relying on one.
+
+Each entry carries the raw flooding figures — `Hours_Flooded`,
+`Maximum_Rate_CMS`, `Time_of_Max_days`, `Time_of_Max_hr_min`,
+`Total_Flood_Volume_10e6_ltr`, `Time_After_Raining_min` — plus three ratings.
+
+`Time_After_Raining_min` is `null` for a node that never overflowed. The
+stored per-return-period scenarios predate that and use `9999` instead;
+the client turns both into `null` (`normaliseOverflowMinutes`).
+
+`Vulnerability_Category` is `High`, `Medium`, `Low` or `No hazard`. The
+stored scenarios say `High Risk`, `Medium Risk`, `Low Risk` and `No Risk`,
+so compare categories through `normaliseHazardCategory`, never by exact
+string.
+
+### The three ratings
+
+| Field                                              | What it knows                                                                                                                                        |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Vulnerability_Score` / `Vulnerability_Category`   | **Hazard.** How badly the node floods: volume, duration as a share of the event, peak rate. 0–1, monotonic. A node that floods can never score zero. |
+| `Exposure_Score`, `Barangay`, `Population_Density` | **Exposure.** Roughly how many people are around it, from the density of the barangay it sits in. 0–1, never null.                                   |
+| `Risk_Score`                                       | **Hazard × exposure.** Rank work lists on this.                                                                                                      |
+
+Ranking on hazard alone puts a drain in an empty lot level with one in the
+densest barangay in the city — exposure moves nine of the top twenty.
+
+The field names still say "Vulnerability" because they are the wire
+contract. The user-facing term is "flood hazard".
+
+> **What these are not.** They come from simulation, not observation, and
+> have not been checked against field records. Exposure is barangay density,
+> not a count of who is inside the flood footprint. "No hazard" means the
+> model found no overflow at that node under this storm, not that the
+> location is safe.
+
+## Parameters
+
+Per-node overrides, keyed by node ID:
+
+| Parameter         | Description                              | Unit   |
+| ----------------- | ---------------------------------------- | ------ |
+| `inv_elev`        | Invert elevation                         | metres |
+| `init_depth`      | Initial water depth                      | metres |
+| `ponding_area`    | Area available for surface ponding       | m²     |
+| `surcharge_depth` | Depth above the crown before surcharging | metres |
+
+Per-conduit overrides, keyed by a conduit name suffix:
+
+| Parameter               | Description              | Unit   |
+| ----------------------- | ------------------------ | ------ |
+| `init_flow`             | Flow limit               | m³/s   |
+| `upstrm_offset_depth`   | Upstream invert offset   | metres |
+| `downstrm_offset_depth` | Downstream invert offset | metres |
+| `avg_conduit_loss`      | Average loss coefficient | -      |
+
+The design storm:
+
+| Parameter      | Description          | Range        | Unit  |
+| -------------- | -------------------- | ------------ | ----- |
+| `total_precip` | Total rainfall depth | ≥ 0          | mm    |
+| `duration_hr`  | Storm duration       | > 0 and ≤ 24 | hours |
+
+The backend distributes the depth over the duration as a triangular
+hyetograph. Durations beyond 24 hours are rejected rather than silently
+truncated to the model's window.
+
+## Using it
 
 ```typescript
 import { runSimulation } from '@/lib/simulation-api/simulation';
 
-// Prepare simulation parameters
-const simulationParams = {
-  nodes: [
-    {
-      id: 'N1',
-      inlet_type: 'GRATE',
-      max_depth: 2.5,
-      clog_factor: 0.1,
-      inv_elev: 100.0,
-      length: 0.5,
-      width: 0.5,
-      weir_coeff: 1.8,
-    },
-  ],
-  links: [
-    {
-      id: 'C1',
-      from_node: 'N1',
-      to_node: 'N2',
-      length: 100.0,
-      roughness: 0.013,
-      inlet_offset: 0,
-      outlet_offset: 0,
-      shape: 'CIRCULAR',
-      geom1: 0.6,
-      geom2: 0,
-      barrels: 1,
-    },
-  ],
-  rainfall: {
-    total_precipitation: 100, // mm
-    duration_hours: 2,
-    time_step_minutes: 5,
-  },
-};
-
-// Run simulation
-const results = await runSimulation(simulationParams);
-
-// Access results
-console.log('Total flooding:', results.summary.total_flooding);
-console.log('Node N1 max flooding:', results.node_results.N1.max_flooding);
+const results = await runSimulation(nodes, links, rainfall, (status) => {
+  // Optional: 'queued' | 'running' | 'succeeded' | 'failed'
+  console.log(status);
+});
 ```
 
-### 2. Predict 25-Year Flood Scenario
-
-Predict flooding for a 25-year return period rainfall event.
-
-**Endpoint:** `POST /predict-25yr`
-
-**Request Body:**
-
-```typescript
-interface PredictionRequest {
-  location_id: string;
-  drainage_data: DrainageNetworkData;
-}
-```
-
-**Response:**
-
-```typescript
-interface PredictionResponse {
-  scenario: '25yr';
-  flood_probability: number;
-  vulnerable_nodes: Array<{
-    node_id: string;
-    flood_depth: number;
-    risk_level: 'low' | 'medium' | 'high' | 'critical';
-  }>;
-  recommendations: string[];
-}
-```
-
-### 3. Predict 50-Year Flood Scenario
-
-**Endpoint:** `POST /predict-50yr`
-
-Same structure as 25-year prediction.
-
-### 4. Predict 100-Year Flood Scenario
-
-**Endpoint:** `POST /predict-100yr`
-
-Same structure as 25-year prediction.
-
-## Data Transformation
-
-### Transform Results to Vulnerability Table
-
-```typescript
-// lib/simulation-api/simulation.ts
-export function transformToNodeDetails(
-  simulationResults: SimulationResponse
-): VulnerabilityTableRow[] {
-  return Object.entries(simulationResults.node_results).map(
-    ([nodeId, metrics]) => ({
-      id: nodeId,
-      name: `Node ${nodeId}`,
-      flooding_volume: metrics.flooding_volume,
-      max_flooding: metrics.max_flooding,
-      overflow_duration: metrics.overflow_duration,
-      peak_inflow: metrics.peak_inflow,
-      vulnerability_rank: calculateVulnerability(metrics),
-      risk_level: getRiskLevel(metrics.flooding_volume),
-    })
-  );
-}
-
-function calculateVulnerability(metrics: NodeMetrics): number {
-  // Weighted scoring system
-  const floodingScore = metrics.flooding_volume * 0.4;
-  const overflowScore = metrics.overflow_duration * 0.3;
-  const inflowScore = metrics.peak_inflow * 0.3;
-
-  return Math.min(100, floodingScore + overflowScore + inflowScore);
-}
-
-function getRiskLevel(floodingVolume: number): string {
-  if (floodingVolume > 100) return 'critical';
-  if (floodingVolume > 50) return 'high';
-  if (floodingVolume > 10) return 'medium';
-  return 'low';
-}
-```
-
-## Error Handling
-
-### Common Errors
-
-```typescript
-try {
-  const results = await runSimulation(params);
-} catch (error) {
-  if (error.message.includes('500')) {
-    // Server error - likely SWMM computation failure
-    console.error('Simulation failed:', error);
-    toast.error('Simulation failed. Check your input parameters.');
-  } else if (error.message.includes('timeout')) {
-    // Request timeout
-    console.error('Simulation timeout');
-    toast.error(
-      'Simulation taking too long. Try reducing the simulation time.'
-    );
-  } else if (error.message.includes('400')) {
-    // Bad request - invalid parameters
-    console.error('Invalid parameters:', error);
-    toast.error('Invalid simulation parameters.');
-  } else {
-    console.error('Unknown error:', error);
-    toast.error('An error occurred. Please try again.');
-  }
-}
-```
-
-### Validation
-
-Validate parameters before sending to API:
-
-```typescript
-function validateSimulationParams(params: SimulationRequest): string[] {
-  const errors: string[] = [];
-
-  // Validate nodes
-  params.nodes.forEach((node) => {
-    if (node.max_depth <= 0) {
-      errors.push(`Node ${node.id}: max_depth must be positive`);
-    }
-    if (node.clog_factor < 0 || node.clog_factor > 1) {
-      errors.push(`Node ${node.id}: clog_factor must be between 0 and 1`);
-    }
-  });
-
-  // Validate links
-  params.links.forEach((link) => {
-    if (link.length <= 0) {
-      errors.push(`Link ${link.id}: length must be positive`);
-    }
-    if (link.roughness <= 0) {
-      errors.push(`Link ${link.id}: roughness must be positive`);
-    }
-  });
-
-  // Validate rainfall
-  if (params.rainfall.total_precipitation <= 0) {
-    errors.push('Total precipitation must be positive');
-  }
-  if (params.rainfall.duration_hours <= 0) {
-    errors.push('Duration must be positive');
-  }
-
-  return errors;
-}
-```
-
-## Parameter Guidelines
-
-### Node Parameters
-
-| Parameter     | Description                  | Typical Range | Unit   |
-| ------------- | ---------------------------- | ------------- | ------ |
-| `max_depth`   | Maximum depth of node        | 0.5 - 5.0     | meters |
-| `clog_factor` | Percentage of inlet clogging | 0.0 - 0.5     | ratio  |
-| `inv_elev`    | Invert elevation             | 0 - 1000      | meters |
-| `length`      | Inlet opening length         | 0.3 - 2.0     | meters |
-| `width`       | Inlet opening width          | 0.3 - 2.0     | meters |
-| `weir_coeff`  | Weir coefficient             | 1.5 - 2.0     | -      |
-
-### Link Parameters
-
-| Parameter   | Description                   | Typical Range | Unit   |
-| ----------- | ----------------------------- | ------------- | ------ |
-| `length`    | Pipe length                   | 10 - 500      | meters |
-| `roughness` | Manning's n                   | 0.011 - 0.015 | -      |
-| `geom1`     | Diameter (circular) or height | 0.3 - 3.0     | meters |
-| `geom2`     | Width (rectangular)           | 0.3 - 3.0     | meters |
-| `barrels`   | Number of barrels             | 1 - 4         | count  |
-
-### Rainfall Parameters
-
-| Parameter             | Description          | Typical Range | Unit    |
-| --------------------- | -------------------- | ------------- | ------- |
-| `total_precipitation` | Total rainfall       | 10 - 200      | mm      |
-| `duration_hours`      | Storm duration       | 0.5 - 24      | hours   |
-| `time_step_minutes`   | Calculation timestep | 1 - 15        | minutes |
-
-## Performance Considerations
-
-1. **Simulation Duration**: Large networks with many nodes/links will take longer
-   - Small network (< 50 nodes): 2-5 seconds
-   - Medium network (50-200 nodes): 5-15 seconds
-   - Large network (> 200 nodes): 15-60 seconds
-
-2. **Time Step**: Smaller time steps increase accuracy but slow down simulation
-   - Recommended: 5 minutes for most cases
-   - Use 1-2 minutes for high-detail analysis
-
-3. **Parallel Requests**: The API can handle multiple simultaneous simulations
-   - Use Promise.all() for batch predictions
-
-4. **Caching**: Consider caching results for identical parameter sets
-
-## Integration Example
-
-Complete example of running a simulation from the UI:
-
-```typescript
-// app/simulation/page.tsx
-'use client'
-
-import { useState } from 'react'
-import { runSimulation, transformToNodeDetails } from '@/lib/simulation-api/simulation'
-import { VulnerabilityDataTable } from '@/components/vulnerability-data-table'
-
-export default function SimulationPage() {
-  const [results, setResults] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSimulate() {
-    setLoading(true)
-
-    try {
-      const params = {
-        nodes: gatherNodeParams(),
-        links: gatherLinkParams(),
-        rainfall: {
-          total_precipitation: 100,
-          duration_hours: 2,
-          time_step_minutes: 5
-        }
-      }
-
-      const response = await runSimulation(params)
-      const tableData = transformToNodeDetails(response)
-      setResults(tableData)
-    } catch (error) {
-      console.error('Simulation failed:', error)
-      alert('Simulation failed. Please check your parameters.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div>
-      <button onClick={handleSimulate} disabled={loading}>
-        {loading ? 'Running...' : 'Run Simulation'}
-      </button>
-
-      {results && (
-        <VulnerabilityDataTable data={results} />
-      )}
-    </div>
-  )
-}
-```
-
-## Backend Implementation (FastAPI)
-
-For reference, here's what the backend endpoint looks like:
-
-```python
-# main.py
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from pyswmm import Simulation, Nodes, Links
-import tempfile
-import os
-
-app = FastAPI()
-
-class SimulationRequest(BaseModel):
-    nodes: list
-    links: list
-    rainfall: dict
-
-@app.post("/swmm-simulate")
-async def run_swmm_simulation(request: SimulationRequest):
-    try:
-        # Create temporary INP file
-        inp_file = create_inp_file(request)
-
-        # Run simulation
-        with Simulation(inp_file) as sim:
-            results = {"node_results": {}, "link_results": {}}
-
-            for step in sim:
-                # Collect results during simulation
-                pass
-
-            # Gather final results
-            for node_id in request.nodes:
-                node = Nodes(sim)[node_id['id']]
-                results["node_results"][node_id['id']] = {
-                    "max_flooding": node.flooding,
-                    # ... other metrics
-                }
-
-        # Clean up
-        os.remove(inp_file)
-
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-```
-
-## Related Documentation
-
-- [EPA SWMM Documentation](https://www.epa.gov/water-research/storm-water-management-model-swmm)
-- [PySWMM Documentation](https://pyswmm.readthedocs.io/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-
----
-
-For database operations, see [Supabase API](SUPABASE.md).
-For report endpoints, see [Report API](REPORTS.md).
+`runSimulation` throws an `Error` whose message is safe to show the user —
+it distinguishes a busy queue, a failed run and an expired result. It gives
+up after 30 minutes: a run takes about two, but a job can wait in the queue
+behind others for 16-30 minutes first. The
+simulation page surfaces `error.message` directly in a toast.
+
+## Performance
+
+- A real run takes roughly **two minutes**. A request with no overrides
+  returns pre-computed results in well under a second.
+- The backend runs **one simulation at a time** by default, and holds a
+  bounded queue behind it. **Do not fan out with `Promise.all`** — past the
+  cap, extra requests are rejected with `429`.
+- Polling every few seconds is enough; the server suggests an interval via
+  `Retry-After`.
+
+## Related
+
+- [Supabase API](SUPABASE.md)
+- The backend repository's README, including why it runs a single worker.

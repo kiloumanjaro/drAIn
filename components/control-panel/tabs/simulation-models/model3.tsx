@@ -26,18 +26,18 @@ import {
   Loader2,
 } from 'lucide-react';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
-import { LoadingScreen } from '@/components/loading-screen';
+import { LoadingScreen } from '@/components/common/loading-screen';
 import {
   useInlets,
   useDrains,
   usePipes,
-} from '@/lib/query/hooks/useDrainageData';
+} from '@/lib/query/hooks/use-drainage-data';
 import { toast } from 'sonner';
 import type { Inlet, Outlet, Pipe, Drain } from '../../types';
-import { on } from 'events';
 
 export interface NodeParams {
-  inv_elev: number;
+  /** Unset when the asset data has none; the model's own value is used. */
+  inv_elev?: number;
   init_depth: number;
   ponding_area: number;
   surcharge_depth: number;
@@ -88,6 +88,17 @@ interface Model3Props {
   onToggleRain?: (enabled: boolean) => void;
   isFloodPropagationActive?: boolean;
   onToggleFloodPropagation?: (enabled: boolean) => void;
+}
+
+/**
+ * An asset's recorded invert elevation, or undefined when it has none. A
+ * missing one used to become 0 m, which was then sent to the model as a
+ * real elevation.
+ */
+function knownElevation(value: number | null | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 export const DEFAULT_NODE_PARAMS: NodeParams = {
@@ -173,7 +184,7 @@ export default function Model3({
 
         if (inlet) {
           newParams.set(id, {
-            inv_elev: inlet.Inv_Elev || 0,
+            inv_elev: knownElevation(inlet.Inv_Elev),
             init_depth: 0,
             ponding_area: 0,
             surcharge_depth: 0,
@@ -182,7 +193,7 @@ export default function Model3({
           paramsChanged = true;
         } else if (drain) {
           newParams.set(id, {
-            inv_elev: drain.InvElev || 0,
+            inv_elev: knownElevation(drain.InvElev),
             init_depth: 0,
             ponding_area: 0,
             surcharge_depth: 0,
@@ -281,7 +292,7 @@ export default function Model3({
           'Running SWMM simulation...',
           'Processing node parameters...',
           'Checking infrastructure health...',
-          'Generating vulnerability results...',
+          'Generating flood hazard results...',
         ]}
         isLoading={isLoadingTable}
         position="bottom-right"
@@ -291,8 +302,9 @@ export default function Model3({
         <CardHeader className="mb-6 px-1 py-0">
           <CardTitle>Infrastructure Health Model</CardTitle>
           <CardDescription className="text-xs">
-            Assess structural integrity and maintenance requirements using SWMM
-            simulation
+            Run SWMM against your own node and pipe parameters. Condition and
+            cleaning history are not inputs — changing them here does not model
+            a cleared drain.
           </CardDescription>
         </CardHeader>
 
@@ -533,7 +545,7 @@ export default function Model3({
                     <TooltipContent>
                       <p className="max-w-xs text-xs">
                         {hasTable
-                          ? 'Toggle vulnerability density heatmap showing flood-prone areas'
+                          ? 'Toggle flood hazard density heatmap showing flood-prone areas'
                           : 'Generate table first to enable heatmap'}
                       </p>
                     </TooltipContent>
@@ -589,7 +601,7 @@ export default function Model3({
             {onToggleMinimize && (
               <Button
                 variant="outline"
-                onClick={() => onToggleMinimize()}
+                onClick={handleToggleTable}
                 disabled={isLoadingTable || !hasTable || isTogglingTable}
                 className="flex-none transition-transform active:scale-95"
                 aria-label={isTableMinimized ? 'Show table' : 'Hide table'}

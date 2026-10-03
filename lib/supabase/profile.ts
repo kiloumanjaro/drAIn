@@ -1,18 +1,34 @@
-import client from '@/app/api/client';
+import client from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
+import type { Tables } from '@/types/database.types';
+import type { UserRole } from '@/lib/supabase/enums';
+import { sanitizeImage } from '@/lib/reports/sanitize-image';
 
-export interface Profile {
-  id: string;
-  full_name: string;
-  avatar_url: string;
-  role: string;
-}
+export type Profile = Pick<
+  Tables<'profiles'>,
+  | 'id'
+  | 'full_name'
+  | 'avatar_url'
+  | 'role'
+  | 'agency_id'
+  | 'show_name_on_reports'
+>;
+
+/**
+ * Agency staff or admin. Only a display hint: the database checks the role
+ * again on everything staff can do.
+ */
+export const isAgencyStaff = (
+  profile: Pick<Profile, 'role'> | null | undefined
+) => !!profile && profile.role !== 'citizen';
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await client
       .from('profiles')
-      .select('id, full_name, avatar_url, role')
+      .select(
+        'id, full_name, avatar_url, role, agency_id, show_name_on_reports'
+      )
       .eq('id', userId)
       .single();
 
@@ -35,7 +51,9 @@ export const updateUserProfile = async (
   session: Session,
   fullName: string,
   avatarFile: File | null,
-  currentProfile: Record<string, unknown> | null
+  currentProfile: Record<string, unknown> | null,
+  /** Show the name on this person's reports; left unchanged when omitted. */
+  showNameOnReports?: boolean
 ) => {
   try {
     const user = session.user;
@@ -45,21 +63,23 @@ export const updateUserProfile = async (
       throw new Error('Full name cannot be empty.');
     }
 
-    let avatar_url = currentProfile?.avatar_url || '';
+    let avatar_url = (currentProfile?.avatar_url as string | undefined) || '';
     let newAvatarPath: string | null = null;
 
     if (avatarFile) {
-      const fileExt = avatarFile.name.split('.').pop();
+      // Avatars are public: upload a re-encoded copy with no EXIF (GPS,
+      // device), capped small since it's only ever shown as an avatar.
+      const cleanAvatar = await sanitizeImage(avatarFile, { maxEdge: 512 });
       // New file path to align with RLS policies (user_id/avatar.ext)
-      const filePath = `${user.id}/avatar.${fileExt}`;
+      const filePath = `${user.id}/avatar.jpg`;
       newAvatarPath = filePath;
 
       const { error: uploadError } = await client.storage
         .from('Avatars')
-        .upload(filePath, avatarFile, {
+        .upload(filePath, cleanAvatar, {
           cacheControl: '3600',
           upsert: true,
-          contentType: avatarFile.type,
+          contentType: cleanAvatar.type,
         });
 
       if (uploadError) {
@@ -71,33 +91,25 @@ export const updateUserProfile = async (
       avatar_url = filePath;
     }
 
-    let data, error;
-
-    if (currentProfile) {
-      // Update existing profile
-      ({ data, error } = await client
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          avatar_url: avatar_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-        .select()
-        .single());
-    } else {
-      // Create new profile
-      ({ data, error } = await client
-        .from('profiles')
-        .insert({
-          id: user.id,
-          full_name: fullName,
-          avatar_url: avatar_url,
-          role: 'user',
-        })
-        .select()
-        .single());
-    }
+    // handle_new_user creates every profile at sign-up, so this is almost
+    // always an update. An upsert covers the stray case where the caller
+    // couldn't read the profile (currentProfile null) without tripping over
+    // the existing row, and never clobbers an avatar it didn't change: the
+    // avatar column is only written when a new file was uploaded. Role and
+    // agency are left to their defaults; the database refuses anything else
+    // from a client.
+    const { data, error } = await client
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        full_name: fullName,
+        ...(newAvatarPath === null ? {} : { avatar_url }),
+        ...(showNameOnReports === undefined
+          ? {}
+          : { show_name_on_reports: showNameOnReports }),
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error updating profile:', error);
@@ -106,6 +118,10 @@ export const updateUserProfile = async (
         await client.storage.from('Avatars').remove([newAvatarPath]);
       }
       throw error;
+    }
+
+    if (!data) {
+      throw new Error('Profile was not returned after saving.');
     }
 
     return data;
@@ -117,68 +133,84 @@ export const updateUserProfile = async (
   }
 };
 
-export const getAgencies = async () => {
-  try {
-    const { data, error } = await client
-      .from('agencies') // Assuming a table named 'agencies'
-      .select('id, name');
+/**
+ * Join an agency with its join code, making the signed-in user its staff.
+ * The database checks the code (see join_agency in supabase/schemas). A
+ * wrong code comes back as no agency rather than an error, so that the try
+ * still counts against the caller's allowance (10 an hour); too many tries
+ * is an error with a message fit to show the user.
+ */
+export const joinAgency = async (code: string): Promise<Tables<'agencies'>> => {
+  const { data, error } = await client.rpc('join_agency', { p_code: code });
 
-    if (error) {
-      console.error('Error fetching agencies:', error);
-      throw error;
-    }
+  if (error) {
+    console.error('Error joining agency:', error);
+    throw new Error(error.message);
+  }
 
-    return data;
-  } catch (error) {
-    const err = error as Error;
-    const errorMessage = err.message || 'An unknown error occurred.';
-    console.error('Error in getAgencies:', errorMessage, error);
-    throw new Error(errorMessage);
+  // A null composite arrives as null or as an object of nulls.
+  if (!data?.id) {
+    throw new Error('That code is not valid.');
+  }
+
+  return data;
+};
+
+/** Leave the signed-in user's agency; they become a citizen again. */
+export const leaveAgency = async (): Promise<void> => {
+  const { error } = await client.rpc('leave_agency');
+
+  if (error) {
+    console.error('Error leaving agency:', error);
+    throw new Error(error.message);
   }
 };
 
-export const linkAgencyToProfile = async (userId: string, agencyId: string) => {
-  try {
-    const { data, error } = await client
-      .from('profiles')
-      .update({ agency_id: agencyId })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error linking agency:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    const err = error as Error;
-    const errorMessage = err.message || 'An unknown error occurred.';
-    console.error('Error in linkAgencyToProfile:', errorMessage, error);
-    throw new Error(errorMessage);
-  }
+/** One member of an agency, as its admin screen lists them. */
+export type AgencyMember = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: UserRole;
+  account_created_at: string;
 };
 
-export const unlinkAgencyFromProfile = async (userId: string) => {
-  try {
-    const { data, error } = await client
-      .from('profiles')
-      .update({ agency_id: null })
-      .eq('id', userId)
-      .select()
-      .single();
+/** The agency's members (admin only; the database checks). */
+export const fetchAgencyMembers = async (
+  agencyId: string
+): Promise<AgencyMember[]> => {
+  const { data, error } = await client.rpc('agency_members', {
+    p_agency_id: agencyId,
+  });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+};
 
-    if (error) {
-      console.error('Error unlinking agency:', error);
-      throw error;
-    }
+/**
+ * Make a new join code for the agency. The old one stops working at once,
+ * and the new one is only ever returned here: the database keeps a hash.
+ */
+export const rotateJoinCode = async (agencyId: string): Promise<string> => {
+  const { data, error } = await client.rpc('rotate_agency_join_code', {
+    p_agency_id: agencyId,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+};
 
-    return data;
-  } catch (error) {
-    const err = error as Error;
-    const errorMessage = err.message || 'An unknown error occurred.';
-    console.error('Error in unlinkAgencyFromProfile:', errorMessage, error);
-    throw new Error(errorMessage);
-  }
+/**
+ * Change a member's role (admin only). 'citizen' removes them from the
+ * agency. Nobody can change their own role.
+ */
+export const setMemberRole = async (
+  userId: string,
+  agencyId: string,
+  role: UserRole
+): Promise<void> => {
+  const { error } = await client.rpc('set_member_agency', {
+    p_user_id: userId,
+    p_agency_id: agencyId,
+    p_role: role,
+  });
+  if (error) throw new Error(error.message);
 };

@@ -1,8 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import type { DetailItem, FieldConfig } from '../types';
-import ModelViewer from '../../ModelViewer';
-import { DataFieldCard } from './DataFieldCard';
-import { ProgressTimeline } from './ProgressTimeline';
+import dynamic from 'next/dynamic';
+
+// The 3D viewer drags in three.js (~1.8 MB of script), which otherwise
+// ships with every page that renders the control panel, the map included.
+// Loaded only when a detail view actually shows a model.
+const ModelViewer = dynamic(
+  () => import('@/components/simulation/model-viewer'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+        Loading viewer…
+      </div>
+    ),
+  }
+);
+import { DataFieldCard } from './data-field-card';
+import { ProgressTimeline } from './progress-timeline';
 
 interface DetailViewProps {
   item: DetailItem;

@@ -1,15 +1,13 @@
 'use client';
 
-import SubmitTab from '../../submit-tab';
-import AllReportsList from '../../all-reports-list';
-import type { DateFilterValue } from '../../date-sort';
+import SubmitTab from '@/components/reports/submit-tab';
+import AllReportsList from '@/components/reports/all-reports-list';
+import type { DateFilterValue } from '@/components/common/date-sort';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
-import type { Report } from '@/lib/supabase/report';
 
 interface ReportsTabProps {
   activeReportTab?: 'submission' | 'reports';
   dateFilter?: DateFilterValue;
-  reports?: Report[];
   onRefreshReports?: () => Promise<void>;
   isRefreshingReports?: boolean;
   isSimulationMode?: boolean;
@@ -22,7 +20,6 @@ interface ReportsTabProps {
 export function ReportsTab({
   activeReportTab = 'submission',
   dateFilter = 'all',
-  reports = [],
   onRefreshReports,
   isRefreshingReports = false,
   isSimulationMode = false,
@@ -38,7 +35,6 @@ export function ReportsTab({
       ) : (
         <AllReportsList
           dateFilter={dateFilter}
-          reports={reports}
           onRefresh={onRefreshReports}
           isRefreshing={isRefreshingReports}
           isSimulationMode={isSimulationMode}

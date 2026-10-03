@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, Loader2, AlertCircle } from 'lucide-react';
-import { buildPrompt } from '@/lib/chatbot/prompts';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
+import { useAuth } from '@/components/context/auth-provider';
+import { MAX_MESSAGE_CHARS } from '@/lib/chatbot/request';
 
 interface Message {
   role: 'user' | 'bot';
@@ -30,24 +30,16 @@ export function ChatbotView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Initialize Gemini AI
-  const genAI = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-    ? new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY)
-    : null;
+  // The assistant is for signed-in users: each message is a paid model call.
+  const { session, loading: authLoading } = useAuth();
+  const signedIn = !!session?.access_token;
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
-    if (!genAI) {
-      setError(
-        'Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your environment variables.'
-      );
-      return;
-    }
+    if (!input.trim() || !session?.access_token) return;
 
     const userMessage: Message = {
       role: 'user',
@@ -61,35 +53,39 @@ export function ChatbotView() {
     setError(null);
 
     try {
-      // Build conversation history for context
-      const conversationHistory = messages
-        .slice(-6) // Keep last 3 exchanges for context
-        .map(
-          (msg) =>
-            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-        );
+      // Who said what, as structured turns; the server trims it further.
+      const history = messages.slice(-6).map((msg) => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      }));
 
-      // Build the prompt with context
-      const prompt = buildPrompt(input, conversationHistory);
+      const res = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ input, history }),
+      });
 
-      // Call Gemini API
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const payload = (await res.json()) as { text?: string; error?: string };
+
+      if (!res.ok || !payload.text) {
+        throw new Error(payload.error ?? `Request failed (${res.status})`);
+      }
 
       const botMessage: Message = {
         role: 'bot',
-        content: text,
+        content: payload.text,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
-      console.error('Gemini API error:', err);
+      console.error('Chatbot request error:', err);
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(`Failed to get response: ${errorMessage}`);
+      setError(errorMessage);
 
       setMessages((prev) => [
         ...prev,
@@ -111,25 +107,6 @@ export function ChatbotView() {
       sendMessage();
     }
   };
-
-  if (!genAI) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Gemini API key not configured. Please add{' '}
-            <code className="bg-muted rounded px-1 py-0.5">
-              NEXT_PUBLIC_GEMINI_API_KEY
-            </code>{' '}
-            to your{' '}
-            <code className="bg-muted rounded px-1 py-0.5">.env.local</code>{' '}
-            file.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   return (
     <div className="relative flex h-full flex-col">
@@ -232,13 +209,18 @@ export function ChatbotView() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask, Search or Chat..."
-            disabled={loading}
+            placeholder={
+              signedIn || authLoading
+                ? 'Ask, Search or Chat...'
+                : 'Sign in to use the assistant'
+            }
+            maxLength={MAX_MESSAGE_CHARS}
+            disabled={loading || !signedIn}
             className="h-12 flex-1 rounded-lg border-[#d1d5dc] bg-white pr-16 text-sm"
           />
           <Button
             onClick={sendMessage}
-            disabled={loading || !input.trim()}
+            disabled={loading || !signedIn || !input.trim()}
             size="icon"
             className="absolute right-2 h-9 w-9"
           >

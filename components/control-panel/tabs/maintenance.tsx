@@ -1,17 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { fetchReportsForComponent } from '@/lib/supabase/report';
 import {
-  recordInletMaintenance,
-  getInletMaintenanceHistory,
-  recordManPipeMaintenance,
-  getManPipeMaintenanceHistory,
-  recordOutletMaintenance,
-  getOutletMaintenanceHistory,
-  recordStormDrainMaintenance,
-  getStormDrainMaintenanceHistory,
-} from '@/app/actions/clientMaintenanceActions';
-import { fetchAllReports } from '@/lib/supabase/report';
+  DEBUG_MODE,
+  checkMaintenancePhoto,
+  unverifiedNote,
+  getStatusStyles,
+  type HistoryItem,
+} from './maintenance.helpers';
+import { assetActions } from './maintenance.actions';
+import MaintenanceVerification from './maintenance-verification';
 import type { Report } from '@/lib/supabase/report';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import {
@@ -37,9 +36,10 @@ import { RefreshCw } from 'lucide-react';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldContent } from '@/components/ui/field';
-import ImageUploader from '@/components/image-uploader';
-import { extractExifLocation } from '@/lib/report/extractEXIF';
-import { useAuth } from '@/components/context/AuthProvider';
+import ImageUploader from '@/components/common/image-uploader';
+import { extractExifLocation } from '@/lib/reports/extract-exif';
+import { sanitizeImage } from '@/lib/reports/sanitize-image';
+import { useAuth } from '@/components/context/auth-provider';
 import {
   Dialog,
   DialogContent,
@@ -48,43 +48,19 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { SpinnerEmpty } from '@/components/spinner-empty';
+import { SpinnerEmpty } from '@/components/common/spinner-empty';
+import { toast } from 'sonner';
 import distance from '@turf/distance';
 import { point } from '@turf/helpers';
-import client from '@/app/api/client';
+
+/** Great-circle distance between two [lng, lat] pairs, in metres. */
+const measureDistanceM = (
+  from: [number, number],
+  to: [number, number]
+): number => distance(point(from), point(to)) * 1000;
+import client from '@/lib/supabase/client';
 import Image from 'next/image';
 import { format } from 'date-fns';
-
-const DEBUG_MODE = false; // Set to true to bypass EXIF/Location checks
-
-type HistoryItem = {
-  last_cleaned_at: string;
-  agencies: { name: string }[] | null;
-  profiles: { full_name: string }[] | null;
-  status: string | null;
-  addressed_report_id: string | null;
-  description: string | null;
-  evidence_image: string | null;
-};
-
-const assetActions = {
-  inlets: {
-    getHistory: getInletMaintenanceHistory,
-    record: recordInletMaintenance,
-  },
-  man_pipes: {
-    getHistory: getManPipeMaintenanceHistory,
-    record: recordManPipeMaintenance,
-  },
-  outlets: {
-    getHistory: getOutletMaintenanceHistory,
-    record: recordOutletMaintenance,
-  },
-  storm_drains: {
-    getHistory: getStormDrainMaintenanceHistory,
-    record: recordStormDrainMaintenance,
-  },
-};
 
 export type MaintenanceProps = {
   selectedInlet?: Inlet | null;
@@ -94,17 +70,15 @@ export type MaintenanceProps = {
   profile?: Record<string, unknown> | null;
 };
 
-const getStatusStyles = (status: string | null) => {
-  switch (status) {
-    case 'resolved':
-      return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
-    case 'in-progress':
-      return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-    default:
-      return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-  }
-};
-
+/**
+ * Maintenance tab rendered inside the `/map` and `/simulation` control
+ * panels. Lets agency-linked users record cleaning / repair events against a
+ * selected drainage asset (inlet, outlet, pipe, storm drain) — including an
+ * EXIF-validated evidence photo — and shows the asset's maintenance history.
+ *
+ * Renders an "Admin Privileges Required" empty state for visitors that lack
+ * an `agency_id` on their profile.
+ */
 export default function Maintenance({
   selectedInlet,
   selectedOutlet,
@@ -138,11 +112,7 @@ export default function Maintenance({
   >(null);
 
   const loadReports = useCallback(async (componentId: string) => {
-    const allReports = await fetchAllReports();
-    const assetReports = allReports.filter(
-      (report) => report.componentId === componentId
-    );
-    setReports(assetReports);
+    setReports(await fetchReportsForComponent(componentId));
   }, []);
 
   const handleViewHistory = useCallback(
@@ -225,7 +195,8 @@ export default function Maintenance({
 
   const finalRecordMaintenance = async (
     status: 'in-progress' | 'resolved',
-    imagePath?: string
+    imagePath?: string,
+    unverifiedReason?: string
   ) => {
     if (!selectedAsset) {
       setMessage('No asset selected.');
@@ -242,6 +213,17 @@ export default function Maintenance({
         : maintenanceDescription;
     } else if (commentsToSubmit === '') {
       commentsToSubmit = '';
+    }
+
+    // Recorded on the entry itself, so a reviewer can see which evidence
+    // was checked and which merely could not be.
+    if (unverifiedReason) {
+      const note = unverifiedNote(unverifiedReason);
+      commentsToSubmit = commentsToSubmit
+        ? `${commentsToSubmit}
+
+${note}`
+        : note;
     }
 
     const { type, id } = selectedAsset;
@@ -266,14 +248,31 @@ export default function Maintenance({
     setMaintenanceImage(null);
     setMaintenanceDescription('');
 
+    // A toast, because the upload view that could show a message has just
+    // closed: failures (and successes) used to pass without a word.
     if (result.error) {
-      setReportStatus({ type: 'error', message: `Error: ${result.error}` });
-      setMessage(`Error: ${result.error}`);
+      toast.error(`Could not record the maintenance: ${result.error}`);
     } else {
-      setMessage(`Maintenance recorded successfully as ${status}.`);
+      toast.success(
+        status === 'resolved'
+          ? 'Recorded as fixed. Someone other than you can now confirm it.'
+          : 'Recorded as in progress.'
+      );
       handleViewHistory(type, id);
       loadReports(id);
     }
+  };
+
+  /**
+   * Every point the evidence photo may be measured against. A node has one;
+   * a pipe has its whole run, since a photo anywhere along it is valid.
+   */
+  const assetCoordinates = (): [number, number][] => {
+    if (selectedInlet) return [selectedInlet.coordinates];
+    if (selectedOutlet) return [selectedOutlet.coordinates];
+    if (selectedDrain) return [selectedDrain.coordinates];
+    if (selectedPipe) return selectedPipe.coordinates;
+    return [];
   };
 
   const handleMaintenanceImageSubmit = async () => {
@@ -286,88 +285,44 @@ export default function Maintenance({
       // 1. Extract EXIF Data
       const exifData = await extractExifLocation(maintenanceImage);
 
-      // DEBUG MODE: Bypass Validation
+      // The photo is only turned away when its own metadata contradicts
+      // the claim. When there is simply nothing to check -- a stripped
+      // EXIF block, which is the common case for a shared photo -- the
+      // submission goes through marked unverified.
+      let unverifiedReason: string | undefined;
       if (!DEBUG_MODE) {
-        // Validate Date (Must be within last 12 hours)
-        if (!exifData.date) {
-          throw new Error(
-            'Could not retrieve date from image. Ensure the image has EXIF data.'
-          );
+        const check = checkMaintenancePhoto(
+          exifData,
+          assetCoordinates(),
+          measureDistanceM
+        );
+        if (check.outcome === 'rejected') {
+          throw new Error(check.reason);
         }
-
-        const now = new Date();
-        const imageDate = exifData.date;
-        const diffMs = now.getTime() - imageDate.getTime();
-        const hoursDiff = diffMs / (1000 * 60 * 60);
-
-        if (hoursDiff > 12) {
-          throw new Error('Image is too old. Must be taken within 12 hours.');
-        }
-        if (hoursDiff < 0) {
-          throw new Error(
-            'Image appears to be from the future. Check device settings.'
-          );
-        }
-
-        // Validate Location
-        if (!exifData.latitude || !exifData.longitude) {
-          throw new Error('Could not retrieve coordinates from image.');
-        }
-
-        // Get selected asset coordinates
-        let assetCoords: [number, number] | null = null;
-        if (selectedInlet) assetCoords = selectedInlet.coordinates;
-        else if (selectedOutlet) assetCoords = selectedOutlet.coordinates;
-        else if (selectedDrain) assetCoords = selectedDrain.coordinates;
-        else if (selectedPipe && selectedPipe.coordinates.length > 0) {
-          assetCoords = selectedPipe.coordinates[0];
-        }
-
-        if (!assetCoords) {
-          throw new Error('Could not determine asset location.');
-        }
-
-        const from = point([exifData.longitude, exifData.latitude]);
-        const to = point([assetCoords[0], assetCoords[1]]);
-        const distKm = distance(from, to);
-        const distMeters = distKm * 1000;
-
-        const MAX_RADIUS_METERS = 50;
-        let isWithinRadius = distMeters <= MAX_RADIUS_METERS;
-
-        if (selectedPipe && !isWithinRadius) {
-          for (const coord of selectedPipe.coordinates) {
-            const pipePt = point([coord[0], coord[1]]);
-            const d = distance(from, pipePt) * 1000;
-            if (d <= MAX_RADIUS_METERS) {
-              isWithinRadius = true;
-              break;
-            }
-          }
-        }
-
-        if (!isWithinRadius) {
-          throw new Error(
-            `Image location is too far from the selected asset (${distMeters.toFixed(0)}m). Must be within ${MAX_RADIUS_METERS}m.`
-          );
+        if (check.outcome === 'unverifiable') {
+          unverifiedReason = check.reason;
+          toast.warning(check.reason);
         }
       }
 
       // 2. Upload Image to 'ReportImage' bucket
-      const fileExt = maintenanceImage.name.split('.').pop();
-      const fileName = `${selectedAsset.type}_${selectedAsset.id}_${Date.now()}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      // public/<uuid>.<ext>: the only name the bucket's upload policy
+      // accepts (schema_auth_storage.sql).
+      // The bucket is public: upload a re-encoded copy with no EXIF (GPS,
+      // device), as reports do. The location was read from the original above.
+      const cleanImage = await sanitizeImage(maintenanceImage);
+      const filePath = `public/${crypto.randomUUID()}.jpg`;
 
       const { error: uploadError } = await client.storage
         .from('ReportImage')
-        .upload(filePath, maintenanceImage);
+        .upload(filePath, cleanImage, { contentType: cleanImage.type });
 
       if (uploadError) {
         throw new Error(`Image upload failed: ${uploadError.message}`);
       }
 
       // 3. Record Maintenance with Image Path
-      await finalRecordMaintenance(pendingStatus, filePath);
+      await finalRecordMaintenance(pendingStatus, filePath, unverifiedReason);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Submission failed';
@@ -450,6 +405,12 @@ export default function Maintenance({
           <button
             className="flex h-8 w-8 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors hover:bg-[#E0E0E0] disabled:cursor-not-allowed disabled:opacity-50"
             title="Refresh reports"
+            disabled={!selectedAsset || isLoading}
+            onClick={() => {
+              if (!selectedAsset) return;
+              handleViewHistory(selectedAsset.type, selectedAsset.id);
+              loadReports(selectedAsset.id);
+            }}
           >
             <RefreshCw className="h-4 w-4 text-[#8D8D8D]" />
           </button>
@@ -557,6 +518,16 @@ export default function Maintenance({
                                 </div>
                               )}
                             </div>
+                            <MaintenanceVerification
+                              record={record}
+                              onChanged={() =>
+                                selectedAsset &&
+                                handleViewHistory(
+                                  selectedAsset.type,
+                                  selectedAsset.id
+                                )
+                              }
+                            />
                           </div>
                         </div>
                       </div>
@@ -612,6 +583,16 @@ export default function Maintenance({
                               </div>
                             )}
                           </div>
+                          <MaintenanceVerification
+                            record={record}
+                            onChanged={() =>
+                              selectedAsset &&
+                              handleViewHistory(
+                                selectedAsset.type,
+                                selectedAsset.id
+                              )
+                            }
+                          />
                         </div>
                       </div>
                     </div>
@@ -796,8 +777,10 @@ export default function Maintenance({
                     image={maintenanceImage}
                   />
                   <p className="text-muted-foreground text-xs">
-                    * Photo must contain GPS data and be taken within the last
-                    12 hours.
+                    * The photo&apos;s own location and time are checked: one
+                    taken more than 50 m from the asset or over 12 hours ago is
+                    refused. A photo without them is accepted but marked
+                    unverified.
                   </p>
                 </div>
 

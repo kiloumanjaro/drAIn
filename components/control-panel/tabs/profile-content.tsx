@@ -3,23 +3,18 @@
 import { useContext } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@/components/ui/tabs-modified';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pencil, Link2, FileText } from 'lucide-react';
-import { AuthContext } from '@/components/context/AuthProvider';
-import client from '@/app/api/client';
+import { AuthContext } from '@/components/context/auth-provider';
+import client from '@/lib/supabase/client';
 import {
   updateUserProfile,
-  linkAgencyToProfile,
-  unlinkAgencyFromProfile,
+  joinAgency,
+  leaveAgency,
 } from '@/lib/supabase/profile';
-import EditProfile from '@/components/edit-profile';
-import UserLinks from '@/components/user-links';
-import UserReportsList from '@/components/user-reports-list';
+import EditProfile from '@/components/profile/edit-profile';
+import UserLinks from '@/components/profile/user-links';
+import UserReportsList from '@/components/reports/user-reports-list';
 import type { ProfileView } from '../hooks/use-control-panel-state';
 import Image from 'next/image';
 
@@ -46,14 +41,19 @@ export default function ProfileContent({
   const supabase = client;
   const loading = !profile && !isGuest;
 
-  const handleSave = async (fullName: string, avatarFile: File | null) => {
+  const handleSave = async (
+    fullName: string,
+    avatarFile: File | null,
+    showNameOnReports: boolean
+  ) => {
     if (!session) return;
 
     const updatedProfile = await updateUserProfile(
       session,
       fullName,
       avatarFile,
-      profile
+      profile,
+      showNameOnReports
     );
     let newPublicAvatarUrl = null;
     if (updatedProfile.avatar_url) {
@@ -75,13 +75,15 @@ export default function ProfileContent({
     );
   };
 
-  const handleLinkAgency = async (agencyId: string, agencyName: string) => {
-    if (!profile || !session) return;
-    await linkAgencyToProfile(session.user.id, agencyId); // Persist to Supabase
+  /** Joins with a code; resolves to the agency's name for the toast. */
+  const handleJoinAgency = async (code: string): Promise<string> => {
+    if (!profile || !session) return '';
+    const agency = await joinAgency(code);
     const updatedProfile = {
       ...profile,
-      agency_id: agencyId,
-      agency_name: agencyName,
+      role: 'staff',
+      agency_id: agency.id,
+      agency_name: agency.name,
     };
     setProfile(updatedProfile);
     // Also update the cache
@@ -93,14 +95,15 @@ export default function ProfileContent({
         publicAvatarUrl: publicAvatarUrl,
       })
     );
+    return agency.name;
   };
 
-  const handleUnlinkAgency = async () => {
+  const handleLeaveAgency = async () => {
     if (!profile || !session) return;
-    await unlinkAgencyFromProfile(session.user.id); // Persist to Supabase
+    await leaveAgency();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { agency_id, agency_name, ...rest } = profile;
-    const updatedProfile = { ...rest };
+    const updatedProfile = { ...rest, role: 'citizen' };
     setProfile(updatedProfile);
     // Also update the cache
     const cacheKey = `profile-${session.user.id}`;
@@ -201,8 +204,8 @@ export default function ProfileContent({
               <UserLinks
                 isGuest={isGuest}
                 profile={profile}
-                onLink={handleLinkAgency}
-                onUnlink={handleUnlinkAgency}
+                onJoin={handleJoinAgency}
+                onLeave={handleLeaveAgency}
               />
             </TabsContent>
 

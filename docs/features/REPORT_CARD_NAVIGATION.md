@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-03  
 **Status:** ✅ Implemented  
-**Components:** `ReportCard.tsx`, `app/map/page.tsx`
+**Components:** `ReportCard.tsx`, `app/(main)/map/page.tsx`
 
 ## Overview
 
@@ -33,7 +33,7 @@ interface Report {
 
 ## Implementation Details
 
-### 1. ReportCard Component (`components/dashboard/reports/ReportCard.tsx`)
+### 1. ReportCard Component (`components/dashboard/reports/report-card.tsx`)
 
 #### Button Wrapper
 
@@ -83,7 +83,7 @@ const handleCopyId = async (e: React.MouseEvent) => {
 };
 ```
 
-### 2. Map Page Component (`app/map/page.tsx`)
+### 2. Map Page Component (`app/(main)/map/page.tsx`)
 
 #### URL Parameter Handling
 
@@ -269,8 +269,8 @@ Interactive child elements use `e.stopPropagation()` to prevent triggering the c
 
 ## Related Files
 
-- `components/dashboard/reports/ReportCard.tsx` - Report card component
-- `app/map/page.tsx` - Map page with URL parameter handling
+- `components/dashboard/reports/report-card.tsx` - Report card component
+- `app/(main)/map/page.tsx` - Map page with URL parameter handling
 - `lib/dashboard/queries.ts` - Report data fetching
 - `lib/supabase/report.ts` - Report type definitions
 - `components/control-panel/tabs/tables-content/inlet-table.tsx` - Reference implementation

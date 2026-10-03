@@ -372,10 +372,10 @@ If you have questions about the implementation:
 
 ## ✨ Summary
 
-You now have a **production-ready, zero-cost, highly accurate barangay zone assignment system** that:
+You now have a **zero-cost, boundary-based barangay zone assignment system** that:
 
 - Assigns zones to 100% of reports (those with coordinates)
-- Uses actual geographic boundaries (99% accurate)
+- Uses actual geographic boundaries
 - Requires zero API calls or external services
 - Performs in milliseconds per report
 - Automatically handles new reports

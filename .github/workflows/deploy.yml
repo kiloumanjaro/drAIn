@@ -4,6 +4,10 @@ env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+# Every job only reads the repository; the Vercel deploy uses its own token.
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]
@@ -17,15 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -42,51 +46,94 @@ jobs:
       - name: Run TypeScript Check
         run: pnpm run type-check
 
-  # --- JOB 2: Vercel Deployment ---
+      - name: Run unit tests
+        run: pnpm run test
+
+  # --- JOB 2: Database tests ---
+  # Builds a throwaway local database from supabase/migrations and
+  # supabase/seed.sql, then runs the pgTAP tests in supabase/tests/database
+  # (permissions, row-level security, the dashboard's numbers).
+  database:
+    name: Database (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: 2.118.0
+
+      - name: Start local Supabase (applies migrations and seed)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+
+      - name: Run pgTAP tests
+        run: supabase test db
+
+      - name: Check the database advisors
+        run: supabase db advisors --local --fail-on warn
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  # --- JOB 3: Vercel Deployment ---
   deploy:
     name: Vercel Deploy
     runs-on: ubuntu-latest
-    needs: quality
+    needs: [quality, database]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    # The CLI reads the token from the environment, so it never appears on a
+    # command line (where it could show up in process listings or logs).
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: 'pnpm'
 
+      # An exact version, so a new CLI release can't change the deploy.
       - name: Install Vercel CLI
-        run: pnpm add -g vercel
+        run: pnpm add -g vercel@61.1.0
 
       - name: Pull Vercel Environment Information
         run: |
           if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
-            vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+            vercel pull --yes --environment=production
           else
-            vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+            vercel pull --yes --environment=preview
           fi
 
       - name: Build Project Artifacts
         run: |
           if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
-            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+            vercel build --prod
           else
-            vercel build --token=${{ secrets.VERCEL_TOKEN }}
+            vercel build
           fi
 
+      # develop gets a preview deployment to test on before merging to main.
+      # Its link is printed at the top of the run's summary page.
       - name: Deploy Project Artifacts to Vercel
         run: |
           if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
-            vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+            url=$(vercel deploy --prebuilt --prod)
+            label=Production
           else
-            vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+            url=$(vercel deploy --prebuilt)
+            label=Preview
           fi
+          echo "$label: $url"
+          echo "### $label deployment: $url" >> "$GITHUB_STEP_SUMMARY"

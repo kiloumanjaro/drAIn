@@ -1,59 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createRequestClient } from '@/lib/supabase/server';
+import type { Tables } from '@/types/database.types';
+import { csvField, monthRangeUtc, parseMonthYear } from '@/lib/reports/csv';
+import type { UserRole } from '@/lib/supabase/enums';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Roles allowed to export reports. An allowlist, so a role added to the enum
+// later gets no access until it is listed here.
+const EXPORT_ROLES: readonly UserRole[] = ['staff', 'admin'];
 
-interface ReportRecord {
-  id: string;
-  created_at: string;
-  category: string | null;
-  description: string | null;
-  image: string | null;
-  reporter_name: string | null;
-  status: string | null;
-  component_id: string | null;
-  lat: string | null;
-  long: string | null;
-  geocoded_status: string | null;
-  address: string | null;
-  priority: string | null;
-  zone: string | null;
-}
+// Only the columns the CSV writes. The private ones (user_id, photo_lat,
+// photo_lon, reviewed_by) aren't selectable from the table, so '*' fails.
+const CSV_COLUMNS =
+  'id, created_at, category, description, reporter_name, status, priority, address, zone, lat, long' as const;
+type ReportRecord = Pick<
+  Tables<'reports'>,
+  | 'id'
+  | 'created_at'
+  | 'category'
+  | 'description'
+  | 'reporter_name'
+  | 'status'
+  | 'priority'
+  | 'address'
+  | 'zone'
+  | 'lat'
+  | 'long'
+>;
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
+    // The export lists every report with reporter details, so it is for
+    // agency staff only. The caller's own token is used for the query too.
+    const authorization = request.headers.get('authorization');
+    const supabase = createRequestClient(authorization);
+    const token = authorization?.replace(/^Bearer\s+/i, '');
+    const {
+      data: { user },
+    } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
 
-    if (!month || !year) {
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || !EXPORT_ROLES.includes(profile.role)) {
       return NextResponse.json(
-        { error: 'Month and year are required' },
-        { status: 400 }
+        { error: 'Only agency staff can download reports' },
+        { status: 403 }
       );
     }
 
-    // Calculate date range for the selected month
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(
-      parseInt(year),
-      parseInt(month),
-      0,
-      23,
-      59,
-      59,
-      999
+    const searchParams = request.nextUrl.searchParams;
+    const period = parseMonthYear(
+      searchParams.get('month'),
+      searchParams.get('year')
     );
+    if (!period) {
+      return NextResponse.json(
+        { error: 'Give a month (1-12) and a four-digit year' },
+        { status: 400 }
+      );
+    }
+    const { month, year } = period;
+    // Built from the parsed numbers only, never from the raw query.
+    const filename = `reports_${getMonthName(month)}_${year}.csv`;
 
-    // Fetch reports for the specified month
+    // The month's bounds in Manila time, independent of the server's zone.
+    const { start, end } = monthRangeUtc(month, year);
+
+    // The month's reports, except rejected ones (spam and duplicates), which
+    // every other surface leaves out too.
     const { data: reports, error } = await supabase
       .from('reports')
-      .select('*')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
+      .select(CSV_COLUMNS)
+      .gte('created_at', start.toISOString())
+      .lt('created_at', end.toISOString())
+      .neq('review_status', 'rejected')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -84,18 +111,18 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csv, {
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="reports_${getMonthName(parseInt(month))}_${year}.csv"`,
+          'Content-Disposition': `attachment; filename="${filename}"`,
         },
       });
     }
 
     // Generate CSV content
-    const csv = generateCSV(reports as ReportRecord[]);
+    const csv = generateCSV(reports);
 
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="reports_${getMonthName(parseInt(month))}_${year}.csv"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
@@ -125,20 +152,6 @@ function getMonthName(month: number): string {
   return months[month - 1] || 'Unknown';
 }
 
-function escapeCSVField(field: string | null | undefined): string {
-  if (field === null || field === undefined) return '';
-  const stringField = String(field);
-  // If the field contains comma, newline, or double quote, wrap it in quotes
-  if (
-    stringField.includes(',') ||
-    stringField.includes('\n') ||
-    stringField.includes('"')
-  ) {
-    return `"${stringField.replace(/"/g, '""')}"`;
-  }
-  return stringField;
-}
-
 function generateCSV(reports: ReportRecord[]): string {
   const headers = [
     'ID',
@@ -157,6 +170,9 @@ function generateCSV(reports: ReportRecord[]): string {
   const rows = reports.map((report) => {
     const date = report.created_at
       ? new Date(report.created_at).toLocaleDateString('en-US', {
+          // The reader's calendar, not the server's: a UTC host would
+          // otherwise date early-morning reports to the previous day.
+          timeZone: 'Asia/Manila',
           year: 'numeric',
           month: 'long',
           day: 'numeric',
@@ -164,17 +180,17 @@ function generateCSV(reports: ReportRecord[]): string {
       : '';
 
     return [
-      escapeCSVField(report.id),
-      escapeCSVField(date),
-      escapeCSVField(report.category),
-      escapeCSVField(report.description),
-      escapeCSVField(report.reporter_name),
-      escapeCSVField(report.status),
-      escapeCSVField(report.priority),
-      escapeCSVField(report.address),
-      escapeCSVField(report.zone),
-      escapeCSVField(report.lat),
-      escapeCSVField(report.long),
+      csvField(report.id),
+      csvField(date),
+      csvField(report.category),
+      csvField(report.description),
+      csvField(report.reporter_name),
+      csvField(report.status),
+      csvField(report.priority),
+      csvField(report.address),
+      csvField(report.zone),
+      csvField(report.lat),
+      csvField(report.long),
     ].join(',');
   });
 

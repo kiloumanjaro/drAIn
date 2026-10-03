@@ -1,0 +1,186 @@
+'use client';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { X } from 'lucide-react';
+import Image from 'next/image';
+import { AddIcon } from '@/components/common/add-icon';
+import {
+  acceptedImageType,
+  decodeImage,
+  IMAGE_ACCEPT_ATTRIBUTE,
+  isHeic,
+} from '@/lib/reports/sanitize-image';
+
+interface ImageUploaderProps {
+  onImageChange?: (file: File | null) => void;
+  image?: File | null;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+export default function ImageUploader({
+  onImageChange,
+  image,
+  placeholder = 'Drag Your Files Here',
+  disabled = false,
+}: ImageUploaderProps) {
+  // The parent can own the file (pass `image`) or leave it to this component.
+  const [localFile, setLocalFile] = useState<File | null>(null);
+  const file = image !== undefined ? image : localFile;
+  const fileName = file?.name ?? null;
+  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+  // One preview URL per file, released when the file changes or on unmount.
+  const fileUrl = useMemo(
+    () => (file ? URL.createObjectURL(file) : null),
+    [file]
+  );
+  useEffect(() => {
+    return () => {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+    };
+  }, [fileUrl]);
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file || disabled) return;
+
+    // JPEG, PNG, WebP or HEIC only: no SVG (it can carry script), GIF or
+    // AVIF. Report photos are re-encoded to JPEG before upload as well.
+    if (!acceptedImageType(file)) {
+      setError('Only JPEG, PNG, WebP or HEIC photos are allowed.');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError('File size exceeds 10 MB limit.');
+      return;
+    }
+
+    // Most browsers other than Safari can't decode HEIC. Say so now rather
+    // than at upload, since the photo can't be re-encoded without it.
+    if (isHeic(file)) {
+      try {
+        (await decodeImage(file)).close();
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : 'This photo could not be read.'
+        );
+        return;
+      }
+    }
+
+    setError(null);
+    setLocalFile(file);
+    setIsDragging(false);
+    onImageChange?.(file);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (disabled) return;
+    setIsDragging(false);
+    void handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    void handleFile(e.target.files?.[0]);
+  };
+
+  const handleReset = () => {
+    if (disabled) return;
+    setLocalFile(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    onImageChange?.(null);
+  };
+
+  return (
+    <div className="flex w-full max-w-xs flex-col items-center rounded-lg font-sans">
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        className={`flex h-40 w-full flex-col items-center justify-center rounded-lg border-2 transition-all duration-300 ease-in-out ${
+          disabled
+            ? 'cursor-not-allowed border-gray-200 bg-gray-100 opacity-60'
+            : isDragging
+              ? 'border-blue-500 bg-blue-50'
+              : fileName
+                ? 'border-gray-200'
+                : 'cursor-pointer border-dashed border-gray-300 bg-[#f1f3ff] hover:border-blue-400'
+        } `}
+      >
+        {!fileName ? (
+          <div className="flex flex-col items-center gap-3 p-6 text-center">
+            <label
+              className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#2b3ea7] bg-[#4b72f3] text-white transition-colors ${
+                disabled
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer hover:bg-blue-600'
+              }`}
+            >
+              <AddIcon className="h-5 w-5" />
+              {/* sr-only (not hidden) keeps the input keyboard-focusable */}
+              <input
+                type="file"
+                accept={IMAGE_ACCEPT_ATTRIBUTE}
+                onChange={handleUpload}
+                className="sr-only"
+                ref={fileInputRef}
+                disabled={disabled}
+                aria-label="Upload a photo"
+              />
+            </label>
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium">{placeholder}</span>
+              <span className="text-muted-foreground text-xs">
+                Upload files with maximum 10 MB
+              </span>
+            </div>
+            {error && (
+              <span role="alert" className="mt-2 text-xs text-red-500">
+                {error}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="relative flex h-full w-full items-center justify-center">
+            {fileUrl && (
+              <Image
+                src={fileUrl}
+                alt="Uploaded preview"
+                fill
+                className="h-full w-full rounded-md object-cover"
+              />
+            )}
+            <div className="absolute inset-0 flex items-end justify-between p-2">
+              <span className="bg-opacity-70 text-muted-foreground max-w-[80%] truncate rounded-md bg-white px-3 py-1.5 text-[11px]">
+                {fileName}
+              </span>
+              <button
+                onClick={handleReset}
+                disabled={disabled}
+                aria-label="Remove photo"
+                className={`rounded-full border border-[#cd152b] bg-[#f34445] p-1.5 text-white shadow-lg transition-colors duration-200 ${
+                  disabled
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'hover:bg-[#dc2b35]'
+                }`}
+              >
+                <X className="h-3.5 w-3.5 cursor-pointer text-white" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

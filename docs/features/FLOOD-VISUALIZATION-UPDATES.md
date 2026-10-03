@@ -14,7 +14,7 @@ All references to "vulnerability heatmap" have been systematically replaced with
 
 **Files Modified:**
 
-1. `app/simulation/page.tsx` - 159 replacements
+1. `app/(main)/simulation/page.tsx` - 159 replacements
 2. `components/control-panel/index.tsx` - 2 replacements
 3. `components/control-panel/types.ts` - 4 replacements
 4. `lib/map/effects/flood-3d-utils.ts` - 5 replacements

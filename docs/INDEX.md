@@ -56,8 +56,8 @@ Documentation for major features and implementations.
 
 | Document                                                                     | Description                                       |
 | ---------------------------------------------------------------------------- | ------------------------------------------------- |
-| [Dashboard Implementation](features/DASHBOARD_IMPLEMENTATION_COMPLETE.md)    | Complete dashboard feature documentation          |
-| [Dashboard Implementation Plan](features/DASHBOARD_IMPLEMENTATION_PLAN.md)   | Original implementation plan and design decisions |
+| [Dashboard Implementation](_archive/DASHBOARD_IMPLEMENTATION_COMPLETE.md)    | Complete dashboard feature documentation          |
+| [Dashboard Implementation Plan](_archive/DASHBOARD_IMPLEMENTATION_PLAN.md)   | Original implementation plan and design decisions |
 | [PostGIS Barangay Zones](features/POSTGIS_BARANGAY_ZONES.md)                 | Geographic zone implementation with PostGIS       |
 | [PostGIS Implementation Summary](features/POSTGIS_IMPLEMENTATION_SUMMARY.md) | Summary of PostGIS integration                    |
 
@@ -65,9 +65,9 @@ Documentation for major features and implementations.
 
 Resources for developers contributing to the project.
 
-| Document                                      | Description                           |
-| --------------------------------------------- | ------------------------------------- |
-| [Fixes Applied](development/FIXES_APPLIED.md) | History of bug fixes and improvements |
+| Document                                   | Description                           |
+| ------------------------------------------ | ------------------------------------- |
+| [Fixes Applied](_archive/FIXES_APPLIED.md) | History of bug fixes and improvements |
 
 ## Documentation by Audience
 
