@@ -29,7 +29,11 @@ import {
   useDrains,
 } from '@/lib/query/hooks/use-drainage-data';
 import { useLatestRef } from '@/hooks/use-latest-ref';
-import { addMapLayers, floodHazardDataUrl } from '@/lib/map/layers';
+import {
+  addMapLayers,
+  floodHazardDataUrl,
+  registerFloodProneHover,
+} from '@/lib/map/layers';
 import {
   applyFloodProneVisibility,
   applyOverlayVisibility,
@@ -341,6 +345,7 @@ function MapPageContent() {
         map.on('load', addCustomLayers);
         map.on('load', () => setMapReady(true));
         map.on('style.load', addCustomLayers);
+        registerFloodProneHover(map);
 
         // Move click handler inside here where map is defined
         map.on('click', (e) => {

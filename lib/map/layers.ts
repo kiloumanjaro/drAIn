@@ -25,7 +25,9 @@ export function floodHazardDataUrl(scenarioId: string): string {
  *
  * Called on both `load` and `style.load`: changing the basemap style drops
  * all custom layers, so they are re-added. Every step checks first, which is
- * what makes calling it twice safe.
+ * what makes calling it twice safe. It registers no event handlers for the
+ * same reason: those outlive a style change, so each call would add another
+ * set (see registerFloodProneHover).
  */
 export function addMapLayers(
   map: mapboxgl.Map,
@@ -220,9 +222,7 @@ export function addMapLayers(
   }
 
   // Add flood prone areas
-  const floodProneAreas = FLOOD_PRONE_AREAS;
-
-  floodProneAreas.forEach((area) => {
+  FLOOD_PRONE_AREAS.forEach((area) => {
     if (!map.getSource(area.id)) {
       map.addSource(area.id, {
         type: 'geojson',
@@ -246,11 +246,21 @@ export function addMapLayers(
       });
     }
   });
+}
 
-  // Add hover handlers for flood prone areas
+/**
+ * Show a flood-prone area's name in a popup while the pointer is over it.
+ *
+ * Call once per map, when it is created. Handlers registered against a layer
+ * id survive style changes and work before the layer exists, so registering
+ * them wherever the layers are (re-)added stacked a new set, each with its
+ * own popup, on every style switch.
+ */
+export function registerFloodProneHover(map: mapboxgl.Map): void {
+  // One popup for all areas: entering an area replaces whatever is showing.
   const floodPronePopupRef = { current: null as mapboxgl.Popup | null };
 
-  floodProneAreas.forEach((area) => {
+  FLOOD_PRONE_AREAS.forEach((area) => {
     map.on('mouseenter', `${area.id}-layer`, (e) => {
       map.getCanvas().style.cursor = 'pointer';
 
