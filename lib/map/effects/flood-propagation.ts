@@ -24,12 +24,12 @@ const SAMPLES_PER_PIPE_SEGMENT = 1;
 /** Maximum random wobble applied to a node point, in degrees (~9 m). */
 const MAX_WOBBLE_DEG = 0.00009;
 
-const SOURCES = {
+export const FLOOD_PROPAGATION_SOURCES = {
   nodes: 'flood_propagation_nodes',
   lines: 'flood_propagation_lines',
 } as const;
 
-const LAYERS = {
+export const FLOOD_PROPAGATION_LAYERS = {
   nodes: 'flood_propagation-nodes-layer',
   lines: 'flood_propagation-lines-layer',
 } as const;
@@ -186,18 +186,18 @@ export function setFloodPropagationData(
   let attempt = 0;
 
   const apply = () => {
-    const nodeSource = map.getSource(SOURCES.nodes) as
+    const nodeSource = map.getSource(FLOOD_PROPAGATION_SOURCES.nodes) as
       | mapboxgl.GeoJSONSource
       | undefined;
-    const lineSource = map.getSource(SOURCES.lines) as
+    const lineSource = map.getSource(FLOOD_PROPAGATION_SOURCES.lines) as
       | mapboxgl.GeoJSONSource
       | undefined;
 
     const ready =
       nodeSource &&
       lineSource &&
-      map.getLayer(LAYERS.nodes) &&
-      map.getLayer(LAYERS.lines);
+      map.getLayer(FLOOD_PROPAGATION_LAYERS.nodes) &&
+      map.getLayer(FLOOD_PROPAGATION_LAYERS.lines);
 
     if (ready) {
       nodeSource.setData(asFeatureCollection(features.nodes));

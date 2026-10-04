@@ -377,6 +377,10 @@ export async function enableFlood3D(
     return;
   }
 
+  // The layer is about to be replaced: a fade still running on the old one
+  // would go on setting the new one's opacity alongside the new fade.
+  cancelFloodAppearing(map);
+
   // Remove existing layers and sources if they exist
   if (map.getLayer('flood-gradient-layer')) {
     map.removeLayer('flood-gradient-layer');
@@ -491,7 +495,7 @@ export async function enableFlood3D(
 
   // Animate the flood appearing if enabled
   if (animate) {
-    animateFloodAppearing(map, animationDuration);
+    floodAppearing.set(map, animateFloodAppearing(map, animationDuration));
   }
 
   // Store flag
@@ -503,10 +507,18 @@ export async function enableFlood3D(
 /**
  * Animate the flood water appearing (gradient lines fade in)
  */
-function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
+export function animateFloodAppearing(
+  map: mapboxgl.Map,
+  duration: number
+): () => void {
   const startTime = Date.now();
+  let frame: number | null = null;
+  let cancelled = false;
 
   const animate = () => {
+    frame = null;
+    if (cancelled) return;
+
     // Check if layer still exists before trying to animate
     if (!map.getLayer('flood-gradient-layer')) {
       return;
@@ -532,11 +544,32 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
     ]);
 
     if (progress < 1) {
-      requestAnimationFrame(animate);
+      frame = requestAnimationFrame(animate);
     }
   };
 
   animate();
+
+  return () => {
+    cancelled = true;
+    if (frame !== null) {
+      cancelAnimationFrame(frame);
+      frame = null;
+    }
+  };
+}
+
+/** The fade-in running on each map, so it can be stopped from outside. */
+const floodAppearing = new WeakMap<mapboxgl.Map, () => void>();
+
+/**
+ * Stop the fade-in on this map, if one is running. Call before the map is
+ * removed: the fade otherwise keeps asking for frames for up to three
+ * seconds on a map that is gone.
+ */
+export function cancelFloodAppearing(map: mapboxgl.Map): void {
+  floodAppearing.get(map)?.();
+  floodAppearing.delete(map);
 }
 
 /**

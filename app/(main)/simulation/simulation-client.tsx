@@ -20,17 +20,16 @@ import {
   transformToNodeDetails,
 } from '@/lib/simulation-api/simulation';
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
-import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
+import {
+  cancelFloodAppearing,
+  enableFlood3D,
+} from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
 import { addSimulationLayers } from '@/lib/map/simulation-layers';
 import {
   focusMapFeature as focusFeatureOnMap,
   type SelectedFeature,
 } from '@/lib/map/focus-feature';
-import {
-  buildFloodPropagationFeatures,
-  setFloodPropagationData,
-} from '@/lib/map/effects/flood-propagation';
 
 import {
   SIMULATION_MAP_STYLE,
@@ -58,11 +57,8 @@ import type {
   NodeParams,
   LinkParams,
 } from '@/components/control-panel/tabs/simulation-models/model3';
-import {
-  parseNodeId,
-  CAMERA_FLY_DURATION_MS,
-  wobbleFeatures,
-} from './page.helpers';
+import { parseNodeId, CAMERA_FLY_DURATION_MS } from './page.helpers';
+import { useFloodPropagationAnimation } from './use-flood-propagation-animation';
 
 import { useSidebar } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
@@ -218,13 +214,12 @@ export default function SimulationPage() {
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
-  const [isFloodPropagationActive, setIsFloodPropagationActive] =
-    useState(true); // Enabled by default
-  const animationFrameRef = useRef<number | null>(null);
-  const nodeFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
-  const lineFloodPropagationFeaturesRef = useRef<GeoJSON.Feature[]>([]);
-  const lastAnimationTimeRef = useRef<number>(0);
-  const shouldAnimateFloodPropagationRef = useRef<boolean>(true);
+  const {
+    isFloodPropagationActive,
+    updateFloodPropagation,
+    handleToggleFloodPropagation,
+    restoreFloodPropagationLayers,
+  } = useFloodPropagationAnimation(mapRef);
 
   // Panel visibility - mutual exclusivity
   const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
@@ -568,31 +563,8 @@ export default function SimulationPage() {
     clearSelections();
     setControlPanelTab('simulations');
 
-    // Preserve flood propagation visibility when navigating back
-    // This ensures the visualization remains visible after clearing selections
-    if (mapRef.current && isFloodPropagationActive) {
-      const nodesLayer = mapRef.current.getLayer(
-        'flood_propagation-nodes-layer'
-      );
-      const linesLayer = mapRef.current.getLayer(
-        'flood_propagation-lines-layer'
-      );
-
-      if (nodesLayer) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-nodes-layer',
-          'visibility',
-          'visible'
-        );
-      }
-      if (linesLayer) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-lines-layer',
-          'visibility',
-          'visible'
-        );
-      }
-    }
+    // The heatmap stays visible after the selections are cleared.
+    restoreFloodPropagationLayers();
   };
 
   const focusMapFeature = (
@@ -721,35 +693,6 @@ export default function SimulationPage() {
     applyVulnerabilityColorsOnMap(map, vulnerabilityData);
   };
 
-  /**
-   * Rebuild the flood-propagation heatmap from a set of results and push it
-   * onto the map, starting the pulse animation once the data lands.
-   */
-  const updateFloodPropagation = async (vulnerabilityData: NodeDetails[]) => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const features = await buildFloodPropagationFeatures(vulnerabilityData, [
-      ...inletsRef.current,
-      ...drainsRef.current,
-    ]);
-
-    // The animation reads the features through refs on every frame.
-    nodeFloodPropagationFeaturesRef.current = features.nodes;
-    lineFloodPropagationFeaturesRef.current = features.lines;
-
-    setFloodPropagationData(map, features, () => {
-      setIsFloodPropagationActive(true);
-      shouldAnimateFloodPropagationRef.current = true;
-
-      // A loop is running exactly when a frame is pending. The state flag
-      // captured here could be out of date and start a second loop.
-      if (animationFrameRef.current === null) {
-        animateFloodPropagationIntensity();
-      }
-    });
-  };
-
   const handleClosePopUps = () => {
     setIsTableMinimized(true);
     setIsTable3Minimized(true);
@@ -775,7 +718,7 @@ export default function SimulationPage() {
     }));
 
     applyVulnerabilityColors(data);
-    updateFloodPropagation(data);
+    updateFloodPropagation(data, [...inletsRef.current, ...drainsRef.current]);
     setIsRainActive(true);
 
     if (mapRef.current) {
@@ -928,131 +871,6 @@ export default function SimulationPage() {
   // Rain toggle handler
   const handleToggleRain = useCallback((enabled: boolean) => {
     setIsRainActive(enabled);
-  }, []);
-
-  // Flood Propagation animation - per-point varied pulsing + position wobbling
-  const animateFloodPropagationIntensity = useCallback(() => {
-    if (!mapRef.current || !shouldAnimateFloodPropagationRef.current) {
-      // Cancel any pending frame before exiting
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      return;
-    }
-
-    // Throttle to ~20fps to avoid excessive source updates
-    const now = Date.now();
-    if (now - lastAnimationTimeRef.current < 50) {
-      animationFrameRef.current = requestAnimationFrame(
-        animateFloodPropagationIntensity
-      );
-      return;
-    }
-    lastAnimationTimeRef.current = now;
-
-    const nodeSource = mapRef.current.getSource(
-      'flood_propagation_nodes'
-    ) as mapboxgl.GeoJSONSource;
-    const lineSource = mapRef.current.getSource(
-      'flood_propagation_lines'
-    ) as mapboxgl.GeoJSONSource;
-
-    if (!nodeSource && !lineSource) {
-      return;
-    }
-
-    const time = now / 1000;
-
-    if (nodeSource && nodeFloodPropagationFeaturesRef.current.length > 0) {
-      nodeSource.setData({
-        type: 'FeatureCollection',
-        features: wobbleFeatures(nodeFloodPropagationFeaturesRef.current, time),
-      });
-    }
-
-    if (lineSource && lineFloodPropagationFeaturesRef.current.length > 0) {
-      lineSource.setData({
-        type: 'FeatureCollection',
-        features: wobbleFeatures(lineFloodPropagationFeaturesRef.current, time),
-      });
-    }
-
-    // Continue animation
-    animationFrameRef.current = requestAnimationFrame(
-      animateFloodPropagationIntensity
-    );
-  }, []);
-
-  // Flood Propagation toggle handler
-  const handleToggleFloodPropagation = useCallback(
-    (enabled: boolean) => {
-      if (!mapRef.current) return;
-
-      const nodesLayer = mapRef.current.getLayer(
-        'flood_propagation-nodes-layer'
-      );
-      const linesLayer = mapRef.current.getLayer(
-        'flood_propagation-lines-layer'
-      );
-
-      if (!nodesLayer && !linesLayer) {
-        console.warn(
-          '[Flood Propagation] Toggle failed - Flood Propagation layers not found'
-        );
-        return;
-      }
-
-      const visibility = enabled ? 'visible' : 'none';
-
-      // Toggle both Flood Propagation layers
-      if (nodesLayer) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-nodes-layer',
-          'visibility',
-          visibility
-        );
-      }
-      if (linesLayer) {
-        mapRef.current.setLayoutProperty(
-          'flood_propagation-lines-layer',
-          'visibility',
-          visibility
-        );
-      }
-
-      setIsFloodPropagationActive(enabled);
-      shouldAnimateFloodPropagationRef.current = enabled;
-
-      // Start or stop animation
-      if (enabled) {
-        // Never two loops at once: only the newest frame id is kept, so a
-        // second loop could not be stopped.
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-        animateFloodPropagationIntensity();
-      } else {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-      }
-
-      // Force map to repaint
-      mapRef.current.triggerRepaint();
-    },
-    [animateFloodPropagationIntensity]
-  );
-
-  // Cleanup animation on unmount
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
   }, []);
 
   // Synchronize rain effect with state
@@ -1218,6 +1036,7 @@ export default function SimulationPage() {
       runAbortRef.current?.abort();
       if (mapRef.current) {
         disableRain(mapRef.current);
+        cancelFloodAppearing(mapRef.current);
         mapRef.current.remove();
         mapRef.current = null;
       }
