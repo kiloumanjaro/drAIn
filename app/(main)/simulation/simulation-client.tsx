@@ -4,7 +4,6 @@ import { ControlPanel } from '@/components/control-panel';
 import { CameraControls } from '@/components/map/camera-controls';
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/context/auth-provider';
 import {
   DEFAULT_CENTER,
@@ -47,48 +46,17 @@ import type {
   Drain,
   Pipe,
 } from '@/components/control-panel/types';
-import type {
-  NodeParams,
-  LinkParams,
-} from '@/components/control-panel/tabs/simulation-models/model3';
-import { parseNodeId, CAMERA_FLY_DURATION_MS } from './page.helpers';
+import { parseNodeId } from './page.helpers';
+import { SimulationOverlays } from './simulation-overlays';
 import { useFloodPropagationAnimation } from './use-flood-propagation-animation';
+import { useNodeSlideshow } from './use-node-slideshow';
+import { useParameterPanels } from './use-parameter-panels';
 import { useVulnerabilityTables } from './use-vulnerability-tables';
 
 import { useSidebar } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
-import { VulnerabilityDataTable } from '@/components/simulation/vulnerability-data-table';
-import { NodeParametersPanel } from '@/components/simulation/node-parameters-panel';
-import { LinkParametersPanel } from '@/components/simulation/link-parameters-panel';
-import { Spinner } from '@/components/ui/spinner';
 import { useLatestRef } from '@/hooks/use-latest-ref';
-import { usePersistentPosition } from '@/hooks/use-persistent-position';
 import type { NodeDetails } from '@/types/simulation';
-
-// The slideshow's chart is the page's only use of recharts, and it opens
-// only when a node's results are asked for. It is a fixed overlay, so there
-// is nothing in the layout to hold a place for while it loads.
-const NodeSimulationSlideshow = dynamic(
-  () =>
-    import('@/components/simulation/node-simulation-slideshow').then(
-      (m) => m.NodeSimulationSlideshow
-    ),
-  { ssr: false, loading: () => null }
-);
-
-interface RainfallParams {
-  total_precip: number;
-  duration_hr: number;
-}
-
-// Use default rainfall params or get from somewhere
-const rainfallVal = {
-  total_precip: 140,
-  duration_hr: 1,
-};
-
-/** Node and link parameter panels open centred. */
-const PARAMETER_PANEL_ANCHOR = { width: 500, height: 600 };
 
 const FLOOD_3D_OPTIONS = {
   opacity: 0.7,
@@ -149,30 +117,12 @@ export default function SimulationPage() {
     new Set()
   );
 
-  // Slideshow state
-  const [slideshowNode, setSlideshowNode] = useState<string | null>(null);
   // Set when Mapbox can't start (no token, no WebGL); the rest of the page
   // still works.
   const [mapError, setMapError] = useState<string | null>(null);
-  const [slideshowNodeData, setSlideshowNodeData] =
-    useState<NodeDetails | null>(null);
-  const [slideshowAllData, setSlideshowAllData] = useState<
-    NodeDetails[] | null
-  >(null);
 
-  // Model3 lifted state for parameters panels
-  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>(
-    []
-  );
-  const [selectedPipeIds, setSelectedPipeIds] = useState<string[]>([]);
-  const [componentParams, setComponentParams] = useState<
-    Map<string, NodeParams>
-  >(new Map());
-  const [pipeParams, setPipeParams] = useState<Map<string, LinkParams>>(
-    new Map()
-  );
-  const [rainfallParams, setRainfallParams] =
-    useState<RainfallParams>(rainfallVal);
+  // What a custom run is made from, and its two parameter panels
+  const panels = useParameterPanels();
 
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
@@ -183,20 +133,6 @@ export default function SimulationPage() {
     handleToggleFloodPropagation,
     restoreFloodPropagationLayers,
   } = useFloodPropagationAnimation(mapRef);
-
-  // Panel visibility - mutual exclusivity
-  const [activePanel, setActivePanel] = useState<'node' | 'link' | null>(null);
-
-  // Panel positions (persisted in localStorage)
-  const [nodePanelPosition, setNodePanelPosition] = usePersistentPosition(
-    'nodePanelPosition',
-    PARAMETER_PANEL_ANCHOR
-  );
-
-  const [linkPanelPosition, setLinkPanelPosition] = usePersistentPosition(
-    'linkPanelPosition',
-    PARAMETER_PANEL_ANCHOR
-  );
 
   // Function to clear all selections
   const clearSelections = () => {
@@ -230,9 +166,6 @@ export default function SimulationPage() {
   // The map's click and hover handlers are registered once, when the map is
   // created, so they call this render's functions through a ref (refreshed
   // by an effect further down, after the handlers are defined).
-  // Which node-slideshow opening is current (see handleOpenNodeSimulation).
-  const slideshowRequestRef = useRef(0);
-
   const mapHandlersRef = useRef<{
     isSimulationActive: boolean;
     onEmptyClick: () => void;
@@ -241,24 +174,6 @@ export default function SimulationPage() {
     selectOutlet: (outlet: Outlet) => void;
     selectDrain: (drain: Drain) => void;
   } | null>(null);
-
-  // Auto-open node panel when components selected
-  const componentCount = selectedComponentIds.length;
-  useEffect(() => {
-    setActivePanel((panel) => {
-      if (componentCount > 0) return 'node';
-      return panel === 'node' ? null : panel;
-    });
-  }, [componentCount]);
-
-  // Auto-open link panel when pipes selected
-  const pipeCount = selectedPipeIds.length;
-  useEffect(() => {
-    setActivePanel((panel) => {
-      if (pipeCount > 0) return 'link';
-      return panel === 'link' ? null : panel;
-    });
-  }, [pipeCount]);
 
   // Close the sidebar once, when the page opens, so the map gets the room.
   // Not again when the viewport changes: that would fight the user.
@@ -458,66 +373,6 @@ export default function SimulationPage() {
 
   const someVisible = Object.values(overlayVisibility).some(Boolean);
 
-  // Panel toggle handlers
-  const handleToggleNodePanel = () => {
-    if (activePanel === 'node') {
-      setActivePanel(null); // Close
-    } else {
-      setActivePanel('node'); // Open and close link panel
-    }
-  };
-
-  const handleToggleLinkPanel = () => {
-    if (activePanel === 'link') {
-      setActivePanel(null); // Close
-    } else {
-      setActivePanel('link'); // Open and close node panel
-    }
-  };
-
-  // Update param handlers
-  const updateComponentParam = (
-    id: string,
-    key: keyof NodeParams,
-    value: number
-  ) => {
-    // From the latest state, not this render's: two quick edits used to
-    // lose the first.
-    setComponentParams((previous) => {
-      const newParams = new Map(previous);
-      const current =
-        newParams.get(id) ??
-        // No invert elevation: left unset, the model keeps its own.
-        ({
-          init_depth: 0,
-          ponding_area: 0,
-          surcharge_depth: 0,
-        } satisfies NodeParams);
-      newParams.set(id, { ...current, [key]: value });
-      return newParams;
-    });
-  };
-
-  const updatePipeParam = (
-    id: string,
-    key: keyof LinkParams,
-    value: number
-  ) => {
-    setPipeParams((previous) => {
-      const newParams = new Map(previous);
-      const current =
-        newParams.get(id) ??
-        ({
-          init_flow: 0,
-          upstrm_offset_depth: 0,
-          downstrm_offset_depth: 0,
-          avg_conduit_loss: 0,
-        } satisfies LinkParams);
-      newParams.set(id, { ...current, [key]: value });
-      return newParams;
-    });
-  };
-
   // Handler for the back button in control panel
   const handleControlPanelBack = () => {
     clearSelections();
@@ -682,44 +537,28 @@ export default function SimulationPage() {
     }
   };
 
-  const {
-    selectedYear,
-    handleYearChange,
-    tableData,
-    isLoadingTable,
-    isTableMinimized,
-    tablePosition,
-    setTablePosition,
-    handleGenerateTable,
-    handleToggleTableMinimize,
-    handleCloseTable,
-    tableData3,
-    liveModelInfo,
-    isLoadingTable3,
-    isTable3Minimized,
-    table3Position,
-    setTable3Position,
-    handleGenerateTable3,
-    handleToggleTable3Minimize,
-    handleCloseTable3,
-    activeTableData,
-    setTablesMinimized,
-    dismissTables,
-  } = useVulnerabilityTables({
+  const tables = useVulnerabilityTables({
     accessToken: session?.access_token,
-    selectedComponentIds,
-    componentParams,
-    pipeParams,
-    rainfallParams,
-    onRunStart: () => setActivePanel(null),
+    selectedComponentIds: panels.selectedComponentIds,
+    componentParams: panels.componentParams,
+    pipeParams: panels.pipeParams,
+    rainfallParams: panels.rainfallParams,
+    onRunStart: panels.closePanels,
     onResults: showVulnerabilityOnMap,
+  });
+
+  const slideshow = useNodeSlideshow(mapRef, {
+    inletsRef,
+    drainsRef,
+    activeTableData: tables.activeTableData,
+    setTablesMinimized: tables.setTablesMinimized,
   });
 
   // The flood lines and the heatmap stay on the map, so the results can be
   // looked at with everything else put away.
   const handleClosePopUps = () => {
-    dismissTables();
-    setActivePanel(null);
+    tables.dismissTables();
+    panels.closePanels();
   };
 
   // Rain toggle handler
@@ -761,109 +600,6 @@ export default function SimulationPage() {
     });
 
     setHighlightedNodes(nodeIds);
-  };
-
-  // Handler for opening node simulation slideshow
-  const handleOpenNodeSimulation = async (nodeId: string) => {
-    const map = mapRef.current;
-    if (!map) return;
-    // This waits on three timers. A second click, or leaving the page, makes
-    // this run stale; it then stops rather than highlighting on a removed map
-    // or racing the newer one.
-    const request = ++slideshowRequestRef.current;
-    const stale = () =>
-      slideshowRequestRef.current !== request || mapRef.current !== map;
-
-    // Parse node ID to get source and feature ID
-    const { source, featureId } = parseNodeId(nodeId);
-    if (!source || !featureId) {
-      toast.error('Unable to locate node on map');
-      return;
-    }
-
-    // Find the node coordinates from our data
-    let coordinates: [number, number] | null = null;
-    if (source === 'inlets') {
-      const inlet = inletsRef.current.find((i) => i.id === featureId);
-      if (inlet) coordinates = inlet.coordinates;
-    } else if (source === 'storm_drains') {
-      const drain = drainsRef.current.find((d) => d.id === featureId);
-      if (drain) coordinates = drain.coordinates;
-    }
-
-    if (!coordinates) {
-      toast.error('Unable to locate node coordinates');
-      return;
-    }
-
-    // No return period is needed: the slideshow compares this node against
-    // the others in the same results. It used to insist on one, so a custom
-    // storm, which has none, could not open it at all.
-
-    // Step 1: Extract node data and all data from the appropriate table
-    if (!activeTableData) {
-      toast.error('No table data available');
-      return;
-    }
-
-    const nodeData = activeTableData.find((node) => node.Node_ID === nodeId);
-    if (!nodeData) {
-      toast.error('Node data not found in table');
-      return;
-    }
-
-    // Step 2: Minimize both tables instead of closing them (model 1 and model 2)
-    setTablesMinimized(true);
-
-    // Step 3: Wait for tables to minimize and year state to update (300ms delay)
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    if (stale()) return;
-
-    // Step 4: Fly to the node
-    map.flyTo({
-      center: coordinates,
-      zoom: CAMERA_ANIMATION.targetZoom,
-      speed: CAMERA_ANIMATION.speed,
-      curve: CAMERA_ANIMATION.curve,
-      essential: CAMERA_ANIMATION.essential,
-      easing: CAMERA_ANIMATION.easing,
-    });
-
-    // Step 5: Wait for flyTo animation to mostly complete
-    // Calculate approximate duration based on distance and speed
-    const flyDuration = CAMERA_FLY_DURATION_MS;
-    await new Promise((resolve) => setTimeout(resolve, flyDuration));
-    if (stale()) return;
-
-    // Step 6: Highlight the node on the map
-    map.setFeatureState({ source, id: featureId }, { selected: true });
-
-    // Step 7: Wait a bit for highlight to be visible (200ms)
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    if (stale()) return;
-
-    // Step 8: Set slideshow data and show the slideshow
-    setSlideshowNodeData(nodeData);
-    setSlideshowAllData(activeTableData);
-    setSlideshowNode(nodeId);
-  };
-
-  // Handler for closing slideshow
-  const handleCloseSlideshowNode = () => {
-    const map = mapRef.current;
-    if (!map || !slideshowNode) return;
-
-    // Clear highlight
-    const { source, featureId } = parseNodeId(slideshowNode);
-    if (source && featureId && map.getSource(source)) {
-      map.setFeatureState({ source, id: featureId }, { selected: false });
-    }
-
-    // Clear all slideshow state
-    setSlideshowNode(null);
-    setSlideshowNodeData(null);
-    setSlideshowAllData(null);
-    setTablesMinimized(false);
   };
 
   useEffect(() => {
@@ -958,37 +694,37 @@ export default function SimulationPage() {
           onChangeFloodScenario={setSelectedFloodScenario}
           isSimulationMode={isSimulationActive}
           selectedPointForSimulation={selectedPointForSimulation}
-          selectedComponentIds={selectedComponentIds}
-          onComponentIdsChange={setSelectedComponentIds}
-          selectedPipeIds={selectedPipeIds}
-          onPipeIdsChange={setSelectedPipeIds}
-          componentParams={componentParams}
-          onComponentParamsChange={setComponentParams}
-          pipeParams={pipeParams}
-          onPipeParamsChange={setPipeParams}
-          rainfallParams={rainfallParams}
-          onRainfallParamsChange={setRainfallParams}
-          showNodePanel={activePanel === 'node'}
-          onToggleNodePanel={handleToggleNodePanel}
-          showLinkPanel={activePanel === 'link'}
-          onToggleLinkPanel={handleToggleLinkPanel}
+          selectedComponentIds={panels.selectedComponentIds}
+          onComponentIdsChange={panels.setSelectedComponentIds}
+          selectedPipeIds={panels.selectedPipeIds}
+          onPipeIdsChange={panels.setSelectedPipeIds}
+          componentParams={panels.componentParams}
+          onComponentParamsChange={panels.setComponentParams}
+          pipeParams={panels.pipeParams}
+          onPipeParamsChange={panels.setPipeParams}
+          rainfallParams={panels.rainfallParams}
+          onRainfallParamsChange={panels.setRainfallParams}
+          showNodePanel={panels.activePanel === 'node'}
+          onToggleNodePanel={panels.handleToggleNodePanel}
+          showLinkPanel={panels.activePanel === 'link'}
+          onToggleLinkPanel={panels.handleToggleLinkPanel}
           onRefreshReports={async () => {}}
           isRefreshingReports={false}
-          selectedYear={selectedYear}
-          onYearChange={handleYearChange}
-          onGenerateTable={handleGenerateTable}
-          isLoadingTable={isLoadingTable}
-          onCloseTable={handleCloseTable}
-          hasTable={!!tableData}
-          isTableMinimized={isTableMinimized}
-          onToggleTableMinimize={handleToggleTableMinimize}
-          onGenerateTable3={handleGenerateTable3}
-          isLoadingTable3={isLoadingTable3}
-          onCloseTable3={handleCloseTable3}
-          hasTable3={!!tableData3}
-          isTable3Minimized={isTable3Minimized}
-          onToggleTable3Minimize={handleToggleTable3Minimize}
-          onOpenNodeSimulation={handleOpenNodeSimulation}
+          selectedYear={tables.selectedYear}
+          onYearChange={tables.handleYearChange}
+          onGenerateTable={tables.handleGenerateTable}
+          isLoadingTable={tables.isLoadingTable}
+          onCloseTable={tables.handleCloseTable}
+          hasTable={!!tables.tableData}
+          isTableMinimized={tables.isTableMinimized}
+          onToggleTableMinimize={tables.handleToggleTableMinimize}
+          onGenerateTable3={tables.handleGenerateTable3}
+          isLoadingTable3={tables.isLoadingTable3}
+          onCloseTable3={tables.handleCloseTable3}
+          hasTable3={!!tables.tableData3}
+          isTable3Minimized={tables.isTable3Minimized}
+          onToggleTable3Minimize={tables.handleToggleTable3Minimize}
+          onOpenNodeSimulation={slideshow.handleOpenNodeSimulation}
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
@@ -1005,114 +741,14 @@ export default function SimulationPage() {
           onExitSimulation={handleExitSimulation}
         />
 
-        {/* Vulnerability Data Table Overlay (model 1) */}
-        {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
-        {tableData && !isTableMinimized && (
-          <div
-            className="pointer-events-auto absolute z-20"
-            style={{
-              left: `${tablePosition.x}px`,
-              top: `${tablePosition.y}px`,
-            }}
-          >
-            {isLoadingTable ? (
-              <Spinner />
-            ) : (
-              <VulnerabilityDataTable
-                data={tableData}
-                ratingSource="stored"
-                isMinimized={false}
-                onToggleMinimize={handleToggleTableMinimize}
-                position={tablePosition}
-                onPositionChange={setTablePosition}
-                onHighlightNodes={handleHighlightNodes}
-                onOpenNodeSimulation={handleOpenNodeSimulation}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
-        {tableData3 && !isTable3Minimized && (
-          <div
-            className="pointer-events-auto absolute z-20"
-            style={{
-              left: `${table3Position.x}px`,
-              top: `${table3Position.y}px`,
-            }}
-          >
-            {isLoadingTable3 ? (
-              <Spinner />
-            ) : (
-              <VulnerabilityDataTable
-                data={tableData3}
-                ratingSource="live"
-                modelInfo={liveModelInfo}
-                isMinimized={false}
-                onToggleMinimize={handleToggleTable3Minimize}
-                position={table3Position}
-                onPositionChange={setTable3Position}
-                onHighlightNodes={handleHighlightNodes}
-                onOpenNodeSimulation={handleOpenNodeSimulation}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Node Simulation Slideshow */}
-        {slideshowNode && slideshowNodeData && slideshowAllData && (
-          <NodeSimulationSlideshow
-            nodeId={slideshowNode}
-            onClose={handleCloseSlideshowNode}
-            selectedYear={selectedYear ?? undefined}
-            nodeData={slideshowNodeData}
-            allNodesData={slideshowAllData}
-          />
-        )}
-
-        {/* Node Parameters Panel - Draggable */}
-        {activePanel === 'node' && selectedComponentIds.length > 0 && (
-          <div
-            style={{
-              position: 'fixed',
-              left: nodePanelPosition.x,
-              top: nodePanelPosition.y,
-              zIndex: 1000,
-            }}
-          >
-            <NodeParametersPanel
-              selectedComponentIds={selectedComponentIds}
-              componentParams={componentParams}
-              onUpdateParam={updateComponentParam}
-              onClose={() => setActivePanel(null)}
-              position={nodePanelPosition}
-              onPositionChange={setNodePanelPosition}
-              inlets={inlets}
-              drains={drains}
-            />
-          </div>
-        )}
-
-        {/* Link Parameters Panel - Draggable */}
-        {activePanel === 'link' && selectedPipeIds.length > 0 && (
-          <div
-            style={{
-              position: 'fixed',
-              left: linkPanelPosition.x,
-              top: linkPanelPosition.y,
-              zIndex: 1000,
-            }}
-          >
-            <LinkParametersPanel
-              selectedPipeIds={selectedPipeIds}
-              pipeParams={pipeParams}
-              onUpdateParam={updatePipeParam}
-              onClose={() => setActivePanel(null)}
-              position={linkPanelPosition}
-              onPositionChange={setLinkPanelPosition}
-            />
-          </div>
-        )}
+        <SimulationOverlays
+          tables={tables}
+          slideshow={slideshow}
+          panels={panels}
+          inlets={inlets}
+          drains={drains}
+          onHighlightNodes={handleHighlightNodes}
+        />
       </div>
     </>
   );

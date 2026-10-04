@@ -229,6 +229,21 @@ export function parseNodeId(nodeId: string): {
 }
 
 /**
+ * Where a simulation node is, given the source `parseNodeId` put it in.
+ * Null when the source holds no node with that id.
+ */
+export function findNodeCoordinates(
+  source: string,
+  featureId: string,
+  inlets: { id: string; coordinates: [number, number] }[],
+  drains: { id: string; coordinates: [number, number] }[]
+): [number, number] | null {
+  const nodes =
+    source === 'inlets' ? inlets : source === 'storm_drains' ? drains : [];
+  return nodes.find((node) => node.id === featureId)?.coordinates ?? null;
+}
+
+/**
  * One animation frame of the flood-propagation heatmap: every point gets a
  * pulsed intensity and is nudged along its own wobble direction.
  *
