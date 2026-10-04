@@ -59,6 +59,10 @@ interface ComboboxFormProps {
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
+  /** Name for screen readers when no visible label is nearby. */
+  ariaLabel?: string;
+  /** Id of the visible label, when there is one. */
+  ariaLabelledBy?: string;
 }
 
 export function ComboboxForm({
@@ -70,6 +74,8 @@ export function ComboboxForm({
   searchPlaceholder = 'Search...',
   emptyText = 'Not Found',
   disabled = false,
+  ariaLabel,
+  ariaLabelledBy,
 }: ComboboxFormProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -98,6 +104,8 @@ export function ComboboxForm({
                     <Button
                       variant="outline"
                       role="combobox"
+                      aria-label={ariaLabel}
+                      aria-labelledby={ariaLabelledBy}
                       className={cn(
                         'w-full justify-between font-normal',
                         !field.value && 'text-muted-foreground'
@@ -108,7 +116,10 @@ export function ComboboxForm({
                         ? options.find((opt) => opt.value === field.value)
                             ?.label
                         : placeholder}
-                      <ChevronsUpDown className="opacity-50" />
+                      <ChevronsUpDown
+                        aria-hidden="true"
+                        className="opacity-50"
+                      />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>

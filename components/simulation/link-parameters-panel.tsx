@@ -273,6 +273,7 @@ export function LinkParametersPanel({
                   size="icon"
                   className="bg-background/80 hover:bg-background no-drag absolute top-0 left-0 z-10 h-10 w-8 rounded-none"
                   onClick={() => scrollTabs('left')}
+                  aria-label="Scroll the pipe tabs left"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -305,6 +306,7 @@ export function LinkParametersPanel({
                   size="icon"
                   className="bg-background/80 hover:bg-background no-drag absolute top-0 right-0 z-10 h-10 w-8 rounded-none"
                   onClick={() => scrollTabs('right')}
+                  aria-label="Scroll the pipe tabs right"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -331,10 +333,14 @@ export function LinkParametersPanel({
                         </Label>
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger asChild>
+                            <TooltipTrigger
+                              type="button"
+                              aria-label="About the flow limit"
+                              className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                            >
                               <Info
+                                aria-hidden="true"
                                 className="text-muted-foreground h-3.5 w-3.5 cursor-help"
-                                aria-label="About the flow limit"
                               />
                             </TooltipTrigger>
                             <TooltipContent>

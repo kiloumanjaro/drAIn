@@ -435,7 +435,10 @@ ${note}`
               </div>
             ) : isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex flex-col items-center text-center">
+                <div
+                  role="status"
+                  className="flex flex-col items-center text-center"
+                >
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB]">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
                   </div>
@@ -628,6 +631,7 @@ ${note}`
                 value={agencyComments}
                 onChange={(e) => setAgencyComments(e.target.value)}
                 placeholder="Agency Comments Here"
+                aria-label="Agency comments"
                 rows={1}
                 style={{ height: '56px', minHeight: '56px', maxHeight: '56px' }}
                 className="!h-14 resize-none bg-transparent"
@@ -751,8 +755,9 @@ ${note}`
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowFullPageUpload(false)}
+                  aria-label="Close"
                 >
-                  <X className="h-5 w-5" />
+                  <X aria-hidden="true" className="h-5 w-5" />
                 </Button>
               </div>
 
@@ -785,8 +790,14 @@ ${note}`
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
+                  <label
+                    htmlFor="maintenance-photo-description"
+                    className="text-sm font-medium"
+                  >
+                    Description
+                  </label>
                   <Textarea
+                    id="maintenance-photo-description"
                     value={maintenanceDescription}
                     onChange={(e) => setMaintenanceDescription(e.target.value)}
                     placeholder="Describe the photo or work done..."

@@ -116,9 +116,11 @@ export function registerPopulationInteractions(
 
       // Create close button
       const closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.setAttribute('aria-label', 'Close');
       closeButton.style.cssText = POPULATION_POPUP_CLOSE_BUTTON_CSS;
       closeButton.innerHTML = `
-              <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg aria-hidden="true" width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
               </svg>
             `;

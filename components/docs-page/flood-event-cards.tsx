@@ -79,8 +79,15 @@ export default function FloodEventCards({
               <div className="flex cursor-pointer flex-row items-center justify-between rounded-t-xl px-4 py-2 transition-colors">
                 <span className="text-xs">{displayName}</span>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 cursor-help opacity-70" />
+                  <TooltipTrigger
+                    type="button"
+                    aria-label={`About ${displayName}`}
+                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <Info
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 cursor-help opacity-70"
+                    />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>

@@ -47,8 +47,15 @@ export default function FeatureCards({
                 <span className="text-xs">{feature.title}</span>
                 {feature.tooltip && (
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 cursor-help opacity-70" />
+                    <TooltipTrigger
+                      type="button"
+                      aria-label={`About ${feature.title}`}
+                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <Info
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 cursor-help opacity-70"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{feature.tooltip}</p>

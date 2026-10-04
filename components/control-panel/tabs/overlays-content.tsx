@@ -127,6 +127,7 @@ function SortableItem({ id, children, isDragEnabled }: SortableItemProps) {
             className="absolute inset-0 z-20 flex cursor-grab items-center justify-center active:cursor-grabbing"
             {...attributes}
             {...listeners}
+            aria-label="Reorder this overlay"
           ></div>
 
           {/* Disabled content when unlocked (drag mode) */}

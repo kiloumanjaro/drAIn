@@ -10,7 +10,10 @@ export function MoreOptions() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors">
+        <button
+          aria-label="Settings"
+          className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB] transition-colors"
+        >
           <MoreHorizontal className="h-5 w-5 text-[#8D8D8D] hover:text-black" />
         </button>
       </DropdownMenuTrigger>

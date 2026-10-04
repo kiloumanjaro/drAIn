@@ -210,6 +210,7 @@ export function TopBar({
               )
             }
             showSearch={false}
+            ariaLabel="Component type"
           />
         </div>
       )}
