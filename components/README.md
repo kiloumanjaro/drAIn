@@ -19,7 +19,6 @@ more than one feature moves up to `common/`.
 | `landing/`       | The landing page, including its animated map (`data-flow`).                                                          |
 | `auth/`          | Sign-in and sign-up forms.                                                                                           |
 | `context/`       | React context providers.                                                                                             |
-| `_unused/`       | Kept for reference, rendered nowhere. The `/gallery` dev route previews them.                                        |
 
 ## Three things called "docs"
 

@@ -37,6 +37,5 @@ vendor/
 bower_components/
 public/assets/vendor/
 
-# Unused & archived (project-specific)
-components/_unused/
+# Archived (project-specific)
 docs/_archive/

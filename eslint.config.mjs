@@ -10,9 +10,6 @@ const eslintConfig = [
       'build/**',
       'next-env.d.ts',
       'dist/**',
-      // Self-contained bundle for other projects; it resolves @/ against its
-      // own root and ships its own tsconfig, so linting it here is noise.
-      'control-panel-portable/**',
       // Deno edge functions: their own runtime and URL imports.
       'supabase/functions/**',
     ],

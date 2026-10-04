@@ -105,7 +105,7 @@ and `has_function_privilege` on 2026-09-29.
 
 ## 1i. Hygiene
 
-- `control-panel-portable/` (740 KB) and `components/_unused/` — 2.8.
+- `control-panel-portable/` (740 KB) and `components/_unused/` — 2.8. Both removed 2026-10-04.
 - `BACKEND-DrAin` — submodule, see Medium.
 - CI (`.github/workflows/deploy.yml`) already runs format check, lint,
   type-check and unit tests; it lacks only pgTAP — 2.1 shrinks to that.
