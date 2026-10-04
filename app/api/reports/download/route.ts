@@ -3,6 +3,7 @@ import { createRequestClient } from '@/lib/supabase/server';
 import type { Tables } from '@/types/database.types';
 import { csvField, monthRangeUtc, parseMonthYear } from '@/lib/reports/csv';
 import type { UserRole } from '@/lib/supabase/enums';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
 
 // Roles allowed to export reports. An allowlist, so a role added to the enum
 // later gets no access until it is listed here.
@@ -27,6 +28,22 @@ type ReportRecord = Pick<
   | 'long'
 >;
 
+// The export holds reporter names and is different for each caller and
+// moment, so no browser or proxy may keep a copy, errors included.
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
+const json = (body: { error: string }, status: number) =>
+  NextResponse.json(body, { status, headers: NO_STORE });
+
+const csvFile = (csv: string, filename: string) =>
+  new NextResponse(csv, {
+    headers: {
+      ...NO_STORE,
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    },
+  });
+
 export async function GET(request: NextRequest) {
   try {
     // The export lists every report with reporter details, so it is for
@@ -39,7 +56,7 @@ export async function GET(request: NextRequest) {
     } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
 
     if (!user) {
-      return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+      return json({ error: 'Sign in required' }, 401);
     }
 
     const { data: profile } = await supabase
@@ -49,10 +66,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (!profile || !EXPORT_ROLES.includes(profile.role)) {
-      return NextResponse.json(
-        { error: 'Only agency staff can download reports' },
-        { status: 403 }
-      );
+      return json({ error: 'Only agency staff can download reports' }, 403);
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -61,10 +75,7 @@ export async function GET(request: NextRequest) {
       searchParams.get('year')
     );
     if (!period) {
-      return NextResponse.json(
-        { error: 'Give a month (1-12) and a four-digit year' },
-        { status: 400 }
-      );
+      return json({ error: 'Give a month (1-12) and a four-digit year' }, 400);
     }
     const { month, year } = period;
     // Built from the parsed numbers only, never from the raw query.
@@ -74,24 +85,27 @@ export async function GET(request: NextRequest) {
     const { start, end } = monthRangeUtc(month, year);
 
     // The month's reports, except rejected ones (spam and duplicates), which
-    // every other surface leaves out too.
-    const { data: reports, error } = await supabase
-      .from('reports')
-      .select(CSV_COLUMNS)
-      .gte('created_at', start.toISOString())
-      .lt('created_at', end.toISOString())
-      .neq('review_status', 'rejected')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching reports:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch reports' },
-        { status: 500 }
+    // every other surface leaves out too. Paged: one request stops at 1,000
+    // rows without saying so, which would cut a busy month short.
+    let reports: ReportRecord[];
+    try {
+      reports = await fetchAllRows((from, to) =>
+        supabase
+          .from('reports')
+          .select(CSV_COLUMNS)
+          .gte('created_at', start.toISOString())
+          .lt('created_at', end.toISOString())
+          .neq('review_status', 'rejected')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, to)
       );
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      return json({ error: 'Failed to fetch reports' }, 500);
     }
 
-    if (!reports || reports.length === 0) {
+    if (reports.length === 0) {
       // Return empty CSV with headers
       const headers = [
         'ID',
@@ -108,29 +122,16 @@ export async function GET(request: NextRequest) {
       ];
       const csv = headers.join(',') + '\n';
 
-      return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-      });
+      return csvFile(csv, filename);
     }
 
     // Generate CSV content
     const csv = generateCSV(reports);
 
-    return new NextResponse(csv, {
-      headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    });
+    return csvFile(csv, filename);
   } catch (error) {
     console.error('Download error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return json({ error: 'Internal server error' }, 500);
   }
 }
 
