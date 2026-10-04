@@ -77,6 +77,9 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       }
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       queryClient.invalidateQueries({ queryKey: reportKeys.countsByDay() });
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.countsByComponent(),
+      });
       return formatted;
     };
 

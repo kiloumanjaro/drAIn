@@ -41,21 +41,13 @@ import {
   findComponent,
 } from '@/lib/map/component-selection';
 import { useSidebar } from '@/components/ui/sidebar';
-import ReactDOM from 'react-dom/client';
-import {
-  ReportBubble,
-  type ReportBubbleRef,
-} from '@/components/map/report-bubble';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  fetchReportCountsByComponent,
-  reportCountKey,
-} from '@/lib/supabase/report';
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
 import { useComponentSelection } from './use-component-selection';
 import { useOverlayToggles } from './use-overlay-toggles';
 import { usePopulationLayer } from './use-population-layer';
+import { useReportBubbles } from './use-report-bubbles';
 
 /** The drainage hooks' fallback while loading: one array, not a new one per render. */
 const NO_ITEMS: never[] = [];
@@ -84,7 +76,6 @@ function MapPageContent() {
     handleToggleAllOverlays,
   } = useOverlayToggles();
 
-  const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
   const overlayVisibilityRef = useLatestRef(overlayVisibility);
   const { registerPopulationLayer, clearPopulationLayerSelection } =
     usePopulationLayer(overlayVisibilityRef);
@@ -97,7 +88,7 @@ function MapPageContent() {
 
   // Load data from hooks with TanStack Query. The fallback is one shared
   // empty array: a fresh `[]` each render made every callback built on
-  // these change on every render, and the report bubbles rebuild with them.
+  // these change on every render.
   const { data: inlets = NO_ITEMS, error: inletsError } = useInlets();
 
   const { data: outlets = NO_ITEMS, error: outletsError } = useOutlets();
@@ -207,25 +198,6 @@ function MapPageContent() {
   const outletsRef = useLatestRef(outlets);
   const pipesRef = useLatestRef(pipes);
   const drainsRef = useLatestRef(drains);
-
-  // Toggle report popups visibility
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const isVisible = overlayVisibility['reports-layer'];
-    const popups = reportPopupsRef.current;
-
-    popups.forEach((popup) => {
-      if (isVisible) {
-        if (!popup.isOpen()) {
-          popup.addTo(map);
-        }
-      } else {
-        popup.remove();
-      }
-    });
-  }, [overlayVisibility]);
 
   useEffect(() => {
     mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
@@ -367,78 +339,13 @@ function MapPageContent() {
     [inlets, outlets, pipes, drains, showComponent]
   );
 
-  // One bubble per component's latest report. Rebuilt when the reports
-  // change; the cleanup removes the popups and unmounts their React roots,
-  // which used to pile up on every rebuild and outlive the page.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady || reports.length === 0) return;
-
-    const popups: mapboxgl.Popup[] = [];
-    const roots: ReactDOM.Root[] = [];
-    const reportBubbleRefs: Array<ReportBubbleRef | null> = [];
-    // One request for every pin's report count, not one per pin.
-    const reportCounts = fetchReportCountsByComponent();
-
-    const coordinateCounts = new Map<string, number>();
-    reports.forEach((report) => {
-      const key = JSON.stringify(report.coordinates);
-      coordinateCounts.set(key, (coordinateCounts.get(key) || 0) + 1);
-    });
-
-    reports.forEach((report, index) => {
-      const container = document.createElement('div');
-      const root = ReactDOM.createRoot(container);
-      roots.push(root);
-
-      const popup = new mapboxgl.Popup({
-        maxWidth: '320px',
-        closeButton: false,
-        className: 'no-bg-popup',
-        closeOnClick: false,
-      })
-        .setLngLat(report.coordinates)
-        .setDOMContent(container);
-      // Hidden while the reports layer is off; the visibility effect above
-      // adds them when it is switched on.
-      if (overlayVisibilityRef.current['reports-layer']) popup.addTo(map);
-      popups.push(popup);
-
-      const handleOpenBubble = () => {
-        reportBubbleRefs.forEach((ref, i) => {
-          if (i !== index && ref) ref.close();
-        });
-      };
-
-      root.render(
-        <ReportBubble
-          ref={(ref) => {
-            reportBubbleRefs[index] = ref;
-          }}
-          reportSize={reportCounts.then(
-            (counts) =>
-              counts.get(reportCountKey(report.category, report.componentId)) ??
-              0
-          )}
-          report={report}
-          map={map}
-          coordinates={report.coordinates}
-          onOpen={handleOpenBubble}
-          onHistoryClick={() =>
-            handleReportHistoryClick(report.category, report.componentId)
-          }
-        />
-      );
-    });
-    reportPopupsRef.current = popups;
-
-    return () => {
-      popups.forEach((popup) => popup.remove());
-      if (reportPopupsRef.current === popups) reportPopupsRef.current = [];
-      // Unmounting a root during React's own render warns; do it just after.
-      queueMicrotask(() => roots.forEach((root) => root.unmount()));
-    };
-  }, [reports, mapReady, handleReportHistoryClick, overlayVisibilityRef]);
+  useReportBubbles({
+    mapRef,
+    mapReady,
+    reports,
+    visible: overlayVisibility['reports-layer'],
+    onHistoryClick: handleReportHistoryClick,
+  });
 
   useEffect(() => {
     if (mapRef.current) {

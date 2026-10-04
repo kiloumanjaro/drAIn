@@ -8,6 +8,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { reportKeys } from '@/lib/query/keys';
 import {
   fetchLatestReportsPerComponent,
+  fetchReportCountsByComponent,
   fetchReportCountsByDay,
   fetchReportList,
   type Report,
@@ -60,6 +61,21 @@ export function useReportCountsByDay() {
     queryFn: fetchReportCountsByDay,
     staleTime: 1 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+  });
+}
+
+/**
+ * How many reports each component has, for the map's bubbles. Kept as fresh
+ * as the pins themselves: same refetch interval, and realtime invalidates it
+ * whenever a report is filed or changed.
+ */
+export function useReportCountsByComponent() {
+  return useQuery({
+    queryKey: reportKeys.countsByComponent(),
+    queryFn: fetchReportCountsByComponent,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 }
 

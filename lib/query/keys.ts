@@ -96,6 +96,7 @@ export const reportKeys = {
   latest: () => [...reportKeys.all, 'latest'],
   latestPerComponent: () => [...reportKeys.latest(), 'per-component'],
   countsByDay: () => [...reportKeys.all, 'counts-by-day'],
+  countsByComponent: () => [...reportKeys.all, 'counts-by-component'],
   notifications: () => [...reportKeys.all, 'notifications'],
 };
 
