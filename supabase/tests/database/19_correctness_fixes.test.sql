@@ -14,6 +14,11 @@ select plan(14);
 
 -- record_maintenance -----------------------------------------------------------
 
+-- The two evidence photos, uploaded by the staff member who records the work.
+insert into storage.objects (bucket_id, name, owner_id) values
+  ('ReportImage', 'public/00000000-0000-4000-c000-000000000001.jpg', '00000000-0000-4000-a000-000000000002'),
+  ('ReportImage', 'public/00000000-0000-4000-c000-000000000002.jpg', '00000000-0000-4000-a000-000000000002');
+
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
 
@@ -88,10 +93,10 @@ select policy_roles_are('storage', 'objects',
   'Users remove their own avatars', ARRAY['authenticated'],
   'and applies to signed-in users too');
 
--- Photos: one referenced by the maintenance above, one orphaned (upload whose
--- report insert failed), one belonging to someone else; plus one avatar.
+-- Photos: ...c000-000000000002 is referenced by the maintenance above; here
+-- one orphaned (upload whose report insert failed) and one belonging to
+-- someone else; plus one avatar.
 insert into storage.objects (bucket_id, name, owner_id) values
-  ('ReportImage', 'public/00000000-0000-4000-c000-000000000002.jpg', '00000000-0000-4000-a000-000000000002'),
   ('ReportImage', 'public/00000000-0000-4000-c000-000000000003.jpg', '00000000-0000-4000-a000-000000000003'),
   ('ReportImage', 'public/00000000-0000-4000-c000-000000000004.jpg', '00000000-0000-4000-a000-000000000002'),
   ('Avatars', '00000000-0000-4000-a000-000000000002/avatar.jpg', '00000000-0000-4000-a000-000000000002');

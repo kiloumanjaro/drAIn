@@ -55,6 +55,7 @@ export default function SignUpForm() {
         placeholder="Full Name"
         aria-label="Full Name"
         className="w-full rounded border p-2"
+        maxLength={100}
         required
       />
       <input

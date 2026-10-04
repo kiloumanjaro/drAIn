@@ -149,14 +149,16 @@ ALTER TYPE "public"."review_verdict" OWNER TO "postgres";
 
 -- Creates the profiles row for every new account. Everyone starts as a
 -- citizen: sign-up metadata is written by the client, so only full_name is
--- taken from it. People become staff through join_agency or an admin.
+-- taken from it, cut to the 100 characters profiles_full_name_length allows
+-- (a longer one must not make the sign-up fail). People become staff through
+-- join_agency.
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 BEGIN
   INSERT INTO public.profiles (id, full_name)
-  VALUES (new.id, new.raw_user_meta_data ->> 'full_name');
+  VALUES (new.id, nullif(left(btrim(new.raw_user_meta_data ->> 'full_name'), 100), ''));
   RETURN new;
 END;
 $$;
@@ -255,6 +257,13 @@ ALTER TABLE ONLY "public"."agencies"
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
 
+-- A name is copied onto each of the person's public reports
+-- (sync_reporter_name), so it has a limit. NOT VALID: it holds for every new
+-- or changed row; rows from before it are left as they are (the migration
+-- that added it reports how many there are).
+ALTER TABLE "public"."profiles"
+    ADD CONSTRAINT "profiles_full_name_length" CHECK (("char_length"("full_name") <= 100)) NOT VALID;
+
 CREATE INDEX "idx_profiles_agency_id" ON "public"."profiles" USING "btree" ("agency_id");
 CREATE OR REPLACE TRIGGER "set_updated_at" BEFORE UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 CREATE OR REPLACE TRIGGER "protect_profile_privileges" BEFORE INSERT OR UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."protect_profile_privileges"();
@@ -329,6 +338,82 @@ ALTER FUNCTION "private"."is_api_caller"() OWNER TO "postgres";
 -- Trigger functions that run as the caller use it too.
 REVOKE ALL ON FUNCTION "private"."is_api_caller"() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION "private"."is_api_caller"() TO "anon", "authenticated", "service_role";
+
+-- A record of who did what to whom, kept for good: staff decisions on
+-- reports and maintenance, and every change to who belongs to an agency.
+-- Those functions used to overwrite the previous state in place, so one
+-- staff account (or anyone holding an agency's join code) could reject or
+-- close everything and leave nothing to restore from. Rows are only ever
+-- added: updates, deletes and TRUNCATE are refused for every role. Not
+-- readable through the API; read it from the SQL editor.
+--   action       target        details
+--   report.review         report        before/after review_status, note, priority, reviewer
+--   maintenance.record    maintenance   component, status, and each report moved with its old status
+--   maintenance.review    maintenance   verdict, previous verdict, reports reopened
+--   maintenance.response  maintenance   the reporter's verdict, their report
+--   agency.member_set     profile       role and agency, before and after
+--   agency.join           profile       the agency joined
+--   agency.join_failed    profile       (a wrong code; the code is never stored)
+--   agency.leave          profile       the agency left
+--   agency.code_rotated   agency
+CREATE TABLE IF NOT EXISTS "private"."audit_log" (
+    "id" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+    "at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "actor_id" "uuid",
+    "actor_agency_id" "uuid",
+    "actor_role" "text" NOT NULL,
+    "action" "text" NOT NULL,
+    "target_type" "text" NOT NULL,
+    "target_id" "text" NOT NULL,
+    "details" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id")
+);
+
+ALTER TABLE "private"."audit_log" OWNER TO "postgres";
+
+COMMENT ON COLUMN "private"."audit_log"."actor_id" IS 'Who did it. No foreign key: the row outlives the account. Null for a direct database session.';
+COMMENT ON COLUMN "private"."audit_log"."actor_role" IS 'The database role the request ran as (authenticated, service_role), or none for a direct session.';
+
+ALTER TABLE "private"."audit_log" ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX "idx_audit_log_target" ON "private"."audit_log" USING "btree" ("target_type", "target_id", "at" DESC);
+CREATE INDEX "idx_audit_log_actor" ON "private"."audit_log" USING "btree" ("actor_id", "at" DESC);
+
+CREATE OR REPLACE FUNCTION "private"."refuse_audit_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'The audit log is append-only.' USING ERRCODE = '42501';
+END;
+$$;
+
+ALTER FUNCTION "private"."refuse_audit_change"() OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."refuse_audit_change"() FROM PUBLIC, "anon", "authenticated";
+
+CREATE OR REPLACE TRIGGER "audit_log_is_append_only" BEFORE UPDATE OR DELETE ON "private"."audit_log" FOR EACH ROW EXECUTE FUNCTION "private"."refuse_audit_change"();
+CREATE OR REPLACE TRIGGER "audit_log_is_never_emptied" BEFORE TRUNCATE ON "private"."audit_log" FOR EACH STATEMENT EXECUTE FUNCTION "private"."refuse_audit_change"();
+
+-- Adds one row to the audit log for the current caller. Runs with the
+-- caller's rights and is granted to no client, so it only works from the
+-- SECURITY DEFINER functions that call it.
+CREATE OR REPLACE FUNCTION "private"."write_audit"("p_action" "text", "p_target_type" "text", "p_target_id" "text", "p_details" "jsonb" DEFAULT '{}'::"jsonb") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  INSERT INTO private.audit_log
+    (actor_id, actor_agency_id, actor_role, action, target_type, target_id, details)
+  VALUES
+    (auth.uid(), private.current_agency_id(), coalesce(current_setting('role', true), 'none'),
+     p_action, p_target_type, p_target_id, coalesce(p_details, '{}'::jsonb));
+END;
+$$;
+
+ALTER FUNCTION "private"."write_audit"("p_action" "text", "p_target_type" "text", "p_target_id" "text", "p_details" "jsonb") OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."write_audit"("p_action" "text", "p_target_type" "text", "p_target_id" "text", "p_details" "jsonb") FROM PUBLIC, "anon", "authenticated";
 
 -- True if the caller may manage this agency's members and join code: an
 -- admin of that agency, the service role, or a direct database session. Anon,
@@ -405,6 +490,7 @@ BEGIN
   ON CONFLICT (agency_id) DO UPDATE
     SET code_hash = excluded.code_hash, rotated_at = excluded.rotated_at;
 
+  PERFORM private.write_audit('agency.code_rotated', 'agency', p_agency_id::text);
   RETURN substr(raw, 1, 4) || '-' || substr(raw, 5, 4) || '-' || substr(raw, 9, 2);
 END;
 $$;
@@ -443,10 +529,13 @@ BEGIN
   LIMIT 1;
 
   IF matched.id IS NULL THEN
+    PERFORM private.write_audit('agency.join_failed', 'profile', auth.uid()::text);
     RETURN NULL;
   END IF;
 
   UPDATE public.profiles SET role = 'staff', agency_id = matched.id WHERE id = auth.uid();
+  PERFORM private.write_audit('agency.join', 'profile', auth.uid()::text,
+                              jsonb_build_object('agency_id', matched.id));
   RETURN matched;
 END;
 $$;
@@ -459,12 +548,18 @@ CREATE OR REPLACE FUNCTION "public"."leave_agency"() RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
+DECLARE
+  left_agency uuid;
 BEGIN
-  UPDATE public.profiles SET role = 'citizen', agency_id = NULL
-  WHERE id = auth.uid() AND role = 'staff';
+  SELECT agency_id INTO left_agency FROM public.profiles
+  WHERE id = auth.uid() AND role = 'staff'
+  FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Only agency staff can leave an agency.' USING ERRCODE = 'P0001';
   END IF;
+  UPDATE public.profiles SET role = 'citizen', agency_id = NULL WHERE id = auth.uid();
+  PERFORM private.write_audit('agency.leave', 'profile', auth.uid()::text,
+                              jsonb_build_object('agency_id', left_agency));
 END;
 $$;
 
@@ -484,6 +579,7 @@ CREATE OR REPLACE FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_a
     AS $$
 DECLARE
   target_agency uuid;
+  target_role public.user_role;
   result public.profiles;
 BEGIN
   IF NOT private.can_manage_agency(p_agency_id) THEN
@@ -495,7 +591,8 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  SELECT agency_id INTO target_agency FROM public.profiles WHERE id = p_user_id FOR UPDATE;
+  SELECT agency_id, role INTO target_agency, target_role
+  FROM public.profiles WHERE id = p_user_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'No such user.' USING ERRCODE = 'P0002';
   END IF;
@@ -515,6 +612,9 @@ BEGIN
   IF result.id IS NULL THEN
     RAISE EXCEPTION 'No such user.' USING ERRCODE = 'P0002';
   END IF;
+  PERFORM private.write_audit('agency.member_set', 'profile', p_user_id::text,
+    jsonb_build_object('role_before', target_role, 'agency_before', target_agency,
+                       'role', result.role, 'agency_id', result.agency_id));
   RETURN result;
 END;
 $$;
@@ -787,6 +887,10 @@ COMMENT ON COLUMN "public"."maintenance"."performed_by" IS 'The staff member who
 COMMENT ON COLUMN "public"."maintenance"."verification_status" IS 'Kept by review_maintenance and respond_to_resolution from maintenance_reviews: disputed if anyone disputed it, verified if someone other than the person who did it confirmed it, else unverified.';
 COMMENT ON COLUMN "public"."maintenance"."description" IS 'Agency comments, including photo notes and evidence-check notes.';
 
+-- NOT VALID, like profiles_full_name_length: older rows are left alone.
+ALTER TABLE "public"."maintenance"
+    ADD CONSTRAINT "maintenance_description_length" CHECK (("char_length"("description") <= 2000)) NOT VALID;
+
 -- History of one component, newest first (getMaintenanceHistory, last cleaned).
 CREATE INDEX "idx_maintenance_component" ON "public"."maintenance" USING "btree" ("component_name", "performed_at" DESC);
 
@@ -808,7 +912,10 @@ ALTER TABLE ONLY "public"."maintenance"
 --   in-progress  moves pending reports to in-progress.
 -- Reports filed after the work, and reports staff rejected, are left alone.
 -- This is the only way reports change status; clients can't update reports
--- directly.
+-- directly. The evidence photo must be one the caller uploaded. Each staff
+-- member may record 30 an hour and 200 a day (consume_rate_limit), and each
+-- call is written to the audit log with the reports it moved and what they
+-- were before, so a mistaken or malicious run can be put back.
 CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -816,6 +923,7 @@ CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "pub
 DECLARE
   staff_agency uuid := private.current_agency_id();
   result public.maintenance;
+  moved jsonb;
 BEGIN
   IF staff_agency IS NULL THEN
     RAISE EXCEPTION 'Only agency staff can record maintenance.' USING ERRCODE = '42501';
@@ -826,6 +934,17 @@ BEGIN
     RAISE EXCEPTION 'No % named %.', p_component_type, p_component_name
       USING ERRCODE = '22023';
   END IF;
+  IF char_length(btrim(p_description)) > 2000 THEN
+    RAISE EXCEPTION 'Keep the description under 2,000 characters.' USING ERRCODE = '22023';
+  END IF;
+  IF p_evidence_image IS NOT NULL AND NOT private.owns_report_photo(p_evidence_image) THEN
+    RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
+  END IF;
+  -- After the checks, so only work that is actually recorded is counted.
+  IF NOT public.consume_rate_limit('record_maintenance') THEN
+    RAISE EXCEPTION 'You have recorded a lot of work recently. Please try again later.'
+      USING ERRCODE = 'P0001', HINT = 'rate_limited';
+  END IF;
 
   INSERT INTO public.maintenance
     (component_type, component_name, agency_id, performed_by, status, description, evidence_image)
@@ -834,22 +953,35 @@ BEGIN
      nullif(btrim(p_description), ''), p_evidence_image)
   RETURNING * INTO result;
 
-  UPDATE public.reports
-  SET status = p_status::text::public.report_status,
-      resolved_by_maintenance_id = result.id,
-      -- The "photo after the fix" only exists once the work is resolved; an
-      -- in-progress photo stays on the maintenance row alone.
-      resolved_image = CASE WHEN p_status = 'resolved'
-                            THEN coalesce(p_evidence_image, resolved_image)
-                            ELSE resolved_image END,
-      resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE resolved_at END
-  WHERE component_id = p_component_name
-    AND created_at <= result.performed_at
-    AND review_status <> 'rejected'
-    AND status = ANY (CASE WHEN p_status = 'resolved'
-                           THEN ARRAY['pending', 'in-progress']::public.report_status[]
-                           ELSE ARRAY['pending']::public.report_status[] END);
+  WITH open_reports AS (
+    SELECT r.id, r.status
+    FROM public.reports r
+    WHERE r.component_id = p_component_name
+      AND r.created_at <= result.performed_at
+      AND r.review_status <> 'rejected'
+      AND r.status = ANY (CASE WHEN p_status = 'resolved'
+                               THEN ARRAY['pending', 'in-progress']::public.report_status[]
+                               ELSE ARRAY['pending']::public.report_status[] END)
+    FOR UPDATE
+  ), updated AS (
+    UPDATE public.reports r
+    SET status = p_status::text::public.report_status,
+        resolved_by_maintenance_id = result.id,
+        -- The "photo after the fix" only exists once the work is resolved; an
+        -- in-progress photo stays on the maintenance row alone.
+        resolved_image = CASE WHEN p_status = 'resolved'
+                              THEN coalesce(p_evidence_image, r.resolved_image)
+                              ELSE r.resolved_image END,
+        resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE r.resolved_at END
+    FROM open_reports o
+    WHERE r.id = o.id
+  )
+  SELECT coalesce(jsonb_agg(jsonb_build_object('id', o.id, 'status_before', o.status)), '[]'::jsonb)
+  INTO moved
+  FROM open_reports o;
 
+  PERFORM private.write_audit('maintenance.record', 'maintenance', result.id::text,
+    jsonb_build_object('component', p_component_name, 'status', p_status, 'reports', moved));
   RETURN result;
 END;
 $$;
