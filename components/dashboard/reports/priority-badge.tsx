@@ -18,28 +18,28 @@ export default function PriorityBadge({
       label: 'Low Priority',
       icon: Info,
       bgGradient: 'bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] ',
-      textColor: '#727272',
+      textColor: '#6d6d6d',
       borderColor: '#d6d6d6',
     },
     medium: {
       label: 'Medium Priority',
       icon: Clock,
       bgGradient: 'bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] ',
-      textColor: '#727272',
+      textColor: '#6d6d6d',
       borderColor: '#d6d6d6',
     },
     high: {
       label: 'High Priority',
       icon: AlertCircle,
       bgGradient: 'bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] ',
-      textColor: '#727272',
+      textColor: '#6d6d6d',
       borderColor: '#d6d6d6',
     },
     critical: {
       label: 'Critical Priority',
       icon: AlertTriangle,
       bgGradient: 'bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] ',
-      textColor: '#727272',
+      textColor: '#6d6d6d',
       borderColor: '#d6d6d6',
     },
   };
@@ -59,24 +59,38 @@ export default function PriorityBadge({
   const config = priorityConfigs[priority];
   const IconComponent = config.icon;
 
-  return (
-    <div
-      onClick={() => onClick?.(priority)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onClick?.(priority);
-        }
-      }}
-      className={`inline-flex cursor-pointer items-center rounded-md border font-semibold transition-opacity hover:opacity-80 ${sizeClasses[size]} ${config.bgGradient}`}
-      style={{
-        color: config.textColor,
-        borderColor: config.borderColor,
-      }}
-    >
-      <IconComponent className={iconSizes[size]} />
+  const content = (
+    <>
+      <IconComponent aria-hidden="true" className={iconSizes[size]} />
       {config.label}
-    </div>
+    </>
+  );
+  const className = `inline-flex items-center rounded-md border font-semibold ${sizeClasses[size]} ${config.bgGradient}`;
+  const style = { color: config.textColor, borderColor: config.borderColor };
+
+  // A badge is a control only where clicking it filters the list; elsewhere
+  // it is plain text and takes no tab stop.
+  if (!onClick) {
+    return (
+      <span className={className} style={style}>
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      // The badge sits inside a card that is itself clickable.
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(priority);
+      }}
+      aria-label={`Show only ${config.label} reports`}
+      className={`cursor-pointer transition-opacity hover:opacity-80 ${className}`}
+      style={style}
+    >
+      {content}
+    </button>
   );
 }

@@ -81,19 +81,23 @@ export default function ReportCard({
   };
 
   return (
+    // Clicking anywhere on the card opens the report on the map. The card is
+    // not itself a button, because it holds buttons; the photo is the
+    // keyboard and screen-reader way in.
     <div
       onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          handleCardClick();
-        }
-      }}
       className="group flex h-full max-h-100 w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all hover:bg-[#fafafa]"
     >
       {/* Image Gallery */}
-      <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleCardClick();
+        }}
+        aria-label={`Show on the map: report at ${shortenAddress(report.address)}`}
+        className="relative block h-48 w-full shrink-0 cursor-pointer overflow-hidden bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none focus-visible:ring-inset"
+      >
         {images.length > 0 ? (
           <Image
             src={images[0]}
@@ -107,43 +111,28 @@ export default function ReportCard({
             No image available
           </div>
         )}
-      </div>
+      </button>
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Content */}
         <div className="max-h-38 space-y-3 overflow-y-auto p-4">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
-            <div
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
-              <PriorityBadge
-                priority={report.priority}
-                size="sm"
-                onClick={onPriorityFilter}
+            <PriorityBadge
+              priority={report.priority}
+              size="sm"
+              onClick={onPriorityFilter}
+            />
+            <StatusBadge
+              status={report.status as 'pending' | 'in-progress' | 'resolved'}
+              onClick={onStatusFilter}
+            />
+            {componentType && (
+              <ComponentTypeBadge
+                componentType={componentType}
+                onClick={onComponentTypeFilter}
               />
-            </div>
-            <div
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
-              <StatusBadge
-                status={report.status as 'pending' | 'in-progress' | 'resolved'}
-                onClick={onStatusFilter}
-              />
-            </div>
-            <div
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
-              {componentType && (
-                <ComponentTypeBadge
-                  componentType={componentType}
-                  onClick={onComponentTypeFilter}
-                />
-              )}
-            </div>
+            )}
           </div>
 
           <ReportReview report={report} />
@@ -183,7 +172,6 @@ export default function ReportCard({
                   e.stopPropagation();
                   setExpandedDescription(!expandedDescription);
                 }}
-                onKeyDown={(e) => e.stopPropagation()}
                 className={`cursor-pointer text-left text-xs text-gray-600 transition-all ${
                   expandedDescription ? '' : 'line-clamp-1'
                 }`}
@@ -208,13 +196,20 @@ export default function ReportCard({
             onMouseEnter={() => !showCopyTooltip && setShowCopyTooltip(false)}
             className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
             title="Copy ID"
+            aria-label="Copy report ID"
           >
-            <Copy className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
+            <Copy
+              aria-hidden="true"
+              className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700"
+            />
           </button>
 
           {/* Tooltip */}
           {showCopyTooltip && (
-            <div className="absolute right-0 bottom-full z-10 mb-1 rounded bg-gray-800 px-2 py-1 text-xs whitespace-nowrap text-white">
+            <div
+              role="status"
+              className="absolute right-0 bottom-full z-10 mb-1 rounded bg-gray-800 px-2 py-1 text-xs whitespace-nowrap text-white"
+            >
               ID Copied!
               <div className="absolute top-full right-2 h-0 w-0 border-t-2 border-r-2 border-l-2 border-transparent border-t-gray-800"></div>
             </div>
