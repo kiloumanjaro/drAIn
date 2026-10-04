@@ -123,7 +123,7 @@ DECLARE
   per_hour integer := CASE WHEN auth.uid() IS NULL THEN 3 ELSE 5 END;
   per_day integer := 10;
 BEGIN
-  IF auth.role() IN ('anon', 'authenticated') THEN
+  IF private.is_api_caller() THEN
     NEW.created_at := now();
     NEW.review_status := 'unreviewed';
     NEW.reviewed_by := NULL;
@@ -198,7 +198,7 @@ CREATE OR REPLACE FUNCTION "public"."reject_bulk_report_insert"() RETURNS "trigg
     SET "search_path" TO ''
     AS $$
 BEGIN
-  IF auth.role() IN ('anon', 'authenticated')
+  IF private.is_api_caller()
      AND (SELECT count(*) FROM new_reports) > 1 THEN
     RAISE EXCEPTION 'File one report at a time.' USING ERRCODE = 'P0001', HINT = 'rate_limited';
   END IF;

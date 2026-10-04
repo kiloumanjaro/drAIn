@@ -310,19 +310,41 @@ GRANT EXECUTE ON FUNCTION "private"."current_agency_id"() TO "anon", "authentica
 REVOKE ALL ON FUNCTION "private"."is_admin"() FROM PUBLIC, "anon", "authenticated";
 GRANT EXECUTE ON FUNCTION "private"."is_admin"() TO "service_role";
 
+-- True if the request came through the API as a visitor or a signed-in user,
+-- rather than from the service role or a direct database session (SQL editor,
+-- seeds, migrations). Two signals, and either one is enough: the role the API
+-- switched to (which a SECURITY DEFINER function still sees) and the role in
+-- the token. Relying on the token alone treated a request whose token had no
+-- role claim as a direct session.
+CREATE OR REPLACE FUNCTION "private"."is_api_caller"() RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO ''
+    AS $$
+  select coalesce(current_setting('role', true), '') in ('anon', 'authenticated')
+         or coalesce(auth.role(), '') in ('anon', 'authenticated')
+$$;
+
+ALTER FUNCTION "private"."is_api_caller"() OWNER TO "postgres";
+
+-- Trigger functions that run as the caller use it too.
+REVOKE ALL ON FUNCTION "private"."is_api_caller"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "private"."is_api_caller"() TO "anon", "authenticated", "service_role";
+
 -- True if the caller may manage this agency's members and join code: an
--- admin of that agency, the service role, or a direct database session (SQL
--- editor, seeds, migrations), which carries no API role claim. API callers
--- always carry one, so anon, ordinary signed-in users and admins of another
--- agency get false. (Until 2026-09-30 any admin could manage every agency.)
+-- admin of that agency, the service role, or a direct database session. Anon,
+-- ordinary signed-in users and admins of another agency get false. (Until
+-- 2026-09-30 any admin could manage every agency.)
 CREATE OR REPLACE FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-  select coalesce(auth.role(), 'postgres') not in ('anon', 'authenticated')
-         or (p_agency_id is not null
-             and private.is_admin()
-             and private.current_agency_id() = p_agency_id)
+  select case
+    when private.is_api_caller()
+      then p_agency_id is not null
+           and private.is_admin()
+           and private.current_agency_id() = p_agency_id
+    else true
+  end
 $$;
 
 ALTER FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") OWNER TO "postgres";
@@ -448,12 +470,14 @@ $$;
 
 ALTER FUNCTION "public"."leave_agency"() OWNER TO "postgres";
 
--- An agency's admin sets the role of someone in their agency, or brings a
--- citizen into it. A citizen's agency is cleared; staff and admins must be
--- given one (profiles_staff_have_agency). An admin can only name their own
--- agency, and can't touch members of another agency: they would have to
--- leave it (or be removed by its admin) first. The service role and direct
--- database sessions may set anyone's.
+-- An agency's admin sets the role of someone already in their agency, or
+-- removes them (role citizen clears the agency; staff and admins must have
+-- one, profiles_staff_have_agency). An admin can only name their own agency,
+-- and can't touch members of another agency. An admin can't bring a citizen
+-- in: people join with the agency's code, which is their consent. (Until
+-- 2026-10-04 an admin could add anyone, then read their name and sign-in
+-- email from agency_members.) The service role and direct database sessions
+-- may set anyone's.
 CREATE OR REPLACE FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") RETURNS "public"."profiles"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -477,6 +501,9 @@ BEGIN
   END IF;
   IF target_agency IS NOT NULL AND NOT private.can_manage_agency(target_agency) THEN
     RAISE EXCEPTION 'That person belongs to another agency.' USING ERRCODE = '42501';
+  END IF;
+  IF target_agency IS NULL AND private.is_api_caller() THEN
+    RAISE EXCEPTION 'People join an agency with its join code.' USING ERRCODE = '42501';
   END IF;
 
   UPDATE public.profiles
