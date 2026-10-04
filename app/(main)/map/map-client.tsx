@@ -431,7 +431,14 @@ function MapPageContent() {
     <>
       {/* div, not main: SidebarInset is already the main landmark */}
       <div className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
-        <div className="h-screen w-full" ref={mapContainerRef}>
+        {/* A map cannot be read out; the label says where the same
+            information is in a form that can. */}
+        <div
+          className="h-screen w-full"
+          ref={mapContainerRef}
+          role="region"
+          aria-label="Map of the drainage network and flood reports. The same components and reports are listed in the control panel tables."
+        >
           {mapError && (
             <div className="bg-background/95 absolute inset-0 z-50 flex items-center justify-center">
               <div className="max-w-md p-8 text-center">
@@ -495,11 +502,15 @@ export default function MapPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen w-full items-center justify-center bg-[#e0e0d1]">
-          <div className="relative h-16 w-16">
+        <div
+          role="status"
+          className="flex h-screen w-full items-center justify-center bg-[#e0e0d1]"
+        >
+          <div aria-hidden="true" className="relative h-16 w-16">
             <div className="absolute inset-0 rounded-full border-4 border-gray-300"></div>
             <div className="absolute inset-0 animate-spin rounded-full border-4 border-t-blue-600"></div>
           </div>
+          <span className="sr-only">Loading the map</span>
         </div>
       }
     >

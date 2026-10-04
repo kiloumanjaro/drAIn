@@ -41,6 +41,8 @@ import {
 
 export interface ViewerProps {
   url: string;
+  /** What the model shows, for people who cannot see the canvas. */
+  label?: string;
   width?: number | string;
   height?: number | string;
   modelXOffset?: number;
@@ -508,6 +510,7 @@ function clearLoaderCache(url: string) {
 
 const ModelViewer: FC<ViewerProps> = ({
   url,
+  label = '3D model',
   width = 400,
   height = 400,
   modelXOffset = 0,
@@ -629,6 +632,8 @@ const ModelViewer: FC<ViewerProps> = ({
       )}
 
       <Canvas
+        role="img"
+        aria-label={label}
         shadows
         frameloop="demand"
         // Keeping every drawn frame readable costs the GPU a copy per frame;

@@ -8,7 +8,11 @@ export const metadata: Metadata = {
 
 export default function SignUpPage() {
   return (
-    <main className="flex h-screen w-screen items-center justify-center bg-gray-100">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex h-screen w-screen items-center justify-center bg-gray-100 outline-none"
+    >
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow">
         <h1 className="mb-4 text-center text-2xl font-bold">
           Create an Account

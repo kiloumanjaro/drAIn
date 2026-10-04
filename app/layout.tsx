@@ -53,6 +53,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${centuryGothic.variable} antialiased`}
       >
+        {/* First tab stop on every page: jumps past the sidebar. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[10001] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-blue-800 focus:shadow-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+        >
+          Skip to main content
+        </a>
         <Providers>
           <EventWidgetProvider>
             {children}

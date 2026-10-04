@@ -283,16 +283,17 @@ export default function SimulationPage() {
   };
 
   /** Toast body with a link through to the stats tab. */
-  const selectionToast = (lead: React.ReactNode, trailer: string) => (
+  const selectionToast = (lead: React.ReactNode) => (
     <div>
       {lead}{' '}
       <button
+        type="button"
         className="cursor-pointer border-none bg-transparent p-0 underline hover:text-[#5a525a]"
         onClick={() => setControlPanelTab('stats')}
       >
-        here
+        Open the stats tab
       </button>{' '}
-      {trailer}
+      for the details.
     </div>
   );
 
@@ -308,9 +309,7 @@ export default function SimulationPage() {
 
     focusMapFeature('inlets', inlet.id, inlet.coordinates);
 
-    toast.info(
-      selectionToast('Outlet distance updated. Go', 'to view more details')
-    );
+    toast.info(selectionToast('Outlet distance updated.'));
   };
 
   const handleSelectOutlet = (outlet: Outlet) => {
@@ -327,9 +326,8 @@ export default function SimulationPage() {
     toast.info(
       selectionToast(
         <>
-          <strong>{outlet.id}</strong> is selected. Go
-        </>,
-        'to view details'
+          <strong>{outlet.id}</strong> is selected.
+        </>
       )
     );
   };
@@ -346,9 +344,7 @@ export default function SimulationPage() {
 
     focusMapFeature('storm_drains', drain.id, drain.coordinates);
 
-    toast.info(
-      selectionToast('Outlet distance updated. Go', 'for more details')
-    );
+    toast.info(selectionToast('Outlet distance updated.'));
   };
 
   const handleSelectPipe = (pipe: Pipe) => {
@@ -368,9 +364,8 @@ export default function SimulationPage() {
     toast.info(
       selectionToast(
         <>
-          <strong>{pipe.id}</strong> is selected. Go
-        </>,
-        'for more details'
+          <strong>{pipe.id}</strong> is selected.
+        </>
       )
     );
   };
@@ -529,6 +524,8 @@ export default function SimulationPage() {
         >
           <div
             ref={mapContainerRef}
+            role="region"
+            aria-label="Simulation map of the drainage network. The same results are listed in the vulnerability tables."
             className="h-full w-full"
             style={{ backgroundColor: '#1e1e1e' }}
           />

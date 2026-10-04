@@ -1,8 +1,8 @@
 export default function SimulationLoading() {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[#1e1e1e]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-16 w-16">
+      <div role="status" className="flex flex-col items-center gap-4">
+        <div aria-hidden="true" className="relative h-16 w-16">
           <div className="absolute inset-0 rounded-full border-4 border-gray-700"></div>
           <div className="absolute inset-0 animate-spin rounded-full border-4 border-t-blue-500"></div>
         </div>

@@ -15,7 +15,11 @@ export default function RootError({
   }, [error]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#e8e8e8]/50 p-8 text-center">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#e8e8e8]/50 p-8 text-center outline-none"
+    >
       <h1 className="text-2xl font-semibold text-[#34332e]">
         Something went wrong
       </h1>

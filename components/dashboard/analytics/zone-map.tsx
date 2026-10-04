@@ -567,7 +567,7 @@ export default function ZoneMap({
               <div className="text-center">
                 <AlertCircle className="mx-auto mb-2 h-12 w-12 text-red-600" />
                 <p className="font-medium text-red-800">{mapError}</p>
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-red-700">
                   Please configure Mapbox token to enable map visualization
                 </p>
               </div>
@@ -576,6 +576,8 @@ export default function ZoneMap({
             <div className="rounded-lg border border-[#dfdfdf] p-1">
               <div
                 ref={mapContainer}
+                role="region"
+                aria-label="Map of reports by zone. The same counts are listed beside the map."
                 className="h-[28rem] overflow-hidden rounded-md border border-[#dfdfdf] bg-white md:h-[36rem]"
               />
             </div>

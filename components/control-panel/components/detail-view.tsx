@@ -26,6 +26,12 @@ interface DetailViewProps {
   modelUrl: string;
 }
 
+/** "/models/storm_drain.glb" -> "storm drain". */
+function modelName(url: string): string {
+  const file = url.split('/').pop() ?? '';
+  return file.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+}
+
 export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
   const [showModel, setShowModel] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -96,6 +102,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
               className="flex h-[250px] flex-1 !cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-none hover:bg-[#f5f5f5]"
             >
               <svg
+                aria-hidden="true"
                 className="text-muted-foreground/50 h-15 w-15"
                 fill="none"
                 stroke="currentColor"
@@ -137,6 +144,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
             >
               <ModelViewer
                 url={modelUrl}
+                label={`Rotating 3D model of a generic ${modelName(modelUrl)}`}
                 defaultRotationX={0}
                 defaultRotationY={0}
                 autoRotate

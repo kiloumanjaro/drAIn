@@ -14,7 +14,10 @@ export default function MainLayout({
     <ReportProvider>
       <SidebarProvider defaultOpen={false}>
         <AppSidebar />
-        <SidebarInset>{children}</SidebarInset>
+        {/* The skip link in the root layout lands here. */}
+        <SidebarInset id="main-content" tabIndex={-1} className="outline-none">
+          {children}
+        </SidebarInset>
       </SidebarProvider>
     </ReportProvider>
   );

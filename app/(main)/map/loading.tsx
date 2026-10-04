@@ -1,8 +1,8 @@
 export default function MapLoading() {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[#e0e0d1]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-16 w-16">
+      <div role="status" className="flex flex-col items-center gap-4">
+        <div aria-hidden="true" className="relative h-16 w-16">
           <div className="absolute inset-0 rounded-full border-4 border-blue-200"></div>
           <div className="absolute inset-0 animate-spin rounded-full border-4 border-t-blue-600"></div>
         </div>
