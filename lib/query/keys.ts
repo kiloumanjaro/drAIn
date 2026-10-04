@@ -77,6 +77,14 @@ export const mapKeys = {
 };
 
 /**
+ * Query key factory for the signed-in user's profile
+ */
+export const profileKeys = {
+  all: ['profile'],
+  detail: (userId: string) => [...profileKeys.all, userId],
+};
+
+/**
  * Query key factory for report queries
  */
 export const reportKeys = {

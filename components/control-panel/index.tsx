@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthContext } from '@/components/context/auth-provider';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/components/context/auth-provider';
 import type { ControlPanelProps } from './types';
 import { DETAIL_TITLES } from './constants';
 import { useControlPanelState } from './hooks/use-control-panel-state';
@@ -15,7 +16,7 @@ import {
   useOutlets,
   useDrains,
 } from '@/lib/query/hooks/use-drainage-data';
-import client from '@/lib/supabase/client';
+import { signOutAndForgetProfile } from '@/lib/supabase/sign-out';
 import type { DateFilterValue } from '@/components/common/date-sort';
 
 interface RainfallParams {
@@ -91,80 +92,8 @@ export function ControlPanel({
   isFloodScenarioLoading = false,
 }: ControlPanelProps) {
   const router = useRouter();
-  const supabase = client;
-  const authContext = useContext(AuthContext);
-  const session = authContext?.session;
-
-  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-  const [publicAvatarUrl, setPublicAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      const userId = session.user.id;
-      const cacheKey = `profile-${userId}`;
-      const COMMON_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-
-      const fetchProfile = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching profile:', error);
-        } else if (data) {
-          const avatarPath = data.avatar_url as string | null;
-          let publicUrl = null;
-
-          if (avatarPath) {
-            const pathParts = avatarPath.split('.');
-            const currentExtension =
-              pathParts.length > 1 ? `.${pathParts.pop()}` : '';
-            const basePath = pathParts.join('.');
-
-            const extensionsToTry = [
-              currentExtension,
-              ...COMMON_EXTENSIONS.filter((ext) => ext !== currentExtension),
-            ].filter((ext) => ext !== '');
-
-            for (const ext of extensionsToTry) {
-              const testPath = basePath + ext;
-              const { data: urlData } = supabase.storage
-                .from('Avatars')
-                .getPublicUrl(testPath);
-
-              const candidateUrl = urlData.publicUrl;
-
-              try {
-                const response = await fetch(candidateUrl, { method: 'HEAD' });
-
-                if (response.ok) {
-                  publicUrl = candidateUrl;
-                  break;
-                }
-              } catch (_e) {
-                console.warn(`Fetch failed for ${ext}. Skipping.`);
-              }
-            }
-          }
-
-          setProfile(data);
-          setPublicAvatarUrl(publicUrl);
-
-          localStorage.setItem(
-            cacheKey,
-            JSON.stringify({ profile: data, publicAvatarUrl: publicUrl })
-          );
-        }
-      };
-
-      fetchProfile();
-    } else if (session === null) {
-      setProfile(null);
-      setPublicAvatarUrl(null);
-    }
-  }, [session, supabase]);
+  const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const {
     sortField,
@@ -191,12 +120,7 @@ export function ControlPanel({
   const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
 
   const handleSignOut = async () => {
-    const session = await supabase.auth.getSession();
-    if (session?.data?.session) {
-      const cacheKey = `profile-${session.data.session.user.id}`;
-      localStorage.removeItem(cacheKey);
-    }
-    await supabase.auth.signOut();
+    await signOutAndForgetProfile(queryClient);
     router.push('/login');
   };
 
@@ -318,8 +242,6 @@ export function ControlPanel({
             onRefreshReports={onRefreshReports}
             isRefreshingReports={isRefreshingReports}
             profile={profile}
-            publicAvatarUrl={publicAvatarUrl}
-            setProfile={setProfile}
             selectedYear={selectedYear}
             onYearChange={onYearChange}
             onGenerateTable={onGenerateTable}
@@ -334,7 +256,6 @@ export function ControlPanel({
             hasTable3={hasTable3}
             isTable3Minimized={isTable3Minimized}
             onToggleTable3Minimize={onToggleTable3Minimize}
-            setPublicAvatarUrl={setPublicAvatarUrl}
             selectedComponentIds={selectedComponentIds}
             onComponentIdsChange={onComponentIdsChange}
             selectedPipeIds={selectedPipeIds}
