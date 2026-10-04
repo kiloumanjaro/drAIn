@@ -4,7 +4,8 @@ import { normaliseOverflowMinutes } from '@/lib/simulation-api/overflow';
 import type { Tables } from '@/types/database.types';
 import type { NodeDetails } from '@/types/simulation';
 
-type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
+/** The return periods, in years, that have stored results. */
+export type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
 
 /** A stored flood result: one node under one return period. */
 type FloodResultRow = Tables<'flood_results'>;

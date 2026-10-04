@@ -98,3 +98,16 @@ export const reportKeys = {
   countsByDay: () => [...reportKeys.all, 'counts-by-day'],
   notifications: () => [...reportKeys.all, 'notifications'],
 };
+
+/**
+ * Query key factory for the simulation page
+ */
+export const simulationKeys = {
+  all: ['simulation'],
+  storedTables: () => [...simulationKeys.all, 'stored-table'],
+  /** One return period's stored flood results. */
+  storedTable: (returnPeriod: number) => [
+    ...simulationKeys.storedTables(),
+    returnPeriod,
+  ],
+};

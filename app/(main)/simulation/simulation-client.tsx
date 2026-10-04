@@ -6,7 +6,6 @@ import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/context/auth-provider';
-import { readModelInfo, type ModelInfo } from '@/lib/simulation-api/model-info';
 import {
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
@@ -14,11 +13,6 @@ import {
   MAPBOX_ACCESS_TOKEN,
 } from '@/lib/map/config';
 
-import {
-  isAbortError,
-  runSimulation,
-  transformToNodeDetails,
-} from '@/lib/simulation-api/simulation';
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
 import {
   cancelFloodAppearing,
@@ -59,19 +53,16 @@ import type {
 } from '@/components/control-panel/tabs/simulation-models/model3';
 import { parseNodeId, CAMERA_FLY_DURATION_MS } from './page.helpers';
 import { useFloodPropagationAnimation } from './use-flood-propagation-animation';
+import { useVulnerabilityTables } from './use-vulnerability-tables';
 
 import { useSidebar } from '@/components/ui/sidebar';
 import { toast } from 'sonner';
 import { VulnerabilityDataTable } from '@/components/simulation/vulnerability-data-table';
-import { fetchYRTable } from '@/lib/vulnerabilities/fetch-yr-table';
 import { NodeParametersPanel } from '@/components/simulation/node-parameters-panel';
 import { LinkParametersPanel } from '@/components/simulation/link-parameters-panel';
 import { Spinner } from '@/components/ui/spinner';
 import { useLatestRef } from '@/hooks/use-latest-ref';
-import {
-  usePersistentPosition,
-  useAnchoredPosition,
-} from '@/hooks/use-persistent-position';
+import { usePersistentPosition } from '@/hooks/use-persistent-position';
 import type { NodeDetails } from '@/types/simulation';
 
 // The slideshow's chart is the page's only use of recharts, and it opens
@@ -85,8 +76,6 @@ const NodeSimulationSlideshow = dynamic(
   { ssr: false, loading: () => null }
 );
 
-type YearOption = 2 | 5 | 10 | 15 | 20 | 25 | 50 | 100;
-
 interface RainfallParams {
   total_precip: number;
   duration_hr: number;
@@ -98,9 +87,6 @@ const rainfallVal = {
   duration_hr: 1,
 };
 
-/** Floating vulnerability tables sit right of centre, clear of the control panel. */
-const FLOATING_TABLE_ANCHOR = { width: 500, height: 600, anchorX: 0.6 };
-
 /** Node and link parameter panels open centred. */
 const PARAMETER_PANEL_ANCHOR = { width: 500, height: 600 };
 
@@ -109,12 +95,6 @@ const FLOOD_3D_OPTIONS = {
   animate: true,
   animationDuration: 3000,
 };
-
-/**
- * Both table generators finish no sooner than this. Results can arrive almost
- * instantly, and a spinner that flashes reads as a glitch rather than work.
- */
-const MIN_GENERATE_DURATION_MS = 2000;
 
 export default function SimulationPage() {
   const router = useRouter();
@@ -164,26 +144,9 @@ export default function SimulationPage() {
     string | null
   >(null);
 
-  // Vulnerability table state (Model 1)
-  const [selectedYear, setSelectedYear] = useState<YearOption | null>(null);
-  const [tableData, setTableData] = useState<NodeDetails[] | null>(null);
-  const [isLoadingTable, setIsLoadingTable] = useState(false);
-  const [isTableMinimized, setIsTableMinimized] = useState(false);
-  const [tablePosition, setTablePosition] = useAnchoredPosition(
-    FLOATING_TABLE_ANCHOR
-  );
+  // Nodes picked out in a results table
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(
     new Set()
-  );
-
-  // model 1 table state
-  const [tableData3, setTableData3] = useState<NodeDetails[] | null>(null);
-  // What the live run's result says about its own limits.
-  const [liveModelInfo, setLiveModelInfo] = useState<ModelInfo | null>(null);
-  const [isLoadingTable3, setIsLoadingTable3] = useState(false);
-  const [isTable3Minimized, setIsTable3Minimized] = useState(false);
-  const [table3Position, setTable3Position] = useAnchoredPosition(
-    FLOATING_TABLE_ANCHOR
   );
 
   // Slideshow state
@@ -267,9 +230,6 @@ export default function SimulationPage() {
   // The map's click and hover handlers are registered once, when the map is
   // created, so they call this render's functions through a ref (refreshed
   // by an effect further down, after the handlers are defined).
-  // The custom run being waited on, so leaving the page or starting another
-  // run can stop reading it (it polls for up to half an hour).
-  const runAbortRef = useRef<AbortController | null>(null);
   // Which node-slideshow opening is current (see handleOpenNodeSimulation).
   const slideshowRequestRef = useRef(0);
 
@@ -693,16 +653,6 @@ export default function SimulationPage() {
     applyVulnerabilityColorsOnMap(map, vulnerabilityData);
   };
 
-  const handleClosePopUps = () => {
-    setIsTableMinimized(true);
-    setIsTable3Minimized(true);
-    setTableData(null);
-    setTableData3(null);
-    setActivePanel(null);
-
-    // Both 3D flood gradient and flood propagation heatmap persist after closing
-    // This allows viewing results without the table open
-  };
   // Vulnerability table handlers
   /**
    * Switches the map into "results" mode for a freshly generated table:
@@ -732,140 +682,44 @@ export default function SimulationPage() {
     }
   };
 
-  const handleGenerateTable = async () => {
-    if (!selectedYear) return;
+  const {
+    selectedYear,
+    handleYearChange,
+    tableData,
+    isLoadingTable,
+    isTableMinimized,
+    tablePosition,
+    setTablePosition,
+    handleGenerateTable,
+    handleToggleTableMinimize,
+    handleCloseTable,
+    tableData3,
+    liveModelInfo,
+    isLoadingTable3,
+    isTable3Minimized,
+    table3Position,
+    setTable3Position,
+    handleGenerateTable3,
+    handleToggleTable3Minimize,
+    handleCloseTable3,
+    activeTableData,
+    setTablesMinimized,
+    dismissTables,
+  } = useVulnerabilityTables({
+    accessToken: session?.access_token,
+    selectedComponentIds,
+    componentParams,
+    pipeParams,
+    rainfallParams,
+    onRunStart: () => setActivePanel(null),
+    onResults: showVulnerabilityOnMap,
+  });
 
-    setIsLoadingTable(true);
-    try {
-      const [data] = await Promise.all([
-        fetchYRTable(selectedYear),
-        new Promise((resolve) => setTimeout(resolve, MIN_GENERATE_DURATION_MS)),
-      ]);
-
-      setTableData(data);
-      setIsTableMinimized(false);
-
-      showVulnerabilityOnMap(data);
-
-      toast.success(
-        `Successfully loaded ${data.length} nodes for ${selectedYear}YR`
-      );
-    } catch (error) {
-      console.error('Error fetching vulnerability data:', error);
-      toast.error('Failed to load flood hazard data. Please try again.');
-      setTableData(null);
-    } finally {
-      setIsLoadingTable(false);
-    }
-  };
-
-  // model 1 table handler
-  const handleGenerateTable3 = async () => {
-    if (selectedComponentIds.length === 0) {
-      toast.error('Please select at least one component');
-      return;
-    }
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      toast.error('Sign in to run custom simulations.');
-      return;
-    }
-
-    // Close panels before starting
-    if (activePanel === 'node') {
-      setActivePanel(null);
-    }
-    if (activePanel === 'link') {
-      setActivePanel(null);
-    }
-
-    // Only the latest run is read; leaving the page stops reading it too.
-    runAbortRef.current?.abort();
-    const controller = new AbortController();
-    runAbortRef.current = controller;
-
-    setIsLoadingTable3(true);
-    try {
-      // Build nodes object from componentParams
-      const nodes: Record<string, NodeParams> = {};
-      componentParams.forEach((params, id) => {
-        nodes[id] = params;
-      });
-
-      // Build links object from pipeParams
-      const links: Record<string, LinkParams> = {};
-      pipeParams.forEach((params, id) => {
-        links[id] = params;
-      });
-
-      const [response] = await Promise.all([
-        runSimulation(nodes, links, rainfallParams, {
-          accessToken,
-          signal: controller.signal,
-        }),
-        new Promise((resolve) => setTimeout(resolve, MIN_GENERATE_DURATION_MS)),
-      ]);
-
-      // Transform the nodes_list to NodeDetails format
-      const transformedData = transformToNodeDetails(response.nodes_list);
-
-      setTableData3(transformedData);
-      setLiveModelInfo(readModelInfo(response));
-      setIsTable3Minimized(false);
-
-      showVulnerabilityOnMap(transformedData);
-
-      toast.success(
-        `Successfully generated flood hazard data for ${transformedData.length} nodes`
-      );
-    } catch (error) {
-      // Stopped on purpose (the page closed, or a newer run replaced it):
-      // nothing to report, and nothing here to update.
-      if (isAbortError(error)) return;
-      console.error('Error running simulation:', error);
-      // The client distinguishes a busy queue from a failed run from an
-      // expired result, so show what it said rather than one flat message.
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Simulation failed. Please try again.'
-      );
-      setTableData3(null);
-    } finally {
-      if (runAbortRef.current === controller) {
-        runAbortRef.current = null;
-        setIsLoadingTable3(false);
-      }
-    }
-  };
-
-  const handleToggleTableMinimize = () => {
-    setIsTableMinimized(!isTableMinimized);
-  };
-
-  const handleCloseTable = () => {
-    setTableData(null);
-    setIsTableMinimized(false);
-
-    // Both 3D flood gradient and flood propagation heatmap persist after closing
-    // This allows viewing results without the table open
-  };
-
-  const handleYearChange = (year: number | null) => {
-    setSelectedYear(year as YearOption | null);
-  };
-
-  // model 1 table handlers
-  const handleToggleTable3Minimize = () => {
-    setIsTable3Minimized(!isTable3Minimized);
-  };
-
-  const handleCloseTable3 = () => {
-    setTableData3(null);
-    setIsTable3Minimized(false);
-
-    // Both 3D flood gradient and flood propagation heatmap persist after closing
-    // This allows viewing results without the table open
+  // The flood lines and the heatmap stay on the map, so the results can be
+  // looked at with everything else put away.
+  const handleClosePopUps = () => {
+    dismissTables();
+    setActivePanel(null);
   };
 
   // Rain toggle handler
@@ -947,7 +801,6 @@ export default function SimulationPage() {
     // storm, which has none, could not open it at all.
 
     // Step 1: Extract node data and all data from the appropriate table
-    const activeTableData = tableData3 || tableData;
     if (!activeTableData) {
       toast.error('No table data available');
       return;
@@ -960,8 +813,7 @@ export default function SimulationPage() {
     }
 
     // Step 2: Minimize both tables instead of closing them (model 1 and model 2)
-    setIsTableMinimized(true);
-    setIsTable3Minimized(true);
+    setTablesMinimized(true);
 
     // Step 3: Wait for tables to minimize and year state to update (300ms delay)
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -1011,8 +863,7 @@ export default function SimulationPage() {
     setSlideshowNode(null);
     setSlideshowNodeData(null);
     setSlideshowAllData(null);
-    setIsTableMinimized(false);
-    setIsTable3Minimized(false);
+    setTablesMinimized(false);
   };
 
   useEffect(() => {
@@ -1029,11 +880,11 @@ export default function SimulationPage() {
     };
   });
 
-  // On unmount: stop waiting for a custom run, stop the rain, then remove the map. Without remove() every
-  // visit to this page left a WebGL context and its listeners behind.
+  // On unmount: stop the rain and the flood fade-in, then remove the map.
+  // Without remove() every visit to this page left a WebGL context and its
+  // listeners behind.
   useEffect(() => {
     return () => {
-      runAbortRef.current?.abort();
       if (mapRef.current) {
         disableRain(mapRef.current);
         cancelFloodAppearing(mapRef.current);
