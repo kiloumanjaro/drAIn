@@ -61,8 +61,7 @@ import type {
 import {
   parseNodeId,
   CAMERA_FLY_DURATION_MS,
-  FLOOD_PULSE_AMOUNT,
-  FLOOD_PULSE_SPEED_HZ,
+  wobbleFeatures,
 } from './page.helpers';
 
 import { useSidebar } from '@/components/ui/sidebar';
@@ -964,94 +963,18 @@ export default function SimulationPage() {
     }
 
     const time = now / 1000;
-    const pulseSpeed = FLOOD_PULSE_SPEED_HZ;
-    const pulseAmount = FLOOD_PULSE_AMOUNT;
 
-    // Update node features with per-point pulsed multipliers + coordinate wobbling
     if (nodeSource && nodeFloodPropagationFeaturesRef.current.length > 0) {
-      const wobbledNodes = nodeFloodPropagationFeaturesRef.current.map(
-        (feature) => {
-          const phase = feature.properties?.phase || 0;
-          const offsetAngle = feature.properties?.offsetAngle || 0;
-          const offsetDistance = feature.properties?.offsetDistance || 0;
-
-          // Calculate pulse multiplier
-          const pulse =
-            1 -
-            pulseAmount / 2 +
-            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
-
-          // Calculate wobble offset (oscillates based on phase)
-          const wobbleAmount =
-            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
-
-          // Apply wobble to coordinates
-          const pointGeometry = feature.geometry as GeoJSON.Point;
-          const [lng, lat] = pointGeometry.coordinates as [number, number];
-          const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
-          const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
-
-          return {
-            ...feature,
-            geometry: {
-              type: 'Point' as const,
-              coordinates: [wobbledLng, wobbledLat],
-            },
-            properties: {
-              ...feature.properties,
-              pulseMultiplier: pulse,
-            },
-          };
-        }
-      );
-
       nodeSource.setData({
         type: 'FeatureCollection',
-        features: wobbledNodes,
+        features: wobbleFeatures(nodeFloodPropagationFeaturesRef.current, time),
       });
     }
 
-    // Update line features with per-point pulsed multipliers + coordinate wobbling
     if (lineSource && lineFloodPropagationFeaturesRef.current.length > 0) {
-      const wobbledLines = lineFloodPropagationFeaturesRef.current.map(
-        (feature) => {
-          const phase = feature.properties?.phase || 0;
-          const offsetAngle = feature.properties?.offsetAngle || 0;
-          const offsetDistance = feature.properties?.offsetDistance || 0;
-
-          // Calculate pulse multiplier
-          const pulse =
-            1 -
-            pulseAmount / 2 +
-            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * pulseAmount;
-
-          // Calculate wobble offset (oscillates based on phase)
-          const wobbleAmount =
-            Math.sin(time * pulseSpeed * Math.PI * 2 + phase) * offsetDistance;
-
-          // Apply wobble to coordinates
-          const pointGeometry = feature.geometry as GeoJSON.Point;
-          const [lng, lat] = pointGeometry.coordinates as [number, number];
-          const wobbledLng = lng + Math.cos(offsetAngle) * wobbleAmount;
-          const wobbledLat = lat + Math.sin(offsetAngle) * wobbleAmount;
-
-          return {
-            ...feature,
-            geometry: {
-              type: 'Point' as const,
-              coordinates: [wobbledLng, wobbledLat],
-            },
-            properties: {
-              ...feature.properties,
-              pulseMultiplier: pulse,
-            },
-          };
-        }
-      );
-
       lineSource.setData({
         type: 'FeatureCollection',
-        features: wobbledLines,
+        features: wobbleFeatures(lineFloodPropagationFeaturesRef.current, time),
       });
     }
 
