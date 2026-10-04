@@ -124,11 +124,16 @@ function DocsContent() {
               </div>
               <div className="mb-3 flex gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <Search
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                  />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search..."
+                    aria-label="Search the documentation sections"
+                    aria-keyshortcuts="/"
                     value={sidebarSearch}
                     onChange={(e) => setSidebarSearch(e.target.value)}
                     className="w-full rounded-md bg-transparent py-1.5 pr-2 pl-7 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none"
@@ -154,7 +159,7 @@ function DocsContent() {
                     if (filtered.length === 0) return null;
                     return (
                       <div key={group.heading}>
-                        <h2 className="mb-2 px-2 text-xs text-gray-400">
+                        <h2 className="mb-2 px-2 text-xs text-gray-600">
                           {group.heading}
                         </h2>
                         <ul className="space-y-0.5">

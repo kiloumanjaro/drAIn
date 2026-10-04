@@ -48,45 +48,86 @@ export default function SignUpForm() {
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
-      <input
-        type="text"
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        placeholder="Full Name"
-        aria-label="Full Name"
-        className="w-full rounded border p-2"
-        maxLength={100}
-        required
-      />
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
-        aria-label="Email"
-        className="w-full rounded border p-2"
-        required
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password (8+ characters, upper, lower and a digit)"
-        aria-label="Password (8+ characters, upper, lower and a digit)"
-        className="w-full rounded border p-2"
-        minLength={8}
-        required
-      />
-      {error && (
-        <p role="alert" className="text-sm text-red-500">
-          {error}
+      <div>
+        <label
+          htmlFor="signup-name"
+          className="mb-1 block text-xs font-medium text-gray-700"
+        >
+          Full name
+        </label>
+        <input
+          id="signup-name"
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Full Name"
+          autoComplete="name"
+          className="w-full rounded border p-2"
+          maxLength={100}
+          required
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="signup-email"
+          className="mb-1 block text-xs font-medium text-gray-700"
+        >
+          Email
+        </label>
+        <input
+          id="signup-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          autoComplete="email"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'signup-error' : undefined}
+          className="w-full rounded border p-2"
+          required
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="signup-password"
+          className="mb-1 block text-xs font-medium text-gray-700"
+        >
+          Password
+        </label>
+        <input
+          id="signup-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          autoComplete="new-password"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={
+            error ? 'signup-password-hint signup-error' : 'signup-password-hint'
+          }
+          className="w-full rounded border p-2"
+          minLength={8}
+          required
+        />
+        <p id="signup-password-hint" className="mt-1 text-xs text-gray-600">
+          8+ characters, with an upper-case letter, a lower-case letter and a
+          digit.
         </p>
-      )}
-      {notice && (
-        <p role="status" className="text-sm text-green-600">
-          {notice}
-        </p>
-      )}
+      </div>
+      {/* Both stay in the page so their text is announced when it arrives. */}
+      <p
+        id="signup-error"
+        role="alert"
+        className={error ? 'text-sm text-red-700' : 'sr-only'}
+      >
+        {error}
+      </p>
+      <p
+        role="status"
+        className={notice ? 'text-sm text-green-700' : 'sr-only'}
+      >
+        {notice}
+      </p>
       <button
         type="submit"
         disabled={loading}

@@ -333,8 +333,17 @@ export default function SubmitTab() {
 
         {/* Category Combobox */}
         <div className="flex w-full flex-col">
-          <label className="mb-1 block text-sm font-medium text-gray-700"></label>
-          <ComboboxForm onSelect={handleCategory} value={category} />
+          <span
+            id="report-category-label"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
+            Category
+          </span>
+          <ComboboxForm
+            onSelect={handleCategory}
+            value={category}
+            ariaLabelledBy="report-category-label"
+          />
         </div>
 
         {/* Image Uploader */}
@@ -370,13 +379,19 @@ export default function SubmitTab() {
         </div>
 
         {/* Description Input */}
-        <Field>
+        <Field className="gap-2">
+          <label
+            htmlFor="report-description"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Description
+          </label>
           <FieldContent className="max-h-44">
             <Textarea
+              id="report-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter description"
-              aria-label="Description"
               rows={4}
               // reports_description_length in supabase/schemas/schema.sql
               maxLength={1000}
@@ -416,7 +431,7 @@ export default function SubmitTab() {
           <div className="space-y-4">
             {/* Category Display */}
             <div>
-              <label className="mb-2 block text-sm">Category</label>
+              <p className="mb-2 block text-sm">Category</p>
               <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 {categoryLabel}
               </div>
@@ -424,8 +439,14 @@ export default function SubmitTab() {
 
             {/*  Category ID  Display */}
             <div className="w-full">
-              <label className="mb-2 block text-sm">Category ID</label>
+              <span
+                id="report-category-id-label"
+                className="mb-2 block text-sm"
+              >
+                Category ID
+              </span>
               <ComboboxForm
+                ariaLabelledBy="report-category-id-label"
                 value={categoryIndex >= 0 ? categoryIndex.toString() : ''}
                 options={comboOption}
                 onSelect={(value) => setCategoryIndex(parseInt(value))}
@@ -453,7 +474,7 @@ export default function SubmitTab() {
 
             {/* Description Display */}
             <div>
-              <label className="mb-2 block text-sm">Description</label>
+              <p className="mb-2 block text-sm">Description</p>
               <div className="min-h-[100px] w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 {description || (
                   <span className="text-gray-400">No description entered</span>
@@ -473,7 +494,7 @@ export default function SubmitTab() {
 
             {/* Severity Display */}
             <div>
-              <label className="mb-2 block text-sm">Severity Level</label>
+              <p className="mb-2 block text-sm">Severity Level</p>
               <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 <span>
                   {severity === 'low' && '🟡 Low - Minor issue'}
