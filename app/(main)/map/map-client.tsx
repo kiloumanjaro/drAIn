@@ -31,6 +31,10 @@ import {
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import { addMapLayers, floodHazardDataUrl } from '@/lib/map/layers';
 import {
+  applyFloodProneVisibility,
+  applyOverlayVisibility,
+} from '@/lib/map/visibility';
+import {
   focusMapFeature as focusFeatureOnMap,
   type SelectedFeature,
 } from '@/lib/map/focus-feature';
@@ -113,6 +117,7 @@ function MapPageContent() {
   const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
   const clickedPopulationIdRef = useRef<string | null>(null);
   const overlayVisibilityRef = useLatestRef(overlayVisibility);
+  const floodProneVisibilityRef = useLatestRef(floodProneVisibility);
   const selectedFloodScenarioRef = useLatestRef(selectedFloodScenario);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -320,12 +325,18 @@ function MapPageContent() {
 
         mapRef.current = map;
 
-        // Read through a ref: after a style switch this runs long after the
+        // Read through refs: after a style switch this runs long after the
         // first render, and used to rebuild the layers with its 5YR scenario.
-        const addCustomLayers = () =>
+        // The layers also come back with their default visibility, so the
+        // switches are applied again; without that, layers switched off
+        // reappeared while their switches still read off.
+        const addCustomLayers = () => {
           addMapLayers(map, {
             floodScenario: selectedFloodScenarioRef.current,
           });
+          applyOverlayVisibility(map, layerIds, overlayVisibilityRef.current);
+          applyFloodProneVisibility(map, floodProneVisibilityRef.current);
+        };
 
         map.on('load', addCustomLayers);
         map.on('load', () => setMapReady(true));
@@ -743,37 +754,9 @@ function MapPageContent() {
 
   useEffect(() => {
     if (mapRef.current) {
-      layerIds.forEach((layerId) => {
-        if (mapRef.current?.getLayer(layerId)) {
-          const isVisible =
-            overlayVisibility[layerId as keyof typeof overlayVisibility];
-          mapRef.current.setLayoutProperty(
-            layerId,
-            'visibility',
-            isVisible ? 'visible' : 'none'
-          );
+      applyOverlayVisibility(mapRef.current, layerIds, overlayVisibility);
 
-          // Also control the corresponding hit area layer visibility
-          const hitLayerId = layerId.replace('-layer', '-hit-layer');
-          if (mapRef.current?.getLayer(hitLayerId)) {
-            mapRef.current.setLayoutProperty(
-              hitLayerId,
-              'visibility',
-              isVisible ? 'visible' : 'none'
-            );
-          }
-        }
-      });
-
-      // Control population fill layer visibility
       const populationVisible = overlayVisibility['mandaue_population-layer'];
-      if (mapRef.current?.getLayer('mandaue_population-fill')) {
-        mapRef.current.setLayoutProperty(
-          'mandaue_population-fill',
-          'visibility',
-          populationVisible ? 'visible' : 'none'
-        );
-      }
 
       // Clear population layer selection when toggled off
       if (!populationVisible) {
@@ -797,16 +780,7 @@ function MapPageContent() {
 
   useEffect(() => {
     if (mapRef.current) {
-      Object.entries(floodProneVisibility).forEach(([areaId, isVisible]) => {
-        const layerId = `${areaId}-layer`;
-        if (mapRef.current?.getLayer(layerId)) {
-          mapRef.current.setLayoutProperty(
-            layerId,
-            'visibility',
-            isVisible ? 'visible' : 'none'
-          );
-        }
-      });
+      applyFloodProneVisibility(mapRef.current, floodProneVisibility);
     }
   }, [floodProneVisibility]);
 
