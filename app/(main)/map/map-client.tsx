@@ -67,21 +67,7 @@ import {
 } from '@/lib/supabase/report';
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
-import { escapeHtml } from '@/lib/escape-html';
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Inline CSS for the close button injected into the imperatively-built population popup. */
-const POPULATION_POPUP_CLOSE_BUTTON_CSS =
-  'position: absolute; width: 23px; height: 23px; top: -1px; right: -1px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 30px; transition: background-color 0.2s; background-color: #f3f4f6;';
-
-/** Default background colour for the popup close button. */
-const POPULATION_POPUP_CLOSE_BG = '#f3f4f6';
-
-/** Hover background colour for the popup close button. */
-const POPULATION_POPUP_CLOSE_BG_HOVER = '#e5e7eb';
+import { usePopulationLayer } from './use-population-layer';
 
 /** The drainage hooks' fallback while loading: one array, not a new one per render. */
 const NO_ITEMS: never[] = [];
@@ -118,9 +104,9 @@ function MapPageContent() {
   const selectedFeatureRef = useLatestRef(selectedFeature);
 
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
-  const populationPopupRef = useRef<mapboxgl.Popup | null>(null);
-  const clickedPopulationIdRef = useRef<string | null>(null);
   const overlayVisibilityRef = useLatestRef(overlayVisibility);
+  const { registerPopulationLayer, clearPopulationLayerSelection } =
+    usePopulationLayer(overlayVisibilityRef);
   const floodProneVisibilityRef = useLatestRef(floodProneVisibility);
   const selectedFloodScenarioRef = useLatestRef(selectedFloodScenario);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -447,178 +433,7 @@ function MapPageContent() {
           });
         });
 
-        // Population layer hover and click interactions
-        let hoveredPopulationId: string | null = null;
-
-        map.on('mousemove', 'mandaue_population-fill', (e) => {
-          if (!overlayVisibilityRef.current['mandaue_population-layer']) return;
-
-          if (e.features && e.features.length > 0) {
-            map.getCanvas().style.cursor = 'pointer';
-
-            const feature = e.features[0];
-            if (hoveredPopulationId !== null) {
-              map.setFeatureState(
-                { source: 'mandaue_population', id: hoveredPopulationId },
-                { hover: false }
-              );
-            }
-            hoveredPopulationId = feature.id as string;
-            map.setFeatureState(
-              { source: 'mandaue_population', id: hoveredPopulationId },
-              { hover: true }
-            );
-          }
-        });
-
-        map.on('mouseleave', 'mandaue_population-fill', () => {
-          if (!overlayVisibilityRef.current['mandaue_population-layer']) return;
-
-          map.getCanvas().style.cursor = '';
-          if (hoveredPopulationId !== null) {
-            map.setFeatureState(
-              { source: 'mandaue_population', id: hoveredPopulationId },
-              { hover: false }
-            );
-          }
-          hoveredPopulationId = null;
-        });
-
-        map.on('click', 'mandaue_population-fill', (e) => {
-          if (!overlayVisibilityRef.current['mandaue_population-layer']) return;
-
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            const props = feature.properties || {};
-
-            // Clear previous clicked state
-            if (clickedPopulationIdRef.current !== null) {
-              map.setFeatureState(
-                {
-                  source: 'mandaue_population',
-                  id: clickedPopulationIdRef.current,
-                },
-                { clicked: false }
-              );
-            }
-
-            // Set new clicked state
-            clickedPopulationIdRef.current = feature.id as string;
-            map.setFeatureState(
-              {
-                source: 'mandaue_population',
-                id: clickedPopulationIdRef.current,
-              },
-              { clicked: true }
-            );
-
-            // Remove existing popup
-            if (populationPopupRef.current) {
-              populationPopupRef.current.remove();
-            }
-
-            // Create popup container
-            const popupContainer = document.createElement('div');
-            popupContainer.style.padding = '0px';
-            popupContainer.style.minWidth = '200px';
-            popupContainer.style.position = 'relative';
-
-            // Create close button
-            const closeButton = document.createElement('button');
-            closeButton.style.cssText = POPULATION_POPUP_CLOSE_BUTTON_CSS;
-            closeButton.innerHTML = `
-              <svg width="9" height="9" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 1L1 13M1 1L13 13" stroke="#4a5565" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            `;
-            closeButton.onmouseover = () =>
-              (closeButton.style.backgroundColor =
-                POPULATION_POPUP_CLOSE_BG_HOVER);
-            closeButton.onmouseout = () =>
-              (closeButton.style.backgroundColor = POPULATION_POPUP_CLOSE_BG);
-
-            // Create content
-            const content = document.createElement('div');
-            content.innerHTML = `
-              <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; padding-right: 0px;">Barangay ${escapeHtml(
-                props.name || 'Unknown Area'
-              )}</h3>
-              <div style="display: flex; flex-direction: column; gap: 2px;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #666; font-size: 12px;">Population</span>
-                  <span style=" font-size: 12px;">${escapeHtml(
-                    props['population-count'] || 'N/A'
-                  )}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #666; font-size: 12px;">Density</span>
-                  <span style=" font-size: 12px;">${escapeHtml(
-                    props['population-density'] || 'N/A'
-                  )} per km²</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #666; font-size: 12px;">Land Area</span>
-                  <span style=" font-size: 12px;">${escapeHtml(
-                    props['land-area'] || 'N/A'
-                  )} km²</span>
-                </div>
-              </div>
-            `;
-
-            popupContainer.appendChild(closeButton);
-            popupContainer.appendChild(content);
-
-            // Get the center of the polygon
-            const coordinates = e.lngLat;
-
-            // Create and add popup without default close button
-            populationPopupRef.current = new mapboxgl.Popup({
-              closeButton: false,
-              closeOnClick: false,
-              maxWidth: '300px',
-              className: 'population-popup',
-            })
-              .setLngLat(coordinates)
-              .setDOMContent(popupContainer)
-              .addTo(map);
-
-            // Add click handler to close button that properly closes the popup
-            closeButton.onclick = () => {
-              if (populationPopupRef.current) {
-                populationPopupRef.current.remove();
-              }
-            };
-          }
-        });
-
-        // Handle clicks outside population areas to clear clicked state
-        map.on('click', (e) => {
-          if (!map.getLayer('mandaue_population-fill')) return;
-
-          const features = map.queryRenderedFeatures(e.point, {
-            layers: ['mandaue_population-fill'],
-          });
-
-          // If click is outside population areas, clear clicked state
-          if (
-            features.length === 0 &&
-            clickedPopulationIdRef.current !== null
-          ) {
-            map.setFeatureState(
-              {
-                source: 'mandaue_population',
-                id: clickedPopulationIdRef.current,
-              },
-              { clicked: false }
-            );
-            clickedPopulationIdRef.current = null;
-
-            // Also remove popup if it exists
-            if (populationPopupRef.current) {
-              populationPopupRef.current.remove();
-            }
-          }
-        });
+        registerPopulationLayer(map);
       } catch (error) {
         console.error('Failed to initialize map:', error);
         setMapError(
@@ -765,23 +580,10 @@ function MapPageContent() {
 
       // Clear population layer selection when toggled off
       if (!populationVisible) {
-        if (clickedPopulationIdRef.current !== null && mapRef.current) {
-          mapRef.current.setFeatureState(
-            {
-              source: 'mandaue_population',
-              id: clickedPopulationIdRef.current,
-            },
-            { clicked: false }
-          );
-          clickedPopulationIdRef.current = null;
-        }
-        if (populationPopupRef.current) {
-          populationPopupRef.current.remove();
-          populationPopupRef.current = null;
-        }
+        clearPopulationLayerSelection(mapRef.current);
       }
     }
-  }, [overlayVisibility, layerIds]);
+  }, [overlayVisibility, layerIds, clearPopulationLayerSelection]);
 
   useEffect(() => {
     if (mapRef.current) {
