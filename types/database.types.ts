@@ -552,8 +552,6 @@ export type Database = {
           photo_check:
             | Database['public']['Enums']['photo_location_check']
             | null;
-          photo_distance_m: number | null;
-          photo_taken_at: string | null;
           priority: Database['public']['Enums']['report_priority'] | null;
           reporter_name: string | null;
           resolved_at: string | null;
@@ -845,13 +843,15 @@ export type Database = {
         }[];
       };
       report_private_details: {
-        Args: { p_report_id: string };
+        Args: { p_report_ids: string[] };
         Returns: {
           id: string;
+          is_mine: boolean;
+          photo_distance_m: number | null;
           photo_lat: number | null;
           photo_lon: number | null;
+          photo_taken_at: string | null;
           reviewed_by: string | null;
-          user_id: string | null;
         }[];
       };
       respond_to_resolution: {

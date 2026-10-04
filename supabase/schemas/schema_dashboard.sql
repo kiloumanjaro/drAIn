@@ -36,8 +36,6 @@ CREATE OR REPLACE VIEW "public"."latest_report_per_component" WITH ("security_in
     "reports"."resolved_by_maintenance_id",
     "reports"."resolved_image",
     "reports"."resolved_at",
-    "reports"."photo_taken_at",
-    "reports"."photo_distance_m",
     "reports"."reviewed_at",
     "reports"."review_note",
     "reports"."photo_check",

@@ -1087,8 +1087,8 @@ ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
 
 -- The signed-in person's own reports with every column, including any staff
--- rejected. Nobody else's: the column grants below hide user_id,
--- photo_lat/photo_lon and reviewed_by from every client, so this is how a
+-- rejected. Nobody else's: the column grants below hide who filed a report,
+-- the photo's position and age, and who reviewed it, so this is how a
 -- reporter reads theirs (fetchMyReports).
 CREATE OR REPLACE FUNCTION "public"."my_reports"() RETURNS SETOF "public"."reports"
     LANGUAGE "sql" STABLE SECURITY DEFINER
@@ -1099,25 +1099,35 @@ $$;
 
 ALTER FUNCTION "public"."my_reports"() OWNER TO "postgres";
 
--- The private columns of one report, for its reporter or agency staff (who
--- triage with the photo's position). Nothing for anyone else.
-CREATE OR REPLACE FUNCTION "public"."report_private_details"("p_report_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "photo_lat" double precision, "photo_lon" double precision, "reviewed_by" "uuid")
-    LANGUAGE "sql" STABLE SECURITY DEFINER
+-- The private columns of up to 100 reports: each one the caller filed, and
+-- for agency staff every one asked for (they triage with the photo's position,
+-- age and distance). Nothing for anyone else. is_mine says whether the caller
+-- filed it; who did is not returned, even to staff. (Until 2026-10-04 staff
+-- got the reporter's user id, which with the member list named the reporter.)
+CREATE OR REPLACE FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) RETURNS TABLE("id" "uuid", "is_mine" boolean, "photo_lat" double precision, "photo_lon" double precision, "photo_taken_at" timestamp with time zone, "photo_distance_m" double precision, "reviewed_by" "uuid")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-  select r.id, r.user_id, r.photo_lat, r.photo_lon, r.reviewed_by
-  from public.reports r
-  where r.id = p_report_id
-    and (r.user_id = (select auth.uid())
-         or (select private.current_agency_id()) is not null)
+BEGIN
+  IF cardinality(p_report_ids) > 100 THEN
+    RAISE EXCEPTION 'Ask for at most 100 reports at a time.' USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+    SELECT r.id, r.user_id IS NOT DISTINCT FROM auth.uid() AND auth.uid() IS NOT NULL,
+           r.photo_lat, r.photo_lon, r.photo_taken_at, r.photo_distance_m, r.reviewed_by
+    FROM public.reports r
+    WHERE r.id = ANY (p_report_ids)
+      AND (r.user_id = (SELECT auth.uid())
+           OR (SELECT private.current_agency_id()) IS NOT NULL);
+END;
 $$;
 
-ALTER FUNCTION "public"."report_private_details"("p_report_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) OWNER TO "postgres";
 
 REVOKE ALL ON FUNCTION "public"."my_reports"() FROM PUBLIC, "anon";
 GRANT EXECUTE ON FUNCTION "public"."my_reports"() TO "authenticated", "service_role";
-REVOKE ALL ON FUNCTION "public"."report_private_details"("p_report_id" "uuid") FROM PUBLIC, "anon";
-GRANT EXECUTE ON FUNCTION "public"."report_private_details"("p_report_id" "uuid") TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) TO "authenticated", "service_role";
 
 
 -- ===========================================================================
@@ -1198,15 +1208,14 @@ GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "service_role";
 REVOKE ALL ON TABLE "public"."geocode_worker_lock" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "service_role";
 
--- Signed-out visitors don't see which staff member did the work.
-REVOKE ALL ON TABLE "public"."maintenance" FROM "anon";
+-- No client reads which staff member did the work (performed_by): the agency
+-- is public, the person is not. Staff get the name from maintenance_history.
+-- Writes go through record_maintenance only.
+REVOKE ALL ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "anon";
-GRANT SELECT ON TABLE "public"."maintenance" TO "authenticated";
+GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "authenticated";
 GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
-
--- Default privileges grant ALL; writes go through record_maintenance only.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."profiles" TO "anon";
@@ -1215,15 +1224,18 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
 
 -- Clients, signed in or not, read every column except who filed the report
--- (user_id), where the reporter stood (photo_lat/photo_lon) and which staff
--- member reviewed it (reviewed_by). A new column is hidden until it is added
+-- (user_id), where the reporter stood (photo_lat/photo_lon), when the photo
+-- was taken and how far from the component (photo_taken_at,
+-- photo_distance_m: next to a name they say where someone was, and when) and
+-- which staff member reviewed it (reviewed_by). photo_check, the verdict
+-- those two produce, stays public. A new column is hidden until it is added
 -- here; realtime leaves ungranted columns out of its payloads. Reporters read
 -- their own reports in full through my_reports, staff the private columns
 -- through report_private_details. (Until 2026-09-30 signed-in users could
 -- read every column of every report.) Only signed-in users file reports
 -- (see the INSERT policy).
-GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
-GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "authenticated";
+GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
+GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "authenticated";
 GRANT INSERT ON TABLE "public"."reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."reports" TO "service_role";
 

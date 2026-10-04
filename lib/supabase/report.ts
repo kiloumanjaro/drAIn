@@ -38,6 +38,10 @@ export interface Report {
    * the photo's EXIF, which is easy to edit, so a hint rather than proof.
    */
   photoCheck: PhotoLocationCheck;
+  /**
+   * How far from the component the photo was taken, and when. Private: null
+   * unless the viewer filed the report or is agency staff.
+   */
   photoDistanceM: number | null;
   photoTakenAt: string | null;
 }
@@ -45,20 +49,23 @@ export interface Report {
 /**
  * Columns no client can select from the table (column grants in
  * schema.sql): who filed the report, where the reporter stood when taking
- * the photo, and who reviewed it. Requests that name them fail, and realtime
- * leaves them out of its payloads. A reporter gets them for their own
- * reports from my_reports (fetchMyReports); staff from
- * report_private_details.
+ * the photo, when and how far from the component that was, and who reviewed
+ * it. Requests that name them fail, and realtime leaves them out of its
+ * payloads. A reporter gets them for their own reports from my_reports
+ * (fetchMyReports); staff from report_private_details
+ * (fetchReportPhotoDetails).
  */
 type PrivateReportColumn =
   | 'user_id'
   | 'photo_lat'
   | 'photo_lon'
+  | 'photo_taken_at'
+  | 'photo_distance_m'
   | 'reviewed_by';
 
 /** Every other column: what the shared report lists select. */
 export const PUBLIC_REPORT_COLUMNS =
-  'id, created_at, category, description, image, reporter_name, status, component_id, long, lat, geocoded_status, address, priority, zone, resolved_by_maintenance_id, resolved_image, resolved_at, photo_taken_at, photo_distance_m, reviewed_at, review_note, photo_check, review_status' as const;
+  'id, created_at, category, description, image, reporter_name, status, component_id, long, lat, geocoded_status, address, priority, zone, resolved_by_maintenance_id, resolved_image, resolved_at, reviewed_at, review_note, photo_check, review_status' as const;
 
 /**
  * A reports row as the database returns it (and as realtime sends it). The
@@ -408,9 +415,42 @@ export const formatReport = (report: ReportRow): Report => {
     reviewStatus: report.review_status,
     reviewNote: report.review_note,
     photoCheck: report.photo_check,
-    photoDistanceM: report.photo_distance_m,
-    photoTakenAt: report.photo_taken_at,
+    photoDistanceM: report.photo_distance_m ?? null,
+    photoTakenAt: report.photo_taken_at ?? null,
   };
+};
+
+/** report_private_details takes at most this many reports a call. */
+const PHOTO_DETAILS_BATCH = 100;
+
+export interface ReportPhotoDetails {
+  photoDistanceM: number | null;
+  photoTakenAt: string | null;
+}
+
+/**
+ * When and how far from the component each report's photo was taken, by
+ * report id. The database returns them only for reports the caller filed,
+ * or for every report when the caller is agency staff; signed-out callers
+ * may not ask at all.
+ */
+export const fetchReportPhotoDetails = async (
+  reportIds: string[]
+): Promise<Map<string, ReportPhotoDetails>> => {
+  const details = new Map<string, ReportPhotoDetails>();
+  for (let from = 0; from < reportIds.length; from += PHOTO_DETAILS_BATCH) {
+    const { data, error } = await client.rpc('report_private_details', {
+      p_report_ids: reportIds.slice(from, from + PHOTO_DETAILS_BATCH),
+    });
+    if (error) throw error;
+    for (const row of data ?? []) {
+      details.set(row.id, {
+        photoDistanceM: row.photo_distance_m,
+        photoTakenAt: row.photo_taken_at,
+      });
+    }
+  }
+  return details;
 };
 
 export function subscribeToReportChanges(

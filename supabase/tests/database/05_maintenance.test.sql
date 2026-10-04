@@ -11,6 +11,14 @@ select plan(12);
 
 select hasnt_table('public', 'inlets_maintenance', 'the per-type maintenance tables are gone');
 
+-- No client can read maintenance.performed_by, so the test looks it up with
+-- the owner's rights.
+create function pg_temp.performed_by(p_component text) returns uuid
+language sql security definer as $fn$
+  select performed_by from public.maintenance where component_name = p_component
+$fn$;
+grant execute on function pg_temp.performed_by(text) to authenticated;
+
 -- Citizens can't record work --------------------------------------------------
 
 set local role authenticated;
@@ -55,7 +63,7 @@ select results_eq(
 );
 
 select is(
-  (select performed_by from public.maintenance where component_name = 'ISD-1'),
+  pg_temp.performed_by('ISD-1'),
   '00000000-0000-4000-a000-000000000002'::uuid,
   'the record names the staff member who made it'
 );

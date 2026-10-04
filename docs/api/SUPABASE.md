@@ -28,16 +28,18 @@ The schema files, in load order:
 Clients never write tables directly except in two places: filing a report
 (`reports` INSERT) and editing one's own profile. Everything else goes
 through a function that checks the caller. No client reads who filed a
-report, where the reporter stood, or which staff member reviewed it; a
-reporter gets those for their own reports from `my_reports`, staff from
-`report_private_details`. Signed-out visitors also can't see which staff
-member did the work.
+report, where the reporter stood, when the photo was taken and how far away,
+or which staff member reviewed it; a reporter gets those for their own
+reports from `my_reports`, staff from `report_private_details` (which never
+says who filed a report). Rejected reports are readable only by staff and by
+the person who filed them. No client reads which staff member did a piece of
+maintenance; staff get the name from `maintenance_history`.
 
 | Table                                                                                                              | Signed out             | Signed in               | Written by                                                                       |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------- | ----------------------- | -------------------------------------------------------------------------------- |
 | `reports`                                                                                                          | public columns         | public columns; insert  | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
 | `profiles`                                                                                                         | nothing (RLS)          | own row; update own row | sign-up trigger; `join_agency`, `leave_agency`, `set_member_agency`              |
-| `maintenance`                                                                                                      | all but `performed_by` | all                     | `record_maintenance`                                                             |
+| `maintenance`                                                                                                      | all but `performed_by` | all but `performed_by`  | `record_maintenance`                                                             |
 | `maintenance_reviews`                                                                                              | nothing                | own rows, staff all     | `review_maintenance`, `respond_to_resolution`                                    |
 | `simulation_runs`                                                                                                  | nothing                | own runs                | the simulation server (service role)                                             |
 | `agencies`, `components`, `flood_results`, `barangay_boundaries`, `inlets`, `outlets`, `man_pipes`, `storm_drains` | read                   | read                    | migrations and seed only                                                         |
@@ -54,7 +56,7 @@ member did the work.
 | `rotate_agency_join_code`, `set_member_agency` | that agency's admin  | Manage an agency's code and members                                         |
 | `agency_members`                               | that agency's admin  | The admin screen's member list, with sign-in emails                         |
 | `my_reports`                                   | signed in            | The caller's own reports, every column                                      |
-| `report_private_details`                       | reporter or staff    | One report's reporter, photo position and reviewer                          |
+| `report_private_details`                       | reporter or staff    | Up to 100 reports' photo position, age, distance and reviewer               |
 | `maintenance_history`                          | staff                | A component's maintenance, with who did it and its checks                   |
 | `dashboard_overview`, `repair_trend`           | anyone               | Dashboard numbers                                                           |
 | `nearest_components`                           | anyone               | Components near a point (report form)                                       |
@@ -87,8 +89,8 @@ Two things to know:
 - A plain `select` returns at most 1,000 rows and doesn't say it stopped.
   Page with `fetchAllRows`, or count in SQL.
 - Requests that name a private report column (`user_id`, `photo_lat`,
-  `photo_lon`, `reviewed_by`) or use `select('*')` on `reports` fail,
-  signed in or not; so do signed-out requests for
+  `photo_lon`, `photo_taken_at`, `photo_distance_m`, `reviewed_by`) or use
+  `select('*')` on `reports` fail, signed in or not; so do requests for
   `maintenance.performed_by`. Report lists select `PUBLIC_REPORT_COLUMNS`.
 
 ## Realtime and storage

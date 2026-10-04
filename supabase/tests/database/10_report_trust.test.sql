@@ -35,8 +35,10 @@ values ('00000000-0000-4000-e000-000000000002', 'storm_drains', 'ISD-11',
         '00000000-0000-4000-a000-000000000003', 10.40, 123.99, 0);
 
 select results_eq(
-  $$select photo_check::text, photo_distance_m > 100 from public.reports
-    where id = '00000000-0000-4000-e000-000000000002'$$,
+  $$select r.photo_check::text, d.photo_distance_m > 100
+    from public.reports r
+    join public.report_private_details(array[r.id]) d on d.id = r.id
+    where r.id = '00000000-0000-4000-e000-000000000002'$$,
   $$values ('mismatch', true)$$,
   'a photo taken far away is a mismatch, and the distance is measured, not taken from the client'
 );

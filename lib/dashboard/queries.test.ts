@@ -249,6 +249,7 @@ describe('getReportsPage', () => {
         status: 'all',
         componentType: 'inlets',
         includeRejected: false,
+        withPhotoDetails: false,
       },
       24
     );
@@ -283,12 +284,73 @@ describe('getReportsPage', () => {
         status: 'all',
         componentType: 'all',
         includeRejected: true,
+        withPhotoDetails: false,
       },
       24
     );
     for (const query of supabase.state.queries) {
       expect(query.calls.some(([m]) => m === 'neq')).toBe(false);
     }
+  });
+
+  it("adds each photo's age and distance when asked, as staff do", async () => {
+    supabase.state.respond = (source, calls) => {
+      if (source === 'rpc:report_private_details') {
+        return {
+          data: [
+            {
+              id: 'r1',
+              photo_distance_m: 42,
+              photo_taken_at: '2026-08-31T00:00:00Z',
+            },
+          ],
+        };
+      }
+      return isHead(calls)
+        ? { data: null, count: 1 }
+        : { data: [row], count: 1 };
+    };
+
+    const page = await getReportsPage(
+      {
+        priority: 'all',
+        status: 'all',
+        componentType: 'all',
+        includeRejected: false,
+        withPhotoDetails: true,
+      },
+      24
+    );
+
+    expect(supabase.state.rpcCalls).toEqual([
+      ['report_private_details', { p_report_ids: ['r1'] }],
+    ]);
+    expect(page.reports[0]).toMatchObject({
+      photoDistanceM: 42,
+      photoTakenAt: '2026-08-31T00:00:00Z',
+    });
+  });
+
+  it('does not ask for photo details otherwise', async () => {
+    supabase.state.respond = (_source, calls) =>
+      isHead(calls) ? { data: null, count: 1 } : { data: [row], count: 1 };
+
+    const page = await getReportsPage(
+      {
+        priority: 'all',
+        status: 'all',
+        componentType: 'all',
+        includeRejected: false,
+        withPhotoDetails: false,
+      },
+      24
+    );
+
+    expect(supabase.state.rpcCalls).toEqual([]);
+    expect(page.reports[0]).toMatchObject({
+      photoDistanceM: null,
+      photoTakenAt: null,
+    });
   });
 
   it('ignores filter values that are not in the vocabulary', async () => {
@@ -298,6 +360,7 @@ describe('getReportsPage', () => {
         status: 'done',
         componentType: 'x',
         includeRejected: false,
+        withPhotoDetails: false,
       },
       24
     );
@@ -315,6 +378,7 @@ describe('getReportsPage', () => {
           status: 'all',
           componentType: 'all',
           includeRejected: false,
+          withPhotoDetails: false,
         },
         24
       )
