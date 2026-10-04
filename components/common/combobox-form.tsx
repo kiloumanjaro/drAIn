@@ -35,6 +35,12 @@ const defaultLanguages: ComboboxOption[] = [
   { label: 'Drain', value: 'storm_drains' },
 ];
 
+// Zod speeds up object schemas by compiling them with `new Function`, and
+// tests whether it may by trying. The content security policy forbids that,
+// so every map page load would be reported as a blocked eval. This turns the
+// compiling off, and with it the test.
+z.config({ jitless: true });
+
 const FormSchema = z.object({
   language: z.string().nonempty('Choose'),
 });

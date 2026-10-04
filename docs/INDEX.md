@@ -174,6 +174,10 @@ NEXT_PUBLIC_BACKEND_URL=your_backend_url
 
 # Google AI
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
+
+# Optional. The content security policy is enforced; "true" turns it back to
+# report-only (takes a redeploy). Violations are logged by /api/csp-report.
+CSP_REPORT_ONLY=true
 ```
 
 ## File Locations
