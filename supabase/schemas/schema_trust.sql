@@ -100,6 +100,13 @@ CREATE INDEX "idx_report_sources_created_at" ON "private"."report_sources" USING
 --   * refuses a reporter's second open report on the same component;
 --   * refuses more than 5 an hour or 10 a day from a signed-in reporter, or
 --     3 and 10 from one signed-out address.
+--   * requires the photo, if there is one, to be one the reporter uploaded
+--     (private.owns_report_photo in schema_auth_storage.sql);
+--   * requires a component, and takes the report's category and map position
+--     from it rather than from the client, so a report can't be pinned
+--     somewhere else or counted under another type. (The app always sent the
+--     component's own values.) Where the reporter stood stays in
+--     photo_lat/photo_lon.
 -- For every insert it measures the photo's GPS position against the
 -- component and sets photo_distance_m and photo_check, overwriting whatever
 -- the client sent.
@@ -122,6 +129,7 @@ DECLARE
   key text := private.reporter_key();
   per_hour integer := CASE WHEN auth.uid() IS NULL THEN 3 ELSE 5 END;
   per_day integer := 10;
+  component record;
 BEGIN
   IF private.is_api_caller() THEN
     NEW.created_at := now();
@@ -132,9 +140,24 @@ BEGIN
     NEW.resolved_at := NULL;
     NEW.address := NULL;
     NEW.geocoded_status := 'pending';
-    IF NEW.image IS NOT NULL
-       AND NEW.image !~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$' THEN
+    IF NEW.image IS NOT NULL AND NOT private.owns_report_photo(NEW.image) THEN
       RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
+    END IF;
+    IF NEW.component_id IS NULL THEN
+      RAISE EXCEPTION 'Say which inlet, outlet, pipe or storm drain the report is about.'
+        USING ERRCODE = '22023';
+    END IF;
+    SELECT c.type,
+           extensions.st_y(c.location::extensions.geometry) AS lat,
+           extensions.st_x(c.location::extensions.geometry) AS long
+    INTO component
+    FROM public.components c
+    WHERE c.name = NEW.component_id;
+    -- An unknown component is left for the foreign key to refuse.
+    IF FOUND THEN
+      NEW.category := component.type;
+      NEW.lat := component.lat;
+      NEW.long := component.long;
     END IF;
   END IF;
 

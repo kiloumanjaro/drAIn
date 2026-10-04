@@ -4,31 +4,45 @@
 -- function.
 
 -- Every sign-up gets a profiles row. See public.handle_new_user in
--- schema.sql: it takes `role` from client-supplied metadata.
+-- schema.sql: always a citizen, whatever the client's metadata says.
 CREATE OR REPLACE TRIGGER "on_auth_user_created" AFTER INSERT ON "auth"."users" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_user"();
 
 -- Storage access. Buckets themselves, with their size and type limits, are
--- declared in supabase/config.toml.
--- Avatars: anyone reads; a signed-in user writes and replaces files only
--- under <their id>/ (updateUserProfile uploads with upsert, which needs the
--- UPDATE policy to replace an existing avatar).
-CREATE POLICY "Allow authenticated users to upload their own avatars" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND (("auth"."uid"())::"text" = ("storage"."foldername"("name"))[1])));
-CREATE POLICY "Allow authenticated users to replace their own avatars" ON "storage"."objects" FOR UPDATE TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1]))) WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1])));
-CREATE POLICY "Allow public read access to avatars" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'Avatars'::"text"));
+-- declared in supabase/config.toml (and set on the hosted buckets by a data
+-- step in migration photo_storage_rules).
+--
+-- Both buckets are public: anyone with a file's URL can fetch it, which is
+-- how the app shows photos, and that does not pass through these policies.
+-- The SELECT policies only govern the Storage API's own reads (list, and the
+-- look-up it does before a replace or a remove), so each person sees their
+-- own files and nobody can list a bucket. (Until 2026-10-04 anyone could
+-- list both, which gave away every photo's random name and, from the avatar
+-- folders, every user's id.)
+--
+-- Avatars: a signed-in user keeps one file, <their id>/avatar.jpg, the only
+-- name the app writes (updateUserProfile uploads with upsert, which needs
+-- the UPDATE policy to replace it). One fixed name means one file each, so
+-- the bucket can't be filled.
+CREATE POLICY "Users upload their own avatar" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND ("name" = ((( SELECT "auth"."uid"() AS "uid"))::"text" || '/avatar.jpg'::"text"))));
+CREATE POLICY "Users replace their own avatar" ON "storage"."objects" FOR UPDATE TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1]))) WITH CHECK ((("bucket_id" = 'Avatars'::"text") AND ("name" = ((( SELECT "auth"."uid"() AS "uid"))::"text" || '/avatar.jpg'::"text"))));
+CREATE POLICY "Users see their own avatar files" ON "storage"."objects" FOR SELECT TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND (( SELECT "auth"."uid"() AS "uid")::"text" = ("storage"."foldername"("name"))[1])));
 
 -- The avatar flow removes the old upload after a failed profile save; without
--- a DELETE policy that remove was a silent no-op.
+-- a DELETE policy that remove was a silent no-op. By folder, so files left
+-- from before the single-name rule can still be removed.
 CREATE POLICY "Users remove their own avatars" ON "storage"."objects" FOR DELETE TO "authenticated" USING ((("bucket_id" = 'Avatars'::"text") AND ((( SELECT "auth"."uid"() AS "uid"))::"text" = ("storage"."foldername"("name"))[1])));
 
--- ReportImage: anyone reads; only signed-in users upload. Signed-out uploads
--- were allowed until 2026-09-29, and nothing limited them: the photo is
--- uploaded before the report, so the report limits never applied. Nobody
--- overwrites: uploads get a fresh random name (uploadReport, maintenance
--- evidence), so there is never a reason to replace someone else's photo.
--- Uploads must be named public/<uuid>.<ext>, the only names the app makes,
--- so the bucket can't be used to host files under chosen names. Size (10
--- MiB) and type (JPEG, PNG, WebP, HEIC/HEIF) are limited on the bucket, in
--- config.toml (and on the hosted bucket by migration 20260930120000).
+-- ReportImage: only signed-in users upload. Signed-out uploads were allowed
+-- until 2026-09-29, and nothing limited them: the photo is uploaded before
+-- the report, so the report limits never applied. Nobody overwrites: uploads
+-- get a fresh random name (uploadReport, maintenance evidence), so there is
+-- never a reason to replace someone else's photo.
+-- Uploads must be named public/<uuid>.jpg, the only names the app makes: it
+-- re-encodes every photo to a JPEG with no metadata before uploading
+-- (lib/reports/sanitize-image.ts). So the bucket can't be used to host files
+-- under chosen names or as .html or .svg. Size (10 MiB) and type (JPEG) are
+-- limited on the bucket. The app has no server-side upload, so a caller who
+-- bypasses it can still publish a JPEG of their own with its metadata in.
 -- Each person may upload a limited number a day (can_upload_report_photo):
 -- the photo is uploaded before its report, so the report limits alone never
 -- stopped someone filling the bucket.
@@ -63,8 +77,31 @@ ALTER FUNCTION "private"."can_upload_report_photo"() OWNER TO "postgres";
 REVOKE ALL ON FUNCTION "private"."can_upload_report_photo"() FROM PUBLIC, "anon";
 GRANT EXECUTE ON FUNCTION "private"."can_upload_report_photo"() TO "authenticated";
 
-CREATE POLICY "Signed-in users upload report photos under a random name" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'ReportImage'::"text") AND ("name" ~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$'::"text") AND ( SELECT "private"."can_upload_report_photo"() AS "can_upload_report_photo")));
-CREATE POLICY "Anyone can view report photos" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'ReportImage'::"text"));
+CREATE POLICY "Signed-in users upload report photos as a randomly named JPEG" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'ReportImage'::"text") AND ("name" ~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$'::"text") AND ( SELECT "private"."can_upload_report_photo"() AS "can_upload_report_photo")));
+CREATE POLICY "Uploaders see their own report photos" ON "storage"."objects" FOR SELECT TO "authenticated" USING ((("bucket_id" = 'ReportImage'::"text") AND ("owner_id" = (( SELECT "auth"."uid"() AS "uid"))::"text")));
+
+-- True if the name is a report photo the signed-in caller uploaded: the
+-- app's naming, and an object in the bucket that the Storage API recorded
+-- as theirs. Reports and maintenance records may only point at such a photo,
+-- so nobody can attach someone else's picture, or reserve a name and put a
+-- picture under it after staff have confirmed the report. Only reached from
+-- SECURITY DEFINER functions.
+CREATE OR REPLACE FUNCTION "private"."owns_report_photo"("p_name" "text") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RETURN p_name ~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$'
+     AND EXISTS (SELECT 1 FROM storage.objects o
+                 WHERE o.bucket_id = 'ReportImage'
+                   AND o.name = p_name
+                   AND o.owner_id = (SELECT auth.uid())::text);
+END;
+$$;
+
+ALTER FUNCTION "private"."owns_report_photo"("p_name" "text") OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."owns_report_photo"("p_name" "text") FROM PUBLIC, "anon", "authenticated";
 
 -- True if a report, a maintenance record or a review of one points at this
 -- photo. SECURITY DEFINER so the delete policy below sees every reference,
