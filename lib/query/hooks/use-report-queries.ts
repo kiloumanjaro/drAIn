@@ -26,6 +26,9 @@ export function useLatestReports(): UseQueryResult<Report[], Error> {
     queryFn: fetchLatestReportsPerComponent,
     staleTime: 1 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    // Non-staff get no realtime update when a report is rejected (the row
+    // stops being readable), so a rejected pin goes at the next refetch.
+    refetchInterval: 5 * 60 * 1000,
     retry: 2,
   });
 }

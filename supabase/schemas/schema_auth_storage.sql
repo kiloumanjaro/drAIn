@@ -66,14 +66,30 @@ GRANT EXECUTE ON FUNCTION "private"."can_upload_report_photo"() TO "authenticate
 CREATE POLICY "Signed-in users upload report photos under a random name" ON "storage"."objects" FOR INSERT TO "authenticated" WITH CHECK ((("bucket_id" = 'ReportImage'::"text") AND ("name" ~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$'::"text") AND ( SELECT "private"."can_upload_report_photo"() AS "can_upload_report_photo")));
 CREATE POLICY "Anyone can view report photos" ON "storage"."objects" FOR SELECT USING (("bucket_id" = 'ReportImage'::"text"));
 
+-- True if a report, a maintenance record or a review of one points at this
+-- photo. SECURITY DEFINER so the delete policy below sees every reference,
+-- not only the rows the caller may read (a rejected report is hidden from
+-- most people, and its photo must still not be deletable).
+CREATE OR REPLACE FUNCTION "private"."report_photo_in_use"("p_name" "text") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM public.reports r
+                 WHERE r.image = p_name OR r.resolved_image = p_name)
+      OR EXISTS (SELECT 1 FROM public.maintenance m WHERE m.evidence_image = p_name)
+      OR EXISTS (SELECT 1 FROM public.maintenance_reviews v WHERE v.evidence_image = p_name);
+END;
+$$;
+
+ALTER FUNCTION "private"."report_photo_in_use"("p_name" "text") OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."report_photo_in_use"("p_name" "text") FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "private"."report_photo_in_use"("p_name" "text") TO "authenticated";
+
 -- Cleanup of a photo whose report was refused: the owner may delete their own
--- fresh upload while nothing references it (reports.image,
--- reports.resolved_image, maintenance.evidence_image). The 1-hour window
--- keeps the policy to its purpose; it is not an "undo" for published photos.
--- Deleting restores the uploader's daily allowance, which
+-- fresh upload while nothing references it (report_photo_in_use). The 1-hour
+-- window keeps the policy to its purpose; it is not an "undo" for published
+-- photos. Deleting restores the uploader's daily allowance, which
 -- can_upload_report_photo counts from storage.objects.
-CREATE POLICY "Uploaders remove their own fresh unused report photo" ON "storage"."objects" FOR DELETE TO "authenticated" USING ((("bucket_id" = 'ReportImage'::"text") AND ("owner_id" = (( SELECT "auth"."uid"() AS "uid"))::"text") AND ("created_at" > ("now"() - '01:00:00'::interval)) AND (NOT (EXISTS ( SELECT 1
-   FROM "public"."reports" "r"
-  WHERE (("r"."image" = "objects"."name") OR ("r"."resolved_image" = "objects"."name"))))) AND (NOT (EXISTS ( SELECT 1
-   FROM "public"."maintenance" "m"
-  WHERE ("m"."evidence_image" = "objects"."name"))))));
+CREATE POLICY "Uploaders remove their own fresh report photo nothing uses" ON "storage"."objects" FOR DELETE TO "authenticated" USING ((("bucket_id" = 'ReportImage'::"text") AND ("owner_id" = (( SELECT "auth"."uid"() AS "uid"))::"text") AND ("created_at" > ("now"() - '01:00:00'::interval)) AND (NOT ( SELECT "private"."report_photo_in_use"("objects"."name") AS "report_photo_in_use"))));

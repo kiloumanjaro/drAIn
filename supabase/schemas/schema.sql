@@ -302,6 +302,14 @@ $$;
 
 ALTER FUNCTION "private"."is_admin"() OWNER TO "postgres";
 
+-- Policies call current_agency_id as the caller (the reports SELECT policy,
+-- for signed-out visitors too), so every API role needs EXECUTE. is_admin is
+-- only reached from SECURITY DEFINER functions.
+REVOKE ALL ON FUNCTION "private"."current_agency_id"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "private"."current_agency_id"() TO "anon", "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "private"."is_admin"() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION "private"."is_admin"() TO "service_role";
+
 -- True if the caller may manage this agency's members and join code: an
 -- admin of that agency, the service role, or a direct database session (SQL
 -- editor, seeds, migrations), which carries no API role claim. API callers
@@ -527,7 +535,8 @@ ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 -- The components of one type within p_radius_m metres of a point, nearest
 -- first. The report form uses it to suggest what a photo is of. Distances
--- are in metres; the ORDER BY walks idx_components_location.
+-- are in metres; the ORDER BY walks idx_components_location. Anyone may call
+-- it, so the radius (500 m) and the number of rows (20) are capped here.
 CREATE OR REPLACE FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision DEFAULT 50, "p_max_results" integer DEFAULT 3) RETURNS TABLE("name" "text", "lat" double precision, "long" double precision, "distance" double precision)
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'public', 'extensions'
@@ -539,12 +548,15 @@ CREATE OR REPLACE FUNCTION "public"."nearest_components"("p_type" "public"."comp
   from public.components c,
        (select st_setsrid(st_makepoint(p_lon, p_lat), 4326)::geography as point) q
   where c.type = p_type
-    and st_dwithin(c.location, q.point, p_radius_m)
+    and st_dwithin(c.location, q.point, least(greatest(p_radius_m, 0), 500))
   order by c.location <-> q.point
-  limit p_max_results
+  limit least(greatest(p_max_results, 1), 20)
 $$;
 
 ALTER FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) TO "anon", "authenticated", "service_role";
 
 -- Flood simulation results per drainage node, one row per node and return
 -- period (a 2-year, 5-year, ... 100-year storm). Replaces the eight tables
@@ -1035,7 +1047,10 @@ ALTER TABLE ONLY "public"."reports"
 -- anonymous reports keep a null user_id.
 CREATE POLICY "Signed-in users file pending reports" ON "public"."reports" FOR INSERT TO "authenticated" WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
 
-CREATE POLICY "Anyone can read reports" ON "public"."reports" FOR SELECT USING (true);
+-- Everyone reads reports, except ones staff rejected: those are for staff and
+-- for the person who filed them. (Until 2026-10-04 rejected reports were only
+-- left out by the app's own queries, so anyone could still fetch them.)
+CREATE POLICY "Anyone reads reports staff have not rejected" ON "public"."reports" FOR SELECT USING ((("review_status" <> 'rejected'::"public"."report_review") OR (( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 

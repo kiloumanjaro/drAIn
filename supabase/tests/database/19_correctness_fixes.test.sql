@@ -76,10 +76,10 @@ exception when insufficient_privilege then
 end $fn$;
 
 select policy_cmd_is('storage', 'objects',
-  'Uploaders remove their own fresh unused report photo', 'DELETE',
+  'Uploaders remove their own fresh report photo nothing uses', 'DELETE',
   'the report-photo delete policy guards DELETE');
 select policy_roles_are('storage', 'objects',
-  'Uploaders remove their own fresh unused report photo', ARRAY['authenticated'],
+  'Uploaders remove their own fresh report photo nothing uses', ARRAY['authenticated'],
   'and applies to signed-in users');
 select policy_cmd_is('storage', 'objects',
   'Users remove their own avatars', 'DELETE',
