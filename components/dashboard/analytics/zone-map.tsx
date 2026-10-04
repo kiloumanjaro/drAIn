@@ -12,7 +12,6 @@ import { AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 

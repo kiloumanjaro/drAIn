@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   DndContext,
   closestCenter,
@@ -19,11 +20,35 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { OverlayLegend } from '@/components/map/overlay-legend';
-import { ChartPieDonutText } from '@/components/control-panel/components/chart-pie';
-import { ReportsToggle } from '@/components/map/reports-toggle';
 import { FloodScenarioCard } from '@/components/map/flood-scenario-card';
 import { PopulationToggle } from '@/components/map/population-toggle';
 import { FloodProneToggle } from '@/components/map/flood-prone-toggle';
+
+// The only two cards here that draw with recharts. Loaded after the panel so
+// the layer switches don't wait on the chart library; each placeholder is
+// about the height of the card it stands in for, so the cards below don't
+// jump when it arrives.
+const ChartPieDonutText = dynamic(
+  () =>
+    import('@/components/control-panel/components/chart-pie').then(
+      (m) => m.ChartPieDonutText
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-card h-[318px] animate-pulse rounded-xl border border-[#ced1cd]" />
+    ),
+  }
+);
+const ReportsToggle = dynamic(
+  () => import('@/components/map/reports-toggle').then((m) => m.ReportsToggle),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[280px] animate-pulse rounded-xl border border-[#e2e2e2] bg-[#f7f7f7]" />
+    ),
+  }
+);
 
 interface OverlayContentProps {
   overlays: {

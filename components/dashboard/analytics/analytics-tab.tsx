@@ -1,9 +1,28 @@
 'use client';
 
-import ZoneMap from './zone-map';
-import ComponentTypeChart from './component-type-chart';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import RepairTimeCards from './repair-time-cards';
 import { useAnalytics } from '@/lib/query/hooks/use-analytics';
+
+// Mapbox GL (the zone map) and recharts (the pie chart) are most of the
+// dashboard's script. Loaded after the page so the figures above show first;
+// the placeholders take the space of each component's own loading state.
+const ZoneMap = dynamic(() => import('./zone-map'), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-6">
+      <div className="md:col-span-4">
+        <Skeleton className="h-[28rem] w-full rounded-lg md:h-[36rem]" />
+      </div>
+      <Skeleton className="h-[28rem] rounded-lg md:col-span-2 md:h-[36rem]" />
+    </div>
+  ),
+});
+const ComponentTypeChart = dynamic(() => import('./component-type-chart'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[348px] w-full rounded-lg" />,
+});
 
 interface AnalyticsTabProps {
   onViewReports?: () => void;
