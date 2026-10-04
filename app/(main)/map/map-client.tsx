@@ -19,7 +19,6 @@ import {
   OVERLAY_CONFIG,
   LAYER_IDS,
   MAP_STYLES,
-  CAMERA_ANIMATION,
 } from '@/lib/map/config';
 import mapboxgl from 'mapbox-gl';
 import {
@@ -39,22 +38,15 @@ import {
   applyOverlayVisibility,
 } from '@/lib/map/visibility';
 import {
-  focusMapFeature as focusFeatureOnMap,
-  type SelectedFeature,
-} from '@/lib/map/focus-feature';
+  componentAtHitLayer,
+  findComponent,
+} from '@/lib/map/component-selection';
 import {
   ALL_FLOOD_PRONE_HIDDEN,
   FLOOD_PRONE_AREAS,
   type FloodProneVisibility,
 } from '@/lib/map/flood-prone-areas';
 import { useSidebar } from '@/components/ui/sidebar';
-import type {
-  Inlet,
-  Outlet,
-  Drain,
-  Pipe,
-  DatasetType,
-} from '@/components/control-panel/types';
 import ReactDOM from 'react-dom/client';
 import {
   ReportBubble,
@@ -67,6 +59,7 @@ import {
 } from '@/lib/supabase/report';
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
+import { useComponentSelection } from './use-component-selection';
 import { usePopulationLayer } from './use-population-layer';
 
 /** The drainage hooks' fallback while loading: one array, not a new one per render. */
@@ -97,11 +90,6 @@ function MapPageContent() {
 
   const [floodProneVisibility, setFloodProneVisibility] =
     useState<FloodProneVisibility>(ALL_FLOOD_PRONE_HIDDEN);
-
-  const [selectedFeature, setSelectedFeature] =
-    useState<SelectedFeature | null>(null);
-
-  const selectedFeatureRef = useLatestRef(selectedFeature);
 
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
   const overlayVisibilityRef = useLatestRef(overlayVisibility);
@@ -137,10 +125,18 @@ function MapPageContent() {
   }, [drainageDataError]);
 
   // Selection state for control panel detail view
-  const [selectedInlet, setSelectedInlet] = useState<Inlet | null>(null);
-  const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
-  const [selectedPipe, setSelectedPipe] = useState<Pipe | null>(null);
-  const [selectedDrain, setSelectedDrain] = useState<Drain | null>(null);
+  const {
+    selected,
+    dataset: controlPanelDataset,
+    setDataset: setControlPanelDataset,
+    clearSelections,
+    selectComponent,
+    showComponent,
+    handleSelectInlet,
+    handleSelectOutlet,
+    handleSelectDrain,
+    handleSelectPipe,
+  } = useComponentSelection(mapRef);
 
   // Control panel state
   const searchParams = useSearchParams();
@@ -161,9 +157,6 @@ function MapPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [controlPanelDataset, setControlPanelDataset] =
-    useState<DatasetType>('inlets');
-
   // Handle URL parameters for component selection
   useEffect(() => {
     const componentId = searchParams.get('component');
@@ -174,66 +167,20 @@ function MapPageContent() {
 
     // Wait a bit for data to load
     const timer = setTimeout(() => {
-      switch (componentType) {
-        case 'inlets': {
-          const inlet = inlets.find((i) => i.id === componentId);
-          if (inlet) {
-            handleSelectInlet(inlet);
-            handleTabChange('admin');
-          }
-          break;
-        }
-        case 'outlets': {
-          const outlet = outlets.find((o) => o.id === componentId);
-          if (outlet) {
-            handleSelectOutlet(outlet);
-            handleTabChange('admin');
-          }
-          break;
-        }
-        case 'man_pipes': {
-          const pipe = pipes.find((p) => p.id === componentId);
-          if (pipe) {
-            handleSelectPipe(pipe);
-            handleTabChange('admin');
-          }
-          break;
-        }
-        case 'storm_drains': {
-          const drain = drains.find((d) => d.id === componentId);
-          if (drain) {
-            handleSelectDrain(drain);
-            handleTabChange('admin');
-          }
-          break;
-        }
+      const component = findComponent(
+        { inlets, outlets, storm_drains: drains, man_pipes: pipes },
+        componentType,
+        componentId
+      );
+      if (component) {
+        selectComponent(component);
+        handleTabChange('admin');
       }
     }, 500);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, inlets, outlets, pipes, drains]);
-
-  // Function to clear all selections
-  // Only setters and refs inside, so it never needs to change.
-  const clearSelections = useCallback(() => {
-    setSelectedInlet(null);
-    setSelectedOutlet(null);
-    setSelectedPipe(null);
-    setSelectedDrain(null);
-
-    // Also clear the map's feature state if something was selected
-    if (selectedFeatureRef.current && mapRef.current) {
-      mapRef.current.setFeatureState(
-        {
-          source: selectedFeatureRef.current.source,
-          id: selectedFeatureRef.current.id,
-        },
-        { selected: false }
-      );
-      setSelectedFeature(null);
-    }
-  }, [selectedFeatureRef]);
 
   const handleFloodScenarioChange = (scenarioId: string) => {
     if (!mapRef.current) {
@@ -365,53 +312,20 @@ function MapPageContent() {
             currentTabRef.current
           );
 
-          // Map hit layer IDs to their corresponding data
-          switch (feature.layer.id) {
-            case 'man_pipes-hit-layer': {
-              const pipe = pipesRef.current.find((p) => p.id === props.Name);
-              if (pipe) {
-                handleSelectPipe(pipe);
-                if (!shouldKeepTab) {
-                  handleTabChange('stats');
-                }
-              }
-              break;
-            }
-            case 'inlets-hit-layer': {
-              const inlet = inletsRef.current.find(
-                (i) => i.id === props.In_Name
-              );
-              if (inlet) {
-                handleSelectInlet(inlet);
-                if (!shouldKeepTab) {
-                  handleTabChange('stats');
-                }
-              }
-              break;
-            }
-            case 'outlets-hit-layer': {
-              const outlet = outletsRef.current.find(
-                (o) => o.id === props.Out_Name
-              );
-              if (outlet) {
-                handleSelectOutlet(outlet);
-                if (!shouldKeepTab) {
-                  handleTabChange('stats');
-                }
-              }
-              break;
-            }
-            case 'storm_drains-hit-layer': {
-              const drain = drainsRef.current.find(
-                (d) => d.id === props.In_Name
-              );
-              if (drain) {
-                handleSelectDrain(drain);
-                if (!shouldKeepTab) {
-                  handleTabChange('stats');
-                }
-              }
-              break;
+          const component = componentAtHitLayer(
+            {
+              inlets: inletsRef.current,
+              outlets: outletsRef.current,
+              storm_drains: drainsRef.current,
+              man_pipes: pipesRef.current,
+            },
+            feature.layer.id,
+            props
+          );
+          if (component) {
+            selectComponent(component);
+            if (!shouldKeepTab) {
+              handleTabChange('stats');
             }
           }
         });
@@ -448,55 +362,17 @@ function MapPageContent() {
   // Handler for clicking history button on report bubble
   const handleReportHistoryClick = useCallback(
     (category: string, componentId: string) => {
-      // Find the matching component based on category
-      switch (category) {
-        case 'inlets': {
-          const inlet = inlets.find((i) => i.id === componentId);
-          if (inlet) {
-            setSelectedInlet(inlet);
-            setSelectedOutlet(null);
-            setSelectedPipe(null);
-            setSelectedDrain(null);
-            setControlPanelTab('admin');
-          }
-          break;
-        }
-        case 'outlets': {
-          const outlet = outlets.find((o) => o.id === componentId);
-          if (outlet) {
-            setSelectedOutlet(outlet);
-            setSelectedInlet(null);
-            setSelectedPipe(null);
-            setSelectedDrain(null);
-            setControlPanelTab('admin');
-          }
-          break;
-        }
-        case 'man_pipes': {
-          const pipe = pipes.find((p) => p.id === componentId);
-          if (pipe) {
-            setSelectedPipe(pipe);
-            setSelectedInlet(null);
-            setSelectedOutlet(null);
-            setSelectedDrain(null);
-            setControlPanelTab('admin');
-          }
-          break;
-        }
-        case 'storm_drains': {
-          const drain = drains.find((d) => d.id === componentId);
-          if (drain) {
-            setSelectedDrain(drain);
-            setSelectedInlet(null);
-            setSelectedOutlet(null);
-            setSelectedPipe(null);
-            setControlPanelTab('admin');
-          }
-          break;
-        }
+      const component = findComponent(
+        { inlets, outlets, storm_drains: drains, man_pipes: pipes },
+        category,
+        componentId
+      );
+      if (component) {
+        showComponent(component);
+        setControlPanelTab('admin');
       }
     },
-    [inlets, outlets, pipes, drains]
+    [inlets, outlets, pipes, drains, showComponent]
   );
 
   // One bubble per component's latest report. Rebuilt when the reports
@@ -744,90 +620,6 @@ function MapPageContent() {
     setControlPanelTab('stats');
   };
 
-  const handleSelectInlet = useCallback(
-    (inlet: Inlet) => {
-      const map = mapRef.current;
-      if (!map) return;
-
-      clearSelections();
-
-      setSelectedInlet(inlet);
-      // The tab is chosen by the click handler, not here.
-      setControlPanelDataset('inlets');
-
-      const center = inlet.coordinates;
-      setSelectedFeature(
-        focusFeatureOnMap(map, 'inlets', inlet.id, center, CAMERA_ANIMATION)
-      );
-    },
-    [clearSelections]
-  );
-
-  const handleSelectOutlet = useCallback(
-    (outlet: Outlet) => {
-      const map = mapRef.current;
-      if (!map) return;
-
-      clearSelections();
-
-      setSelectedOutlet(outlet);
-      // The tab is chosen by the click handler, not here.
-      setControlPanelDataset('outlets');
-
-      const center = outlet.coordinates;
-      setSelectedFeature(
-        focusFeatureOnMap(map, 'outlets', outlet.id, center, CAMERA_ANIMATION)
-      );
-    },
-    [clearSelections]
-  );
-
-  const handleSelectDrain = useCallback(
-    (drain: Drain) => {
-      const map = mapRef.current;
-      if (!map) return;
-
-      clearSelections();
-
-      setSelectedDrain(drain);
-      // The tab is chosen by the click handler, not here.
-      setControlPanelDataset('storm_drains');
-
-      const center = drain.coordinates;
-      setSelectedFeature(
-        focusFeatureOnMap(
-          map,
-          'storm_drains',
-          drain.id,
-          center,
-          CAMERA_ANIMATION
-        )
-      );
-    },
-    [clearSelections]
-  );
-
-  const handleSelectPipe = useCallback(
-    (pipe: Pipe) => {
-      const map = mapRef.current;
-      if (!map) return;
-      if (!pipe.coordinates || pipe.coordinates.length === 0) return;
-
-      clearSelections();
-
-      setSelectedPipe(pipe);
-      // The tab is chosen by the click handler, not here.
-      setControlPanelDataset('man_pipes');
-
-      // A pipe is a line, so the camera targets its midpoint.
-      const center = pipe.coordinates[Math.floor(pipe.coordinates.length / 2)];
-      setSelectedFeature(
-        focusFeatureOnMap(map, 'man_pipes', pipe.id, center, CAMERA_ANIMATION)
-      );
-    },
-    [clearSelections]
-  );
-
   // Add a ref to track current tab
   const currentTabRef = useRef(initialTab);
 
@@ -889,10 +681,10 @@ function MapPageContent() {
         <ControlPanel
           activeTab={controlPanelTab}
           dataset={controlPanelDataset}
-          selectedInlet={selectedInlet}
-          selectedOutlet={selectedOutlet}
-          selectedPipe={selectedPipe}
-          selectedDrain={selectedDrain}
+          selectedInlet={selected.inlets}
+          selectedOutlet={selected.outlets}
+          selectedPipe={selected.man_pipes}
+          selectedDrain={selected.storm_drains}
           onTabChange={handleTabChange}
           onDatasetChange={setControlPanelDataset}
           onSelectInlet={handleSelectInlet}
