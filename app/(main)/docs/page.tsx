@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/tooltip';
 
 import { type FloodEvent } from '@/components/docs-page/flood-event-cards';
+import { isTextEntryTarget } from '@/lib/dom/is-text-entry-target';
 import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 import { OverviewSection } from './sections/overview';
 import { ArchitectureSection } from './sections/architecture';
@@ -83,10 +84,12 @@ function DocsContent() {
   // Handle / shortcut
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
+      if (e.key !== '/' || e.ctrlKey || e.metaKey) return;
+      // Typing a "/" into a field, the search box included, is not the
+      // shortcut.
+      if (isTextEntryTarget(e.target as HTMLElement | null)) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
