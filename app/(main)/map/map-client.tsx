@@ -16,7 +16,6 @@ import {
   DEFAULT_STYLE,
   MAP_BOUNDS,
   MAPBOX_ACCESS_TOKEN,
-  OVERLAY_CONFIG,
   LAYER_IDS,
   MAP_STYLES,
 } from '@/lib/map/config';
@@ -41,11 +40,6 @@ import {
   componentAtHitLayer,
   findComponent,
 } from '@/lib/map/component-selection';
-import {
-  ALL_FLOOD_PRONE_HIDDEN,
-  FLOOD_PRONE_AREAS,
-  type FloodProneVisibility,
-} from '@/lib/map/flood-prone-areas';
 import { useSidebar } from '@/components/ui/sidebar';
 import ReactDOM from 'react-dom/client';
 import {
@@ -60,6 +54,7 @@ import {
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
 import { useComponentSelection } from './use-component-selection';
+import { useOverlayToggles } from './use-overlay-toggles';
 import { usePopulationLayer } from './use-population-layer';
 
 /** The drainage hooks' fallback while loading: one array, not a new one per render. */
@@ -78,18 +73,16 @@ function MapPageContent() {
   const [selectedFloodScenario, setSelectedFloodScenario] =
     useState<string>('5YR');
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
-  const [overlayVisibility, setOverlayVisibility] = useState({
-    'man_pipes-layer': true,
-    'storm_drains-layer': true,
-    'inlets-layer': true,
-    'outlets-layer': true,
-    'reports-layer': true,
-    'flood_hazard-layer': true,
-    'mandaue_population-layer': false,
-  });
-
-  const [floodProneVisibility, setFloodProneVisibility] =
-    useState<FloodProneVisibility>(ALL_FLOOD_PRONE_HIDDEN);
+  const {
+    overlayVisibility,
+    floodProneVisibility,
+    overlayData,
+    floodProneAreasData,
+    someVisible,
+    handleOverlayToggle,
+    handleToggleFloodProneArea,
+    handleToggleAllOverlays,
+  } = useOverlayToggles();
 
   const reportPopupsRef = useRef<mapboxgl.Popup[]>([]);
   const overlayVisibilityRef = useLatestRef(overlayVisibility);
@@ -97,7 +90,6 @@ function MapPageContent() {
     usePopulationLayer(overlayVisibilityRef);
   const floodProneVisibilityRef = useLatestRef(floodProneVisibility);
   const selectedFloodScenarioRef = useLatestRef(selectedFloodScenario);
-  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const layerIds = useMemo(() => LAYER_IDS, []);
   // True once the map has loaded, so effects that draw on it can wait for it.
@@ -487,133 +479,6 @@ function MapPageContent() {
     }
   };
 
-  const handleOverlayToggle = (layerId: string) => {
-    const isCurrentlyVisible =
-      overlayVisibility[layerId as keyof typeof overlayVisibility];
-    const newVisibility = !isCurrentlyVisible;
-
-    setOverlayVisibility((prev) => ({
-      ...prev,
-      [layerId]: newVisibility,
-    }));
-
-    // If turning on an overlay, hide all flood prone areas
-    if (newVisibility) {
-      const anyFloodProneVisible = Object.values(floodProneVisibility).some(
-        (v) => v
-      );
-      if (anyFloodProneVisible) {
-        setFloodProneVisibility(ALL_FLOOD_PRONE_HIDDEN);
-
-        // Debounce toast to show only once per toggle session
-        if (toastTimeoutRef.current) {
-          clearTimeout(toastTimeoutRef.current);
-        }
-        toastTimeoutRef.current = setTimeout(() => {
-          toast.info(
-            'Flood prone areas hidden to improve clarity with map layers'
-          );
-          toastTimeoutRef.current = null;
-        }, 100);
-      }
-    }
-  };
-
-  const overlayData = OVERLAY_CONFIG.map((config) => ({
-    ...config,
-    visible: overlayVisibility[config.id as keyof typeof overlayVisibility],
-  }));
-
-  const floodProneAreasData = FLOOD_PRONE_AREAS.map((area) => ({
-    id: area.id,
-    name: area.name,
-    color: area.color,
-    visible: floodProneVisibility[area.id] ?? false,
-  }));
-
-  const handleToggleFloodProneArea = (areaId: string) => {
-    const isCurrentlyVisible =
-      floodProneVisibility[areaId as keyof typeof floodProneVisibility];
-    const newVisibility = !isCurrentlyVisible;
-
-    setFloodProneVisibility((prev) => ({
-      ...prev,
-      [areaId]: newVisibility,
-    }));
-
-    // If turning on a flood prone area, hide all overlays except reports
-    if (newVisibility) {
-      const anyOverlayVisible = Object.entries(overlayVisibility).some(
-        ([key, value]) => key !== 'reports-layer' && value
-      );
-
-      if (anyOverlayVisible) {
-        setOverlayVisibility((prev) => ({
-          ...prev,
-          'man_pipes-layer': false,
-          'storm_drains-layer': false,
-          'inlets-layer': false,
-          'outlets-layer': false,
-          'flood_hazard-layer': false,
-          'mandaue_population-layer': false,
-        }));
-
-        // Debounce toast to show only once per toggle session
-        if (toastTimeoutRef.current) {
-          clearTimeout(toastTimeoutRef.current);
-        }
-        toastTimeoutRef.current = setTimeout(() => {
-          toast.info(
-            'Map layers hidden to improve clarity with flood prone areas'
-          );
-          toastTimeoutRef.current = null;
-        }, 100);
-      }
-    }
-  };
-
-  const handleToggleAllOverlays = () => {
-    const someVisible = Object.values(overlayVisibility).some(Boolean);
-
-    const updated: typeof overlayVisibility = {
-      'man_pipes-layer': !someVisible,
-      'storm_drains-layer': !someVisible,
-      'inlets-layer': !someVisible,
-      'outlets-layer': !someVisible,
-      'reports-layer': !someVisible,
-      'flood_hazard-layer': !someVisible,
-      'mandaue_population-layer': !someVisible,
-    };
-
-    setOverlayVisibility(updated);
-
-    // If turning on overlays, hide all flood prone areas for clarity
-    if (!someVisible) {
-      const anyFloodProneVisible = Object.values(floodProneVisibility).some(
-        (v) => v
-      );
-      if (anyFloodProneVisible) {
-        setFloodProneVisibility(ALL_FLOOD_PRONE_HIDDEN);
-
-        // Debounce toast to show only once per toggle session
-        if (toastTimeoutRef.current) {
-          clearTimeout(toastTimeoutRef.current);
-        }
-        toastTimeoutRef.current = setTimeout(() => {
-          toast.info(
-            'Flood prone areas hidden to improve clarity with map layers'
-          );
-          toastTimeoutRef.current = null;
-        }, 100);
-      }
-    }
-  };
-
-  // Check if any overlay OR any flood prone area is visible
-  const someVisible =
-    Object.values(overlayVisibility).some(Boolean) ||
-    Object.values(floodProneVisibility).some(Boolean);
-
   // Handler for the back button in control panel
   const handleControlPanelBack = () => {
     clearSelections();
@@ -650,7 +515,6 @@ function MapPageContent() {
   // left a WebGL context and its listeners behind.
   useEffect(() => {
     return () => {
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       mapRef.current?.remove();
       mapRef.current = null;
     };
