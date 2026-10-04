@@ -10,13 +10,12 @@ import {
   normaliseHazardCategory,
 } from '@/lib/simulation-api/hazard-category';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
+import { loadPipesGeoJSON } from './pipes-geojson';
 
 export interface FloodPropagationFeatures {
   nodes: GeoJSON.Feature[];
   lines: GeoJSON.Feature[];
 }
-
-const PIPES_GEOJSON_URL = '/drainage/man_pipes.geojson';
 
 /** Midpoint only: one sample per pipe segment. */
 const SAMPLES_PER_PIPE_SEGMENT = 1;
@@ -121,9 +120,7 @@ export async function buildLineFloodFeatures(
 ): Promise<GeoJSON.Feature[]> {
   try {
     const [pipesData, { createFloodAlongPipes }] = await Promise.all([
-      fetch(PIPES_GEOJSON_URL).then(
-        (response) => response.json() as Promise<GeoJSON.FeatureCollection>
-      ),
+      loadPipesGeoJSON(),
       import('@/lib/map/effects/flood-3d-utils'),
     ]);
 

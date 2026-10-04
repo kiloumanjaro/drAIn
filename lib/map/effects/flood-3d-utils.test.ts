@@ -141,6 +141,42 @@ describe('createFloodAlongPipes', () => {
     expect(connectors).toEqual([]);
   });
 
+  it('takes the first position when a node is listed twice', () => {
+    // Only the first position puts node b at the end of the pipe.
+    const fc = createFloodAlongPipes(
+      [makeNode('a', 'Low Risk', 10), makeNode('b', 'Low Risk', 10)],
+      [makeCoord('a', N1), makeCoord('b', N2), makeCoord('b', [0.5, 0.5])],
+      [makePipe('P1', [N1, N2])]
+    );
+    expect(fc.features).toHaveLength(1);
+    expect(fc.features[0].properties!.endNodeId).toBe('b');
+  });
+
+  it('snaps each pipe end to its nearest flooded node among many', () => {
+    const fc = createFloodAlongPipes(
+      [
+        makeNode('a', 'Low Risk', 10),
+        makeNode('near-a', 'High Risk', 10),
+        makeNode('b', 'Medium Risk', 10),
+        makeNode('nowhere', 'High Risk', 10), // flooded, but no position
+      ],
+      [
+        makeCoord('near-a', [0.0005, 0]),
+        makeCoord('a', N1),
+        makeCoord('b', N2),
+      ],
+      [makePipe('P1', [N1, N2])]
+    );
+    const pipeSegments = fc.features.filter(
+      (f) => f.properties!.pipeName === 'P1'
+    );
+    expect(pipeSegments.length).toBeGreaterThan(0);
+    for (const segment of pipeSegments) {
+      expect(segment.properties!.startNodeId).toBe('a');
+      expect(segment.properties!.endNodeId).toBe('b');
+    }
+  });
+
   it('skips degenerate pipes with fewer than two coordinates', () => {
     const fc = createFloodAlongPipes(
       [makeNode('a', 'Low Risk', 10), makeNode('b', 'Low Risk', 10)],
