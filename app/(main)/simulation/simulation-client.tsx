@@ -5,34 +5,23 @@ import { CameraControls } from '@/components/map/camera-controls';
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/context/auth-provider';
-import {
-  DEFAULT_CENTER,
-  DEFAULT_ZOOM,
-  MAP_BOUNDS,
-  MAPBOX_ACCESS_TOKEN,
-} from '@/lib/map/config';
+import { DEFAULT_CENTER, DEFAULT_ZOOM } from '@/lib/map/config';
 
 import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
-import {
-  cancelFloodAppearing,
-  enableFlood3D,
-} from '@/lib/map/effects/flood-3d-utils';
+import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
-import { addSimulationLayers } from '@/lib/map/simulation-layers';
+import type { SimulationMapHandlers } from '@/lib/map/simulation-interactions';
 import {
   focusMapFeature as focusFeatureOnMap,
   type SelectedFeature,
 } from '@/lib/map/focus-feature';
 
 import {
-  SIMULATION_MAP_STYLE,
-  SIMULATION_PITCH,
-  SIMULATION_BEARING,
   SIMULATION_LAYER_IDS,
   LAYER_COLORS,
   CAMERA_ANIMATION,
 } from '@/lib/map/simulation-config';
-import mapboxgl from 'mapbox-gl';
+import type mapboxgl from 'mapbox-gl';
 import {
   useInlets,
   useOutlets,
@@ -51,6 +40,7 @@ import { SimulationOverlays } from './simulation-overlays';
 import { useFloodPropagationAnimation } from './use-flood-propagation-animation';
 import { useNodeSlideshow } from './use-node-slideshow';
 import { useParameterPanels } from './use-parameter-panels';
+import { useSimulationMap } from './use-simulation-map';
 import { useVulnerabilityTables } from './use-vulnerability-tables';
 
 import { useSidebar } from '@/components/ui/sidebar';
@@ -74,7 +64,6 @@ export default function SimulationPage() {
   const { session } = useAuth();
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedFloodScenario, setSelectedFloodScenario] =
     useState<string>('5YR');
@@ -116,10 +105,6 @@ export default function SimulationPage() {
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(
     new Set()
   );
-
-  // Set when Mapbox can't start (no token, no WebGL); the rest of the page
-  // still works.
-  const [mapError, setMapError] = useState<string | null>(null);
 
   // What a custom run is made from, and its two parameter panels
   const panels = useParameterPanels();
@@ -166,14 +151,7 @@ export default function SimulationPage() {
   // The map's click and hover handlers are registered once, when the map is
   // created, so they call this render's functions through a ref (refreshed
   // by an effect further down, after the handlers are defined).
-  const mapHandlersRef = useRef<{
-    isSimulationActive: boolean;
-    onEmptyClick: () => void;
-    selectPipe: (pipe: Pipe) => void;
-    selectInlet: (inlet: Inlet) => void;
-    selectOutlet: (outlet: Outlet) => void;
-    selectDrain: (drain: Drain) => void;
-  } | null>(null);
+  const mapHandlersRef = useRef<SimulationMapHandlers | null>(null);
 
   // Close the sidebar once, when the page opens, so the map gets the room.
   // Not again when the viewport changes: that would fight the user.
@@ -186,104 +164,14 @@ export default function SimulationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
-
-    // Only initialize map after sidebar is closed to ensure proper sizing
-    if (mapContainerRef.current && !mapRef.current && !open) {
-      let map: mapboxgl.Map;
-      try {
-        map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: SIMULATION_MAP_STYLE,
-          center: DEFAULT_CENTER,
-          zoom: DEFAULT_ZOOM,
-          maxBounds: MAP_BOUNDS,
-          pitch: SIMULATION_PITCH,
-          bearing: SIMULATION_BEARING,
-          attributionControl: false,
-        });
-      } catch (error) {
-        // It used to throw out of the effect and take the whole page down.
-        console.error('Failed to initialize map:', error);
-        setMapError(
-          'The map could not start. Reload the page, or check the Mapbox token.'
-        );
-        return;
-      }
-      mapRef.current = map;
-
-      const addCustomLayers = () => addSimulationLayers(map);
-
-      map.on('load', addCustomLayers);
-      map.on('style.load', addCustomLayers);
-
-      // Click handlers
-      map.on('click', (e) => {
-        const handlers = mapHandlersRef.current;
-        if (!handlers?.isSimulationActive) return;
-
-        const validLayers = [
-          'inlets-layer',
-          'outlets-layer',
-          'storm_drains-layer',
-          'man_pipes-layer',
-        ].filter((id) => map.getLayer(id));
-
-        if (!validLayers.length) return;
-
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: validLayers,
-        });
-
-        if (!features.length) {
-          handlers.onEmptyClick();
-          return;
-        }
-
-        const feature = features[0];
-        const props = feature.properties || {};
-        if (!feature.layer) return;
-
-        switch (feature.layer.id) {
-          case 'man_pipes-layer': {
-            const pipe = pipesRef.current.find((p) => p.id === props.Name);
-            if (pipe) handlers.selectPipe(pipe);
-            break;
-          }
-          case 'inlets-layer': {
-            const inlet = inletsRef.current.find((i) => i.id === props.In_Name);
-            if (inlet) handlers.selectInlet(inlet);
-            break;
-          }
-          case 'outlets-layer': {
-            const outlet = outletsRef.current.find(
-              (o) => o.id === props.Out_Name
-            );
-            if (outlet) handlers.selectOutlet(outlet);
-            break;
-          }
-          case 'storm_drains-layer': {
-            const drain = drainsRef.current.find((d) => d.id === props.In_Name);
-            if (drain) handlers.selectDrain(drain);
-            break;
-          }
-        }
-      });
-
-      // Cursor style
-      layerIds.forEach((layerId) => {
-        map.on('mouseenter', layerId, () => {
-          if (mapHandlersRef.current?.isSimulationActive) {
-            map.getCanvas().style.cursor = 'pointer';
-          }
-        });
-        map.on('mouseleave', layerId, () => {
-          map.getCanvas().style.cursor = '';
-        });
-      });
-    }
-  }, [layerIds, open, inletsRef, outletsRef, pipesRef, drainsRef]);
+  const { mapContainerRef, mapError, removeMap } = useSimulationMap(mapRef, {
+    sidebarOpen: open,
+    handlersRef: mapHandlersRef,
+    inletsRef,
+    outletsRef,
+    pipesRef,
+    drainsRef,
+  });
 
   useEffect(() => {
     if (mapRef.current) {
@@ -616,19 +504,9 @@ export default function SimulationPage() {
     };
   });
 
-  // On unmount: stop the rain and the flood fade-in, then remove the map.
-  // Without remove() every visit to this page left a WebGL context and its
-  // listeners behind.
-  useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        disableRain(mapRef.current);
-        cancelFloodAppearing(mapRef.current);
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
+  // Declared last, so on unmount the map goes after every other cleanup
+  // above has run.
+  useEffect(() => removeMap, [removeMap]);
 
   return (
     <>
