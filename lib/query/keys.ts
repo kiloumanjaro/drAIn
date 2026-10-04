@@ -8,11 +8,6 @@ export const dashboardKeys = {
   analytics: () => [...dashboardKeys.all, 'analytics'],
   analyticsDetails: () => ({
     all: [...dashboardKeys.analytics(), 'details'],
-    repairTrend: () => [
-      ...dashboardKeys.analytics(),
-      'details',
-      'repair-trend',
-    ],
     issuesPerZone: () => [
       ...dashboardKeys.analytics(),
       'details',
@@ -61,19 +56,6 @@ export const mapKeys = {
     drains: () => [...mapKeys.drainage(), 'details', 'drains'],
   }),
   overlays: () => [...mapKeys.all, 'overlays'],
-  overlayDetails: () => ({
-    floodHazard: (scenario: string) => [
-      ...mapKeys.overlays(),
-      'flood-hazard',
-      scenario,
-    ],
-    population: () => [...mapKeys.overlays(), 'population'],
-    floodProneAreas: (areaId: string) => [
-      ...mapKeys.overlays(),
-      'flood-prone',
-      areaId,
-    ],
-  }),
 };
 
 /**

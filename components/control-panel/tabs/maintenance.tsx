@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchReportsForComponent } from '@/lib/supabase/report';
 import {
   DEBUG_MODE,
   checkMaintenancePhoto,
@@ -11,7 +10,6 @@ import {
 } from './maintenance.helpers';
 import { assetActions } from './maintenance.actions';
 import MaintenanceVerification from './maintenance-verification';
-import type { Report } from '@/lib/supabase/report';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import {
   CornerDownRight,
@@ -94,7 +92,6 @@ export default function Maintenance({
   const [_message, setMessage] = useState<string>('');
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
   const [agencyComments, setAgencyComments] = useState<string>('');
-  const [_reports, setReports] = useState<Report[]>([]);
 
   // Add Image / Report Submission State
   const { user: _user, profile: _authProfile } = useAuth();
@@ -110,10 +107,6 @@ export default function Maintenance({
   const [pendingStatus, setPendingStatus] = useState<
     'in-progress' | 'resolved' | null
   >(null);
-
-  const loadReports = useCallback(async (componentId: string) => {
-    setReports(await fetchReportsForComponent(componentId));
-  }, []);
 
   const handleViewHistory = useCallback(
     async (assetType: string, assetId: string) => {
@@ -164,11 +157,9 @@ export default function Maintenance({
     if (assetType && assetId) {
       setSelectedAsset({ type: assetType, id: assetId });
       handleViewHistory(assetType, assetId);
-      loadReports(assetId);
     } else {
       setSelectedAsset(null);
       setHistory(null);
-      setReports([]);
       setMessage('');
     }
     // Reset upload state when asset changes
@@ -184,7 +175,6 @@ export default function Maintenance({
     selectedPipe,
     selectedDrain,
     handleViewHistory,
-    loadReports,
   ]);
 
   const initiateRecordMaintenance = (status: 'in-progress' | 'resolved') => {
@@ -259,7 +249,6 @@ ${note}`
           : 'Recorded as in progress.'
       );
       handleViewHistory(type, id);
-      loadReports(id);
     }
   };
 
@@ -409,7 +398,6 @@ ${note}`
             onClick={() => {
               if (!selectedAsset) return;
               handleViewHistory(selectedAsset.type, selectedAsset.id);
-              loadReports(selectedAsset.id);
             }}
           >
             <RefreshCw className="h-4 w-4 text-[#8D8D8D]" />

@@ -37,11 +37,6 @@ export interface OverviewMetrics {
   adminTrend?: number[];
 }
 
-export interface RepairTrendData {
-  date: string;
-  averageDays: number;
-}
-
 export interface ZoneIssueData {
   zone: string;
   count: number;
@@ -119,23 +114,6 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     verifiedFixedThisMonth: row.verified_fixed_this_month,
     awaitingVerification: row.awaiting_verification,
   };
-}
-
-/**
- * Get repair time trend for last 30 days
- */
-export async function getRepairTrendData(): Promise<RepairTrendData[]> {
-  const { data, error } = await client.rpc('repair_trend', { p_days: 30 });
-
-  if (error) {
-    console.error('Error fetching repair trend data:', error);
-    throw error;
-  }
-
-  return (data ?? []).map((row) => ({
-    date: row.day,
-    averageDays: row.average_days,
-  }));
 }
 
 /**

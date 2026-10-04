@@ -48,16 +48,6 @@ const loadingConfig: Record<
     ],
     icon: <IconBook className="h-4 w-4 text-white" />,
   },
-  '/about': {
-    title: 'Loading About',
-    messages: [
-      'Loading about page...',
-      'Fetching project information...',
-      'Preparing content...',
-      'Almost there...',
-    ],
-    icon: <IconInfoCircle className="h-4 w-4 text-white" />,
-  },
   '/': {
     title: 'Loading Home',
     messages: [

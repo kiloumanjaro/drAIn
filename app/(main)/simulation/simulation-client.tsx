@@ -65,9 +65,6 @@ export default function SimulationPage() {
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
-  const [selectedFloodScenario, setSelectedFloodScenario] =
-    useState<string>('5YR');
-
   const [overlayVisibility, setOverlayVisibility] = useState({
     'man_pipes-layer': true,
     'storm_drains-layer': true,
@@ -111,7 +108,6 @@ export default function SimulationPage() {
 
   // Rain effect state
   const [isRainActive, setIsRainActive] = useState(false); // Start with false, will be set when table is generated
-  const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
   const {
     isFloodPropagationActive,
     updateFloodPropagation,
@@ -200,23 +196,10 @@ export default function SimulationPage() {
   };
 
   const handleOverlayToggle = (layerId: string) => {
-    const isVisible =
-      !overlayVisibility[layerId as keyof typeof overlayVisibility];
     setOverlayVisibility((prev) => ({
       ...prev,
       [layerId]: !prev[layerId as keyof typeof prev],
     }));
-
-    if (layerId === 'flood_hazard-layer') {
-      if (isVisible) {
-        // If flood hazard layer is being turned ON
-        setIsFloodScenarioLoading(true);
-        // Simulate a loading delay
-        setTimeout(() => {
-          setIsFloodScenarioLoading(false);
-        }, 1500); // 1.5 seconds delay
-      }
-    }
   };
 
   const overlayData = [
@@ -565,8 +548,6 @@ export default function SimulationPage() {
           onToggle={handleToggleAllOverlays}
           overlays={overlayData}
           onToggleOverlay={handleOverlayToggle}
-          selectedFloodScenario={selectedFloodScenario}
-          onChangeFloodScenario={setSelectedFloodScenario}
           isSimulationMode={isSimulationActive}
           selectedPointForSimulation={selectedPointForSimulation}
           selectedComponentIds={panels.selectedComponentIds}
@@ -605,7 +586,6 @@ export default function SimulationPage() {
           onToggleRain={handleToggleRain}
           isFloodPropagationActive={isFloodPropagationActive}
           onToggleFloodPropagation={handleToggleFloodPropagation}
-          isFloodScenarioLoading={isFloodScenarioLoading}
         />
         <CameraControls
           onZoomIn={handleZoomIn}

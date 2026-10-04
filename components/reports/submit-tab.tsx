@@ -455,21 +455,6 @@ export default function SubmitTab() {
                 emptyText="No options found"
                 showSearch={true}
               />
-              {/* <select
-                value={categoryIndex}
-                onChange={(e) => setCategoryIndex(parseInt(e.target.value))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                required
-              >
-                <option value="-1">Please select the correct ID</option>
-
-                {categoryData.map((pipe, index) => (
-                  <option key={index} value={index}>
-                    {pipe.name} - {pipe.distance?.toFixed(0)}m away
-                    {index === 0 && " (Best Match)"}
-                  </option>
-                ))}
-              </select> */}
             </div>
 
             {/* Description Display */}

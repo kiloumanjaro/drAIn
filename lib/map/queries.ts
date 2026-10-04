@@ -222,18 +222,3 @@ export async function getDrains(): Promise<Drain[]> {
   const geojson = await fetchGeoJSON('/drainage/storm_drains.geojson');
   return transformDrainsGeoJSON(geojson);
 }
-
-/**
- * Fetch all drainage data in parallel
- * Optional optimization for initial load
- */
-export async function getAllDrainageData() {
-  const [inlets, outlets, pipes, drains] = await Promise.all([
-    getInlets(),
-    getOutlets(),
-    getPipes(),
-    getDrains(),
-  ]);
-
-  return { inlets, outlets, pipes, drains };
-}

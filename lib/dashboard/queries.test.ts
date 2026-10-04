@@ -70,7 +70,6 @@ import {
   getRepairTimeByComponent,
   getReportLocations,
   getReportsPage,
-  getRepairTrendData,
   getTeamPerformance,
 } from './queries';
 
@@ -129,22 +128,6 @@ describe('getOverviewMetrics', () => {
       fixedThisMonth: 0,
       totalAdmins: 0,
     });
-  });
-});
-
-describe('getRepairTrendData', () => {
-  it('maps each day to the chart shape', async () => {
-    answer({
-      'rpc:repair_trend': [
-        { day: '2026-01-01', average_days: 2 },
-        { day: '2026-01-02', average_days: 1 },
-      ],
-    });
-
-    await expect(getRepairTrendData()).resolves.toEqual([
-      { date: '2026-01-01', averageDays: 2 },
-      { date: '2026-01-02', averageDays: 1 },
-    ]);
   });
 });
 

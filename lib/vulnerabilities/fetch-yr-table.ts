@@ -46,25 +46,3 @@ export const fetchYRTable = async (YR: YearOption): Promise<NodeDetails[]> => {
     throw error;
   }
 };
-
-/** One node's stored results for one return period, or null. */
-export const fetchNodeDeets = async (
-  Node_ID: string,
-  YR: YearOption
-): Promise<NodeDetails | null> => {
-  const { data, error } = await client
-    .from('flood_results')
-    .select('*')
-    .eq('return_period', YR)
-    .eq('node_id', Node_ID)
-    .single();
-
-  if (error || !data) {
-    if (error) {
-      console.error(`Error fetching node ${Node_ID} for ${YR} years:`, error);
-    }
-    return null;
-  }
-
-  return mapFloodResult(data);
-};

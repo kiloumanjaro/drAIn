@@ -286,27 +286,6 @@ export const fetchMyResolutionVerdicts = async (
   );
 };
 
-/** The reports filed against one component, oldest first. */
-export const fetchReportsForComponent = async (
-  componentId: string
-): Promise<Report[]> => {
-  try {
-    const rows = await fetchAllRows((from, to) =>
-      client
-        .from('reports')
-        .select(PUBLIC_REPORT_COLUMNS)
-        .eq('component_id', componentId)
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
-        .range(from, to)
-    );
-    return rows.map(formatReport);
-  } catch (error) {
-    console.error('Error fetching reports for component:', error);
-    throw error;
-  }
-};
-
 /**
  * The newest report on each component (latest_report_per_component in
  * schema_dashboard.sql): what the map's pins show. One row per component

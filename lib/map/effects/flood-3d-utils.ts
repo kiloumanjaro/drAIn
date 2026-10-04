@@ -576,34 +576,3 @@ export function cancelFloodAppearing(map: mapboxgl.Map): void {
   floodAppearing.get(map)?.();
   floodAppearing.delete(map);
 }
-
-/**
- * Disable flood visualization
- */
-export function disableFlood3D(map: mapboxgl.Map): void {
-  if (!map) return;
-
-  // Hide the gradient layer instead of removing it
-  if (map.getLayer('flood-gradient-layer')) {
-    map.setLayoutProperty('flood-gradient-layer', 'visibility', 'none');
-  }
-
-  // Hide old layers for backwards compatibility
-  if (map.getLayer('flood-outline-layer')) {
-    map.setLayoutProperty('flood-outline-layer', 'visibility', 'none');
-  }
-  if (map.getLayer('flood-3d-layer')) {
-    map.setLayoutProperty('flood-3d-layer', 'visibility', 'none');
-  }
-}
-
-/**
- * Toggle flood visualization on/off
- */
-export function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void {
-  if (!map || !map.getLayer('flood-gradient-layer')) return;
-
-  const visibility = visible ? 'visible' : 'none';
-
-  map.setLayoutProperty('flood-gradient-layer', 'visibility', visibility);
-}

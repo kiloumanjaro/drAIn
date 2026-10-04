@@ -247,7 +247,8 @@ export default function OverlaysContent({
           'medium',
           'low',
         ],
-        component: (
+        // The simulation page has no stored hazard layer to switch.
+        component: onChangeFloodScenario ? (
           <FloodScenarioCard
             isVisible={
               overlays.find((o) => o.id === 'flood_hazard-layer')?.visible ??
@@ -258,7 +259,7 @@ export default function OverlaysContent({
             onScenarioChange={onChangeFloodScenario}
             isLoading={isFloodScenarioLoading}
           />
-        ),
+        ) : null,
       },
       {
         id: 'population' as ComponentId,
@@ -365,9 +366,9 @@ export default function OverlaysContent({
   // Calculate relevance scores and reorder based on search
   const orderedComponents = useMemo(() => {
     if (!searchTerm.trim()) {
-      return componentOrder.map(
-        (id) => componentsMetadata.find((c) => c.id === id)!
-      );
+      return componentOrder
+        .map((id) => componentsMetadata.find((c) => c.id === id)!)
+        .filter((c) => c.component !== null);
     }
 
     const query = searchTerm.toLowerCase();
@@ -382,7 +383,7 @@ export default function OverlaysContent({
     });
 
     return scoredComponents
-      .filter((comp) => comp.score > 0)
+      .filter((comp) => comp.score > 0 && comp.component !== null)
       .sort((a, b) => b.score - a.score);
   }, [searchTerm, componentOrder, componentsMetadata]);
 

@@ -75,7 +75,7 @@ components:
 
 - `report.ts`: `uploadReport`, `fetchReportList`,
   `fetchLatestReportsPerComponent`, `fetchReportCountsByComponent`,
-  `fetchReportCountsByDay`, `fetchMyReports`, `fetchReportsForComponent`,
+  `fetchReportCountsByDay`, `fetchMyReports`,
   `reviewReport`, `respondToResolution`, `subscribeToReportChanges`.
 - `maintenance.ts`: `recordMaintenance`, `getMaintenanceHistory`,
   `reviewMaintenance`.

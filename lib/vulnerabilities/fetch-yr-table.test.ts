@@ -18,7 +18,7 @@ vi.mock('@/lib/supabase/client', () => ({
   default: { from: supabase.from },
 }));
 
-import { fetchNodeDeets, fetchYRTable } from './fetch-yr-table';
+import { fetchYRTable } from './fetch-yr-table';
 
 /** A row as public.flood_results holds it. */
 function storedRow(overrides: Record<string, unknown> = {}) {
@@ -83,35 +83,6 @@ describe('fetchYRTable', () => {
     supabase.result.error = { message: 'boom' };
 
     await expect(fetchYRTable(5)).rejects.toEqual({ message: 'boom' });
-    error.mockRestore();
-  });
-});
-
-describe('fetchNodeDeets', () => {
-  it('looks the node up under the right return period and maps it', async () => {
-    supabase.result.data = storedRow();
-
-    const row = await fetchNodeDeets('I-7', 25);
-
-    expect(supabase.from).toHaveBeenCalledWith('flood_results');
-    expect(supabase.query.eq).toHaveBeenCalledWith('return_period', 25);
-    expect(supabase.query.eq).toHaveBeenCalledWith('node_id', 'I-7');
-    expect(row).toMatchObject({ Node_ID: 'I-7', Time_Before_Overflow: 45 });
-  });
-
-  it('turns the 9999 never-overflowed sentinel into null', async () => {
-    supabase.result.data = storedRow({ time_after_raining_min: 9999 });
-
-    const row = await fetchNodeDeets('I-7', 25);
-
-    expect(row?.Time_Before_Overflow).toBeNull();
-  });
-
-  it('returns null when the query fails', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    supabase.result.error = { message: 'no rows' };
-
-    await expect(fetchNodeDeets('I-404', 25)).resolves.toBeNull();
     error.mockRestore();
   });
 });
