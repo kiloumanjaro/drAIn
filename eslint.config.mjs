@@ -43,13 +43,6 @@ const eslintConfig = [
       'react-hooks/immutability': 'warn',
     },
   },
-  {
-    files: ['components/simulation/model-viewer.tsx'],
-    rules: {
-      'react-hooks/rules-of-hooks': 'off',
-      'react-hooks/exhaustive-deps': 'off',
-    },
-  },
 ];
 
 export default eslintConfig;
