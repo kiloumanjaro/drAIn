@@ -200,7 +200,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
         {/* Popup */}
         {isOpen && (
           <div
-            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg ${
+            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg max-md:top-9 max-md:left-1/2 max-md:w-[min(18rem,calc(100vw-2rem))] max-md:-translate-x-1/2 ${
               isClosing
                 ? 'animate-out fade-out duration-300'
                 : 'animate-in fade-in slide-in-from-left-2'

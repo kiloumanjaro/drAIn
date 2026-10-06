@@ -111,7 +111,7 @@ export function NodeSimulationSlideshow({
         showCloseButton={false}
         aria-describedby={undefined}
         overlayClassName="z-[1100] bg-black/20"
-        className="top-[calc(50%-250px)] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl sm:max-w-none"
+        className="top-[calc(50%-250px)] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl max-md:inset-x-2 max-md:top-16 max-md:h-auto max-md:max-h-[calc(100dvh-5rem)] max-md:min-h-[450px] max-md:w-auto max-md:overflow-y-auto sm:max-w-none"
       >
         {/* Header */}
         <div className="flex items-center justify-between rounded-t-lg bg-[#f7f7f7] p-2 pl-5">

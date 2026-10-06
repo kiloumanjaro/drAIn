@@ -30,6 +30,17 @@ interface SimulationOverlaysProps {
   onHighlightNodes: (nodeIds: Set<string>) => void;
 }
 
+// On phones a remembered or dragged pixel position can put a panel off the
+// screen. There each one is pinned instead: under the navigation button, a
+// little in from both edges. The classes are marked important to win over
+// the inline position the larger layouts use.
+const PHONE_PIN = 'max-md:fixed! max-md:inset-x-2! max-md:top-16!';
+
+// A table stretches to the right edge of the map when its content is wide
+// enough. From tablet width up the map buttons live in the last 70px, so the
+// tables stop short of them; on phones the table sits above the buttons.
+// (Both are in the tables' class names below.)
+
 /** Everything that floats over the simulation map. */
 export function SimulationOverlays({
   tables,
@@ -48,7 +59,7 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
       {tableData && !tables.isTableMinimized && (
         <div
-          className="pointer-events-auto absolute z-20"
+          className={`pointer-events-auto absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
           style={{
             left: `${tablePosition.x}px`,
             top: `${tablePosition.y}px`,
@@ -74,7 +85,7 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
       {tableData3 && !tables.isTable3Minimized && (
         <div
-          className="pointer-events-auto absolute z-20"
+          className={`pointer-events-auto absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
           style={{
             left: `${table3Position.x}px`,
             top: `${table3Position.y}px`,
@@ -112,6 +123,7 @@ export function SimulationOverlays({
       {/* Node Parameters Panel - Draggable */}
       {activePanel === 'node' && panels.selectedComponentIds.length > 0 && (
         <div
+          className={PHONE_PIN}
           style={{
             position: 'fixed',
             left: nodePanelPosition.x,
@@ -135,6 +147,7 @@ export function SimulationOverlays({
       {/* Link Parameters Panel - Draggable */}
       {activePanel === 'link' && panels.selectedPipeIds.length > 0 && (
         <div
+          className={PHONE_PIN}
           style={{
             position: 'fixed',
             left: linkPanelPosition.x,

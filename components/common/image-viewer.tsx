@@ -107,10 +107,10 @@ export function ImageViewer({
           </div>
         ) : (
           /* Main viewer container */
-          <div className="relative flex max-h-[95vh] max-w-[90vw] items-stretch gap-4">
+          <div className="relative flex max-h-[95vh] max-w-[90vw] items-stretch gap-4 max-md:w-[92vw] max-md:max-w-none max-md:flex-col max-md:gap-2 max-md:overflow-y-auto">
             {/* Image section */}
             <div
-              className="group relative flex min-h-150 w-137.5 items-center justify-center overflow-hidden rounded-lg"
+              className="group relative flex items-center justify-center overflow-hidden rounded-lg max-md:h-[38vh] max-md:w-full max-md:shrink-0 md:min-h-[min(37.5rem,95vh)] md:w-137.5"
               style={{ backgroundColor: '#4b4b4c' }}
             >
               {isImageLoading && (
@@ -150,7 +150,7 @@ export function ImageViewer({
             </div>
 
             {/* Metadata sidebar */}
-            <div className="w-96 overflow-y-auto rounded-lg bg-white shadow-2xl">
+            <div className="w-96 overflow-y-auto rounded-lg bg-white shadow-2xl max-md:w-full max-md:shrink-0 max-md:overflow-visible">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-200 p-3 pr-4">
                 <div className="flex items-center gap-2 pl-3.5">

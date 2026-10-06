@@ -64,8 +64,9 @@ export default function ComponentTypeChart({
   return (
     <TooltipProvider>
       <div>
-        <div className="rounded-t-2xl border border-[#ced1cd] bg-[#f7f7f7]">
-          <table className="w-full text-sm">
+        {/* Four columns need about 620px; narrower screens scroll the card. */}
+        <div className="overflow-x-auto rounded-t-2xl border border-[#ced1cd] bg-[#f7f7f7]">
+          <table className="w-full min-w-[620px] text-sm">
             <thead>
               <tr className="rounded-2xl border-b border-[#ced1cd]">
                 <th className="w-[250px] px-4 py-3 text-center font-normal text-gray-700">

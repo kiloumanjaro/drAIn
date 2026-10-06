@@ -223,12 +223,7 @@ export function LinkParametersPanel({
   return (
     <div
       ref={containerRef}
-      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg"
-      style={{
-        minWidth: '450px',
-        maxWidth: '600px',
-        maxHeight: 'calc(100vh - 120px)',
-      }}
+      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-h-[calc(100vh-120px)] md:max-w-[600px] md:min-w-[450px]"
     >
       {/* Header */}
       <div
