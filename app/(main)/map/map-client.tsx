@@ -425,8 +425,11 @@ function MapPageContent() {
       <div className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
         {/* A map cannot be read out; the label says where the same
             information is in a form that can. */}
+        {/* z-0 keeps what the map draws over itself (its popups, and the
+            message shown when it cannot start) inside the map, so the control
+            panel and its lists stay usable either way. */}
         <div
-          className="h-screen w-full"
+          className="relative z-0 h-screen w-full"
           ref={mapContainerRef}
           role="region"
           aria-label="Map of the drainage network and flood reports. The same components and reports are listed in the control panel tables."
