@@ -105,7 +105,7 @@ function DocsContent() {
   const sectionGroups = SECTION_GROUPS;
 
   return (
-    <div className="min-h-screen bg-[#f1f1f1] px-4">
+    <div className="min-h-screen bg-[#f1f1f1] px-4 max-md:pt-14">
       <div className="mx-auto pb-5">
         <div className="flex flex-col md:flex-row md:gap-4">
           {/* Sidebar Navigation */}

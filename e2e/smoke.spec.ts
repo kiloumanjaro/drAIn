@@ -55,3 +55,52 @@ test.describe('simulation page', () => {
     expect(errors, `Uncaught page errors: ${errors.join('\n')}`).toEqual([]);
   });
 });
+
+test.describe('phone layout', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('a menu button opens the navigation the rail no longer shows', async ({
+    page,
+  }) => {
+    await page.goto('/dashboard');
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await expect(page.getByText('Documentation', { exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+
+  test('the map control panel is a bottom sheet that fits the screen', async ({
+    page,
+  }) => {
+    const errors = collectPageErrors(page);
+    await page.goto('/map');
+
+    const handle = page.getByRole('button', { name: 'Expand panel' });
+    await expect(handle).toBeVisible({ timeout: 30_000 });
+    const sheet = handle.locator('..');
+    const half = await sheet.boundingBox();
+    expect(half?.x).toBe(0);
+    expect(half?.width).toBe(390);
+    expect((half?.y ?? 0) + (half?.height ?? 0)).toBeCloseTo(844, 0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth
+      )
+    ).toBeLessThanOrEqual(1);
+
+    // The handle steps half, full, bar; a tab on the bar opens it again.
+    await handle.click();
+    await page.getByRole('button', { name: 'Collapse panel' }).click();
+    const reopen = page.getByRole('button', { name: 'Open panel' });
+    await expect(reopen).toBeVisible();
+    await expect
+      .poll(async () => (await reopen.locator('..').boundingBox())?.height)
+      .toBeLessThan(100);
+    await page.getByRole('button', { name: 'Report', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Expand panel' })
+    ).toBeVisible();
+
+    expect(errors, `Uncaught page errors: ${errors.join('\n')}`).toEqual([]);
+  });
+});

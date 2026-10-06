@@ -25,7 +25,7 @@ export const CameraControls: FC<CameraControlsProps> = ({
     // The column spans the map's height to pin its two groups top and
     // bottom; only the groups themselves take clicks, or the strip between
     // them would swallow clicks meant for whatever lies under it.
-    <div className="pointer-events-none absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5">
+    <div className="pointer-events-none absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5 max-md:justify-start max-md:gap-2">
       <div className="pointer-events-auto flex flex-col items-end gap-2">
         {/* Exit button when simulation is active */}
         {isSimulationActive && onExitSimulation && (
