@@ -107,10 +107,10 @@ function DocsContent() {
   return (
     <div className="min-h-screen bg-[#f1f1f1] px-4">
       <div className="mx-auto pb-5">
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row md:gap-4">
           {/* Sidebar Navigation */}
-          <nav className="w-52 flex-shrink-0">
-            <div className="sticky">
+          <nav className="w-full md:w-52 md:flex-shrink-0">
+            <div className="md:sticky md:top-2 md:max-h-[calc(100vh-1rem)] md:overflow-y-auto">
               <div className="mt-2 mb-4 flex items-center gap-2">
                 <div className="flex w-full justify-center rounded-lg border border-[#dfdfdf] bg-white px-5 py-2">
                   <Image
@@ -209,7 +209,7 @@ function DocsContent() {
 
           {/* Main Content */}
           {/* div, not main: SidebarInset is already the main landmark */}
-          <div className="mt-5 flex min-h-[calc(100vh-60px)] flex-1 flex-col">
+          <div className="mt-5 flex min-h-[calc(100vh-60px)] min-w-0 flex-1 flex-col">
             {/* Header */}
             <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
               <div className="flex items-center justify-between gap-4">

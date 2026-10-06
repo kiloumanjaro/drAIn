@@ -277,7 +277,7 @@ export function ImageViewer({
                         Description
                       </h3>
                     </div>
-                    <p className="rounded border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed text-gray-900">
+                    <p className="rounded border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed [overflow-wrap:anywhere] text-gray-900">
                       {description}
                     </p>
                   </div>

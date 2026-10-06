@@ -250,7 +250,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
 
             {/* Description */}
             <div className="mb-4 ml-[48px]">
-              <p className="flex flex-col gap-2 text-xs text-gray-800">
+              <p className="flex flex-col gap-2 text-xs [overflow-wrap:anywhere] text-gray-800">
                 {report.description}{' '}
                 {report.image && (
                   <button

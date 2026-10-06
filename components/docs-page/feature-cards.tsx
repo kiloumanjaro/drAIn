@@ -29,9 +29,9 @@ export default function FeatureCards({
   const gridCols =
     {
       2: 'md:grid-cols-2',
-      3: 'md:grid-cols-3',
-      4: 'md:grid-cols-4',
-    }[columns] || 'md:grid-cols-3';
+      3: 'md:grid-cols-2 xl:grid-cols-3',
+      4: 'md:grid-cols-2 xl:grid-cols-4',
+    }[columns] || 'md:grid-cols-2 xl:grid-cols-3';
 
   return (
     <TooltipProvider>
@@ -41,7 +41,7 @@ export default function FeatureCards({
           return (
             <div
               key={feature.title}
-              className="rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
+              className="min-w-0 rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
             >
               <div className="flex cursor-pointer flex-row items-center justify-between rounded-t-xl px-4 py-2 transition-colors">
                 <span className="text-xs">{feature.title}</span>
@@ -71,7 +71,7 @@ export default function FeatureCards({
                       className={`h-6 w-6 ${feature.iconColor || 'text-slate-600'}`}
                     />
                   </div>
-                  <p className="text-sm text-slate-600">
+                  <p className="min-w-0 text-sm text-slate-600">
                     {feature.description}
                   </p>
                 </div>

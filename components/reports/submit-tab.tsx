@@ -420,7 +420,7 @@ export default function SubmitTab() {
       </form>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
           <DialogHeader className="flex flex-col gap-1">
             <DialogTitle>Confirm Report Submission</DialogTitle>
             <DialogDescription>
@@ -460,7 +460,7 @@ export default function SubmitTab() {
             {/* Description Display */}
             <div>
               <p className="mb-2 block text-sm">Description</p>
-              <div className="min-h-[100px] w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
+              <div className="min-h-[100px] w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm [overflow-wrap:anywhere]">
                 {description || (
                   <span className="text-gray-400">No description entered</span>
                 )}

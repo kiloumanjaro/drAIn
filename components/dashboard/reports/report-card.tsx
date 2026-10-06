@@ -172,7 +172,7 @@ export default function ReportCard({
                   e.stopPropagation();
                   setExpandedDescription(!expandedDescription);
                 }}
-                className={`cursor-pointer text-left text-xs text-gray-600 transition-all ${
+                className={`min-w-0 cursor-pointer text-left text-xs [overflow-wrap:anywhere] text-gray-600 transition-all ${
                   expandedDescription ? '' : 'line-clamp-1'
                 }`}
               >

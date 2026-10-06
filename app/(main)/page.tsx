@@ -26,7 +26,7 @@ export default function WelcomePage() {
 
       <div className="pointer-events-none relative z-10 flex h-full flex-1 flex-col items-center justify-center px-4 text-center">
         <div className="flex max-w-3xl flex-col gap-20">
-          <h1 className="flex flex-wrap items-center justify-center gap-4 font-[family-name:var(--font-century-gothic)] text-5xl leading-2 font-bold text-[#34332e]">
+          <h1 className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-[family-name:var(--font-century-gothic)] text-4xl leading-none font-bold text-[#34332e] sm:text-5xl">
             <span>a blueprint</span>
             <Image
               src="/images/logo.png"
