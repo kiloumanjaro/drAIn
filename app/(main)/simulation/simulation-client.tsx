@@ -498,8 +498,10 @@ export default function SimulationPage() {
         className="relative flex min-h-screen flex-col overflow-hidden"
         style={{ backgroundColor: '#1e1e1e' }}
       >
+        {/* z-0 keeps the covers below inside the map: without it the dark
+            one painted over the control panel and its Simulate button. */}
         <div
-          className="relative h-screen w-full"
+          className="relative z-0 h-screen w-full"
           style={{
             pointerEvents: isSimulationActive ? 'auto' : 'none',
             backgroundColor: '#1e1e1e',

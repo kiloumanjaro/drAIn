@@ -17,8 +17,8 @@ import {
   MAP_BOUNDS,
   MAPBOX_ACCESS_TOKEN,
   LAYER_IDS,
-  MAP_STYLES,
 } from '@/lib/map/config';
+import { nextMapStyle } from '@/lib/map/style-cycle';
 import mapboxgl from 'mapbox-gl';
 import {
   useInlets,
@@ -60,6 +60,7 @@ function MapPageContent() {
     refreshReports: onRefreshReports, // Use refresh function from context
   } = useReports();
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapStyleRef = useRef<string>(DEFAULT_STYLE);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [selectedFloodScenario, setSelectedFloodScenario] =
@@ -372,18 +373,9 @@ function MapPageContent() {
     mapRef.current?.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
 
   const handleChangeStyle = () => {
-    const currentStyle = mapRef.current?.getStyle().name;
-    let newStyle = '';
-
-    if (currentStyle === 'Mapbox Streets') {
-      newStyle = MAP_STYLES.SATELLITE;
-    } else if (currentStyle === 'Mapbox Satellite Streets') {
-      newStyle = MAP_STYLES.STREETS;
-    }
-
-    if (newStyle) {
-      mapRef.current?.setStyle(newStyle);
-    }
+    if (!mapRef.current) return;
+    mapStyleRef.current = nextMapStyle(mapStyleRef.current);
+    mapRef.current.setStyle(mapStyleRef.current);
   };
 
   // Handler for the back button in control panel
