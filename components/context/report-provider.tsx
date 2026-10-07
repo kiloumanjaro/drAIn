@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   ReactNode,
   useCallback,
@@ -42,18 +43,21 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
   const { data: latestReports = NO_REPORTS, isLoading: isLoadingLatest } =
     useLatestReports();
-  const refreshMutation = useRefreshReports();
+  // Taken apart because the mutation object is new on every render, while
+  // mutateAsync stays the same function.
+  const { mutateAsync: refreshAll, isPending: isRefreshPending } =
+    useRefreshReports();
 
   const [notifications, setNotifications] = useState<Report[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const handleOpenNotifications = () => setUnreadCount(0);
+  const handleOpenNotifications = useCallback(() => setUnreadCount(0), []);
 
   const refreshReports = useCallback(async () => {
-    await refreshMutation.mutateAsync();
-  }, [refreshMutation]);
+    await refreshAll();
+  }, [refreshAll]);
 
-  const isRefreshingReports = isLoadingLatest || refreshMutation.isPending;
+  const isRefreshingReports = isLoadingLatest || isRefreshPending;
 
   // Realtime: move just the changed component's pin, and let any open list
   // or count refetch.
@@ -73,6 +77,9 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       }
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       queryClient.invalidateQueries({ queryKey: reportKeys.countsByDay() });
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.countsByComponent(),
+      });
       return formatted;
     };
 
@@ -100,14 +107,26 @@ export function ReportProvider({ children }: { children: ReactNode }) {
     };
   }, [queryClient]);
 
-  const value = {
-    latestReports,
-    isRefreshingReports,
-    refreshReports,
-    notifications,
-    unreadCount,
-    handleOpenNotifications,
-  };
+  // One object until something in it changes, so the map and the
+  // notification bell re-render for report changes only.
+  const value = useMemo(
+    () => ({
+      latestReports,
+      isRefreshingReports,
+      refreshReports,
+      notifications,
+      unreadCount,
+      handleOpenNotifications,
+    }),
+    [
+      latestReports,
+      isRefreshingReports,
+      refreshReports,
+      notifications,
+      unreadCount,
+      handleOpenNotifications,
+    ]
+  );
 
   return (
     <ReportContext.Provider value={value}>{children}</ReportContext.Provider>

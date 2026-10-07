@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import type mapboxgl from 'mapbox-gl';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
-import { createFloodAlongPipes } from './flood-3d-utils';
+import { animateFloodAppearing, createFloodAlongPipes } from './flood-3d-utils';
 
 function makeNode(id: string, category: string, volume: number): NodeDetails {
   return {
@@ -140,6 +141,42 @@ describe('createFloodAlongPipes', () => {
     expect(connectors).toEqual([]);
   });
 
+  it('takes the first position when a node is listed twice', () => {
+    // Only the first position puts node b at the end of the pipe.
+    const fc = createFloodAlongPipes(
+      [makeNode('a', 'Low Risk', 10), makeNode('b', 'Low Risk', 10)],
+      [makeCoord('a', N1), makeCoord('b', N2), makeCoord('b', [0.5, 0.5])],
+      [makePipe('P1', [N1, N2])]
+    );
+    expect(fc.features).toHaveLength(1);
+    expect(fc.features[0].properties!.endNodeId).toBe('b');
+  });
+
+  it('snaps each pipe end to its nearest flooded node among many', () => {
+    const fc = createFloodAlongPipes(
+      [
+        makeNode('a', 'Low Risk', 10),
+        makeNode('near-a', 'High Risk', 10),
+        makeNode('b', 'Medium Risk', 10),
+        makeNode('nowhere', 'High Risk', 10), // flooded, but no position
+      ],
+      [
+        makeCoord('near-a', [0.0005, 0]),
+        makeCoord('a', N1),
+        makeCoord('b', N2),
+      ],
+      [makePipe('P1', [N1, N2])]
+    );
+    const pipeSegments = fc.features.filter(
+      (f) => f.properties!.pipeName === 'P1'
+    );
+    expect(pipeSegments.length).toBeGreaterThan(0);
+    for (const segment of pipeSegments) {
+      expect(segment.properties!.startNodeId).toBe('a');
+      expect(segment.properties!.endNodeId).toBe('b');
+    }
+  });
+
   it('skips degenerate pipes with fewer than two coordinates', () => {
     const fc = createFloodAlongPipes(
       [makeNode('a', 'Low Risk', 10), makeNode('b', 'Low Risk', 10)],
@@ -147,5 +184,110 @@ describe('createFloodAlongPipes', () => {
       [makePipe('P1', [N1])]
     );
     expect(fc.features).toEqual([]);
+  });
+});
+
+describe('animateFloodAppearing', () => {
+  let pending: Map<number, () => void>;
+  let nextId: number;
+
+  /** Fire the frames that are waiting. */
+  const runFrames = () => {
+    const callbacks = [...pending.values()];
+    pending.clear();
+    callbacks.forEach((callback) => callback());
+  };
+
+  function makeMap() {
+    let hasLayer = true;
+    const setPaintProperty = vi.fn();
+    const map = {
+      getLayer: () => (hasLayer ? { id: 'flood-gradient-layer' } : undefined),
+      setPaintProperty,
+    } as unknown as mapboxgl.Map;
+    return { map, setPaintProperty, removeLayer: () => (hasLayer = false) };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    pending = new Map();
+    nextId = 1;
+    vi.stubGlobal('requestAnimationFrame', (callback: () => void) => {
+      pending.set(nextId, callback);
+      return nextId++;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      pending.delete(id);
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  /** The opacity given to the highest flood volume in a setPaintProperty call. */
+  const peakOpacity = (call: unknown[]) => (call[2] as unknown[]).at(-1);
+
+  it('fades in from nothing to full over the duration, easing out', () => {
+    const { map, setPaintProperty } = makeMap();
+    animateFloodAppearing(map, 3000);
+    expect(peakOpacity(setPaintProperty.mock.calls[0])).toBe(0);
+
+    vi.setSystemTime(1500);
+    runFrames();
+    // Ease-out cubic: 1 - (1 - 0.5)^3 of the way there at half time.
+    expect(peakOpacity(setPaintProperty.mock.calls[1])).toBeCloseTo(
+      0.8 * 0.875,
+      12
+    );
+
+    vi.setSystemTime(3000);
+    runFrames();
+    expect(setPaintProperty.mock.calls[2][2]).toEqual([
+      'interpolate',
+      ['linear'],
+      ['get', 'floodVolume'],
+      0,
+      0.4,
+      5,
+      0.6,
+      15,
+      0.8,
+    ]);
+    // Finished: nothing further is asked for.
+    expect(pending.size).toBe(0);
+  });
+
+  it('stops when cancelled, leaving no frame pending', () => {
+    const { map, setPaintProperty } = makeMap();
+    const cancel = animateFloodAppearing(map, 3000);
+    expect(pending.size).toBe(1);
+
+    cancel();
+    expect(pending.size).toBe(0);
+
+    vi.setSystemTime(1000);
+    runFrames();
+    expect(setPaintProperty).toHaveBeenCalledTimes(1);
+  });
+
+  it('can be cancelled after it has finished', () => {
+    const { map } = makeMap();
+    const cancel = animateFloodAppearing(map, 0);
+    expect(pending.size).toBe(0);
+    expect(() => cancel()).not.toThrow();
+  });
+
+  it('stops by itself once the layer is gone', () => {
+    const { map, setPaintProperty, removeLayer } = makeMap();
+    animateFloodAppearing(map, 3000);
+    removeLayer();
+    vi.setSystemTime(100);
+    runFrames();
+
+    expect(setPaintProperty).toHaveBeenCalledTimes(1);
+    expect(pending.size).toBe(0);
   });
 });

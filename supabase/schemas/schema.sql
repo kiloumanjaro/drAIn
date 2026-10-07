@@ -149,14 +149,16 @@ ALTER TYPE "public"."review_verdict" OWNER TO "postgres";
 
 -- Creates the profiles row for every new account. Everyone starts as a
 -- citizen: sign-up metadata is written by the client, so only full_name is
--- taken from it. People become staff through join_agency or an admin.
+-- taken from it, cut to the 100 characters profiles_full_name_length allows
+-- (a longer one must not make the sign-up fail). People become staff through
+-- join_agency.
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 BEGIN
   INSERT INTO public.profiles (id, full_name)
-  VALUES (new.id, new.raw_user_meta_data ->> 'full_name');
+  VALUES (new.id, nullif(left(btrim(new.raw_user_meta_data ->> 'full_name'), 100), ''));
   RETURN new;
 END;
 $$;
@@ -255,6 +257,13 @@ ALTER TABLE ONLY "public"."agencies"
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("id");
 
+-- A name is copied onto each of the person's public reports
+-- (sync_reporter_name), so it has a limit. NOT VALID: it holds for every new
+-- or changed row; rows from before it are left as they are (the migration
+-- that added it reports how many there are).
+ALTER TABLE "public"."profiles"
+    ADD CONSTRAINT "profiles_full_name_length" CHECK (("char_length"("full_name") <= 100)) NOT VALID;
+
 CREATE INDEX "idx_profiles_agency_id" ON "public"."profiles" USING "btree" ("agency_id");
 CREATE OR REPLACE TRIGGER "set_updated_at" BEFORE UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
 CREATE OR REPLACE TRIGGER "protect_profile_privileges" BEFORE INSERT OR UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."protect_profile_privileges"();
@@ -302,19 +311,125 @@ $$;
 
 ALTER FUNCTION "private"."is_admin"() OWNER TO "postgres";
 
+-- Policies call current_agency_id as the caller (the reports SELECT policy,
+-- for signed-out visitors too), so every API role needs EXECUTE. is_admin is
+-- only reached from SECURITY DEFINER functions.
+REVOKE ALL ON FUNCTION "private"."current_agency_id"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "private"."current_agency_id"() TO "anon", "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "private"."is_admin"() FROM PUBLIC, "anon", "authenticated";
+GRANT EXECUTE ON FUNCTION "private"."is_admin"() TO "service_role";
+
+-- True if the request came through the API as a visitor or a signed-in user,
+-- rather than from the service role or a direct database session (SQL editor,
+-- seeds, migrations). Two signals, and either one is enough: the role the API
+-- switched to (which a SECURITY DEFINER function still sees) and the role in
+-- the token. Relying on the token alone treated a request whose token had no
+-- role claim as a direct session.
+CREATE OR REPLACE FUNCTION "private"."is_api_caller"() RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO ''
+    AS $$
+  select coalesce(current_setting('role', true), '') in ('anon', 'authenticated')
+         or coalesce(auth.role(), '') in ('anon', 'authenticated')
+$$;
+
+ALTER FUNCTION "private"."is_api_caller"() OWNER TO "postgres";
+
+-- Trigger functions that run as the caller use it too.
+REVOKE ALL ON FUNCTION "private"."is_api_caller"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "private"."is_api_caller"() TO "anon", "authenticated", "service_role";
+
+-- A record of who did what to whom, kept for good: staff decisions on
+-- reports and maintenance, and every change to who belongs to an agency.
+-- Those functions used to overwrite the previous state in place, so one
+-- staff account (or anyone holding an agency's join code) could reject or
+-- close everything and leave nothing to restore from. Rows are only ever
+-- added: updates, deletes and TRUNCATE are refused for every role. Not
+-- readable through the API; read it from the SQL editor.
+--   action       target        details
+--   report.review         report        before/after review_status, note, priority, reviewer
+--   maintenance.record    maintenance   component, status, and each report moved with its old status
+--   maintenance.review    maintenance   verdict, previous verdict, reports reopened
+--   maintenance.response  maintenance   the reporter's verdict, their report
+--   agency.member_set     profile       role and agency, before and after
+--   agency.join           profile       the agency joined
+--   agency.join_failed    profile       (a wrong code; the code is never stored)
+--   agency.leave          profile       the agency left
+--   agency.code_rotated   agency
+CREATE TABLE IF NOT EXISTS "private"."audit_log" (
+    "id" bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+    "at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "actor_id" "uuid",
+    "actor_agency_id" "uuid",
+    "actor_role" "text" NOT NULL,
+    "action" "text" NOT NULL,
+    "target_type" "text" NOT NULL,
+    "target_id" "text" NOT NULL,
+    "details" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    CONSTRAINT "audit_log_pkey" PRIMARY KEY ("id")
+);
+
+ALTER TABLE "private"."audit_log" OWNER TO "postgres";
+
+COMMENT ON COLUMN "private"."audit_log"."actor_id" IS 'Who did it. No foreign key: the row outlives the account. Null for a direct database session.';
+COMMENT ON COLUMN "private"."audit_log"."actor_role" IS 'The database role the request ran as (authenticated, service_role), or none for a direct session.';
+
+ALTER TABLE "private"."audit_log" ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX "idx_audit_log_target" ON "private"."audit_log" USING "btree" ("target_type", "target_id", "at" DESC);
+CREATE INDEX "idx_audit_log_actor" ON "private"."audit_log" USING "btree" ("actor_id", "at" DESC);
+
+CREATE OR REPLACE FUNCTION "private"."refuse_audit_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'The audit log is append-only.' USING ERRCODE = '42501';
+END;
+$$;
+
+ALTER FUNCTION "private"."refuse_audit_change"() OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."refuse_audit_change"() FROM PUBLIC, "anon", "authenticated";
+
+CREATE OR REPLACE TRIGGER "audit_log_is_append_only" BEFORE UPDATE OR DELETE ON "private"."audit_log" FOR EACH ROW EXECUTE FUNCTION "private"."refuse_audit_change"();
+CREATE OR REPLACE TRIGGER "audit_log_is_never_emptied" BEFORE TRUNCATE ON "private"."audit_log" FOR EACH STATEMENT EXECUTE FUNCTION "private"."refuse_audit_change"();
+
+-- Adds one row to the audit log for the current caller. Runs with the
+-- caller's rights and is granted to no client, so it only works from the
+-- SECURITY DEFINER functions that call it.
+CREATE OR REPLACE FUNCTION "private"."write_audit"("p_action" "text", "p_target_type" "text", "p_target_id" "text", "p_details" "jsonb" DEFAULT '{}'::"jsonb") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  INSERT INTO private.audit_log
+    (actor_id, actor_agency_id, actor_role, action, target_type, target_id, details)
+  VALUES
+    (auth.uid(), private.current_agency_id(), coalesce(current_setting('role', true), 'none'),
+     p_action, p_target_type, p_target_id, coalesce(p_details, '{}'::jsonb));
+END;
+$$;
+
+ALTER FUNCTION "private"."write_audit"("p_action" "text", "p_target_type" "text", "p_target_id" "text", "p_details" "jsonb") OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."write_audit"("p_action" "text", "p_target_type" "text", "p_target_id" "text", "p_details" "jsonb") FROM PUBLIC, "anon", "authenticated";
+
 -- True if the caller may manage this agency's members and join code: an
--- admin of that agency, the service role, or a direct database session (SQL
--- editor, seeds, migrations), which carries no API role claim. API callers
--- always carry one, so anon, ordinary signed-in users and admins of another
--- agency get false. (Until 2026-09-30 any admin could manage every agency.)
+-- admin of that agency, the service role, or a direct database session. Anon,
+-- ordinary signed-in users and admins of another agency get false. (Until
+-- 2026-09-30 any admin could manage every agency.)
 CREATE OR REPLACE FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-  select coalesce(auth.role(), 'postgres') not in ('anon', 'authenticated')
-         or (p_agency_id is not null
-             and private.is_admin()
-             and private.current_agency_id() = p_agency_id)
+  select case
+    when private.is_api_caller()
+      then p_agency_id is not null
+           and private.is_admin()
+           and private.current_agency_id() = p_agency_id
+    else true
+  end
 $$;
 
 ALTER FUNCTION "private"."can_manage_agency"("p_agency_id" "uuid") OWNER TO "postgres";
@@ -375,6 +490,7 @@ BEGIN
   ON CONFLICT (agency_id) DO UPDATE
     SET code_hash = excluded.code_hash, rotated_at = excluded.rotated_at;
 
+  PERFORM private.write_audit('agency.code_rotated', 'agency', p_agency_id::text);
   RETURN substr(raw, 1, 4) || '-' || substr(raw, 5, 4) || '-' || substr(raw, 9, 2);
 END;
 $$;
@@ -413,10 +529,13 @@ BEGIN
   LIMIT 1;
 
   IF matched.id IS NULL THEN
+    PERFORM private.write_audit('agency.join_failed', 'profile', auth.uid()::text);
     RETURN NULL;
   END IF;
 
   UPDATE public.profiles SET role = 'staff', agency_id = matched.id WHERE id = auth.uid();
+  PERFORM private.write_audit('agency.join', 'profile', auth.uid()::text,
+                              jsonb_build_object('agency_id', matched.id));
   RETURN matched;
 END;
 $$;
@@ -429,29 +548,38 @@ CREATE OR REPLACE FUNCTION "public"."leave_agency"() RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
+DECLARE
+  left_agency uuid;
 BEGIN
-  UPDATE public.profiles SET role = 'citizen', agency_id = NULL
-  WHERE id = auth.uid() AND role = 'staff';
+  SELECT agency_id INTO left_agency FROM public.profiles
+  WHERE id = auth.uid() AND role = 'staff'
+  FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Only agency staff can leave an agency.' USING ERRCODE = 'P0001';
   END IF;
+  UPDATE public.profiles SET role = 'citizen', agency_id = NULL WHERE id = auth.uid();
+  PERFORM private.write_audit('agency.leave', 'profile', auth.uid()::text,
+                              jsonb_build_object('agency_id', left_agency));
 END;
 $$;
 
 ALTER FUNCTION "public"."leave_agency"() OWNER TO "postgres";
 
--- An agency's admin sets the role of someone in their agency, or brings a
--- citizen into it. A citizen's agency is cleared; staff and admins must be
--- given one (profiles_staff_have_agency). An admin can only name their own
--- agency, and can't touch members of another agency: they would have to
--- leave it (or be removed by its admin) first. The service role and direct
--- database sessions may set anyone's.
+-- An agency's admin sets the role of someone already in their agency, or
+-- removes them (role citizen clears the agency; staff and admins must have
+-- one, profiles_staff_have_agency). An admin can only name their own agency,
+-- and can't touch members of another agency. An admin can't bring a citizen
+-- in: people join with the agency's code, which is their consent. (Until
+-- 2026-10-04 an admin could add anyone, then read their name and sign-in
+-- email from agency_members.) The service role and direct database sessions
+-- may set anyone's.
 CREATE OR REPLACE FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") RETURNS "public"."profiles"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 DECLARE
   target_agency uuid;
+  target_role public.user_role;
   result public.profiles;
 BEGIN
   IF NOT private.can_manage_agency(p_agency_id) THEN
@@ -463,12 +591,16 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  SELECT agency_id INTO target_agency FROM public.profiles WHERE id = p_user_id FOR UPDATE;
+  SELECT agency_id, role INTO target_agency, target_role
+  FROM public.profiles WHERE id = p_user_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'No such user.' USING ERRCODE = 'P0002';
   END IF;
   IF target_agency IS NOT NULL AND NOT private.can_manage_agency(target_agency) THEN
     RAISE EXCEPTION 'That person belongs to another agency.' USING ERRCODE = '42501';
+  END IF;
+  IF target_agency IS NULL AND private.is_api_caller() THEN
+    RAISE EXCEPTION 'People join an agency with its join code.' USING ERRCODE = '42501';
   END IF;
 
   UPDATE public.profiles
@@ -480,6 +612,9 @@ BEGIN
   IF result.id IS NULL THEN
     RAISE EXCEPTION 'No such user.' USING ERRCODE = 'P0002';
   END IF;
+  PERFORM private.write_audit('agency.member_set', 'profile', p_user_id::text,
+    jsonb_build_object('role_before', target_role, 'agency_before', target_agency,
+                       'role', result.role, 'agency_id', result.agency_id));
   RETURN result;
 END;
 $$;
@@ -527,7 +662,8 @@ ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 -- The components of one type within p_radius_m metres of a point, nearest
 -- first. The report form uses it to suggest what a photo is of. Distances
--- are in metres; the ORDER BY walks idx_components_location.
+-- are in metres; the ORDER BY walks idx_components_location. Anyone may call
+-- it, so the radius (500 m) and the number of rows (20) are capped here.
 CREATE OR REPLACE FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision DEFAULT 50, "p_max_results" integer DEFAULT 3) RETURNS TABLE("name" "text", "lat" double precision, "long" double precision, "distance" double precision)
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'public', 'extensions'
@@ -539,12 +675,15 @@ CREATE OR REPLACE FUNCTION "public"."nearest_components"("p_type" "public"."comp
   from public.components c,
        (select st_setsrid(st_makepoint(p_lon, p_lat), 4326)::geography as point) q
   where c.type = p_type
-    and st_dwithin(c.location, q.point, p_radius_m)
+    and st_dwithin(c.location, q.point, least(greatest(p_radius_m, 0), 500))
   order by c.location <-> q.point
-  limit p_max_results
+  limit least(greatest(p_max_results, 1), 20)
 $$;
 
 ALTER FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."nearest_components"("p_type" "public"."component_type", "p_lat" double precision, "p_lon" double precision, "p_radius_m" double precision, "p_max_results" integer) TO "anon", "authenticated", "service_role";
 
 -- Flood simulation results per drainage node, one row per node and return
 -- period (a 2-year, 5-year, ... 100-year storm). Replaces the eight tables
@@ -748,6 +887,10 @@ COMMENT ON COLUMN "public"."maintenance"."performed_by" IS 'The staff member who
 COMMENT ON COLUMN "public"."maintenance"."verification_status" IS 'Kept by review_maintenance and respond_to_resolution from maintenance_reviews: disputed if anyone disputed it, verified if someone other than the person who did it confirmed it, else unverified.';
 COMMENT ON COLUMN "public"."maintenance"."description" IS 'Agency comments, including photo notes and evidence-check notes.';
 
+-- NOT VALID, like profiles_full_name_length: older rows are left alone.
+ALTER TABLE "public"."maintenance"
+    ADD CONSTRAINT "maintenance_description_length" CHECK (("char_length"("description") <= 2000)) NOT VALID;
+
 -- History of one component, newest first (getMaintenanceHistory, last cleaned).
 CREATE INDEX "idx_maintenance_component" ON "public"."maintenance" USING "btree" ("component_name", "performed_at" DESC);
 
@@ -769,7 +912,10 @@ ALTER TABLE ONLY "public"."maintenance"
 --   in-progress  moves pending reports to in-progress.
 -- Reports filed after the work, and reports staff rejected, are left alone.
 -- This is the only way reports change status; clients can't update reports
--- directly.
+-- directly. The evidence photo must be one the caller uploaded. Each staff
+-- member may record 30 an hour and 200 a day (consume_rate_limit), and each
+-- call is written to the audit log with the reports it moved and what they
+-- were before, so a mistaken or malicious run can be put back.
 CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -777,6 +923,7 @@ CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "pub
 DECLARE
   staff_agency uuid := private.current_agency_id();
   result public.maintenance;
+  moved jsonb;
 BEGIN
   IF staff_agency IS NULL THEN
     RAISE EXCEPTION 'Only agency staff can record maintenance.' USING ERRCODE = '42501';
@@ -787,6 +934,17 @@ BEGIN
     RAISE EXCEPTION 'No % named %.', p_component_type, p_component_name
       USING ERRCODE = '22023';
   END IF;
+  IF char_length(btrim(p_description)) > 2000 THEN
+    RAISE EXCEPTION 'Keep the description under 2,000 characters.' USING ERRCODE = '22023';
+  END IF;
+  IF p_evidence_image IS NOT NULL AND NOT private.owns_report_photo(p_evidence_image) THEN
+    RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
+  END IF;
+  -- After the checks, so only work that is actually recorded is counted.
+  IF NOT public.consume_rate_limit('record_maintenance') THEN
+    RAISE EXCEPTION 'You have recorded a lot of work recently. Please try again later.'
+      USING ERRCODE = 'P0001', HINT = 'rate_limited';
+  END IF;
 
   INSERT INTO public.maintenance
     (component_type, component_name, agency_id, performed_by, status, description, evidence_image)
@@ -795,22 +953,35 @@ BEGIN
      nullif(btrim(p_description), ''), p_evidence_image)
   RETURNING * INTO result;
 
-  UPDATE public.reports
-  SET status = p_status::text::public.report_status,
-      resolved_by_maintenance_id = result.id,
-      -- The "photo after the fix" only exists once the work is resolved; an
-      -- in-progress photo stays on the maintenance row alone.
-      resolved_image = CASE WHEN p_status = 'resolved'
-                            THEN coalesce(p_evidence_image, resolved_image)
-                            ELSE resolved_image END,
-      resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE resolved_at END
-  WHERE component_id = p_component_name
-    AND created_at <= result.performed_at
-    AND review_status <> 'rejected'
-    AND status = ANY (CASE WHEN p_status = 'resolved'
-                           THEN ARRAY['pending', 'in-progress']::public.report_status[]
-                           ELSE ARRAY['pending']::public.report_status[] END);
+  WITH open_reports AS (
+    SELECT r.id, r.status
+    FROM public.reports r
+    WHERE r.component_id = p_component_name
+      AND r.created_at <= result.performed_at
+      AND r.review_status <> 'rejected'
+      AND r.status = ANY (CASE WHEN p_status = 'resolved'
+                               THEN ARRAY['pending', 'in-progress']::public.report_status[]
+                               ELSE ARRAY['pending']::public.report_status[] END)
+    FOR UPDATE
+  ), updated AS (
+    UPDATE public.reports r
+    SET status = p_status::text::public.report_status,
+        resolved_by_maintenance_id = result.id,
+        -- The "photo after the fix" only exists once the work is resolved; an
+        -- in-progress photo stays on the maintenance row alone.
+        resolved_image = CASE WHEN p_status = 'resolved'
+                              THEN coalesce(p_evidence_image, r.resolved_image)
+                              ELSE r.resolved_image END,
+        resolved_at = CASE WHEN p_status = 'resolved' THEN result.performed_at ELSE r.resolved_at END
+    FROM open_reports o
+    WHERE r.id = o.id
+  )
+  SELECT coalesce(jsonb_agg(jsonb_build_object('id', o.id, 'status_before', o.status)), '[]'::jsonb)
+  INTO moved
+  FROM open_reports o;
 
+  PERFORM private.write_audit('maintenance.record', 'maintenance', result.id::text,
+    jsonb_build_object('component', p_component_name, 'status', p_status, 'reports', moved));
   RETURN result;
 END;
 $$;
@@ -1035,7 +1206,10 @@ ALTER TABLE ONLY "public"."reports"
 -- anonymous reports keep a null user_id.
 CREATE POLICY "Signed-in users file pending reports" ON "public"."reports" FOR INSERT TO "authenticated" WITH CHECK ((("status" = 'pending'::"public"."report_status") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("resolved_by_maintenance_id" IS NULL) AND ("resolved_image" IS NULL)));
 
-CREATE POLICY "Anyone can read reports" ON "public"."reports" FOR SELECT USING (true);
+-- Everyone reads reports, except ones staff rejected: those are for staff and
+-- for the person who filed them. (Until 2026-10-04 rejected reports were only
+-- left out by the app's own queries, so anyone could still fetch them.)
+CREATE POLICY "Anyone reads reports staff have not rejected" ON "public"."reports" FOR SELECT USING ((("review_status" <> 'rejected'::"public"."report_review") OR (( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 ALTER TABLE "public"."geocode_worker_lock" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 
@@ -1045,8 +1219,8 @@ ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
 
 -- The signed-in person's own reports with every column, including any staff
--- rejected. Nobody else's: the column grants below hide user_id,
--- photo_lat/photo_lon and reviewed_by from every client, so this is how a
+-- rejected. Nobody else's: the column grants below hide who filed a report,
+-- the photo's position and age, and who reviewed it, so this is how a
 -- reporter reads theirs (fetchMyReports).
 CREATE OR REPLACE FUNCTION "public"."my_reports"() RETURNS SETOF "public"."reports"
     LANGUAGE "sql" STABLE SECURITY DEFINER
@@ -1057,25 +1231,35 @@ $$;
 
 ALTER FUNCTION "public"."my_reports"() OWNER TO "postgres";
 
--- The private columns of one report, for its reporter or agency staff (who
--- triage with the photo's position). Nothing for anyone else.
-CREATE OR REPLACE FUNCTION "public"."report_private_details"("p_report_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "photo_lat" double precision, "photo_lon" double precision, "reviewed_by" "uuid")
-    LANGUAGE "sql" STABLE SECURITY DEFINER
+-- The private columns of up to 100 reports: each one the caller filed, and
+-- for agency staff every one asked for (they triage with the photo's position,
+-- age and distance). Nothing for anyone else. is_mine says whether the caller
+-- filed it; who did is not returned, even to staff. (Until 2026-10-04 staff
+-- got the reporter's user id, which with the member list named the reporter.)
+CREATE OR REPLACE FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) RETURNS TABLE("id" "uuid", "is_mine" boolean, "photo_lat" double precision, "photo_lon" double precision, "photo_taken_at" timestamp with time zone, "photo_distance_m" double precision, "reviewed_by" "uuid")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-  select r.id, r.user_id, r.photo_lat, r.photo_lon, r.reviewed_by
-  from public.reports r
-  where r.id = p_report_id
-    and (r.user_id = (select auth.uid())
-         or (select private.current_agency_id()) is not null)
+BEGIN
+  IF cardinality(p_report_ids) > 100 THEN
+    RAISE EXCEPTION 'Ask for at most 100 reports at a time.' USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+    SELECT r.id, r.user_id IS NOT DISTINCT FROM auth.uid() AND auth.uid() IS NOT NULL,
+           r.photo_lat, r.photo_lon, r.photo_taken_at, r.photo_distance_m, r.reviewed_by
+    FROM public.reports r
+    WHERE r.id = ANY (p_report_ids)
+      AND (r.user_id = (SELECT auth.uid())
+           OR (SELECT private.current_agency_id()) IS NOT NULL);
+END;
 $$;
 
-ALTER FUNCTION "public"."report_private_details"("p_report_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) OWNER TO "postgres";
 
 REVOKE ALL ON FUNCTION "public"."my_reports"() FROM PUBLIC, "anon";
 GRANT EXECUTE ON FUNCTION "public"."my_reports"() TO "authenticated", "service_role";
-REVOKE ALL ON FUNCTION "public"."report_private_details"("p_report_id" "uuid") FROM PUBLIC, "anon";
-GRANT EXECUTE ON FUNCTION "public"."report_private_details"("p_report_id" "uuid") TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) TO "authenticated", "service_role";
 
 
 -- ===========================================================================
@@ -1156,15 +1340,14 @@ GRANT ALL ON SEQUENCE "public"."barangay_boundaries_id_seq" TO "service_role";
 REVOKE ALL ON TABLE "public"."geocode_worker_lock" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "service_role";
 
--- Signed-out visitors don't see which staff member did the work.
-REVOKE ALL ON TABLE "public"."maintenance" FROM "anon";
+-- No client reads which staff member did the work (performed_by): the agency
+-- is public, the person is not. Staff get the name from maintenance_history.
+-- Writes go through record_maintenance only.
+REVOKE ALL ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "anon";
-GRANT SELECT ON TABLE "public"."maintenance" TO "authenticated";
+GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "authenticated";
 GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
-
--- Default privileges grant ALL; writes go through record_maintenance only.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
 REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."profiles" TO "anon";
@@ -1173,15 +1356,18 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
 
 -- Clients, signed in or not, read every column except who filed the report
--- (user_id), where the reporter stood (photo_lat/photo_lon) and which staff
--- member reviewed it (reviewed_by). A new column is hidden until it is added
+-- (user_id), where the reporter stood (photo_lat/photo_lon), when the photo
+-- was taken and how far from the component (photo_taken_at,
+-- photo_distance_m: next to a name they say where someone was, and when) and
+-- which staff member reviewed it (reviewed_by). photo_check, the verdict
+-- those two produce, stays public. A new column is hidden until it is added
 -- here; realtime leaves ungranted columns out of its payloads. Reporters read
 -- their own reports in full through my_reports, staff the private columns
 -- through report_private_details. (Until 2026-09-30 signed-in users could
 -- read every column of every report.) Only signed-in users file reports
 -- (see the INSERT policy).
-GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
-GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "photo_taken_at", "photo_distance_m", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "authenticated";
+GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "anon";
+GRANT SELECT ("id", "created_at", "category", "description", "image", "reporter_name", "status", "component_id", "long", "lat", "geocoded_status", "address", "priority", "zone", "resolved_by_maintenance_id", "resolved_image", "resolved_at", "reviewed_at", "review_note", "photo_check", "review_status") ON TABLE "public"."reports" TO "authenticated";
 GRANT INSERT ON TABLE "public"."reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."reports" TO "service_role";
 

@@ -181,8 +181,14 @@ export function ChatbotView() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="flex max-w-[80%] items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-2 shadow-md">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              <div
+                role="status"
+                className="flex max-w-[80%] items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-2 shadow-md"
+              >
+                <Loader2
+                  aria-hidden="true"
+                  className="h-4 w-4 animate-spin text-blue-500"
+                />
                 <span className="text-sm text-gray-800">Thinking...</span>
               </div>
             </div>
@@ -214,6 +220,7 @@ export function ChatbotView() {
                 ? 'Ask, Search or Chat...'
                 : 'Sign in to use the assistant'
             }
+            aria-label="Message to the assistant"
             maxLength={MAX_MESSAGE_CHARS}
             disabled={loading || !signedIn}
             className="h-12 flex-1 rounded-lg border-[#d1d5dc] bg-white pr-16 text-sm"
@@ -222,12 +229,13 @@ export function ChatbotView() {
             onClick={sendMessage}
             disabled={loading || !signedIn || !input.trim()}
             size="icon"
+            aria-label={loading ? 'Sending message' : 'Send message'}
             className="absolute right-2 h-9 w-9"
           >
             {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send aria-hidden="true" className="h-5 w-5" />
             )}
           </Button>
         </div>

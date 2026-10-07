@@ -3,6 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { NodeMetricComparisonChart } from '@/components/simulation/node-metric-comparison-chart';
 import type { NodeDetails } from '@/types/simulation';
@@ -77,72 +83,53 @@ export function NodeSimulationSlideshow({
 }: NodeSimulationSlideshowProps) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
-  // Keyboard navigation
+  // Arrow keys change the slide. Escape, the focus trap and the return of
+  // focus to the table row come from the dialog.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else {
-        if (e.key === 'ArrowLeft' && activeSlideIndex > 0) {
-          setActiveSlideIndex(activeSlideIndex - 1);
-        } else if (
-          e.key === 'ArrowRight' &&
-          activeSlideIndex < METRIC_SLIDES.length - 1
-        ) {
-          setActiveSlideIndex(activeSlideIndex + 1);
-        }
+      if (e.key === 'ArrowLeft' && activeSlideIndex > 0) {
+        setActiveSlideIndex(activeSlideIndex - 1);
+      } else if (
+        e.key === 'ArrowRight' &&
+        activeSlideIndex < METRIC_SLIDES.length - 1
+      ) {
+        setActiveSlideIndex(activeSlideIndex + 1);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, activeSlideIndex]);
-
-  // Calculate fixed position - always display on the right side, vertically centered
-  const getFixedPosition = () => {
-    const dialogWidth = 550;
-    const dialogHeight = 500;
-    const padding = 100;
-
-    // Fixed position: right side of screen with padding, vertically centered
-    const x = window.innerWidth - dialogWidth - padding;
-    const y = (window.innerHeight - dialogHeight) / 2;
-
-    return { x, y };
-  };
-
-  const { x, y } = getFixedPosition();
+  }, [activeSlideIndex]);
 
   return (
-    <>
-      {/* Overlay backdrop */}
-      <div className="fixed inset-0 z-[100] bg-black/20" onClick={onClose} />
-
-      {/* Dialog */}
-      <div
-        className="fixed z-[101] flex flex-col rounded-lg border border-[#ced1cd] bg-[#f7f7f7] shadow-2xl"
-        style={{
-          left: `${x}px`,
-          top: `${y}px`,
-          width: '550px',
-          height: '450px',
-        }}
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      {/* On the right of the screen, 25px above centre, as it always was;
+          placed with CSS so nothing reads the window size while rendering.
+          The layer sits above the parameter panels (1000), which would
+          otherwise cover a dialog that has taken the keyboard. */}
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        overlayClassName="z-[1100] bg-black/20"
+        className="top-[calc(50%-250px)] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl max-md:inset-x-2 max-md:top-16 max-md:h-auto max-md:max-h-[calc(100dvh-5rem)] max-md:min-h-[450px] max-md:w-auto max-md:overflow-y-auto sm:max-w-none"
       >
         {/* Header */}
-        <div className="items-ccenter flex justify-between rounded-t-lg bg-[#f7f7f7] p-2 pl-5">
+        <div className="flex items-center justify-between rounded-t-lg bg-[#f7f7f7] p-2 pl-5">
           <div className="flex items-center gap-2">
-            <h3 className="text-muted-foreground text-sm font-semibold">
+            <DialogTitle className="text-sm leading-5 font-semibold text-gray-600">
               {nodeId} Simulation
-            </h3>
+            </DialogTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Close"
+              className="h-8 w-8"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </Button>
+          </DialogClose>
         </div>
 
         {/* Main content */}
@@ -151,7 +138,7 @@ export function NodeSimulationSlideshow({
           <div className="flex h-full w-full flex-col">
             {/* Slide content */}
             <div className="flex flex-1 flex-col space-y-4 px-8 py-6">
-              <div className="flex flex-row justify-between">
+              <div className="flex flex-row justify-between" aria-live="polite">
                 <div className="">
                   <h2 className="text-2xl font-bold">
                     {METRIC_SLIDES[activeSlideIndex].title}
@@ -233,7 +220,7 @@ export function NodeSimulationSlideshow({
             Use arrow keys or click page navigation
           </span>
           <div className="flex gap-2">
-            {METRIC_SLIDES.map((_, index) => (
+            {METRIC_SLIDES.map((slide, index) => (
               <button
                 key={index}
                 onClick={() => setActiveSlideIndex(index)}
@@ -243,12 +230,13 @@ export function NodeSimulationSlideshow({
                     ? 'w-8 bg-[#3f83db]'
                     : 'bg-muted-foreground/30 hover:bg-muted-foreground/50 w-2'
                 )}
-                aria-label={`Go to slide ${index + 1}`}
+                aria-label={`Slide ${index + 1} of ${METRIC_SLIDES.length}: ${slide.title}`}
+                aria-current={index === activeSlideIndex ? 'true' : undefined}
               />
             ))}
           </div>
         </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

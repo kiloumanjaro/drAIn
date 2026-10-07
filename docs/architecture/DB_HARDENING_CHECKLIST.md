@@ -255,7 +255,7 @@ Needs: step 4.
 - Hiding `reports.user_id` from the public; the name setting in step 3b covers names only.
 - An admin UI for assigning staff and rotating join codes (SQL/Studio for now).
 - Rate-limiting `join_agency` attempts; the code length makes brute force impractical for now.
-- Removing `control-panel-portable`.
+- Removing `control-panel-portable` (removed 2026-10-04).
 - Deleting the stray `Project Drain/supabase/` folder.
 
 ## Expected reach in a couple of hours
@@ -287,4 +287,4 @@ Steps 0–3b are realistic and step 4 is likely. The join codes and the name set
 5. The map still loads drainage components from `public/drainage/*.geojson`; generating those files from `components` would stop the two copies drifting.
 6. Add CI: `npx supabase test db`, `npx supabase db advisors --local --fail-on warn`, and a `declarative sync --no-apply` drift check.
 7. If these migrations are ever applied to the hosted project: decide what the 8 profiles that linked themselves to an agency should become first, or `20260926053141_permission_model` stops on `profiles_staff_have_agency`.
-8. Smaller: `barangay_boundaries` population columns are still text; `docs/api/SUPABASE.md` is stale; the stray `Project Drain/supabase/` folder and `control-panel-portable/` are still there.
+8. Smaller: `barangay_boundaries` population columns are still text; `docs/api/SUPABASE.md` is stale; the stray `Project Drain/supabase/` folder is still there (`control-panel-portable/` was removed on 2026-10-04).

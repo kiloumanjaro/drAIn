@@ -22,8 +22,11 @@ export const CameraControls: FC<CameraControlsProps> = ({
   onExitSimulation,
 }) => {
   return (
-    <div className="absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5">
-      <div className="flex flex-col items-end gap-2">
+    // The column spans the map's height to pin its two groups top and
+    // bottom; only the groups themselves take clicks, or the strip between
+    // them would swallow clicks meant for whatever lies under it.
+    <div className="pointer-events-none absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5 max-md:justify-start max-md:gap-2">
+      <div className="pointer-events-auto flex flex-col items-end gap-2">
         {/* Exit button when simulation is active */}
         {isSimulationActive && onExitSimulation && (
           <button
@@ -71,7 +74,7 @@ export const CameraControls: FC<CameraControlsProps> = ({
           onChangeStyle();
         }}
         aria-label="Change map style"
-        className="rounded-sm border border-transparent bg-white p-2 shadow-md hover:bg-gray-100 active:border active:border-gray-400 active:bg-gray-300 active:text-black"
+        className="pointer-events-auto rounded-sm border border-transparent bg-white p-2 shadow-md hover:bg-gray-100 active:border active:border-gray-400 active:bg-gray-300 active:text-black"
       >
         <MapIcon className="h-4 w-4 cursor-pointer" />
       </button>

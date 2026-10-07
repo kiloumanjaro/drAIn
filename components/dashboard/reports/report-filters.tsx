@@ -164,7 +164,10 @@ export default function ReportFilters({
             onValueChange={onPriorityChange}
             onOpenChange={(open) => setOpenDropdown(open ? 'priority' : null)}
           >
-            <SelectTrigger className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden">
+            <SelectTrigger
+              aria-label="Filter by priority"
+              className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden"
+            >
               <div className="flex items-center gap-2">
                 {getPriorityDisplay().icon}
                 <span className="text-gray-700">
@@ -209,7 +212,10 @@ export default function ReportFilters({
             onValueChange={onStatusChange}
             onOpenChange={(open) => setOpenDropdown(open ? 'status' : null)}
           >
-            <SelectTrigger className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden">
+            <SelectTrigger
+              aria-label="Filter by status"
+              className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden"
+            >
               <div className="flex items-center gap-2">
                 {getStatusDisplay().icon}
                 <span className="text-gray-700">{getStatusDisplay().text}</span>
@@ -246,7 +252,10 @@ export default function ReportFilters({
             onValueChange={onComponentTypeChange}
             onOpenChange={(open) => setOpenDropdown(open ? 'type' : null)}
           >
-            <SelectTrigger className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden">
+            <SelectTrigger
+              aria-label="Filter by component type"
+              className="w-auto min-w-fit gap-2 border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 [&>svg:last-child]:hidden"
+            >
               <div className="flex items-center gap-2">
                 {getTypeDisplay().icon}
                 <span className="text-gray-700">{getTypeDisplay().text}</span>

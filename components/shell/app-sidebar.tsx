@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import Logo from '@/public/icons/logo.svg';
 import {
   HomeIcon,
@@ -20,8 +21,7 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/components/context/auth-provider';
-import client from '@/lib/supabase/client';
-import { useState, useEffect } from 'react';
+import { signOutAndForgetProfile } from '@/lib/supabase/sign-out';
 
 import NotificationBell from '@/components/shell/report-notif';
 
@@ -58,51 +58,11 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
-  const { user } = useAuth();
-  const supabase = client;
-  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-  const [publicAvatarUrl, setPublicAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      const cacheKey = `profile-${user.id}`;
-      const cachedProfile = localStorage.getItem(cacheKey);
-
-      if (cachedProfile) {
-        const { profile: cachedData, publicAvatarUrl: cachedAvatarUrl } =
-          JSON.parse(cachedProfile);
-        // localStorage is outside React and unavailable during server
-        // rendering, so it can only be read here, after mount.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setProfile(cachedData);
-        setPublicAvatarUrl(cachedAvatarUrl);
-      } else {
-        const fetchProfile = async () => {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error fetching profile:', error);
-          } else if (data) {
-            const avatarUrl = data.avatar_url;
-            setProfile(data);
-            setPublicAvatarUrl(avatarUrl);
-            localStorage.setItem(
-              cacheKey,
-              JSON.stringify({ profile: data, publicAvatarUrl: avatarUrl })
-            );
-          }
-        };
-        fetchProfile();
-      }
-    }
-  }, [user, supabase]);
+  const queryClient = useQueryClient();
+  const { user, profile, publicAvatarUrl } = useAuth();
 
   const handleLogout = async () => {
-    await client.auth.signOut();
+    await signOutAndForgetProfile(queryClient);
     router.push('/');
   };
 

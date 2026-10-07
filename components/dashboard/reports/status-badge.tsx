@@ -13,21 +13,21 @@ export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
       label: 'In Progress',
       bgColor: '#dbf3f7',
       borderColor: '#b1dde0',
-      textColor: '#008ca0',
+      textColor: '#007687',
       icon: Clock,
     },
     resolved: {
       label: 'Resolved',
       bgColor: '#defee7',
       borderColor: '#bedbc7',
-      textColor: '#4e8f65',
+      textColor: '#437a56',
       icon: CheckCircle2,
     },
     pending: {
       label: 'Pending',
       bgColor: '#ffeee7',
       borderColor: '#ffb8a8',
-      textColor: '#ff6230',
+      textColor: '#ba4723',
       icon: AlertCircle,
     },
   };
@@ -35,25 +35,43 @@ export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
   const config = statusConfigs[status];
   const IconComponent = config.icon;
 
-  return (
-    <div
-      onClick={() => onClick?.(status)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onClick?.(status);
-        }
-      }}
-      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
-      style={{
-        backgroundColor: config.bgColor,
-        borderColor: config.borderColor,
-        color: config.textColor,
-      }}
-    >
-      <IconComponent className="h-3.5 w-3.5" />
+  const content = (
+    <>
+      <IconComponent aria-hidden="true" className="h-3.5 w-3.5" />
       {config.label}
-    </div>
+    </>
+  );
+  const className =
+    'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold';
+  const style = {
+    backgroundColor: config.bgColor,
+    borderColor: config.borderColor,
+    color: config.textColor,
+  };
+
+  // A badge is a control only where clicking it filters the list; elsewhere
+  // it is plain text and takes no tab stop.
+  if (!onClick) {
+    return (
+      <span className={className} style={style}>
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      // The badge sits inside a card that is itself clickable.
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(status);
+      }}
+      aria-label={`Show only ${config.label} reports`}
+      className={`cursor-pointer transition-opacity hover:opacity-80 ${className}`}
+      style={style}
+    >
+      {content}
+    </button>
   );
 }

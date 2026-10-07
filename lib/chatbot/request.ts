@@ -10,6 +10,19 @@ export const MAX_MESSAGE_CHARS = 2000;
 /** Earlier turns passed back to the model; older ones are dropped. */
 export const MAX_HISTORY_TURNS = 12;
 
+/**
+ * Most turns a request may carry. The app sends the last 6; a longer list is
+ * not from the app, and is refused before any turn is looked at, so the
+ * checks below never walk a list of a size the caller chose.
+ */
+export const MAX_HISTORY_ITEMS = 50;
+
+/**
+ * Largest request body read, in bytes. The longest request the app can send
+ * (a full message and 6 full turns of 3-byte characters) is about 42 KB.
+ */
+export const MAX_BODY_BYTES = 64 * 1024;
+
 export interface ChatTurn {
   role: 'user' | 'assistant';
   content: string;
@@ -31,6 +44,12 @@ function isTurn(value: unknown): value is ChatTurn {
  * Check a request body. History is structured (who said what) rather than
  * the "User: ..." lines it used to be, so the model gets real turns and a
  * client can't smuggle instructions in as if the system had written them.
+ *
+ * The history is untrusted: the browser holds the conversation and sends it
+ * back, so a caller can write "assistant" turns the model never said. That
+ * is accepted, since it only changes the answer that caller gets. The
+ * assistant's own instructions are not part of the history (the route passes
+ * them as the model's systemInstruction), so no turn can replace them.
  */
 export function parseChatRequest(body: unknown): ParsedChatRequest {
   if (!body || typeof body !== 'object') {
@@ -47,7 +66,16 @@ export function parseChatRequest(body: unknown): ParsedChatRequest {
       error: `Keep messages under ${MAX_MESSAGE_CHARS} characters.`,
     };
   }
-  if (!Array.isArray(history) || !history.every(isTurn)) {
+  if (!Array.isArray(history)) {
+    return {
+      ok: false,
+      error: 'History must be a list of { role, content } turns.',
+    };
+  }
+  if (history.length > MAX_HISTORY_ITEMS) {
+    return { ok: false, error: 'The history is too long.' };
+  }
+  if (!history.every(isTurn)) {
     return {
       ok: false,
       error: 'History must be a list of { role, content } turns.',

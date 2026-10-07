@@ -115,8 +115,15 @@ export default function Model2({
               <span className="text-sm">Return Period</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                  <TooltipTrigger
+                    type="button"
+                    aria-label="About the return period"
+                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <IconInfoCircleFilled
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                    />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
@@ -134,7 +141,11 @@ export default function Model2({
                 onYearChange(Number(value) as YearOption)
               }
             >
-              <SelectTrigger id="year-select" className="min-w-[120px]">
+              <SelectTrigger
+                id="year-select"
+                aria-label="Return period"
+                className="min-w-[120px]"
+              >
                 <SelectValue placeholder="Choose" />
               </SelectTrigger>
               <SelectContent>
@@ -153,8 +164,15 @@ export default function Model2({
               <span className="text-sm">Flood Hazard Indicator</span>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                  <TooltipTrigger
+                    type="button"
+                    aria-label="About the flood hazard indicator"
+                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <IconInfoCircleFilled
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                    />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
@@ -223,8 +241,15 @@ export default function Model2({
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                    <TooltipTrigger
+                      type="button"
+                      aria-label="About the rain effect"
+                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <IconInfoCircleFilled
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs text-xs">
@@ -260,8 +285,15 @@ export default function Model2({
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                    <TooltipTrigger
+                      type="button"
+                      aria-label="About flood propagation"
+                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <IconInfoCircleFilled
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs text-xs">

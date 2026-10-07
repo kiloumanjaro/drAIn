@@ -13,6 +13,12 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   fullyParallel: true,
+  // In CI: a stray test.only fails the run instead of quietly skipping the
+  // rest; the dev server compiles each page on its first visit, so a slow
+  // first load gets a second try and fewer pages compile at once.
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
@@ -22,7 +28,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm dev --port ${PORT}`,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

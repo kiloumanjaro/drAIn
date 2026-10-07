@@ -112,9 +112,6 @@ interface ContentRendererProps {
 
   // Profile data
   profile: Record<string, unknown> | null;
-  publicAvatarUrl: string | null;
-  setProfile: (profile: Record<string, unknown>) => void;
-  setPublicAvatarUrl: (url: string | null) => void;
 
   // Vulnerability table props (Model 1)
   selectedYear?: number | null;
@@ -205,9 +202,6 @@ export function ContentRenderer({
   profileView = 'main',
   onProfileViewChange = () => {},
   profile,
-  publicAvatarUrl,
-  setProfile,
-  setPublicAvatarUrl,
   selectedYear,
   onYearChange,
   onGenerateTable,
@@ -345,10 +339,6 @@ export function ContentRenderer({
         <ProfileContent
           profileView={profileView}
           onProfileViewChange={onProfileViewChange}
-          profile={profile}
-          publicAvatarUrl={publicAvatarUrl}
-          setProfile={setProfile}
-          setPublicAvatarUrl={setPublicAvatarUrl}
         />
       );
 

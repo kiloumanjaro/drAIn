@@ -14,6 +14,11 @@ export interface PanelAnchor {
   /** Fraction of the viewport to anchor to. Defaults to centred. */
   anchorX?: number;
   anchorY?: number;
+  /**
+   * Pull the starting position left if a panel this wide would otherwise
+   * run past the right of the screen, leaving `right` pixels clear.
+   */
+  keepInside?: { width: number; right: number };
 }
 
 /** Places a floating panel relative to the viewport. */
@@ -22,13 +27,20 @@ function anchoredPosition({
   height,
   anchorX = 0.5,
   anchorY = 0.5,
+  keepInside,
 }: PanelAnchor): Position {
   if (typeof window === 'undefined') {
     // Server render: any value works, the panel is repositioned on mount.
     return { x: 400, y: 100 };
   }
+  const x = window.innerWidth * anchorX - width / 2;
   return {
-    x: window.innerWidth * anchorX - width / 2,
+    x: keepInside
+      ? Math.max(
+          0,
+          Math.min(x, window.innerWidth - keepInside.right - keepInside.width)
+        )
+      : x,
     y: window.innerHeight * anchorY - height / 2,
   };
 }

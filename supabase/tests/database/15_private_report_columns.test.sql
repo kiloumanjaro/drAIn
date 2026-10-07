@@ -2,7 +2,8 @@
 -- reviewed it, or who did the maintenance (run plan 2.3). Since 2026-09-30
 -- signed-in users can't read the report columns either: a reporter reads
 -- their own through my_reports, the reporter or staff one report's through
--- report_private_details.
+-- report_private_details (which says whether a report is the caller's, not
+-- whose it is).
 -- Impersonation pattern: see 01_baseline.test.sql.
 -- Seeded report ...b000-000000000003 was filed by citizen ...0003 and
 -- reviewed by staff ...0002; ...b000-000000000002 was filed by ...0004.
@@ -65,13 +66,13 @@ select results_eq(
   'and only their own'
 );
 select results_eq(
-  $$select user_id, photo_lat, photo_lon
-    from public.report_private_details('00000000-0000-4000-b000-000000000003')$$,
-  $$values ('00000000-0000-4000-a000-000000000003'::uuid, 10.31456::double precision, 123.92322::double precision)$$,
+  $$select is_mine, photo_lat, photo_lon
+    from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
+  $$values (true, 10.31456::double precision, 123.92322::double precision)$$,
   'a reporter reads where they stood for their own report'
 );
 select is_empty(
-  $$select * from public.report_private_details('00000000-0000-4000-b000-000000000002')$$,
+  $$select * from public.report_private_details(array['00000000-0000-4000-b000-000000000002'::uuid])$$,
   'but not for someone else''s'
 );
 
@@ -81,12 +82,13 @@ set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","r
 
 select throws_ok($$select reviewed_by, user_id from public.reports$$, '42501', null, 'staff cannot select the private columns directly either');
 select results_eq(
-  $$select user_id, reviewed_by
-    from public.report_private_details('00000000-0000-4000-b000-000000000003')$$,
-  $$values ('00000000-0000-4000-a000-000000000003'::uuid, '00000000-0000-4000-a000-000000000002'::uuid)$$,
-  'staff read a report''s reporter and reviewer through report_private_details'
+  $$select is_mine, reviewed_by
+    from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
+  $$values (false, '00000000-0000-4000-a000-000000000002'::uuid)$$,
+  'staff read a report''s reviewer through report_private_details, not who filed it'
 );
-select lives_ok($$select performed_by from public.maintenance$$, 'staff still read who did the maintenance');
+select throws_ok($$select performed_by from public.maintenance$$, '42501', null,
+  'staff cannot read who did the maintenance from the table; maintenance_history names them');
 
 reset role;
 select ok(

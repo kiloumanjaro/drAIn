@@ -130,6 +130,7 @@ export default function MaintenanceVerification({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. Grate still full of silt"
+            aria-label="What is still wrong"
             rows={3}
           />
           <DialogFooter>

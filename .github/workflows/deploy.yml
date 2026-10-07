@@ -78,11 +78,71 @@ jobs:
         if: always()
         run: supabase stop --no-backup
 
-  # --- JOB 3: Vercel Deployment ---
+  # --- JOB 3: Browser tests ---
+  # Runs the app against a throwaway local database and drives it in a real
+  # browser: every page mounts, the content security policy blocks nothing,
+  # and the accessibility checks pass. Only the specs that need no Mapbox
+  # token run here; the rest need a token and are run by hand.
+  e2e:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: 2.118.0
+
+      - name: Start local Supabase (applies migrations and seed)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+
+      # The local stack's key is read from the stack itself rather than
+      # written here, and handed to the later steps as the app's settings.
+      - name: Point the app at the local stack
+        run: |
+          anon_key=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"$/\1/p')
+          if [[ -z "$anon_key" ]]; then
+            echo "Could not read the local anon key from 'supabase status'" >&2
+            exit 1
+          fi
+          echo "::add-mask::$anon_key"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon_key"
+          } >> "$GITHUB_ENV"
+
+      - name: Install the test browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Playwright starts the dev server itself (playwright.config.ts).
+      - name: Run the token-free browser tests
+        run: pnpm exec playwright test e2e/smoke.spec.ts e2e/csp.spec.ts e2e/a11y.spec.ts
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  # --- JOB 4: Vercel Deployment ---
   deploy:
     name: Vercel Deploy
     runs-on: ubuntu-latest
-    needs: [quality, database]
+    needs: [quality, database, e2e]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     # The CLI reads the token from the environment, so it never appears on a
     # command line (where it could show up in process listings or logs).

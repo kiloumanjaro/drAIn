@@ -24,13 +24,17 @@ export function LinkBar({ link = '' }: LinkBarProps) {
       <InputGroup className="min-w-0 bg-white px-1 [--radius:9999px]">
         {/* ensure children can shrink/truncate */}
         <Popover>
-          <PopoverTrigger asChild>
-            <InputGroupAddon>
-              <InputGroupButton variant="ghost" size="icon-xs">
-                <IconInfoCircle className="text-[#666666]" />
+          <InputGroupAddon>
+            <PopoverTrigger asChild>
+              <InputGroupButton
+                variant="ghost"
+                size="icon-xs"
+                aria-label="About this link"
+              >
+                <IconInfoCircle aria-hidden="true" className="text-[#666666]" />
               </InputGroupButton>
-            </InputGroupAddon>
-          </PopoverTrigger>
+            </PopoverTrigger>
+          </InputGroupAddon>
           <PopoverContent
             align="start"
             className="flex flex-col gap-1 rounded-xl px-5 py-4 text-sm"

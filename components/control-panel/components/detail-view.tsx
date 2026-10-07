@@ -16,6 +16,7 @@ const ModelViewer = dynamic(
     ),
   }
 );
+import { ErrorBoundary } from '@/components/common/error-boundary';
 import { DataFieldCard } from './data-field-card';
 import { ProgressTimeline } from './progress-timeline';
 
@@ -23,6 +24,12 @@ interface DetailViewProps {
   item: DetailItem;
   fields: FieldConfig[];
   modelUrl: string;
+}
+
+/** "/models/storm_drain.glb" -> "storm drain". */
+function modelName(url: string): string {
+  const file = url.split('/').pop() ?? '';
+  return file.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
 }
 
 export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
@@ -95,6 +102,7 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
               className="flex h-[250px] flex-1 !cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-none hover:bg-[#f5f5f5]"
             >
               <svg
+                aria-hidden="true"
                 className="text-muted-foreground/50 h-15 w-15"
                 fill="none"
                 stroke="currentColor"
@@ -112,18 +120,42 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
               </span>
             </button>
           ) : (
-            <ModelViewer
-              url={modelUrl}
-              defaultRotationX={0}
-              defaultRotationY={0}
-              autoRotate
-              width={290}
-              height={250}
-              defaultZoom={1.3}
-              showScreenshotButton={false}
-              enableManualZoom={false}
-              autoFrame
-            />
+            // The viewer's script, the model file and WebGL itself can each
+            // fail; none of that should take the map page down with it.
+            <ErrorBoundary
+              resetKey={modelUrl}
+              fallback={({ reset }) => (
+                <div
+                  role="alert"
+                  className="flex h-[250px] flex-1 flex-col items-center justify-center gap-3"
+                >
+                  <span className="text-sm font-medium">
+                    3D model unavailable
+                  </span>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="cursor-pointer rounded-md border border-[#ced1cd] px-3 py-1 text-xs hover:bg-[#f5f5f5]"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+            >
+              <ModelViewer
+                url={modelUrl}
+                label={`Rotating 3D model of a generic ${modelName(modelUrl)}`}
+                defaultRotationX={0}
+                defaultRotationY={0}
+                autoRotate
+                width={290}
+                height={250}
+                defaultZoom={1.3}
+                showScreenshotButton={false}
+                enableManualZoom={false}
+                autoFrame
+              />
+            </ErrorBoundary>
           )}
         </div>
         <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-2 dark:border-amber-900/30 dark:bg-amber-950/20">

@@ -11,6 +11,19 @@ select plan(12);
 
 select hasnt_table('public', 'inlets_maintenance', 'the per-type maintenance tables are gone');
 
+-- No client can read maintenance.performed_by, so the test looks it up with
+-- the owner's rights.
+create function pg_temp.performed_by(p_component text) returns uuid
+language sql security definer as $fn$
+  select performed_by from public.maintenance where component_name = p_component
+$fn$;
+grant execute on function pg_temp.performed_by(text) to authenticated;
+
+-- Evidence must be a photo the staff member uploaded (the Storage API sets
+-- owner_id).
+insert into storage.objects (bucket_id, name, owner_id)
+values ('ReportImage', 'public/00000000-0000-4000-c000-0000000000e1.jpg', '00000000-0000-4000-a000-000000000002');
+
 -- Citizens can't record work --------------------------------------------------
 
 set local role authenticated;
@@ -55,13 +68,13 @@ select results_eq(
 );
 
 select is(
-  (select performed_by from public.maintenance where component_name = 'ISD-1'),
+  pg_temp.performed_by('ISD-1'),
   '00000000-0000-4000-a000-000000000002'::uuid,
   'the record names the staff member who made it'
 );
 
 select lives_ok(
-  $$select public.record_maintenance('outlets', 'O-0', 'resolved', null, 'public/evidence.jpg')$$,
+  $$select public.record_maintenance('outlets', 'O-0', 'resolved', null, 'public/00000000-0000-4000-c000-0000000000e1.jpg')$$,
   'staff can resolve a component'
 );
 
@@ -69,7 +82,7 @@ select results_eq(
   $$select r.status::text, r.resolved_image, r.resolved_at = m.performed_at
     from public.reports r join public.maintenance m on m.id = r.resolved_by_maintenance_id
     where r.id = '00000000-0000-4000-b000-000000000002'$$,
-  $$values ('resolved', 'public/evidence.jpg', true)$$,
+  $$values ('resolved', 'public/00000000-0000-4000-c000-0000000000e1.jpg', true)$$,
   'resolving closes the open report, links it, and records when'
 );
 

@@ -1,17 +1,19 @@
 'use client';
 
-import { useContext } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pencil, Link2, FileText } from 'lucide-react';
-import { AuthContext } from '@/components/context/auth-provider';
-import client from '@/lib/supabase/client';
+import { useAuth } from '@/components/context/auth-provider';
 import {
   updateUserProfile,
   joinAgency,
   leaveAgency,
 } from '@/lib/supabase/profile';
+import type { Profile } from '@/lib/supabase/profile';
+import { profileKeys } from '@/lib/query/keys';
 import EditProfile from '@/components/profile/edit-profile';
 import UserLinks from '@/components/profile/user-links';
 import UserReportsList from '@/components/reports/user-reports-list';
@@ -21,25 +23,31 @@ import Image from 'next/image';
 interface ProfileContentProps {
   profileView: ProfileView;
   onProfileViewChange: (view: ProfileView) => void;
-  profile: Record<string, unknown> | null;
-  publicAvatarUrl: string | null;
-  setProfile: (profile: Record<string, unknown>) => void;
-  setPublicAvatarUrl: (url: string | null) => void;
 }
 
 export default function ProfileContent({
   profileView,
   onProfileViewChange,
-  profile,
-  publicAvatarUrl,
-  setProfile,
-  setPublicAvatarUrl,
 }: ProfileContentProps) {
-  const authContext = useContext(AuthContext);
-  const session = authContext?.session;
+  const queryClient = useQueryClient();
+  const { session, profile, publicAvatarUrl } = useAuth();
   const isGuest = !session;
-  const supabase = client;
   const loading = !profile && !isGuest;
+  // The profile holds only the agency's id; its name is known just after
+  // joining, from the join itself.
+  const [joinedAgency, setJoinedAgency] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Shown at once from what the database returned, then read again so the
+  // rest of the app never keeps a copy that differs from the stored row.
+  const showProfile = (userId: string, next: Profile) => {
+    queryClient.setQueryData<Profile | null>(profileKeys.detail(userId), next);
+    return queryClient.invalidateQueries({
+      queryKey: profileKeys.detail(userId),
+    });
+  };
 
   const handleSave = async (
     fullName: string,
@@ -55,23 +63,9 @@ export default function ProfileContent({
       profile,
       showNameOnReports
     );
-    let newPublicAvatarUrl = null;
-    if (updatedProfile.avatar_url) {
-      const { data: urlData } = supabase.storage
-        .from('Avatars')
-        .getPublicUrl(updatedProfile.avatar_url);
-      newPublicAvatarUrl = urlData.publicUrl;
-    }
-    setProfile(updatedProfile);
-    setPublicAvatarUrl(newPublicAvatarUrl);
-
-    const cacheKey = `profile-${session.user.id}`;
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        profile: updatedProfile,
-        publicAvatarUrl: newPublicAvatarUrl,
-      })
+    queryClient.setQueryData<Profile | null>(
+      profileKeys.detail(session.user.id),
+      updatedProfile
     );
   };
 
@@ -79,42 +73,30 @@ export default function ProfileContent({
   const handleJoinAgency = async (code: string): Promise<string> => {
     if (!profile || !session) return '';
     const agency = await joinAgency(code);
-    const updatedProfile = {
+    setJoinedAgency({ id: agency.id, name: agency.name });
+    void showProfile(session.user.id, {
       ...profile,
       role: 'staff',
       agency_id: agency.id,
-      agency_name: agency.name,
-    };
-    setProfile(updatedProfile);
-    // Also update the cache
-    const cacheKey = `profile-${session.user.id}`;
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        profile: updatedProfile,
-        publicAvatarUrl: publicAvatarUrl,
-      })
-    );
+    });
     return agency.name;
   };
 
   const handleLeaveAgency = async () => {
     if (!profile || !session) return;
     await leaveAgency();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { agency_id, agency_name, ...rest } = profile;
-    const updatedProfile = { ...rest, role: 'citizen' };
-    setProfile(updatedProfile);
-    // Also update the cache
-    const cacheKey = `profile-${session.user.id}`;
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        profile: updatedProfile,
-        publicAvatarUrl: publicAvatarUrl,
-      })
-    );
+    setJoinedAgency(null);
+    void showProfile(session.user.id, {
+      ...profile,
+      role: 'citizen',
+      agency_id: null,
+    });
   };
+
+  const linksProfile =
+    profile && joinedAgency?.id === profile.agency_id
+      ? { ...profile, agency_name: joinedAgency.name }
+      : profile;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto pr-2.5 pl-5">
@@ -150,7 +132,7 @@ export default function ProfileContent({
                   {/* Profile Info */}
                   <div className="min-w-0 flex-1 flex-col self-center">
                     <h1 className="truncate text-base font-semibold text-black">
-                      {(profile?.full_name as string) || 'No name set'}
+                      {profile?.full_name || 'No name set'}
                     </h1>
 
                     <div className="flex flex-col">
@@ -203,7 +185,7 @@ export default function ProfileContent({
             >
               <UserLinks
                 isGuest={isGuest}
-                profile={profile}
+                profile={linksProfile}
                 onJoin={handleJoinAgency}
                 onLeave={handleLeaveAgency}
               />

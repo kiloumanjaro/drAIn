@@ -8,8 +8,16 @@
 //   * a lock held for more than 3 minutes (a run that crashed before
 //     releasing it) is taken over instead of blocking geocoding for good.
 //   * no CORS: only the database and this function itself call it.
-// Nominatim's usage policy asks for a contact in the User-Agent; that is the
-// one below.
+// Changed 2026-10-04:
+//   * every database write is checked. A report whose update fails (an old
+//     row that breaks a newer constraint, say) used to stay 'pending' and be
+//     geocoded again every second for the rest of the run, and the run then
+//     re-triggered itself for good.
+//   * the worker only re-triggers itself after a run that got something done.
+//   * reports left 'processing' by a run that died are queued again, and
+//     reports with no coordinates are marked failed rather than left pending.
+// Nominatim's usage policy asks for a contact in the User-Agent: set the
+// GEOCODE_CONTACT env var (an email address or URL) on the function.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 const jsonHeaders = {
   'Content-Type': 'application/json'
@@ -77,11 +85,29 @@ Deno.serve(async (req)=>{
     }
     lockAcquired = true;
     console.log(`[${invocationId}] Lock acquired! Starting processing...`);
+    // Holding the lock means no other run is alive, so anything still
+    // 'processing' was abandoned by a run that died: queue it again.
+    const requeued = await supabase.from('reports').update({
+      geocoded_status: 'pending'
+    }).eq('geocoded_status', 'processing');
+    if (requeued.error) console.error(`[${invocationId}] Could not requeue abandoned reports:`, requeued.error);
+    // A report with no position can never be geocoded.
+    const unplaced = await supabase.from('reports').update({
+      geocoded_status: 'failed'
+    }).eq('geocoded_status', 'pending').or('lat.is.null,long.is.null');
+    if (unplaced.error) console.error(`[${invocationId}] Could not fail reports without coordinates:`, unplaced.error);
     const MAX_RUNTIME = 90000;
     const startTime = Date.now();
     let totalProcessed = 0;
+    // Reports this run could not even mark as failed. They stay 'pending',
+    // so they are left out of the next batch instead of being retried.
+    const stuck = new Set();
     while(Date.now() - startTime < MAX_RUNTIME){
-      const { data: reports, error } = await supabase.from('reports').select('id, lat, long').eq('geocoded_status', 'pending').order('created_at', {
+      let query = supabase.from('reports').select('id, lat, long').eq('geocoded_status', 'pending');
+      if (stuck.size > 0) query = query.not('id', 'in', `(${[
+        ...stuck
+      ].join(',')})`);
+      const { data: reports, error } = await query.order('created_at', {
         ascending: true
       }).limit(50);
       if (error) throw error;
@@ -89,23 +115,29 @@ Deno.serve(async (req)=>{
       console.log(`[${invocationId}] Processing ${reports.length} reports`);
       for (const report of reports){
         try {
-          await supabase.from('reports').update({
+          const claimed = await supabase.from('reports').update({
             geocoded_status: 'processing'
           }).eq('id', report.id);
+          if (claimed.error) throw claimed.error;
           const address = await reverseGeocode(report.lat, report.long);
-          await supabase.from('reports').update({
+          const saved = await supabase.from('reports').update({
             address,
             geocoded_status: 'completed'
           }).eq('id', report.id);
+          if (saved.error) throw saved.error;
           console.log(`[${invocationId}] ${report.id}: ${address}`);
           totalProcessed++;
           await new Promise((resolve)=>setTimeout(resolve, 1000));
           if (Date.now() - startTime > MAX_RUNTIME) break;
         } catch (err) {
           console.error(`[${invocationId}] Failed ${report.id}:`, err);
-          await supabase.from('reports').update({
+          const failed = await supabase.from('reports').update({
             geocoded_status: 'failed'
           }).eq('id', report.id);
+          if (failed.error) {
+            console.error(`[${invocationId}] Could not mark ${report.id} failed:`, failed.error);
+            stuck.add(report.id);
+          }
         }
       }
     }
@@ -123,8 +155,9 @@ Deno.serve(async (req)=>{
       lockAcquired = false;
       console.log(`[${invocationId}] Lock released`);
     }
-    // Re-trigger if more work to do
-    if (count && count > 0) {
+    // Re-trigger if more work to do, but only after a run that got somewhere:
+    // if nothing could be processed, another run would do no better.
+    if (totalProcessed > 0 && count && count > 0) {
       console.log(`[${invocationId}] ${count} reports remaining, re-triggering...`);
       fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/geocodeWorker`, {
         method: 'POST',
@@ -165,9 +198,10 @@ Deno.serve(async (req)=>{
 });
 async function reverseGeocode(lat, long) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${long}`;
+  const contact = Deno.env.get('GEOCODE_CONTACT') || 'https://github.com/kiloumanjaro/drAIn';
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'DrainApp/1.0 (AI-driven drainage monitoring; najazul@up.edu.ph)'
+      'User-Agent': `DrainApp/1.0 (AI-driven drainage monitoring; ${contact})`
     }
   });
   if (!response.ok) {

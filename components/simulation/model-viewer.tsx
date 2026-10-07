@@ -5,6 +5,7 @@ import {
   useRef,
   useLayoutEffect,
   useEffect,
+  useEffectEvent,
   useMemo,
   useState,
 } from 'react';
@@ -13,7 +14,7 @@ import {
   useFrame,
   useLoader,
   useThree,
-  invalidate,
+  invalidate as invalidateAll,
 } from '@react-three/fiber';
 import {
   OrbitControls,
@@ -22,13 +23,26 @@ import {
   useProgress,
   Html,
   Environment,
-  ContactShadows,
 } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import * as THREE from 'three';
+import { useReducedMotion } from 'framer-motion';
+import { Pause, Play } from 'lucide-react';
+import { ErrorBoundary } from '@/components/common/error-boundary';
+import {
+  disposeModel,
+  modelKind,
+  prepareModel,
+  registerModelSource,
+  releaseModel,
+  retainModel,
+  setModelFade,
+} from './model-resources';
 
 export interface ViewerProps {
   url: string;
+  /** What the model shows, for people who cannot see the canvas. */
+  label?: string;
   width?: number | string;
   height?: number | string;
   modelXOffset?: number;
@@ -76,6 +90,9 @@ const PARALLAX_MAG = 0.05;
 const PARALLAX_EASE = 0.12;
 const HOVER_MAG = deg2rad(6);
 const HOVER_EASE = 0.15;
+// Frames are drawn on demand, so the time since the last one can be seconds.
+// Capped so the model doesn't leap when the rotation picks up again.
+const MAX_ROTATION_STEP = 0.1;
 
 const Loader: FC<{ placeholderSrc?: string }> = ({ placeholderSrc }) => {
   const { progress, active } = useProgress();
@@ -120,8 +137,24 @@ const DesktopControls: FC<{
   );
 };
 
-interface ModelInnerProps {
+/** Puts the camera `distance` in front of `target`, with clip planes to suit. */
+function frameCamera(
+  camera: THREE.PerspectiveCamera,
+  target: THREE.Vector3,
+  distance: number,
+  fitRadius: number
+) {
+  const d = (fitRadius * 1.2) / Math.sin((camera.fov * Math.PI) / 180 / 2);
+  camera.position.set(target.x, target.y, target.z + distance);
+  camera.near = d / 10;
+  camera.far = d * 10;
+  camera.updateProjectionMatrix();
+}
+
+interface ModelStageProps {
   url: string;
+  /** The loader's cached object for `url`; never mutated here. */
+  source: THREE.Object3D;
   xOff: number;
   yOff: number;
   pivot: THREE.Vector3;
@@ -136,13 +169,14 @@ interface ModelInnerProps {
   autoFrame: boolean;
   fadeIn: boolean;
   autoRotate: boolean;
-  defaultZoom: number; // 👈 add this
+  defaultZoom: number;
   autoRotateSpeed: number;
   onLoaded?: () => void;
 }
 
-const ModelInner: FC<ModelInnerProps> = ({
+const ModelStage: FC<ModelStageProps> = ({
   url,
+  source,
   xOff,
   yOff,
   pivot,
@@ -162,90 +196,69 @@ const ModelInner: FC<ModelInnerProps> = ({
   onLoaded,
 }) => {
   const outer = useRef<THREE.Group>(null!);
-  const inner = useRef<THREE.Group>(null!);
-  const { camera, gl } = useThree();
+  const camera = useThree((state) => state.camera);
+  const gl = useThree((state) => state.gl);
+  // This canvas's own invalidate; the module-level one redraws every canvas.
+  const invalidate = useThree((state) => state.invalidate);
 
   const vel = useRef({ x: 0, y: 0 });
   const tPar = useRef({ x: 0, y: 0 });
   const cPar = useRef({ x: 0, y: 0 });
   const tHov = useRef({ x: 0, y: 0 });
   const cHov = useRef({ x: 0, y: 0 });
+  const ndc = useRef(new THREE.Vector3());
 
-  const ext = useMemo(() => url.split('.').pop()!.toLowerCase(), [url]);
-  const content = useMemo<THREE.Object3D | null>(() => {
-    if (ext === 'glb' || ext === 'gltf') return useGLTF(url).scene.clone();
-    if (ext === 'fbx') return useFBX(url).clone();
-    if (ext === 'obj') return useLoader(OBJLoader, url).clone();
-    console.error('Unsupported format:', ext);
-    return null;
-  }, [url, ext]);
+  // Measured before the copy is attached to anything, so the size and centre
+  // are the model's own and do not depend on how the viewer is turned.
+  const model = useMemo(() => prepareModel(source), [source]);
+  const scale = model.radius > 0 ? 1 / (model.radius * 2) : 1;
 
-  const pivotW = useRef(new THREE.Vector3());
+  useEffect(() => registerModelSource(url, source), [url, source]);
+  // In development React runs this cleanup and then keeps using the same
+  // materials. That is harmless: three.js rebuilds a disposed material's
+  // program the next time it is drawn.
+  useEffect(() => () => disposeModel(model), [model]);
+
+  const notifyLoaded = useEffectEvent(() => onLoaded?.());
+
   useLayoutEffect(() => {
-    if (!content) return;
-    const g = inner.current;
-    g.updateWorldMatrix(true, true);
+    pivot.copy(model.offset);
+  }, [model, pivot]);
 
-    const sphere = new THREE.Box3()
-      .setFromObject(g)
-      .getBoundingSphere(new THREE.Sphere());
-    const s = 1 / (sphere.radius * 2);
-    g.position.set(-sphere.center.x, -sphere.center.y, -sphere.center.z);
-    g.scale.setScalar(s);
-
-    g.traverse((o: THREE.Object3D) => {
-      const mesh = o as THREE.Mesh;
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        if (fadeIn) {
-          const mat = mesh.material as THREE.Material;
-          mat.transparent = true;
-          mat.opacity = 0;
-        }
-      }
-    });
-
-    g.getWorldPosition(pivotW.current);
-    pivot.copy(pivotW.current);
+  useLayoutEffect(() => {
     outer.current.rotation.set(initPitch, initYaw, 0);
+    invalidate();
+  }, [model, initPitch, initYaw, invalidate]);
 
-    if (autoFrame && (camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
-      const persp = camera as THREE.PerspectiveCamera;
-      const fitR = sphere.radius * s;
-      const d = (fitR * 1.2) / Math.sin((persp.fov * Math.PI) / 180 / 2);
-      persp.position.set(
-        pivotW.current.x,
-        pivotW.current.y,
-        pivotW.current.z + defaultZoom // 👈 now valid
-      );
-      persp.near = d / 10;
-      persp.far = d * 10;
-      persp.updateProjectionMatrix();
+  useLayoutEffect(() => {
+    if (!autoFrame || !(camera instanceof THREE.PerspectiveCamera)) return;
+    // The model is scaled to a bounding sphere of diameter 1.
+    frameCamera(camera, model.offset, defaultZoom, model.radius * scale);
+    invalidate();
+  }, [model, scale, autoFrame, camera, defaultZoom, invalidate]);
+
+  useLayoutEffect(() => {
+    if (!fadeIn) {
+      notifyLoaded();
+      return;
     }
-
-    /* optional fade-in */
-    if (fadeIn) {
-      let t = 0;
-      const id = setInterval(() => {
-        t += 0.05;
-        const v = Math.min(t, 1);
-        g.traverse((o: THREE.Object3D) => {
-          const mesh = o as THREE.Mesh;
-          if (mesh.isMesh) {
-            const mat = mesh.material as THREE.Material;
-            mat.opacity = v;
-          }
-        });
-        invalidate();
-        if (v === 1) {
-          clearInterval(id);
-          onLoaded?.();
-        }
-      }, 16);
-      return () => clearInterval(id);
-    } else onLoaded?.();
-  }, [content]);
+    setModelFade(model, 0);
+    let t = 0;
+    const id = setInterval(() => {
+      t += 0.05;
+      const v = Math.min(t, 1);
+      setModelFade(model, v);
+      invalidate();
+      if (v === 1) {
+        clearInterval(id);
+        notifyLoaded();
+      }
+    }, 16);
+    return () => {
+      clearInterval(id);
+      setModelFade(model, 1);
+    };
+  }, [model, fadeIn, invalidate]);
 
   useEffect(() => {
     if (!enableManualRotation || isTouch) return;
@@ -279,7 +292,7 @@ const ModelInner: FC<ModelInnerProps> = ({
       el.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
     };
-  }, [gl, enableManualRotation]);
+  }, [gl, invalidate, enableManualRotation]);
 
   useEffect(() => {
     if (!isTouch) return;
@@ -346,10 +359,8 @@ const ModelInner: FC<ModelInnerProps> = ({
         const [p1, p2] = [...pts.values()];
         const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
         const ratio = startDist / d;
-        camera.position.z = THREE.MathUtils.clamp(
-          startZ * ratio,
-          minZoom,
-          maxZoom
+        camera.position.setZ(
+          THREE.MathUtils.clamp(startZ * ratio, minZoom, maxZoom)
         );
         invalidate();
       }
@@ -371,10 +382,25 @@ const ModelInner: FC<ModelInnerProps> = ({
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
     };
-  }, [gl, enableManualRotation, enableManualZoom, minZoom, maxZoom]);
+  }, [
+    gl,
+    camera,
+    invalidate,
+    enableManualRotation,
+    enableManualZoom,
+    minZoom,
+    maxZoom,
+  ]);
 
+  // The model leans towards the mouse. Listening on the canvas rather than
+  // the window means the page redraws the model only while the pointer is
+  // over it, and not at all when neither effect is on.
   useEffect(() => {
-    if (isTouch) return;
+    if (!enableMouseParallax) tPar.current = { x: 0, y: 0 };
+    if (!enableHoverRotation) tHov.current = { x: 0, y: 0 };
+    invalidate();
+    if (isTouch || (!enableMouseParallax && !enableHoverRotation)) return;
+    const el = gl.domElement;
     const mm = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return;
       const nx = (e.clientX / window.innerWidth) * 2 - 1;
@@ -385,9 +411,22 @@ const ModelInner: FC<ModelInnerProps> = ({
         tHov.current = { x: ny * HOVER_MAG, y: nx * HOVER_MAG };
       invalidate();
     };
-    window.addEventListener('pointermove', mm);
-    return () => window.removeEventListener('pointermove', mm);
-  }, [enableMouseParallax, enableHoverRotation]);
+    el.addEventListener('pointermove', mm);
+    return () => el.removeEventListener('pointermove', mm);
+  }, [gl, invalidate, enableMouseParallax, enableHoverRotation]);
+
+  // A hidden tab draws nothing, so the rotation stops with it; this restarts
+  // the frames when the tab comes back or the rotation is switched on.
+  const [pageVisible, setPageVisible] = useState(() => !document.hidden);
+  useEffect(() => {
+    const onChange = () => setPageVisible(!document.hidden);
+    document.addEventListener('visibilitychange', onChange);
+    return () => document.removeEventListener('visibilitychange', onChange);
+  }, []);
+  const spinning = autoRotate && pageVisible;
+  useEffect(() => {
+    if (spinning) invalidate();
+  }, [spinning, invalidate]);
 
   useFrame((_, dt) => {
     let need = false;
@@ -398,16 +437,18 @@ const ModelInner: FC<ModelInnerProps> = ({
     cHov.current.x += (tHov.current.x - cHov.current.x) * HOVER_EASE;
     cHov.current.y += (tHov.current.y - cHov.current.y) * HOVER_EASE;
 
-    const ndc = pivotW.current.clone().project(camera);
-    ndc.x += xOff + cPar.current.x;
-    ndc.y += yOff + cPar.current.y;
-    outer.current.position.copy(ndc.unproject(camera));
+    const point = ndc.current.copy(model.offset).project(camera);
+    point.x += xOff + cPar.current.x;
+    point.y += yOff + cPar.current.y;
+    outer.current.position.copy(point.unproject(camera));
 
     outer.current.rotation.x += cHov.current.x - phx;
     outer.current.rotation.y += cHov.current.y - phy;
 
-    if (autoRotate) {
-      outer.current.rotation.y += autoRotateSpeed * dt;
+    // Each rotation frame asks for the next, so they stop when this does.
+    if (spinning) {
+      outer.current.rotation.y +=
+        autoRotateSpeed * Math.min(dt, MAX_ROTATION_STEP);
       need = true;
     }
 
@@ -429,18 +470,47 @@ const ModelInner: FC<ModelInnerProps> = ({
     if (need) invalidate();
   });
 
-  if (!content) return null;
   return (
     <group ref={outer}>
-      <group ref={inner}>
-        <primitive object={content} />
+      <group
+        position={[model.offset.x, model.offset.y, model.offset.z]}
+        scale={scale}
+      >
+        <primitive object={model.object} />
       </group>
     </group>
   );
 };
 
+type LoadedModelProps = Omit<ModelStageProps, 'source'>;
+
+// One component per file type, so each calls its loader hook on every render.
+const GltfModel: FC<LoadedModelProps> = (props) => {
+  const { scene } = useGLTF(props.url);
+  return <ModelStage {...props} source={scene} />;
+};
+const FbxModel: FC<LoadedModelProps> = (props) => {
+  const group = useFBX(props.url);
+  return <ModelStage {...props} source={group} />;
+};
+const ObjModel: FC<LoadedModelProps> = (props) => {
+  const group = useLoader(OBJLoader, props.url);
+  return <ModelStage {...props} source={group} />;
+};
+
+const MODEL_COMPONENTS = { gltf: GltfModel, fbx: FbxModel, obj: ObjModel };
+
+/** Drops a file from its loader's cache, so it can be collected or refetched. */
+function clearLoaderCache(url: string) {
+  const kind = modelKind(url);
+  if (kind === 'gltf') useGLTF.clear(url);
+  else if (kind === 'fbx') useFBX.clear(url);
+  else if (kind === 'obj') useLoader.clear(OBJLoader, url);
+}
+
 const ModelViewer: FC<ViewerProps> = ({
   url,
+  label = '3D model',
   width = 400,
   height = 400,
   modelXOffset = 0,
@@ -467,13 +537,30 @@ const ModelViewer: FC<ViewerProps> = ({
   autoRotateSpeed = 0.35,
   onModelLoaded,
 }) => {
-  useEffect(() => void useGLTF.preload(url), [url]);
+  const kind = modelKind(url);
+  const Model = kind ? MODEL_COMPONENTS[kind] : null;
+
+  useEffect(() => {
+    if (!kind) {
+      console.error('Unsupported 3D model format:', url);
+      return;
+    }
+    if (kind === 'gltf') useGLTF.preload(url);
+    retainModel(url);
+    return () => releaseModel(url, clearLoaderCache);
+  }, [url, kind]);
+
   // One vector for the life of the component, created once.
   const [pivot] = useState(() => new THREE.Vector3());
-  const contactRef = useRef<THREE.Mesh>(null);
   const rendererRef = useRef<THREE.WebGLRenderer>(null);
   const sceneRef = useRef<THREE.Scene>(null);
   const cameraRef = useRef<THREE.Camera>(null);
+
+  // Someone who asked their system for less motion gets a still model; the
+  // button still lets them start the rotation, and anyone else stop it.
+  const prefersReducedMotion = useReducedMotion();
+  const [rotationChoice, setRotationChoice] = useState<boolean | null>(null);
+  const rotating = autoRotate && (rotationChoice ?? !prefersReducedMotion);
 
   const initYaw = deg2rad(defaultRotationX);
   const initPitch = deg2rad(defaultRotationY);
@@ -499,7 +586,6 @@ const ModelViewer: FC<ViewerProps> = ({
         o.castShadow = false;
       }
     });
-    if (contactRef.current) contactRef.current.visible = false;
     g.render(s, c);
     const urlPNG = g.domElement.toDataURL('image/png');
     const a = document.createElement('a');
@@ -508,8 +594,7 @@ const ModelViewer: FC<ViewerProps> = ({
     a.click();
     g.shadowMap.enabled = true;
     tmp.forEach(({ l, cast }) => (l.castShadow = cast));
-    if (contactRef.current) contactRef.current.visible = true;
-    invalidate();
+    invalidateAll();
   };
 
   return (
@@ -530,10 +615,30 @@ const ModelViewer: FC<ViewerProps> = ({
         </button>
       )}
 
+      {autoRotate && (
+        <button
+          type="button"
+          onClick={() => setRotationChoice(!rotating)}
+          aria-label={rotating ? 'Pause rotation' : 'Play rotation'}
+          title={rotating ? 'Pause rotation' : 'Play rotation'}
+          className="absolute right-2 bottom-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-[#ced1cd] bg-white/90 text-gray-700 transition-colors hover:bg-white"
+        >
+          {rotating ? (
+            <Pause aria-hidden="true" className="h-3.5 w-3.5" />
+          ) : (
+            <Play aria-hidden="true" className="h-3.5 w-3.5" />
+          )}
+        </button>
+      )}
+
       <Canvas
+        role="img"
+        aria-label={label}
         shadows
         frameloop="demand"
-        gl={{ preserveDrawingBuffer: true }}
+        // Keeping every drawn frame readable costs the GPU a copy per frame;
+        // only saving a screenshot needs it.
+        gl={{ preserveDrawingBuffer: showScreenshotButton }}
         onCreated={({ gl, scene, camera }) => {
           rendererRef.current = gl;
           sceneRef.current = scene;
@@ -545,14 +650,18 @@ const ModelViewer: FC<ViewerProps> = ({
         style={{ touchAction: 'pan-y pinch-zoom' }}
       >
         {environmentPreset !== 'none' && (
-          <Environment
-            preset={
-              environmentPreset as React.ComponentProps<
-                typeof Environment
-              >['preset']
-            }
-            background={false}
-          />
+          // The reflections come from another site. Without them the lights
+          // below still show the model, so their failure is not the viewer's.
+          <ErrorBoundary fallback={null}>
+            <Environment
+              preset={
+                environmentPreset as React.ComponentProps<
+                  typeof Environment
+                >['preset']
+              }
+              background={false}
+            />
+          </ErrorBoundary>
         )}
 
         <ambientLight intensity={ambientIntensity} />
@@ -567,37 +676,30 @@ const ModelViewer: FC<ViewerProps> = ({
         />
         <directionalLight position={[0, 4, -5]} intensity={rimLightIntensity} />
 
-        <ContactShadows
-          // ref={contactRef as any}
-          // position={[0, -0.5, 0]}
-          // opacity={0.35}
-          // scale={10}
-          // blur={2}
-          opacity={0}
-        />
-
-        <Suspense fallback={<Loader placeholderSrc={placeholderSrc} />}>
-          <ModelInner
-            url={url}
-            xOff={modelXOffset}
-            yOff={modelYOffset}
-            pivot={pivot}
-            initYaw={initYaw}
-            initPitch={initPitch}
-            minZoom={minZoomDistance}
-            maxZoom={maxZoomDistance}
-            enableMouseParallax={enableMouseParallax}
-            enableManualRotation={enableManualRotation}
-            enableHoverRotation={enableHoverRotation}
-            enableManualZoom={enableManualZoom}
-            autoFrame={autoFrame}
-            fadeIn={fadeIn}
-            autoRotate={autoRotate}
-            autoRotateSpeed={autoRotateSpeed}
-            defaultZoom={camZ} // 👈 here
-            onLoaded={onModelLoaded}
-          />
-        </Suspense>
+        {Model && (
+          <Suspense fallback={<Loader placeholderSrc={placeholderSrc} />}>
+            <Model
+              url={url}
+              xOff={modelXOffset}
+              yOff={modelYOffset}
+              pivot={pivot}
+              initYaw={initYaw}
+              initPitch={initPitch}
+              minZoom={minZoomDistance}
+              maxZoom={maxZoomDistance}
+              enableMouseParallax={enableMouseParallax}
+              enableManualRotation={enableManualRotation}
+              enableHoverRotation={enableHoverRotation}
+              enableManualZoom={enableManualZoom}
+              autoFrame={autoFrame}
+              fadeIn={fadeIn && !prefersReducedMotion}
+              autoRotate={rotating}
+              autoRotateSpeed={autoRotateSpeed}
+              defaultZoom={camZ}
+              onLoaded={onModelLoaded}
+            />
+          </Suspense>
+        )}
 
         {!isTouch && (
           <DesktopControls

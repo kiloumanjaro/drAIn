@@ -140,8 +140,14 @@ export default function DownloadReportsModal({
       >
         {isLoading ? (
           // Loading State
-          <div className="flex min-h-50 flex-col items-center justify-center gap-4 py-8">
-            <Loader2 className="h-12 w-12 animate-spin text-[#5a87e7]" />
+          <div
+            role="status"
+            className="flex min-h-50 flex-col items-center justify-center gap-4 py-8"
+          >
+            <Loader2
+              aria-hidden="true"
+              className="h-12 w-12 animate-spin text-[#5a87e7]"
+            />
             <div className="text-center">
               <p className="text-lg font-semibold text-gray-900">
                 Preparing Download
@@ -165,14 +171,17 @@ export default function DownloadReportsModal({
               <div className="grid grid-cols-2 gap-4">
                 {/* Month Selection */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="download-month"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Month
                   </label>
                   <Select
                     value={selectedMonth}
                     onValueChange={setSelectedMonth}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger id="download-month" className="w-full">
                       <SelectValue placeholder="Select month" />
                     </SelectTrigger>
                     <SelectContent>
@@ -187,11 +196,14 @@ export default function DownloadReportsModal({
 
                 {/* Year Selection */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="download-year"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Year
                   </label>
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger id="download-year" className="w-full">
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
                     <SelectContent>

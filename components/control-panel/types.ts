@@ -96,8 +96,10 @@ export interface ControlPanelProps {
     visible: boolean;
   }[];
   onToggleOverlay: (id: string) => void;
-  selectedFloodScenario: string;
-  onChangeFloodScenario: (id: string) => void;
+  // Stored flood hazard maps. Only the map page has them; without the
+  // handler the Flood Scenarios card is left out.
+  selectedFloodScenario?: string;
+  onChangeFloodScenario?: (id: string) => void;
   // Flood prone areas
   floodProneAreas?: {
     id: string;

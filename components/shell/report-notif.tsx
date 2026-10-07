@@ -26,7 +26,12 @@ export default function NotificationBell() {
         )}
       </PopoverTrigger>
 
-      <PopoverContent className="w-72 p-4" side="right" align="end">
+      <PopoverContent
+        className="w-72 max-w-[calc(100vw-1rem)] p-4"
+        side="right"
+        align="end"
+        collisionPadding={8}
+      >
         <h4 className="mb-3 text-sm font-semibold">Notifications</h4>
 
         {notifications.length === 0 ? (

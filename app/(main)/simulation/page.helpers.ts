@@ -227,3 +227,61 @@ export function parseNodeId(nodeId: string): {
   }
   return { source: null, featureId: null };
 }
+
+/**
+ * Where a simulation node is, given the source `parseNodeId` put it in.
+ * Null when the source holds no node with that id.
+ */
+export function findNodeCoordinates(
+  source: string,
+  featureId: string,
+  inlets: { id: string; coordinates: [number, number] }[],
+  drains: { id: string; coordinates: [number, number] }[]
+): [number, number] | null {
+  const nodes =
+    source === 'inlets' ? inlets : source === 'storm_drains' ? drains : [];
+  return nodes.find((node) => node.id === featureId)?.coordinates ?? null;
+}
+
+/**
+ * One animation frame of the flood-propagation heatmap: every point gets a
+ * pulsed intensity and is nudged along its own wobble direction.
+ *
+ * `time` is in seconds. The motion depends on the time alone, not on how
+ * often this is called, so the frame rate can change without changing the
+ * speed. Returns new features; anything that is not a Point is passed through
+ * as it is.
+ */
+export function wobbleFeatures(
+  features: GeoJSON.Feature[],
+  time: number
+): GeoJSON.Feature[] {
+  return features.map((feature) => {
+    if (feature.geometry?.type !== 'Point') return feature;
+
+    const phase = feature.properties?.phase || 0;
+    const offsetAngle = feature.properties?.offsetAngle || 0;
+    const offsetDistance = feature.properties?.offsetDistance || 0;
+
+    const wave = Math.sin(time * FLOOD_PULSE_SPEED_HZ * Math.PI * 2 + phase);
+    const pulse = 1 - FLOOD_PULSE_AMOUNT / 2 + wave * FLOOD_PULSE_AMOUNT;
+    const wobbleAmount = wave * offsetDistance;
+
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+
+    return {
+      ...feature,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [
+          lng + Math.cos(offsetAngle) * wobbleAmount,
+          lat + Math.sin(offsetAngle) * wobbleAmount,
+        ],
+      },
+      properties: {
+        ...feature.properties,
+        pulseMultiplier: pulse,
+      },
+    };
+  });
+}

@@ -64,16 +64,24 @@ export default function ComponentTypeChart({
   return (
     <TooltipProvider>
       <div>
-        <div className="rounded-t-2xl border border-[#ced1cd] bg-[#f7f7f7]">
-          <table className="w-full text-sm">
+        {/* Four columns need about 620px; narrower screens scroll the card. */}
+        <div className="overflow-x-auto rounded-t-2xl border border-[#ced1cd] bg-[#f7f7f7]">
+          <table className="w-full min-w-[620px] text-sm">
             <thead>
               <tr className="rounded-2xl border-b border-[#ced1cd]">
                 <th className="w-[250px] px-4 py-3 text-center font-normal text-gray-700">
                   <div className="flex items-center justify-center gap-2">
                     <span>Pie Chart</span>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 cursor-help opacity-70" />
+                      <TooltipTrigger
+                        type="button"
+                        aria-label="About the pie chart"
+                        className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      >
+                        <Info
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 cursor-help opacity-70"
+                        />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
@@ -102,7 +110,8 @@ export default function ComponentTypeChart({
                   rowSpan={chartData.length}
                   className="bg-white px-3 py-0 align-middle"
                 >
-                  <div className="h-[220px] w-full">
+                  {/* The rows beside it give the same numbers as text. */}
+                  <div aria-hidden="true" className="h-[220px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -116,6 +125,9 @@ export default function ComponentTypeChart({
                           paddingAngle={2}
                           cornerRadius={4}
                           dataKey="value"
+                          // Hidden from assistive technology above, so it
+                          // must not take a tab stop either.
+                          rootTabIndex={-1}
                         >
                           {chartData.map((_, index) => (
                             <Cell

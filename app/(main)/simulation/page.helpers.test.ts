@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  findNodeCoordinates,
+  FLOOD_PULSE_AMOUNT,
+  FLOOD_PULSE_SPEED_HZ,
   MIN_POINT_TO_NODE_DISTANCE_DEG,
   getColorForCategory,
   getStrokeColorForCategory,
@@ -8,6 +11,7 @@ import {
   isPointTooCloseToNodes,
   parseNodeId,
   samplePointsFromLine,
+  wobbleFeatures,
 } from './page.helpers';
 
 function nodeAt(coordinates: [number, number]): GeoJSON.Feature {
@@ -155,5 +159,141 @@ describe('samplePointsFromLine', () => {
       lineFrom(coordinates, 'rgb(56, 142, 60)')
     );
     expect(high.length).toBeGreaterThan(none.length);
+  });
+});
+
+describe('wobbleFeatures', () => {
+  const point = (
+    coordinates: [number, number],
+    properties: GeoJSON.GeoJsonProperties
+  ): GeoJSON.Feature => ({
+    type: 'Feature',
+    properties,
+    geometry: { type: 'Point', coordinates },
+  });
+
+  it('pulses and moves a point by its own phase, angle and distance', () => {
+    // At t = 0 with a quarter-turn phase the wave is at its peak (sin = 1),
+    // and an angle of 0 moves the point along the longitude only.
+    const [feature] = wobbleFeatures(
+      [
+        point([120, 10], {
+          phase: Math.PI / 2,
+          offsetAngle: 0,
+          offsetDistance: 0.0001,
+          nodeId: 'I-1',
+        }),
+      ],
+      0
+    );
+    expect(feature.properties?.pulseMultiplier).toBeCloseTo(
+      1 - FLOOD_PULSE_AMOUNT / 2 + FLOOD_PULSE_AMOUNT,
+      12
+    );
+    const [lng, lat] = (feature.geometry as GeoJSON.Point).coordinates;
+    expect(lng).toBeCloseTo(120.0001, 12);
+    expect(lat).toBeCloseTo(10, 12);
+    expect(feature.properties?.nodeId).toBe('I-1');
+  });
+
+  it('gives the same frame for the same time', () => {
+    const features = [
+      point([120, 10], { phase: 1.2, offsetAngle: 0.7, offsetDistance: 5e-5 }),
+      point([121, 11], { phase: 4, offsetAngle: 2, offsetDistance: 9e-5 }),
+    ];
+    expect(wobbleFeatures(features, 12.345)).toEqual(
+      wobbleFeatures(features, 12.345)
+    );
+  });
+
+  it('matches the formula the animation has always used', () => {
+    const time = 7.25;
+    const phase = 1.1;
+    const offsetAngle = 2.3;
+    const offsetDistance = 0.00007;
+    const wave = Math.sin(time * FLOOD_PULSE_SPEED_HZ * Math.PI * 2 + phase);
+
+    const [feature] = wobbleFeatures(
+      [point([123.9, 10.3], { phase, offsetAngle, offsetDistance })],
+      time
+    );
+    expect(feature.properties?.pulseMultiplier).toBe(
+      1 - FLOOD_PULSE_AMOUNT / 2 + wave * FLOOD_PULSE_AMOUNT
+    );
+    expect((feature.geometry as GeoJSON.Point).coordinates).toEqual([
+      123.9 + Math.cos(offsetAngle) * (wave * offsetDistance),
+      10.3 + Math.sin(offsetAngle) * (wave * offsetDistance),
+    ]);
+  });
+
+  it('repeats after one pulse period, whatever the frame rate', () => {
+    const features = [
+      point([120, 10], { phase: 0.4, offsetAngle: 1, offsetDistance: 8e-5 }),
+    ];
+    const period = 1 / FLOOD_PULSE_SPEED_HZ;
+    const [a] = wobbleFeatures(features, 3);
+    const [b] = wobbleFeatures(features, 3 + period);
+    expect(b.properties?.pulseMultiplier).toBeCloseTo(
+      a.properties?.pulseMultiplier,
+      9
+    );
+  });
+
+  it('keeps a point with no animation properties where it is', () => {
+    const [feature] = wobbleFeatures([point([120, 10], null)], 5);
+    expect((feature.geometry as GeoJSON.Point).coordinates).toEqual([120, 10]);
+    expect(feature.properties?.pulseMultiplier).toBeTypeOf('number');
+  });
+
+  it('passes anything that is not a point through untouched', () => {
+    const line = lineFrom([
+      [120, 10],
+      [120.001, 10],
+    ]);
+    const [feature] = wobbleFeatures([line], 5);
+    expect(feature).toBe(line);
+  });
+
+  it('does not change the features it was given', () => {
+    const original = point([120, 10], {
+      phase: 1,
+      offsetAngle: 1,
+      offsetDistance: 9e-5,
+    });
+    const copy = structuredClone(original);
+    const input = [original];
+    const output = wobbleFeatures(input, 9.9);
+    expect(original).toEqual(copy);
+    expect(input).toHaveLength(1);
+    expect(output[0]).not.toBe(original);
+  });
+});
+
+describe('findNodeCoordinates', () => {
+  const inlets = [
+    { id: 'I-1', coordinates: [123.9, 10.3] as [number, number] },
+  ];
+  const drains = [
+    { id: 'ISD-1', coordinates: [123.8, 10.2] as [number, number] },
+  ];
+
+  it('finds an inlet among the inlets and a drain among the drains', () => {
+    expect(findNodeCoordinates('inlets', 'I-1', inlets, drains)).toEqual([
+      123.9, 10.3,
+    ]);
+    expect(
+      findNodeCoordinates('storm_drains', 'ISD-1', inlets, drains)
+    ).toEqual([123.8, 10.2]);
+  });
+
+  it('looks only in the source it was given', () => {
+    expect(findNodeCoordinates('storm_drains', 'I-1', inlets, drains)).toBe(
+      null
+    );
+  });
+
+  it('gives null for an unknown node or source', () => {
+    expect(findNodeCoordinates('inlets', 'I-404', inlets, drains)).toBe(null);
+    expect(findNodeCoordinates('outlets', 'I-1', inlets, drains)).toBe(null);
   });
 });

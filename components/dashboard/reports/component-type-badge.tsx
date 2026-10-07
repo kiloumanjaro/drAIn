@@ -44,25 +44,43 @@ export default function ComponentTypeBadge({
   const config = componentConfigs[componentType];
   const IconComponent = config.icon;
 
-  return (
-    <div
-      onClick={() => onClick?.(componentType)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onClick?.(componentType);
-        }
-      }}
-      className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
-      style={{
-        backgroundColor: config.bgColor,
-        borderColor: config.borderColor,
-        color: config.textColor,
-      }}
-    >
-      <IconComponent className="h-3.5 w-3.5" />
+  const content = (
+    <>
+      <IconComponent aria-hidden="true" className="h-3.5 w-3.5" />
       {formatComponentType(componentType)}
-    </div>
+    </>
+  );
+  const className =
+    'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold';
+  const style = {
+    backgroundColor: config.bgColor,
+    borderColor: config.borderColor,
+    color: config.textColor,
+  };
+
+  // A badge is a control only where clicking it filters the list; elsewhere
+  // it is plain text and takes no tab stop.
+  if (!onClick) {
+    return (
+      <span className={className} style={style}>
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      // The badge sits inside a card that is itself clickable.
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(componentType);
+      }}
+      aria-label={`Show only ${formatComponentType(componentType)} reports`}
+      className={`cursor-pointer transition-opacity hover:opacity-80 ${className}`}
+      style={style}
+    >
+      {content}
+    </button>
   );
 }

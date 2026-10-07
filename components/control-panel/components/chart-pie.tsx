@@ -158,7 +158,18 @@ export function ChartPieDonutText({ onNavigate }: ChartPieDonutTextProps = {}) {
         )}
       </CardHeader>
       <CardContent className="flex-1 pb-0">
+        {/* The chart is drawn for the eye; this says the same in words. */}
+        <ul className="sr-only">
+          {chartData.map((entry) => (
+            <li key={entry.type}>
+              {chartConfig[entry.type as keyof typeof chartConfig].label}:{' '}
+              {entry.count.toLocaleString()}
+            </li>
+          ))}
+          <li>Total: {totalInfrastructure.toLocaleString()}</li>
+        </ul>
         <ChartContainer
+          aria-hidden="true"
           config={chartConfig}
           className="mx-auto aspect-square max-h-[250px]"
         >

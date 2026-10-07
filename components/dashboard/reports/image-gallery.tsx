@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface ImageGalleryProps {
@@ -88,7 +88,15 @@ export default function ImageGallery({
         open={selectedIndex !== null}
         onOpenChange={() => setSelectedIndex(null)}
       >
-        <DialogContent className="max-h-screen w-full max-w-4xl border-0 p-0">
+        {/* The photo has its own close button, so the stock one is off. */}
+        <DialogContent
+          showCloseButton={false}
+          aria-describedby={undefined}
+          className="max-h-screen w-full max-w-4xl border-0 p-0"
+        >
+          <DialogTitle className="sr-only">
+            {alt} {(selectedIndex ?? 0) + 1} of {images.length}
+          </DialogTitle>
           <div className="relative flex h-96 w-full items-center justify-center bg-black md:h-[600px]">
             {/* Image */}
             <div className="relative h-full w-full">
@@ -103,9 +111,10 @@ export default function ImageGallery({
             {/* Close Button */}
             <button
               onClick={() => setSelectedIndex(null)}
+              aria-label="Close"
               className="absolute top-4 right-4 rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/40"
             >
-              <X className="h-6 w-6" />
+              <X aria-hidden="true" className="h-6 w-6" />
             </button>
 
             {/* Navigation */}
@@ -113,15 +122,17 @@ export default function ImageGallery({
               <>
                 <button
                   onClick={handlePrevious}
+                  aria-label="Previous image"
                   className="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/40"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft aria-hidden="true" className="h-6 w-6" />
                 </button>
                 <button
                   onClick={handleNext}
+                  aria-label="Next image"
                   className="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/40"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight aria-hidden="true" className="h-6 w-6" />
                 </button>
               </>
             )}

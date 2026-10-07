@@ -1,6 +1,7 @@
 import client from '@/lib/supabase/client';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import {
+  fetchReportPhotoDetails,
   formatReport,
   PUBLIC_REPORT_COLUMNS,
   type Report,
@@ -34,11 +35,6 @@ export interface OverviewMetrics {
   pendingTrend?: number[];
   repairTimeTrend?: number[];
   adminTrend?: number[];
-}
-
-export interface RepairTrendData {
-  date: string;
-  averageDays: number;
 }
 
 export interface ZoneIssueData {
@@ -118,23 +114,6 @@ export async function getOverviewMetrics(): Promise<OverviewMetrics> {
     verifiedFixedThisMonth: row.verified_fixed_this_month,
     awaitingVerification: row.awaiting_verification,
   };
-}
-
-/**
- * Get repair time trend for last 30 days
- */
-export async function getRepairTrendData(): Promise<RepairTrendData[]> {
-  const { data, error } = await client.rpc('repair_trend', { p_days: 30 });
-
-  if (error) {
-    console.error('Error fetching repair trend data:', error);
-    throw error;
-  }
-
-  return (data ?? []).map((row) => ({
-    date: row.day,
-    averageDays: row.average_days,
-  }));
 }
 
 /**
@@ -247,6 +226,11 @@ export interface ReportFilter {
   componentType: string;
   /** Staff can include reports they rejected (spam, duplicates). */
   includeRejected: boolean;
+  /**
+   * Also load each photo's age and distance, which only agency staff may
+   * read for other people's reports.
+   */
+  withPhotoDetails: boolean;
 }
 
 export interface ReportsPage {
@@ -301,6 +285,17 @@ export async function getReportsPage(
       zone: report.zone ?? undefined,
     })
   );
+  if (filter.withPhotoDetails && reports.length > 0) {
+    try {
+      const details = await fetchReportPhotoDetails(reports.map((r) => r.id));
+      for (const report of reports) {
+        Object.assign(report, details.get(report.id));
+      }
+    } catch (error) {
+      // The cards are still worth showing without the photo's age and distance.
+      console.error('Error fetching photo details:', error);
+    }
+  }
   return {
     reports,
     matching: page.count ?? reports.length,

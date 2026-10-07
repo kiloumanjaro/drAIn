@@ -8,11 +8,6 @@ export const dashboardKeys = {
   analytics: () => [...dashboardKeys.all, 'analytics'],
   analyticsDetails: () => ({
     all: [...dashboardKeys.analytics(), 'details'],
-    repairTrend: () => [
-      ...dashboardKeys.analytics(),
-      'details',
-      'repair-trend',
-    ],
     issuesPerZone: () => [
       ...dashboardKeys.analytics(),
       'details',
@@ -61,19 +56,14 @@ export const mapKeys = {
     drains: () => [...mapKeys.drainage(), 'details', 'drains'],
   }),
   overlays: () => [...mapKeys.all, 'overlays'],
-  overlayDetails: () => ({
-    floodHazard: (scenario: string) => [
-      ...mapKeys.overlays(),
-      'flood-hazard',
-      scenario,
-    ],
-    population: () => [...mapKeys.overlays(), 'population'],
-    floodProneAreas: (areaId: string) => [
-      ...mapKeys.overlays(),
-      'flood-prone',
-      areaId,
-    ],
-  }),
+};
+
+/**
+ * Query key factory for the signed-in user's profile
+ */
+export const profileKeys = {
+  all: ['profile'],
+  detail: (userId: string) => [...profileKeys.all, userId],
 };
 
 /**
@@ -88,5 +78,19 @@ export const reportKeys = {
   latest: () => [...reportKeys.all, 'latest'],
   latestPerComponent: () => [...reportKeys.latest(), 'per-component'],
   countsByDay: () => [...reportKeys.all, 'counts-by-day'],
+  countsByComponent: () => [...reportKeys.all, 'counts-by-component'],
   notifications: () => [...reportKeys.all, 'notifications'],
+};
+
+/**
+ * Query key factory for the simulation page
+ */
+export const simulationKeys = {
+  all: ['simulation'],
+  storedTables: () => [...simulationKeys.all, 'stored-table'],
+  /** One return period's stored flood results. */
+  storedTable: (returnPeriod: number) => [
+    ...simulationKeys.storedTables(),
+    returnPeriod,
+  ],
 };

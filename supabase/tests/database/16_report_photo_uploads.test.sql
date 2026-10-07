@@ -62,7 +62,7 @@ set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","r
 
 select lives_ok(
   $$insert into storage.objects (bucket_id, name)
-    values ('ReportImage', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a15.png')$$,
+    values ('ReportImage', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a15.jpg')$$,
   'staff upload maintenance evidence the same way'
 );
 
