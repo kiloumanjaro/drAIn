@@ -307,7 +307,7 @@ export default function Model2({
               </div>
               <Switch
                 id="heatmap-toggle"
-                checked={isFloodPropagationActive}
+                checked={hasTable && isFloodPropagationActive}
                 onCheckedChange={onToggleFloodPropagation}
                 disabled={!hasTable}
               />

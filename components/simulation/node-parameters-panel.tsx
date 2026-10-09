@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -44,6 +44,9 @@ export function NodeParametersPanel({
     selectedComponentIds[0] || ''
   );
   const [isDragging, setIsDragging] = useState(false);
+  // Ties each slider to its visible label. One tab's sliders are on the page
+  // at a time, so one id per parameter is enough.
+  const labelId = useId();
   const dragRef = useRef<{
     startX: number;
     startY: number;
@@ -256,7 +259,10 @@ export function NodeParametersPanel({
                   {/* Inversion Elevation */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-inv-elev`}
+                        className="text-sm font-normal"
+                      >
                         Inversion Elevation
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -266,6 +272,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-inv-elev`}
                       value={[params.inv_elev ?? 0]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'inv_elev', value[0])
@@ -284,7 +291,10 @@ export function NodeParametersPanel({
                   {/* Initial Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-init-depth`}
+                        className="text-sm font-normal"
+                      >
                         Initial Depth
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -292,6 +302,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-init-depth`}
                       value={[params.init_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'init_depth', value[0])
@@ -310,7 +321,10 @@ export function NodeParametersPanel({
                   {/* Ponding Area */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-ponding-area`}
+                        className="text-sm font-normal"
+                      >
                         Ponding Area
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -318,6 +332,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-ponding-area`}
                       value={[params.ponding_area]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'ponding_area', value[0])
@@ -336,7 +351,10 @@ export function NodeParametersPanel({
                   {/* Surcharge Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-surcharge-depth`}
+                        className="text-sm font-normal"
+                      >
                         Surcharge Depth
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -344,6 +362,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-surcharge-depth`}
                       value={[params.surcharge_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'surcharge_depth', value[0])

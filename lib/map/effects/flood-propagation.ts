@@ -119,15 +119,16 @@ export async function buildLineFloodFeatures(
   nodeFeatures: GeoJSON.Feature[]
 ): Promise<GeoJSON.Feature[]> {
   try {
-    const [pipesData, { createFloodAlongPipes }] = await Promise.all([
+    const [pipesData, { floodLinesAlongPipes }] = await Promise.all([
       loadPipesGeoJSON(),
       import('@/lib/map/effects/flood-3d-utils'),
     ]);
 
-    const floodLines = createFloodAlongPipes(
+    // The same lines enableFlood3D draws; whichever asks second reuses them.
+    const floodLines = floodLinesAlongPipes(
       vulnerabilityData,
       locations,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- createFloodAlongPipes accepts a looser geojson shape than the app-side FeatureCollection
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- floodLinesAlongPipes accepts a looser geojson shape than the app-side FeatureCollection
       (pipesData.features ?? []) as any
     );
 

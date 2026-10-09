@@ -1,7 +1,15 @@
 import type mapboxgl from 'mapbox-gl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
-import { animateFloodAppearing, createFloodAlongPipes } from './flood-3d-utils';
+import {
+  animateFloodAppearing,
+  cancelFloodAppearing,
+  createFloodAlongPipes,
+  enableFlood3D,
+  floodLinesAlongPipes,
+} from './flood-3d-utils';
+import { buildLineFloodFeatures } from './flood-propagation';
+import { resetPipesGeoJSONCache } from './pipes-geojson';
 
 function makeNode(id: string, category: string, volume: number): NodeDetails {
   return {
@@ -184,6 +192,159 @@ describe('createFloodAlongPipes', () => {
       [makePipe('P1', [N1])]
     );
     expect(fc.features).toEqual([]);
+  });
+});
+
+describe('floodLinesAlongPipes', () => {
+  const nodes = [makeNode('a', 'High Risk', 10), makeNode('b', 'Low Risk', 10)];
+  const a = makeCoord('a', N1);
+  const b = makeCoord('b', N2);
+  const pipes = [makePipe('P1', [N1, N2])];
+
+  it('gives the same lines as createFloodAlongPipes', () => {
+    expect(floodLinesAlongPipes(nodes, [a, b], pipes)).toEqual(
+      createFloodAlongPipes(nodes, [a, b], pipes)
+    );
+  });
+
+  it('hands back its last answer for the same results, positions and pipes', () => {
+    // Each caller builds its own list of positions from the same nodes.
+    const first = floodLinesAlongPipes(nodes, [a, b], pipes);
+    expect(floodLinesAlongPipes(nodes, [a, b], pipes)).toBe(first);
+  });
+
+  it('works the lines out again for other results', () => {
+    const first = floodLinesAlongPipes(nodes, [a, b], pipes);
+    const again = floodLinesAlongPipes([...nodes], [a, b], pipes);
+    expect(again).not.toBe(first);
+    expect(again).toEqual(first);
+  });
+
+  it('works the lines out again for other pipes', () => {
+    const first = floodLinesAlongPipes(nodes, [a, b], pipes);
+    expect(floodLinesAlongPipes(nodes, [a, b], [...pipes])).not.toBe(first);
+  });
+
+  it('works the lines out again when a node has moved or gone', () => {
+    const first = floodLinesAlongPipes(nodes, [a, b], pipes);
+    const moved = floodLinesAlongPipes(nodes, [a, makeCoord('b', N2)], pipes);
+    expect(moved).not.toBe(first);
+
+    const gone = floodLinesAlongPipes(nodes, [a], pipes);
+    expect(gone).not.toBe(moved);
+    expect(gone.features).toEqual([]);
+  });
+});
+
+describe('enableFlood3D', () => {
+  const nodes = [makeNode('a', 'High Risk', 10), makeNode('b', 'Low Risk', 10)];
+  const inlets = [makeCoord('a', N1)];
+  const drains = [makeCoord('b', N2)];
+  // The loaded pipes are one object for everyone who asks (pipes-geojson).
+  const pipesGeoJSON = {
+    type: 'FeatureCollection',
+    features: [makePipe('P1', [N1, N2])],
+  };
+
+  /** Just enough of a map for the flood layer to be added to. */
+  function makeMap() {
+    const layers = new Map<string, { paint: Record<string, unknown> }>();
+    const sources = new Map<string, { data: unknown }>();
+    const setPaintProperty = vi.fn();
+    const map = {
+      getLayer: (id: string) => layers.get(id),
+      removeLayer: (id: string) => layers.delete(id),
+      addLayer: (layer: { id: string; paint: Record<string, unknown> }) =>
+        layers.set(layer.id, layer),
+      getSource: (id: string) => sources.get(id),
+      removeSource: (id: string) => sources.delete(id),
+      addSource: (id: string, source: { data: unknown }) =>
+        sources.set(id, source),
+      getStyle: () => ({ layers: [] }),
+      moveLayer: vi.fn(),
+      setPaintProperty,
+      getContainer: () => ({ dataset: {} }),
+    } as unknown as mapboxgl.Map;
+    return { map, layers, sources, setPaintProperty };
+  }
+
+  const stubReducedMotion = (reduced: boolean) =>
+    vi.stubGlobal('window', { matchMedia: () => ({ matches: reduced }) });
+
+  let pendingFrames: number;
+
+  beforeEach(() => {
+    resetPipesGeoJSONCache();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => pipesGeoJSON,
+      }))
+    );
+    pendingFrames = 0;
+    vi.stubGlobal('requestAnimationFrame', () => ++pendingFrames);
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetPipesGeoJSONCache();
+  });
+
+  const lineOpacity = (layers: ReturnType<typeof makeMap>['layers']) =>
+    layers.get('flood-gradient-layer')?.paint['line-opacity'];
+
+  it('starts invisible and fades in', async () => {
+    stubReducedMotion(false);
+    const { map, layers, setPaintProperty } = makeMap();
+    await enableFlood3D(map, nodes, inlets, drains, { animate: true });
+
+    expect(lineOpacity(layers)).toBe(0);
+    expect(setPaintProperty).toHaveBeenCalled();
+    expect(pendingFrames).toBe(1);
+    cancelFloodAppearing(map);
+  });
+
+  it('is simply there, as the fade would leave it, under reduced motion', async () => {
+    stubReducedMotion(true);
+    const { map, layers, setPaintProperty } = makeMap();
+    await enableFlood3D(map, nodes, inlets, drains, { animate: true });
+
+    expect(lineOpacity(layers)).toEqual([
+      'interpolate',
+      ['linear'],
+      ['get', 'floodVolume'],
+      0,
+      0.4,
+      5,
+      0.6,
+      15,
+      0.8,
+    ]);
+    // No fade: nothing is animated and no frame is asked for.
+    expect(setPaintProperty).not.toHaveBeenCalled();
+    expect(pendingFrames).toBe(0);
+  });
+
+  it('shares its flood lines with the heatmap built from the same result', async () => {
+    stubReducedMotion(false);
+    const { map, sources } = makeMap();
+    const locations = [...inlets, ...drains];
+
+    // What the page does for one result: the heatmap's points, then the lines.
+    const nodeFeatures: GeoJSON.Feature[] = [];
+    await buildLineFloodFeatures(nodes, locations, nodeFeatures);
+    const heatmapLines = floodLinesAlongPipes(
+      nodes,
+      locations,
+      pipesGeoJSON.features
+    );
+    await enableFlood3D(map, nodes, inlets, drains, { animate: false });
+
+    // Not just equal: the very lines the heatmap was sampled from, so they
+    // were worked out once.
+    expect(sources.get('flood-3d')?.data).toBe(heatmapLines);
   });
 });
 

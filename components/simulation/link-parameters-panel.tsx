@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -41,6 +41,9 @@ export function LinkParametersPanel({
   onPositionChange,
 }: LinkParametersPanelProps) {
   const [activeTab, setActiveTab] = useState<string>(selectedPipeIds[0] || '');
+  // Ties each slider to its visible label. One tab's sliders are on the page
+  // at a time, so one id per parameter is enough.
+  const labelId = useId();
   const [isDragging, setIsDragging] = useState(false);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
@@ -323,7 +326,10 @@ export function LinkParametersPanel({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Label className="text-sm font-normal">
+                        <Label
+                          id={`${labelId}-init-flow`}
+                          className="text-sm font-normal"
+                        >
                           Flow limit (m³/s)
                         </Label>
                         <TooltipProvider>
@@ -354,6 +360,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-init-flow`}
                       value={[params.init_flow]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'init_flow', value[0])
@@ -372,7 +379,10 @@ export function LinkParametersPanel({
                   {/* Upstream Offset Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-upstream-offset`}
+                        className="text-sm font-normal"
+                      >
                         Upstream Offset
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -380,6 +390,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-upstream-offset`}
                       value={[params.upstrm_offset_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'upstrm_offset_depth', value[0])
@@ -398,7 +409,10 @@ export function LinkParametersPanel({
                   {/* Downstream Offset Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-downstream-offset`}
+                        className="text-sm font-normal"
+                      >
                         Downstream Offset
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -406,6 +420,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-downstream-offset`}
                       value={[params.downstrm_offset_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'downstrm_offset_depth', value[0])
@@ -424,7 +439,10 @@ export function LinkParametersPanel({
                   {/* Average Conduit Loss */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-conduit-loss`}
+                        className="text-sm font-normal"
+                      >
                         Avg Conduit Loss
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -432,6 +450,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-conduit-loss`}
                       value={[params.avg_conduit_loss]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'avg_conduit_loss', value[0])

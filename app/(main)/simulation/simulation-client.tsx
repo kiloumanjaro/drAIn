@@ -7,7 +7,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/context/auth-provider';
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '@/lib/map/config';
 
-import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
+import {
+  enableRain,
+  disableRain,
+  prefersReducedMotion,
+} from '@/lib/map/effects/rain-utils';
 import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
 import type { SimulationMapHandlers } from '@/lib/map/simulation-interactions';
@@ -189,11 +193,6 @@ export default function SimulationPage() {
   const handleZoomOut = () => mapRef.current?.zoomOut();
   const handleResetPosition = () =>
     mapRef.current?.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
-
-  const handleChangeStyle = () => {
-    // Keep dark style in simulation mode
-    return;
-  };
 
   const handleOverlayToggle = (layerId: string) => {
     setOverlayVisibility((prev) => ({
@@ -390,7 +389,9 @@ export default function SimulationPage() {
 
     applyVulnerabilityColors(data);
     updateFloodPropagation(data, [...inletsRef.current, ...drainsRef.current]);
-    setIsRainActive(true);
+    // Rain is not started for a visitor who asked for less motion, so its
+    // switch must not come on either.
+    setIsRainActive(!prefersReducedMotion());
 
     if (mapRef.current) {
       enableFlood3D(
@@ -429,6 +430,12 @@ export default function SimulationPage() {
 
   // Rain toggle handler
   const handleToggleRain = useCallback((enabled: boolean) => {
+    if (enabled && prefersReducedMotion()) {
+      toast.info(
+        'The rain effect is off because your device is set to reduce motion.'
+      );
+      return;
+    }
     setIsRainActive(enabled);
   }, []);
 
@@ -511,7 +518,7 @@ export default function SimulationPage() {
             ref={mapContainerRef}
             role="region"
             aria-label="Simulation map of the drainage network. The same results are listed in the vulnerability tables."
-            className="h-full w-full"
+            className="map-attribution h-full w-full"
             style={{ backgroundColor: '#1e1e1e' }}
           />
           {mapError && (
@@ -593,7 +600,6 @@ export default function SimulationPage() {
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onResetPosition={handleResetPosition}
-          onChangeStyle={handleChangeStyle}
           isSimulationActive={isSimulationActive}
           onExitSimulation={handleExitSimulation}
         />

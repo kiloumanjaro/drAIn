@@ -11,6 +11,8 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -22,6 +24,17 @@ function Slider({
           : [min, max],
     [value, defaultValue, min, max]
   );
+
+  // The thumb is what has the slider role, so the name goes on it; on the
+  // root it names nothing. With several thumbs each says which one it is,
+  // and a slider given no name at all still gets a plain one.
+  const thumbLabel = (index: number) => {
+    if (ariaLabelledBy) return undefined;
+    const name = ariaLabel ?? 'Value';
+    return _values.length > 1
+      ? `${name}, ${index + 1} of ${_values.length}`
+      : name;
+  };
 
   return (
     <SliderPrimitive.Root
@@ -53,6 +66,8 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
+          aria-label={thumbLabel(index)}
+          aria-labelledby={ariaLabelledBy}
           className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
