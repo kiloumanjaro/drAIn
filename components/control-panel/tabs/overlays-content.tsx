@@ -423,6 +423,11 @@ export default function OverlaysContent({
           ))}
         </SortableContext>
       </DndContext>
+      {orderedComponents.length === 0 && (
+        <div className="text-muted-foreground px-4 py-8 text-center text-sm">
+          No overlays match
+        </div>
+      )}
     </div>
   );
 }

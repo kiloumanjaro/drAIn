@@ -27,6 +27,7 @@ import { ComboboxForm } from '@/components/common/combobox-form';
 import type { ComboboxOption } from '@/components/common/combobox-form';
 import { Field, FieldContent } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
+import { CharCount } from '@/components/common/char-count';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { AlertCircle, CheckCircle2Icon } from 'lucide-react';
@@ -380,12 +381,15 @@ export default function SubmitTab() {
 
         {/* Description Input */}
         <Field className="gap-2">
-          <label
-            htmlFor="report-description"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Description
-          </label>
+          <div className="flex items-baseline justify-between gap-2">
+            <label
+              htmlFor="report-description"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Description
+            </label>
+            <CharCount value={description} max={1000} />
+          </div>
           <FieldContent className="max-h-44">
             <Textarea
               id="report-description"

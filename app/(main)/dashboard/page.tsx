@@ -31,13 +31,16 @@ export default function DashboardPage() {
             <p className="text-foreground/70 font-semibold">Public Dashboard</p>
 
             <div className="flex items-center gap-5">
-              <div className="hidden items-center gap-2 rounded-full text-xs text-gray-600 sm:flex">
-                <Clock className="h-3.5 w-3.5 text-gray-500" />
-                <span>
-                  Updated{' '}
-                  {formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}
-                </span>
-              </div>
+              {/* 0 until the first load lands; that would read as 1970. */}
+              {dataUpdatedAt > 0 && (
+                <div className="hidden items-center gap-2 rounded-full text-xs text-gray-600 sm:flex">
+                  <Clock className="h-3.5 w-3.5 text-gray-500" />
+                  <span>
+                    Updated{' '}
+                    {formatDistanceToNow(dataUpdatedAt, { addSuffix: true })}
+                  </span>
+                </div>
+              )}
 
               <button
                 onClick={() => refetch()}

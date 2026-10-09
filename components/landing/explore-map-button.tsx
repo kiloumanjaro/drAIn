@@ -16,7 +16,7 @@ export function ExploreMapButton() {
   return (
     <Button
       size="lg"
-      className={`text-md pointer-events-auto opacity-100! transition-colors ${
+      className={`pointer-events-auto text-base opacity-100! transition-colors ${
         isClicked ? 'bg-[#2563EB]' : 'bg-[#3B82F6] hover:bg-[#2563EB]'
       } focus:bg-[#2563EB] active:bg-[#2563EB]`}
       onClick={handleClick}

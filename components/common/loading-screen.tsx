@@ -49,7 +49,7 @@ export function LoadingScreen({
       role="status"
       aria-live="polite"
     >
-      <div className="flex w-[360px] items-center gap-4 rounded-2xl border border-white/10 bg-black/50 py-4 pr-6 pl-5 shadow-2xl backdrop-blur-md">
+      <div className="flex w-[min(360px,calc(100vw-2rem))] items-center gap-4 rounded-2xl border border-white/10 bg-black/50 py-4 pr-6 pl-5 shadow-2xl backdrop-blur-md">
         <div className="relative flex-shrink-0">
           <div className="h-12 w-12 animate-spin">
             <svg className="h-full w-full" viewBox="0 0 100 100">

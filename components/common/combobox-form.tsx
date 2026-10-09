@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -77,6 +77,7 @@ export function ComboboxForm({
   ariaLabel,
   ariaLabelledBy,
 }: ComboboxFormProps) {
+  const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: { language: value ?? options[0]?.value ?? '' },
@@ -98,7 +99,7 @@ export function ComboboxForm({
           name="language"
           render={({ field }) => (
             <FormItem className="flex w-full flex-col">
-              <Popover>
+              <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -146,6 +147,7 @@ export function ComboboxForm({
                               // update RHF field and notify parent
                               field.onChange(option.value);
                               onSelect(option.value);
+                              setOpen(false);
                             }}
                           >
                             {option.label}

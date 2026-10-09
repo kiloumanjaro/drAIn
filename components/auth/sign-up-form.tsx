@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import client from '@/lib/supabase/client';
 import { updateUserProfile } from '@/lib/supabase/profile';
+import { CharCount } from '@/components/common/char-count';
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -20,41 +21,59 @@ export default function SignUpForm() {
     setNotice(null);
     setLoading(true);
 
-    const { data, error } = await client.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(error.message);
+      } else if (data.session) {
+        // After successful sign-up, create the profile
+        try {
+          await updateUserProfile(data.session, fullName, null, {});
+        } catch (profileError) {
+          // The account exists and is signed in, and the name went with the
+          // sign-up itself: carry on rather than leave the form stuck. The
+          // profile tab can set it again.
+          console.error('Failed to save profile after sign-up:', profileError);
+        }
+        // ✅ Success — redirect to root
+        router.push('/');
+      } else {
+        // Email confirmation is on: no session until the link is clicked.
+        setNotice(`Check ${email} for a confirmation link, then log in.`);
+      }
+    } catch (signUpError) {
+      // Thrown rather than returned: the request never got an answer.
+      setError(
+        signUpError instanceof Error
+          ? signUpError.message
+          : 'Could not sign up. Try again in a moment.'
+      );
+    } finally {
       setLoading(false);
-    } else if (data.session) {
-      // After successful sign-up, create the profile
-      await updateUserProfile(data.session, fullName, null, {});
-      // ✅ Success — redirect to root
-      router.push('/');
-    } else {
-      // Email confirmation is on: no session until the link is clicked.
-      setNotice(`Check ${email} for a confirmation link, then log in.`);
     }
-
-    setLoading(false);
   };
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
       <div>
-        <label
-          htmlFor="signup-name"
-          className="mb-1 block text-xs font-medium text-gray-700"
-        >
-          Full name
-        </label>
+        <div className="mb-1 flex items-baseline justify-between gap-2">
+          <label
+            htmlFor="signup-name"
+            className="block text-xs font-medium text-gray-700"
+          >
+            Full name
+          </label>
+          <CharCount value={fullName} max={100} />
+        </div>
         <input
           id="signup-name"
           type="text"

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import { useAuth } from '@/components/context/auth-provider';
 import { MAX_MESSAGE_CHARS } from '@/lib/chatbot/request';
+import { CharCount } from '@/components/common/char-count';
 
 interface Message {
   role: 'user' | 'bot';
@@ -238,6 +239,12 @@ export function ChatbotView() {
               <Send aria-hidden="true" className="h-5 w-5" />
             )}
           </Button>
+          {/* In the padding under the input, so the row keeps its height. */}
+          <CharCount
+            value={input}
+            max={MAX_MESSAGE_CHARS}
+            className="absolute top-full right-1 mt-0.5 text-[10px] leading-none"
+          />
         </div>
       </div>
     </div>
