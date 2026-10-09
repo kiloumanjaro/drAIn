@@ -8,9 +8,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/context/auth-provider';
 import { MAX_MESSAGE_CHARS } from '@/lib/chatbot/request';
 import { CharCount } from '@/components/common/char-count';
+
+// The control panel loads this tab up front, so the Markdown renderer is
+// fetched on its own, when the tab first shows a reply.
+const ChatMarkdown = dynamic(() => import('./chat-markdown'));
 
 interface Message {
   role: 'user' | 'bot';
@@ -165,7 +170,13 @@ export function ChatbotView() {
                     : 'rounded-2xl border border-gray-300 bg-white text-gray-800'
                 }`}
               >
-                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                {msg.role === 'user' ? (
+                  <div className="text-sm whitespace-pre-wrap">
+                    {msg.content}
+                  </div>
+                ) : (
+                  <ChatMarkdown content={msg.content} />
+                )}
                 <div
                   className={`mt-1 text-[10px] ${
                     msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'

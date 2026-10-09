@@ -106,8 +106,6 @@ export default function SubmitTab() {
     const cancelled = () => checkRun.current !== run;
 
     if (!image) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (cancelled()) return;
       setIsSubmitting(false);
       setIsErrorModalOpen(true);
       setErrorCode('Not a valid image');
@@ -120,8 +118,6 @@ export default function SubmitTab() {
       //   longitude: 123.927200298236968,
       // };
       if (location.latitude == null || location.longitude == null) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (cancelled()) return;
         setIsSubmitting(false);
         setIsErrorModalOpen(true);
         setErrorCode('No GPS data found in image');
@@ -139,8 +135,6 @@ export default function SubmitTab() {
         if (cancelled()) return;
 
         if (Pipedata.length === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          if (cancelled()) return;
           setIsSubmitting(false);
           setIsErrorModalOpen(true);
           setErrorCode('No component found within your location!');
@@ -563,7 +557,7 @@ export default function SubmitTab() {
             </div>
             <DialogDescription className="text-muted-foreground">
               Please ensure your photo was taken at the issue site and includes
-              location sufficient data.
+              sufficient location data.
             </DialogDescription>
           </DialogHeader>
 

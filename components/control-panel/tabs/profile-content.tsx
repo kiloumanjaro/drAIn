@@ -5,7 +5,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Pencil, Link2, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Pencil, Link2, FileText, UserRound } from 'lucide-react';
 import { useAuth } from '@/components/context/auth-provider';
 import {
   updateUserProfile,
@@ -30,9 +32,9 @@ export default function ProfileContent({
   onProfileViewChange,
 }: ProfileContentProps) {
   const queryClient = useQueryClient();
-  const { session, profile, publicAvatarUrl } = useAuth();
+  const { session, profile, publicAvatarUrl, loading: authLoading } = useAuth();
   const isGuest = !session;
-  const loading = !profile && !isGuest;
+  const loading = authLoading || (!profile && !isGuest);
   // The profile holds only the agency's id; its name is known just after
   // joining, from the join itself.
   const [joinedAgency, setJoinedAgency] = useState<{
@@ -103,6 +105,29 @@ export default function ProfileContent({
       {loading ? (
         <div className="flex h-full items-center justify-center">
           <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      ) : isGuest ? (
+        // Signed out there is no profile to show. This used to be an empty
+        // card ("No name set", "No email") above tabs that did nothing.
+        <div className="flex h-full items-center justify-center pb-5">
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB]">
+              <UserRound className="h-6 w-6 self-center text-[#8D8D8D]" />
+            </div>
+
+            <p className="text-sm font-medium text-gray-900">Not signed in</p>
+            <p className="mt-0.5 text-xs text-gray-600">
+              Sign in to see your profile and reports
+            </p>
+            <div className="mt-4 flex gap-3">
+              <Button asChild>
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </div>
+          </div>
         </div>
       ) : (
         <>

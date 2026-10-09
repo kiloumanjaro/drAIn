@@ -10,7 +10,7 @@ const ModelViewer = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+      <div className="text-muted-foreground flex h-[250px] items-center justify-center text-xs">
         Loading viewer…
       </div>
     ),
@@ -19,6 +19,25 @@ const ModelViewer = dynamic(
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import { DataFieldCard } from './data-field-card';
 import { ProgressTimeline } from './progress-timeline';
+import { activeTimelineIndex, isAtScrollEnd } from './detail-view.helpers';
+
+/**
+ * The element that scrolls this view: the nearest one, itself included, that
+ * is allowed to scroll and has more content than height. Null when
+ * everything fits.
+ */
+function findScroller(start: HTMLElement): HTMLElement | null {
+  for (let el: HTMLElement | null = start; el; el = el.parentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if (
+      (overflowY === 'auto' || overflowY === 'scroll') &&
+      el.scrollHeight > el.clientHeight
+    ) {
+      return el;
+    }
+  }
+  return null;
+}
 
 interface DetailViewProps {
   item: DetailItem;
@@ -35,6 +54,7 @@ function modelName(url: string): string {
 export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
   const [showModel, setShowModel] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [atScrollEnd, setAtScrollEnd] = useState(false);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -62,8 +82,23 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
     }
   }, [item]);
 
-  // Track which card is currently in view
+  // Track which card is currently in view. Measured against the panel's own
+  // scroller: against the browser window, cards low in the panel never
+  // counted as in view.
   useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const scroller = findScroller(container);
+
+    // The last cards stop at the bottom edge, short of the middle band
+    // below, so the end of the scroll is watched for separately.
+    const checkScrollEnd = () =>
+      setAtScrollEnd(scroller ? isAtScrollEnd(scroller) : true);
+    scroller?.addEventListener('scroll', checkScrollEnd, { passive: true });
+    // Reports once on observing, then whenever the panel changes height.
+    const resizeObserver = new ResizeObserver(checkScrollEnd);
+    resizeObserver.observe(scroller ?? container);
+
     const observers = cardRefs.current.map((ref, index) => {
       if (!ref) return null;
 
@@ -74,8 +109,9 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
           }
         },
         {
+          root: scroller,
           threshold: 0.6, // Card needs to be 60% visible
-          rootMargin: '-20% 0px -20% 0px', // Focus on center of viewport
+          rootMargin: '-20% 0px -20% 0px', // Focus on center of the panel
         }
       );
 
@@ -84,6 +120,8 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
     });
 
     return () => {
+      scroller?.removeEventListener('scroll', checkScrollEnd);
+      resizeObserver.disconnect();
       observers.forEach((observer) => observer?.disconnect());
     };
   }, [fields.length]);
@@ -182,7 +220,11 @@ export function DetailView({ item, fields, modelUrl }: DetailViewProps) {
       <div className="flex gap-3">
         <ProgressTimeline
           fieldCount={fields.length}
-          activeIndex={activeIndex}
+          activeIndex={activeTimelineIndex(
+            activeIndex,
+            atScrollEnd,
+            fields.length
+          )}
         />
 
         {/* Cards column */}
