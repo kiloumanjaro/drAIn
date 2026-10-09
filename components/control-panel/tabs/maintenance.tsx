@@ -633,7 +633,7 @@ ${note}`
             <DropdownMenuTrigger asChild>
               <Button
                 disabled={isLoading || !selectedAsset}
-                className="flex h-11 w-full min-w-0 items-center justify-between rounded-lg border border-[#2b3ea7] bg-[#4b72f3] text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-full min-w-0 items-center justify-between rounded-lg border border-[#2b3ea7] bg-[#4569ee] text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? (
                   <span className="mx-auto flex items-center gap-2">
@@ -714,7 +714,7 @@ ${note}`
                   setShowIncludePhotoDialog(false);
                   setShowFullPageUpload(true);
                 }}
-                className="flex-1 bg-[#4b72f3]"
+                className="flex-1 bg-[#4569ee]"
               >
                 Yes, Add Photo
               </Button>
@@ -801,7 +801,7 @@ ${note}`
 
               <div className="mt-4 border-t pt-4">
                 <Button
-                  className="w-full bg-[#4b72f3] hover:bg-blue-600"
+                  className="w-full bg-[#4569ee] hover:bg-blue-600"
                   onClick={handleMaintenanceImageSubmit}
                   disabled={!maintenanceImage}
                 >
