@@ -126,6 +126,15 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Keyboard focus only (a mouse click does not match :focus-visible on
+     links and buttons). The browser's own 1px ring at half opacity was
+     too faint to follow, and --ring is too pale to see on white (under
+     3:1). Components that draw their own ring set outline-none, which, as
+     a utility, still wins over this. */
+  :focus-visible {
+    outline: 2px solid oklch(0.45 0 0);
+    outline-offset: 2px;
+  }
 }
 
 /* Mapbox Popup Styling */

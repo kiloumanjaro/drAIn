@@ -2,20 +2,22 @@
 
 import { useTheme } from 'next-themes';
 import { Toaster as Sonner, ToasterProps } from 'sonner';
+import { toastColorVariables } from './toast-colors';
 
-const Toaster = ({ ...props }: ToasterProps) => {
+const Toaster = ({ style, ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme();
 
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
       className="toaster group"
+      // Error, success, info and warning each get their own colours. They
+      // were all the same grey on white, so a failure looked like a success.
+      richColors
+      style={{ ...toastColorVariables(), ...style }}
       toastOptions={{
         style: {
-          background: 'white',
-          border: '1px solid #ced1cd',
           boxShadow: 'none',
-          color: '#7c7282',
         },
       }}
       {...props}
