@@ -8,9 +8,10 @@ import ComponentTypeBadge from './component-type-badge';
 import ReportReview from './report-review';
 import { formatDateShort } from '@/lib/dashboard/calculations';
 import type { ReportWithMetadata } from '@/lib/dashboard/queries';
-import { MapPin, MapPinHouse, FileText, Copy } from 'lucide-react';
+import { MapPin, MapPinHouse, FileText, Copy, ImageOff } from 'lucide-react';
 import { useState } from 'react';
 import { isComponentType } from '@/lib/supabase/enums';
+import { reportMapHref } from './report-map-href';
 
 interface ReportCardProps {
   report: ReportWithMetadata;
@@ -30,6 +31,8 @@ export default function ReportCard({
   const router = useRouter();
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
+  // The photo that failed to load, not a flag, so a new photo gets its chance.
+  const [failedImage, setFailedImage] = useState<string | null>(null);
 
   // Function to shorten address by removing province and country
   const shortenAddress = (address: string): string => {
@@ -71,13 +74,7 @@ export default function ReportCard({
   };
 
   const handleCardClick = () => {
-    if (report.componentId && report.category) {
-      router.push(
-        `/map?component=${report.componentId}&type=${report.category}`
-      );
-    } else {
-      router.push(`/map?reportId=${report.id}`);
-    }
+    router.push(reportMapHref(report));
   };
 
   return (
@@ -86,7 +83,7 @@ export default function ReportCard({
     // keyboard and screen-reader way in.
     <div
       onClick={handleCardClick}
-      className="group flex h-full max-h-100 w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all hover:bg-[#fafafa]"
+      className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-[#ced1cd] bg-white text-left transition-all hover:bg-[#fafafa]"
     >
       {/* Image Gallery */}
       <button
@@ -98,24 +95,30 @@ export default function ReportCard({
         aria-label={`Show on the map: report at ${shortenAddress(report.address)}`}
         className="relative block h-48 w-full shrink-0 cursor-pointer overflow-hidden bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none focus-visible:ring-inset"
       >
-        {images.length > 0 ? (
+        {images.length === 0 ? (
+          <div className="flex h-full w-full items-center justify-center text-gray-600">
+            No image available
+          </div>
+        ) : failedImage === images[0] ? (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-sm text-gray-600">
+            <ImageOff aria-hidden="true" className="h-6 w-6" />
+            Photo unavailable
+          </div>
+        ) : (
           <Image
             src={images[0]}
             alt={`Report ${report.id}`}
             fill
             className="object-cover transition-all group-hover:brightness-95"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={() => setFailedImage(images[0])}
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-gray-400">
-            No image available
-          </div>
         )}
       </button>
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Content */}
-        <div className="max-h-38 space-y-3 overflow-y-auto p-4">
+        <div className="space-y-3 p-4">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
             <PriorityBadge
