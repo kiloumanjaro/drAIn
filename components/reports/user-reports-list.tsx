@@ -239,6 +239,7 @@ export default function UserReportsList({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. Still floods when it rains"
+            aria-label="What is still wrong"
             rows={3}
           />
           <DialogFooter>

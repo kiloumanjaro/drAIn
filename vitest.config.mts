@@ -13,7 +13,6 @@ export default defineConfig({
       'node_modules/**',
       // Playwright specs, which have their own runner (pnpm test:e2e).
       'e2e/**',
-      'control-panel-portable/**',
       '.next/**',
     ],
   },

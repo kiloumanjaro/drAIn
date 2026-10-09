@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('analytics');
 
   return (
-    <div className="min-h-screen overflow-y-scroll bg-[#e8e8e8]/50 px-8">
+    <div className="min-h-screen overflow-y-scroll bg-[#e8e8e8]/50 px-8 max-md:px-4 max-md:pt-14">
       <div className="mx-auto py-5 pb-5">
         {/* Header */}
         <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">

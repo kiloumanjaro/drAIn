@@ -52,29 +52,29 @@ export function SideNavigation({
         onClick={() => onTabChange(tab.id)}
         aria-label={tab.label}
         aria-current={isActive ? 'true' : undefined}
-        className="relative flex cursor-pointer items-center justify-center"
+        className="relative flex cursor-pointer items-center justify-center max-md:h-full max-md:flex-1"
       >
         <Icon className="h-5 w-5 text-[#B2ADAB] hover:text-black" />
 
         {isActive && (
-          <div className="absolute right-0 h-9 w-0.5 rounded-l-lg bg-[#B2ADAB]" />
+          <div className="absolute bg-[#B2ADAB] max-md:inset-x-3 max-md:top-0 max-md:h-0.5 max-md:rounded-b-lg md:right-0 md:h-9 md:w-0.5 md:rounded-l-lg" />
         )}
       </button>
     );
   };
 
   return (
-    <div className="flex h-full w-full flex-col items-center pt-1.5">
-      {/* Chatbot tab at the top */}
-      <div className="flex w-full flex-col">
+    <div className="flex h-full w-full items-center max-md:items-stretch md:flex-col md:pt-1.5">
+      {/* Chatbot tab at the top (first in the row on phones) */}
+      <div className="flex w-full flex-col max-md:contents">
         {chatbotTab && renderTab(chatbotTab)}
       </div>
 
       {/* Spacer to push other tabs to bottom */}
-      <div className="flex-1" />
+      <div className="flex-1 max-md:hidden" />
 
       {/* Other tabs at the bottom */}
-      <div className="flex w-full flex-col gap-5">
+      <div className="flex w-full flex-col gap-5 max-md:contents">
         {otherTabs.map((tab) => renderTab(tab))}
       </div>
     </div>

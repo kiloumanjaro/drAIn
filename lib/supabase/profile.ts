@@ -12,7 +12,11 @@ export type Profile = Pick<
   | 'role'
   | 'agency_id'
   | 'show_name_on_reports'
+  | 'updated_at'
 >;
+
+const PROFILE_COLUMNS =
+  'id, full_name, avatar_url, role, agency_id, show_name_on_reports, updated_at';
 
 /**
  * Agency staff or admin. Only a display hint: the database checks the role
@@ -26,9 +30,7 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await client
       .from('profiles')
-      .select(
-        'id, full_name, avatar_url, role, agency_id, show_name_on_reports'
-      )
+      .select(PROFILE_COLUMNS)
       .eq('id', userId)
       .single();
 
@@ -54,7 +56,7 @@ export const updateUserProfile = async (
   currentProfile: Record<string, unknown> | null,
   /** Show the name on this person's reports; left unchanged when omitted. */
   showNameOnReports?: boolean
-) => {
+): Promise<Profile> => {
   try {
     const user = session.user;
 
@@ -108,7 +110,7 @@ export const updateUserProfile = async (
           ? {}
           : { show_name_on_reports: showNameOnReports }),
       })
-      .select()
+      .select(PROFILE_COLUMNS)
       .single();
 
     if (error) {

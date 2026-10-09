@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchReportsForComponent } from '@/lib/supabase/report';
 import {
   DEBUG_MODE,
   checkMaintenancePhoto,
@@ -11,7 +10,6 @@ import {
 } from './maintenance.helpers';
 import { assetActions } from './maintenance.actions';
 import MaintenanceVerification from './maintenance-verification';
-import type { Report } from '@/lib/supabase/report';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
 import {
   CornerDownRight,
@@ -94,7 +92,6 @@ export default function Maintenance({
   const [_message, setMessage] = useState<string>('');
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
   const [agencyComments, setAgencyComments] = useState<string>('');
-  const [_reports, setReports] = useState<Report[]>([]);
 
   // Add Image / Report Submission State
   const { user: _user, profile: _authProfile } = useAuth();
@@ -110,10 +107,6 @@ export default function Maintenance({
   const [pendingStatus, setPendingStatus] = useState<
     'in-progress' | 'resolved' | null
   >(null);
-
-  const loadReports = useCallback(async (componentId: string) => {
-    setReports(await fetchReportsForComponent(componentId));
-  }, []);
 
   const handleViewHistory = useCallback(
     async (assetType: string, assetId: string) => {
@@ -164,11 +157,9 @@ export default function Maintenance({
     if (assetType && assetId) {
       setSelectedAsset({ type: assetType, id: assetId });
       handleViewHistory(assetType, assetId);
-      loadReports(assetId);
     } else {
       setSelectedAsset(null);
       setHistory(null);
-      setReports([]);
       setMessage('');
     }
     // Reset upload state when asset changes
@@ -184,7 +175,6 @@ export default function Maintenance({
     selectedPipe,
     selectedDrain,
     handleViewHistory,
-    loadReports,
   ]);
 
   const initiateRecordMaintenance = (status: 'in-progress' | 'resolved') => {
@@ -259,7 +249,6 @@ ${note}`
           : 'Recorded as in progress.'
       );
       handleViewHistory(type, id);
-      loadReports(id);
     }
   };
 
@@ -409,7 +398,6 @@ ${note}`
             onClick={() => {
               if (!selectedAsset) return;
               handleViewHistory(selectedAsset.type, selectedAsset.id);
-              loadReports(selectedAsset.id);
             }}
           >
             <RefreshCw className="h-4 w-4 text-[#8D8D8D]" />
@@ -435,7 +423,10 @@ ${note}`
               </div>
             ) : isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex flex-col items-center text-center">
+                <div
+                  role="status"
+                  className="flex flex-col items-center text-center"
+                >
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#DCDCDC] bg-[#EBEBEB]">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
                   </div>
@@ -628,6 +619,7 @@ ${note}`
                 value={agencyComments}
                 onChange={(e) => setAgencyComments(e.target.value)}
                 placeholder="Agency Comments Here"
+                aria-label="Agency comments"
                 rows={1}
                 style={{ height: '56px', minHeight: '56px', maxHeight: '56px' }}
                 className="!h-14 resize-none bg-transparent"
@@ -751,8 +743,9 @@ ${note}`
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowFullPageUpload(false)}
+                  aria-label="Close"
                 >
-                  <X className="h-5 w-5" />
+                  <X aria-hidden="true" className="h-5 w-5" />
                 </Button>
               </div>
 
@@ -785,8 +778,14 @@ ${note}`
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
+                  <label
+                    htmlFor="maintenance-photo-description"
+                    className="text-sm font-medium"
+                  >
+                    Description
+                  </label>
                   <Textarea
+                    id="maintenance-photo-description"
                     value={maintenanceDescription}
                     onChange={(e) => setMaintenanceDescription(e.target.value)}
                     placeholder="Describe the photo or work done..."

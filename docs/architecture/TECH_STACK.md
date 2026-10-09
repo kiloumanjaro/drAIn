@@ -378,6 +378,18 @@ NEXT_PUBLIC_BACKEND_URL=your_backend_url
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
 ```
 
+### Optional Variables
+
+```env
+# The content security policy (next.config.ts) is enforced. Set this to turn
+# it back to report-only if it blocks something real, then redeploy: the
+# header is fixed when the app is built. Leave it unset otherwise.
+CSP_REPORT_ONLY=true
+```
+
+Whatever the policy blocks is posted by the browser to `/api/csp-report` and
+written to the server log as one `CSP violation: ...` line.
+
 ## Dependency Management
 
 ### Package.json Scripts

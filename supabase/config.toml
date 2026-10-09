@@ -124,19 +124,19 @@ file_size_limit = "50MiB"
 # objects_path = "./images"
 
 # Buckets the app uses (lib/supabase/report.ts, lib/supabase/profile.ts).
-# Photos only, in the formats phones and browsers produce: not "image/*",
-# which also admits SVG (scriptable) and anything else labelled image/.
-# Migration 20260930120000_security_hardening sets the same types on the
-# hosted buckets; keep the two in step.
+# JPEG only: the app re-encodes every photo to one before uploading
+# (lib/reports/sanitize-image.ts), so nothing else is ever sent. Migration
+# photo_storage_rules sets the same sizes and type on the hosted buckets;
+# keep the two in step.
 [storage.buckets.ReportImage]
 public = true
 file_size_limit = "10MiB"
-allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]
+allowed_mime_types = ["image/jpeg"]
 
 [storage.buckets.Avatars]
 public = true
 file_size_limit = "5MiB"
-allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]
+allowed_mime_types = ["image/jpeg"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]

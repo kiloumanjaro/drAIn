@@ -33,8 +33,15 @@ CREATE INDEX "idx_rate_limit_events_created_at" ON "private"."rate_limit_events"
 -- Takes one request from the signed-in caller's allowance for a named
 -- service. True if allowed (and counted), false if the allowance is used
 -- up. Limits per bucket:
---   chatbot:     20 in 10 minutes, 100 in a day.
---   join_agency: 10 in an hour, 20 in a day (join codes; see join_agency).
+--   chatbot:            20 in 10 minutes, 100 in a day.
+--   join_agency:        10 in an hour, 20 in a day (join codes; see join_agency).
+--   record_maintenance: 30 in an hour, 200 in a day.
+--   review_report:      120 in an hour, 500 in a day.
+--   review_maintenance: 60 in an hour, 200 in a day.
+-- The last three are far above a working day's use; they stop one staff
+-- account (or whoever holds an agency's join code) from closing, rejecting
+-- or disputing everything in a loop. Those functions take their own
+-- allowance; a client calling this directly only spends its own.
 -- An unknown bucket is an error, so a typo can't mean "unlimited".
 -- A per-caller advisory lock makes concurrent requests take turns; without
 -- it, several at once could all count the same rows and all pass.
@@ -57,6 +64,12 @@ BEGIN
       short_max := 20; short_window := interval '10 minutes'; day_max := 100;
     WHEN 'join_agency' THEN
       short_max := 10; short_window := interval '1 hour'; day_max := 20;
+    WHEN 'record_maintenance' THEN
+      short_max := 30; short_window := interval '1 hour'; day_max := 200;
+    WHEN 'review_report' THEN
+      short_max := 120; short_window := interval '1 hour'; day_max := 500;
+    WHEN 'review_maintenance' THEN
+      short_max := 60; short_window := interval '1 hour'; day_max := 200;
     ELSE
       RAISE EXCEPTION 'Unknown rate limit %.', p_bucket USING ERRCODE = '22023';
   END CASE;

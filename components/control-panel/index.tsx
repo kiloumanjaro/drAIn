@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthContext } from '@/components/context/auth-provider';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/components/context/auth-provider';
 import type { ControlPanelProps } from './types';
 import { DETAIL_TITLES } from './constants';
 import { useControlPanelState } from './hooks/use-control-panel-state';
@@ -15,8 +16,22 @@ import {
   useOutlets,
   useDrains,
 } from '@/lib/query/hooks/use-drainage-data';
-import client from '@/lib/supabase/client';
+import { signOutAndForgetProfile } from '@/lib/supabase/sign-out';
 import type { DateFilterValue } from '@/components/common/date-sort';
+import {
+  cycleSheet,
+  sheetAfterDrag,
+  sheetHandleLabel,
+  type SheetState,
+} from '@/lib/control-panel/sheet';
+
+// Heights of the phone sheet. Written out in full so Tailwind finds them.
+const SHEET_HEIGHT: Record<SheetState, string> = {
+  collapsed: 'max-md:h-[5.25rem]',
+  half: 'max-md:h-[55dvh]',
+  // Leaves the top of the map, and the navigation button on it, in reach.
+  full: 'max-md:h-[calc(100dvh-4.5rem)]',
+};
 
 interface RainfallParams {
   total_precip: number;
@@ -91,80 +106,8 @@ export function ControlPanel({
   isFloodScenarioLoading = false,
 }: ControlPanelProps) {
   const router = useRouter();
-  const supabase = client;
-  const authContext = useContext(AuthContext);
-  const session = authContext?.session;
-
-  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
-  const [publicAvatarUrl, setPublicAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      const userId = session.user.id;
-      const cacheKey = `profile-${userId}`;
-      const COMMON_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-
-      const fetchProfile = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching profile:', error);
-        } else if (data) {
-          const avatarPath = data.avatar_url as string | null;
-          let publicUrl = null;
-
-          if (avatarPath) {
-            const pathParts = avatarPath.split('.');
-            const currentExtension =
-              pathParts.length > 1 ? `.${pathParts.pop()}` : '';
-            const basePath = pathParts.join('.');
-
-            const extensionsToTry = [
-              currentExtension,
-              ...COMMON_EXTENSIONS.filter((ext) => ext !== currentExtension),
-            ].filter((ext) => ext !== '');
-
-            for (const ext of extensionsToTry) {
-              const testPath = basePath + ext;
-              const { data: urlData } = supabase.storage
-                .from('Avatars')
-                .getPublicUrl(testPath);
-
-              const candidateUrl = urlData.publicUrl;
-
-              try {
-                const response = await fetch(candidateUrl, { method: 'HEAD' });
-
-                if (response.ok) {
-                  publicUrl = candidateUrl;
-                  break;
-                }
-              } catch (_e) {
-                console.warn(`Fetch failed for ${ext}. Skipping.`);
-              }
-            }
-          }
-
-          setProfile(data);
-          setPublicAvatarUrl(publicUrl);
-
-          localStorage.setItem(
-            cacheKey,
-            JSON.stringify({ profile: data, publicAvatarUrl: publicUrl })
-          );
-        }
-      };
-
-      fetchProfile();
-    } else if (session === null) {
-      setProfile(null);
-      setPublicAvatarUrl(null);
-    }
-  }, [session, supabase]);
+  const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const {
     sortField,
@@ -191,12 +134,7 @@ export function ControlPanel({
   const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
 
   const handleSignOut = async () => {
-    const session = await supabase.auth.getSession();
-    if (session?.data?.session) {
-      const cacheKey = `profile-${session.data.session.user.id}`;
-      localStorage.removeItem(cacheKey);
-    }
-    await supabase.auth.signOut();
+    await signOutAndForgetProfile(queryClient);
     router.push('/login');
   };
 
@@ -209,6 +147,25 @@ export function ControlPanel({
   const selectedItem =
     selectedInlet || selectedPipe || selectedOutlet || selectedDrain;
   const selectedItemTitle = selectedItem ? DETAIL_TITLES[dataset] : '';
+
+  // Phones only: the panel is a sheet at the bottom of the screen.
+  const [sheet, setSheet] = useState<SheetState>('half');
+  const dragStartY = useRef<number | null>(null);
+  const dragged = useRef(false);
+
+  // Something picked on the map shows its details here, so a collapsed
+  // sheet opens for it. Compared during render rather than in an effect.
+  const selectionKey = selectedItem ? `${dataset}:${selectedItem.id}` : '';
+  const [seenSelectionKey, setSeenSelectionKey] = useState(selectionKey);
+  if (selectionKey !== seenSelectionKey) {
+    setSeenSelectionKey(selectionKey);
+    if (selectionKey && sheet === 'collapsed') setSheet('half');
+  }
+
+  const handleTabChange = (tab: string) => {
+    if (sheet === 'collapsed') setSheet('half');
+    onTabChange(tab);
+  };
 
   const handleNavigateToTable = (
     dataset: 'inlets' | 'outlets' | 'storm_drains' | 'man_pipes'
@@ -230,21 +187,63 @@ export function ControlPanel({
   };
 
   return (
+    // From tablet width up: a floating card, never taller than the screen.
+    // On phones: a sheet across the bottom with a handle, the content, then
+    // the tabs, so the map above it stays in reach.
     <div
-      className={`absolute m-5 flex h-[600px] w-sm flex-row overflow-hidden rounded-2xl ${
+      className={`flex overflow-hidden motion-reduce:transition-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:flex-col max-md:rounded-t-2xl max-md:shadow-[0_-4px_16px_rgba(0,0,0,0.15)] max-md:transition-[height] max-md:duration-200 md:absolute md:m-5 md:h-[min(600px,calc(100dvh-2.5rem))] md:w-sm md:flex-row md:rounded-2xl ${SHEET_HEIGHT[sheet]} ${
         activeTab === 'chatbot'
           ? 'bg-gradient-to-b from-blue-50 via-white to-blue-50'
           : 'bg-white'
       }`}
     >
+      {/* Sheet handle (phones): tap to step through the heights, or drag */}
+      <button
+        type="button"
+        aria-label={sheetHandleLabel(sheet)}
+        aria-expanded={sheet !== 'collapsed'}
+        onPointerDown={(e) => {
+          dragStartY.current = e.clientY;
+          dragged.current = false;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerUp={(e) => {
+          if (dragStartY.current === null) return;
+          const next = sheetAfterDrag(sheet, e.clientY - dragStartY.current);
+          dragStartY.current = null;
+          if (next !== null) {
+            dragged.current = true;
+            setSheet(next);
+          }
+        }}
+        onPointerCancel={() => {
+          dragStartY.current = null;
+        }}
+        onClick={() => {
+          // A drag already moved the sheet; the click that follows it must not.
+          if (dragged.current) {
+            dragged.current = false;
+            return;
+          }
+          setSheet(cycleSheet(sheet));
+        }}
+        className="flex h-7 w-full shrink-0 touch-none items-center justify-center md:hidden"
+      >
+        <span className="h-1.5 w-10 rounded-full bg-gray-300" />
+      </button>
+
       {/* Sidebar */}
       <Sidebar
         activeTab={activeTab}
-        onTabChange={onTabChange}
+        onTabChange={handleTabChange}
         profile={profile}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden ${
+          sheet === 'collapsed' ? 'max-md:hidden' : ''
+        }`}
+      >
         {/* Top Bar */}
         <TopBar
           activeTab={activeTab}
@@ -318,8 +317,6 @@ export function ControlPanel({
             onRefreshReports={onRefreshReports}
             isRefreshingReports={isRefreshingReports}
             profile={profile}
-            publicAvatarUrl={publicAvatarUrl}
-            setProfile={setProfile}
             selectedYear={selectedYear}
             onYearChange={onYearChange}
             onGenerateTable={onGenerateTable}
@@ -334,7 +331,6 @@ export function ControlPanel({
             hasTable3={hasTable3}
             isTable3Minimized={isTable3Minimized}
             onToggleTable3Minimize={onToggleTable3Minimize}
-            setPublicAvatarUrl={setPublicAvatarUrl}
             selectedComponentIds={selectedComponentIds}
             onComponentIdsChange={onComponentIdsChange}
             selectedPipeIds={selectedPipeIds}

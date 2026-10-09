@@ -325,3 +325,30 @@
 .animate-fade {
   animation: fadeIn 0.3s ease-in-out;
 }
+
+/*
+ * People who ask their system for less motion. Looping and decorative
+ * animations are switched off. Everything else is cut to an instant rather
+ * than removed, so an animation that ends in a visible state (a dialog or
+ * popover fading in) still reaches it and still reports that it finished.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-shimmer,
+  .text-shine,
+  .text-gradient-animated,
+  .text-gradient-animated:hover,
+  .animate-widget-shake {
+    animation: none !important;
+  }
+}

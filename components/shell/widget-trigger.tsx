@@ -1,14 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { ArrowPathIcon } from '@heroicons/react/24/solid';
+import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const LATEST_HEADLINE = 'Flash Flood of Nov 14, 2025';
-
-/** How long each of the two messages stays on screen. */
-const HEADLINE_ROTATION_MS = 5000;
 
 const comparisonEvent = {
   eventName: 'NEW EVENT: Flash Flood of Nov 14, 2025',
@@ -22,76 +18,51 @@ const comparisonEvent = {
   },
 };
 
+const DOCS_HREF = `/docs?section=reports&compareEvent=${encodeURIComponent(
+  JSON.stringify(comparisonEvent)
+)}`;
+
 export default function WidgetTrigger() {
-  const router = useRouter();
   const [hovered, setHovered] = useState(false);
-  const [showHeadline, setShowHeadline] = useState(true);
-  // Bumped to restart the rotation, so switching by hand gives the new
-  // message a full interval rather than whatever was left of the last one.
-  const [rotationEpoch, setRotationEpoch] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(
-      () => setShowHeadline((prev) => !prev),
-      HEADLINE_ROTATION_MS
-    );
-    return () => clearInterval(timer);
-  }, [rotationEpoch]);
-
-  const handleHeadlineClick = () => {
-    const compareEventParam = encodeURIComponent(
-      JSON.stringify(comparisonEvent)
-    );
-    router.push(`/docs?section=reports&compareEvent=${compareEventParam}`);
-  };
-
-  const handleRefreshClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowHeadline((prev) => !prev);
-    setRotationEpoch((epoch) => epoch + 1);
-  };
+  const [focused, setFocused] = useState(false);
+  // Keyboard focus opens the headline the same way the mouse does, so the
+  // link is never focused while its text is hidden.
+  const expanded = hovered || focused;
 
   return (
-    <div
+    <Link
+      href={DOCS_HREF}
+      prefetch={false}
+      aria-label={`Latest flood event: ${LATEST_HEADLINE}. Read the report`}
+      title={!expanded ? LATEST_HEADLINE : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex h-9 items-stretch overflow-hidden transition-all duration-300 ${!hovered ? 'animate-widget-shake' : 'rounded-sm'}`}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      className={`flex h-9 items-stretch overflow-hidden transition-all duration-300 ${!expanded ? 'animate-widget-shake' : 'rounded-sm'}`}
       style={{
-        maxWidth: hovered ? '300px' : '36px',
+        maxWidth: expanded ? '300px' : '36px',
       }}
-      title={!hovered ? LATEST_HEADLINE : undefined}
     >
-      {/* Icon square — always visible */}
-      <button className="flex w-9 shrink-0 items-center justify-center overflow-hidden">
+      <span className="flex w-9 shrink-0 items-center justify-center overflow-hidden">
+        {/* The source files are several megabytes; a fixed 36px box lets the
+            image optimiser serve a thumbnail instead. */}
         <Image
-          src={hovered ? '/images/hovered.png' : '/images/unhovered.png'}
-          alt="Alert"
+          src={expanded ? '/images/hovered.png' : '/images/unhovered.png'}
+          alt=""
           width={36}
           height={36}
+          sizes="36px"
           className="h-9 w-9 object-cover transition-all duration-300"
-          priority
         />
-      </button>
+      </span>
 
-      {/* White headline bar — always rendered but hidden/shown via max-width */}
-      <button
-        onClick={handleHeadlineClick}
-        className="flex items-center justify-between self-stretch bg-white px-4 text-xs font-normal text-gray-600 transition-all duration-500 hover:text-gray-800"
-        style={{ opacity: hovered ? 1 : 0, minWidth: '210px' }}
+      <span
+        className="flex items-center self-stretch bg-white px-4 text-xs font-normal text-gray-600 transition-all duration-500 hover:text-gray-800"
+        style={{ opacity: expanded ? 1 : 0, minWidth: '210px' }}
       >
-        <span
-          key={showHeadline ? 'headline' : 'weather'}
-          className="animate-fade truncate"
-        >
-          {showHeadline ? LATEST_HEADLINE : 'The chances of rain are 50%'}
-        </span>
-        <div
-          onClick={handleRefreshClick}
-          className="ml-2 shrink-0 cursor-pointer transition-opacity hover:opacity-70"
-        >
-          <ArrowPathIcon className="h-3.5 w-3.5" />
-        </div>
-      </button>
-    </div>
+        <span className="truncate">{LATEST_HEADLINE}</span>
+      </span>
+    </Link>
   );
 }

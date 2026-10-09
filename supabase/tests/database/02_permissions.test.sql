@@ -112,7 +112,7 @@ select throws_ok(
   'staff cannot make themselves admin'
 );
 
--- Admins rotate codes and assign members -------------------------------------
+-- Admins rotate codes; they do not add members -------------------------------------
 
 reset role;
 set local role authenticated;
@@ -125,11 +125,11 @@ select matches(
   'an admin can rotate a code and gets the new one back'
 );
 
-select is(
-  (select role::text from public.set_member_agency('00000000-0000-4000-a000-000000000004',
-                                                   '6b307b70-0fa4-46df-a66c-0df8a16cca3d', 'staff')),
-  'staff',
-  'an admin can assign a member directly'
+select throws_ok(
+  $$select public.set_member_agency('00000000-0000-4000-a000-000000000004',
+                                    '6b307b70-0fa4-46df-a66c-0df8a16cca3d', 'staff')$$,
+  '42501', 'People join an agency with its join code.',
+  'an admin cannot pull a citizen into the agency; they join with the code'
 );
 
 -- After rotation only the new code works --------------------------------------

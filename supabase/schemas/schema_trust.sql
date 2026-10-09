@@ -100,6 +100,13 @@ CREATE INDEX "idx_report_sources_created_at" ON "private"."report_sources" USING
 --   * refuses a reporter's second open report on the same component;
 --   * refuses more than 5 an hour or 10 a day from a signed-in reporter, or
 --     3 and 10 from one signed-out address.
+--   * requires the photo, if there is one, to be one the reporter uploaded
+--     (private.owns_report_photo in schema_auth_storage.sql);
+--   * requires a component, and takes the report's category and map position
+--     from it rather than from the client, so a report can't be pinned
+--     somewhere else or counted under another type. (The app always sent the
+--     component's own values.) Where the reporter stood stays in
+--     photo_lat/photo_lon.
 -- For every insert it measures the photo's GPS position against the
 -- component and sets photo_distance_m and photo_check, overwriting whatever
 -- the client sent.
@@ -122,8 +129,9 @@ DECLARE
   key text := private.reporter_key();
   per_hour integer := CASE WHEN auth.uid() IS NULL THEN 3 ELSE 5 END;
   per_day integer := 10;
+  component record;
 BEGIN
-  IF auth.role() IN ('anon', 'authenticated') THEN
+  IF private.is_api_caller() THEN
     NEW.created_at := now();
     NEW.review_status := 'unreviewed';
     NEW.reviewed_by := NULL;
@@ -132,9 +140,24 @@ BEGIN
     NEW.resolved_at := NULL;
     NEW.address := NULL;
     NEW.geocoded_status := 'pending';
-    IF NEW.image IS NOT NULL
-       AND NEW.image !~ '^public/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$' THEN
+    IF NEW.image IS NOT NULL AND NOT private.owns_report_photo(NEW.image) THEN
       RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
+    END IF;
+    IF NEW.component_id IS NULL THEN
+      RAISE EXCEPTION 'Say which inlet, outlet, pipe or storm drain the report is about.'
+        USING ERRCODE = '22023';
+    END IF;
+    SELECT c.type,
+           extensions.st_y(c.location::extensions.geometry) AS lat,
+           extensions.st_x(c.location::extensions.geometry) AS long
+    INTO component
+    FROM public.components c
+    WHERE c.name = NEW.component_id;
+    -- An unknown component is left for the foreign key to refuse.
+    IF FOUND THEN
+      NEW.category := component.type;
+      NEW.lat := component.lat;
+      NEW.long := component.long;
     END IF;
   END IF;
 
@@ -198,7 +221,7 @@ CREATE OR REPLACE FUNCTION "public"."reject_bulk_report_insert"() RETURNS "trigg
     SET "search_path" TO ''
     AS $$
 BEGIN
-  IF auth.role() IN ('anon', 'authenticated')
+  IF private.is_api_caller()
      AND (SELECT count(*) FROM new_reports) > 1 THEN
     RAISE EXCEPTION 'File one report at a time.' USING ERRCODE = 'P0001', HINT = 'rate_limited';
   END IF;
@@ -221,13 +244,16 @@ CREATE OR REPLACE TRIGGER "reject_bulk_report_insert" AFTER INSERT ON "public"."
 -- ---------------------------------------------------------------------------
 
 -- Staff confirm a report, or reject it with a reason, and may correct the
--- priority the reporter chose. A later review replaces an earlier one.
+-- priority the reporter chose. A later review replaces an earlier one on the
+-- report; the audit log keeps both, with what the report said before each.
+-- 120 an hour and 500 a day per staff member (consume_rate_limit).
 CREATE OR REPLACE FUNCTION "public"."review_report"("p_report_id" "uuid", "p_verdict" "public"."report_review", "p_note" "text" DEFAULT NULL::"text", "p_priority" "public"."report_priority" DEFAULT NULL::"public"."report_priority") RETURNS "public"."reports"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 DECLARE
   note text := nullif(btrim(p_note), '');
+  before public.reports;
   result public.reports;
 BEGIN
   IF private.current_agency_id() IS NULL THEN
@@ -239,6 +265,19 @@ BEGIN
   IF p_verdict = 'rejected' AND note IS NULL THEN
     RAISE EXCEPTION 'Say why the report is rejected.' USING ERRCODE = '22023';
   END IF;
+  IF char_length(note) > 1000 THEN
+    RAISE EXCEPTION 'Keep the note under 1,000 characters.' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT * INTO before FROM public.reports WHERE id = p_report_id FOR UPDATE;
+  IF before.id IS NULL THEN
+    RAISE EXCEPTION 'No such report.' USING ERRCODE = 'P0002';
+  END IF;
+  -- After the checks, so only reviews that are actually made are counted.
+  IF NOT public.consume_rate_limit('review_report') THEN
+    RAISE EXCEPTION 'You have reviewed a lot of reports recently. Please try again later.'
+      USING ERRCODE = 'P0001', HINT = 'rate_limited';
+  END IF;
 
   UPDATE public.reports
   SET review_status = p_verdict,
@@ -249,9 +288,16 @@ BEGIN
   WHERE id = p_report_id
   RETURNING * INTO result;
 
-  IF result.id IS NULL THEN
-    RAISE EXCEPTION 'No such report.' USING ERRCODE = 'P0002';
-  END IF;
+  PERFORM private.write_audit('report.review', 'report', p_report_id::text,
+    jsonb_build_object(
+      'before', jsonb_build_object('review_status', before.review_status,
+                                   'review_note', before.review_note,
+                                   'priority', before.priority,
+                                   'reviewed_by', before.reviewed_by,
+                                   'reviewed_at', before.reviewed_at),
+      'after', jsonb_build_object('review_status', result.review_status,
+                                  'review_note', result.review_note,
+                                  'priority', result.priority)));
   RETURN result;
 END;
 $$;
@@ -310,6 +356,14 @@ COMMENT ON COLUMN "public"."maintenance_reviews"."reviewer_kind" IS 'staff: anot
 COMMENT ON COLUMN "public"."maintenance_reviews"."report_id" IS 'For a reporter''s review, the report they answered for.';
 
 
+
+-- NOT VALID, like profiles_full_name_length in schema.sql: older rows are
+-- left alone.
+ALTER TABLE "public"."maintenance_reviews"
+    ADD CONSTRAINT "maintenance_reviews_note_length" CHECK (("char_length"("note") <= 1000)) NOT VALID;
+
+ALTER TABLE "public"."reports"
+    ADD CONSTRAINT "reports_review_note_length" CHECK (("char_length"("review_note") <= 1000)) NOT VALID;
 
 CREATE INDEX "idx_maintenance_reviews_reviewer_id" ON "public"."maintenance_reviews" USING "btree" ("reviewer_id");
 
@@ -373,8 +427,10 @@ ALTER FUNCTION "private"."reopen_resolved_reports"("p_maintenance_id" "uuid", "p
 
 
 -- A staff member checks a colleague's finished work: confirmed, or disputed
--- with a reason (and optionally a photo). Not their own work. A dispute
--- reopens every report the work closed.
+-- with a reason (and optionally a photo they uploaded). Not their own work.
+-- A dispute reopens every report the work closed. 60 an hour and 200 a day
+-- per staff member (consume_rate_limit); each check is written to the audit
+-- log with the verdict it replaced and the reports it reopened.
 CREATE OR REPLACE FUNCTION "public"."review_maintenance"("p_maintenance_id" "uuid", "p_verdict" "public"."review_verdict", "p_note" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -382,6 +438,8 @@ CREATE OR REPLACE FUNCTION "public"."review_maintenance"("p_maintenance_id" "uui
 DECLARE
   note text := nullif(btrim(p_note), '');
   work public.maintenance;
+  previous public.review_verdict;
+  reopened uuid[];
 BEGIN
   IF private.current_agency_id() IS NULL THEN
     RAISE EXCEPTION 'Only agency staff can check maintenance.' USING ERRCODE = '42501';
@@ -401,6 +459,20 @@ BEGIN
   IF p_verdict = 'disputed' AND note IS NULL THEN
     RAISE EXCEPTION 'Say what is still wrong.' USING ERRCODE = '22023';
   END IF;
+  IF char_length(note) > 1000 THEN
+    RAISE EXCEPTION 'Keep the note under 1,000 characters.' USING ERRCODE = '22023';
+  END IF;
+  IF p_evidence_image IS NOT NULL AND NOT private.owns_report_photo(p_evidence_image) THEN
+    RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
+  END IF;
+  -- After the checks, so only checks that are actually made are counted.
+  IF NOT public.consume_rate_limit('review_maintenance') THEN
+    RAISE EXCEPTION 'You have checked a lot of work recently. Please try again later.'
+      USING ERRCODE = 'P0001', HINT = 'rate_limited';
+  END IF;
+
+  SELECT r.verdict INTO previous FROM public.maintenance_reviews r
+  WHERE r.maintenance_id = work.id AND r.reviewer_id = auth.uid();
 
   INSERT INTO public.maintenance_reviews
     (maintenance_id, reviewer_id, reviewer_kind, verdict, note, evidence_image)
@@ -410,9 +482,15 @@ BEGIN
         evidence_image = excluded.evidence_image, created_at = now();
 
   IF p_verdict = 'disputed' THEN
+    SELECT array_agg(r.id) INTO reopened FROM public.reports r
+    WHERE r.resolved_by_maintenance_id = work.id AND r.status = 'resolved';
     PERFORM private.reopen_resolved_reports(work.id);
   END IF;
   PERFORM private.refresh_verification(work.id);
+
+  PERFORM private.write_audit('maintenance.review', 'maintenance', work.id::text,
+    jsonb_build_object('verdict', p_verdict, 'verdict_before', previous, 'note', note,
+                       'reports_reopened', coalesce(to_jsonb(reopened), '[]'::jsonb)));
 
   SELECT * INTO work FROM public.maintenance WHERE id = p_maintenance_id;
   RETURN work;
@@ -455,6 +533,9 @@ BEGIN
   IF p_verdict = 'disputed' AND note IS NULL THEN
     RAISE EXCEPTION 'Say what is still wrong.' USING ERRCODE = '22023';
   END IF;
+  IF char_length(note) > 1000 THEN
+    RAISE EXCEPTION 'Keep the note under 1,000 characters.' USING ERRCODE = '22023';
+  END IF;
 
   INSERT INTO public.maintenance_reviews
     (maintenance_id, reviewer_id, reviewer_kind, report_id, verdict, note)
@@ -467,6 +548,8 @@ BEGIN
     PERFORM private.reopen_resolved_reports(work.id, auth.uid());
   END IF;
   PERFORM private.refresh_verification(work.id);
+  PERFORM private.write_audit('maintenance.response', 'maintenance', work.id::text,
+    jsonb_build_object('verdict', p_verdict, 'note', note, 'report_id', report.id));
 
   SELECT * INTO report FROM public.reports WHERE id = p_report_id;
   RETURN report;

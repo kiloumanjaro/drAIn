@@ -87,6 +87,7 @@ export default function EditProfile({
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Your name"
+            maxLength={100}
             disabled={isSaving || isGuest}
           />
           <div className="flex flex-row items-center justify-between gap-3 px-1">

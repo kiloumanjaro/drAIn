@@ -130,6 +130,7 @@ export default function ReportReview({ report }: { report: Report }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. Duplicate of an open report; photo is from elsewhere"
+            aria-label="Reason for rejecting the report"
             rows={3}
           />
           <DialogFooter>

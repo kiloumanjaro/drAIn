@@ -32,6 +32,7 @@ export default function ReportsTab() {
       status,
       componentType,
       includeRejected: staff && showRejected,
+      withPhotoDetails: staff,
     },
     limit
   );

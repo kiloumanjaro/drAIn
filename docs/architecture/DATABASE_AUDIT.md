@@ -317,3 +317,17 @@ Each phase leaves the app working. Every step follows the workflow in `CLAUDE.md
 - A typed client (`createClient<Database>`).
 - A local, file-based workflow with a reproducible seed.
 - Every hosted `reports.component_id` matches a real component, so adding the foreign key needs no cleanup.
+
+## Follow-up audit, 2026-10-04
+
+A second audit after the hardening above found no critical issue but several ways around it. Five migrations closed them; each has a pgTAP file of the same theme (`supabase/tests/database/21`–`26`).
+
+| Migration                  | What it closed                                                                                                                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `…_hide_rejected_reports`  | Rejected reports were hidden only by the app's queries. The read policy now hides them from everyone but staff and the reporter. The photo delete policy sees every reference. `nearest_components` caps radius and rows |
+| `…_join_code_only`         | An admin could add any citizen to their agency and read that person's name and email. People now join only with the code. A request counts as a client's when either the database role or the token says so              |
+| `…_private_report_details` | Photo time and distance, and which staff member did maintenance, were readable by anyone. `report_private_details` no longer returns who filed a report                                                                  |
+| `…_photo_storage_rules`    | Buckets could be listed. Uploads are JPEG only under fixed names, with size limits set on the hosted buckets. A report may only point at its reporter's own photo and takes its category and position from its component |
+| `…_staff_limits_and_audit` | Staff actions had no limit and overwrote history. They are rate limited and written to `private.audit_log`, which is append-only. Names, descriptions and notes have length limits                                       |
+
+Still open, and not fixable from this repo: photos uploaded before 2026-09-30 keep their GPS metadata until `scripts/scrub-storage-photos.mjs --hosted --write` is run; hosted Auth settings (email confirmation, CAPTCHA) decide how cheap an account is, and every limit here is per account.

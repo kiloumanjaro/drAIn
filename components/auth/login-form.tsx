@@ -32,33 +32,57 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {error && (
-        <p role="alert" className="text-sm text-red-500">
-          {error}
-        </p>
-      )}
+      {/* Always in the page, so screen readers announce the text when it
+          arrives; an alert added together with its text is often missed. */}
+      <p
+        id="login-error"
+        role="alert"
+        className={error ? 'text-sm text-red-700' : 'sr-only'}
+      >
+        {error}
+      </p>
 
-      <input
-        type="email"
-        placeholder="Email"
-        aria-label="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        aria-invalid={error ? true : undefined}
-        className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-      />
+      <div>
+        <label
+          htmlFor="login-email"
+          className="mb-1 block text-xs font-medium text-gray-700"
+        >
+          Email
+        </label>
+        <input
+          id="login-email"
+          type="email"
+          placeholder="Email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'login-error' : undefined}
+          className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+      </div>
 
-      <input
-        type="password"
-        placeholder="Password"
-        aria-label="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        aria-invalid={error ? true : undefined}
-        className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-      />
+      <div>
+        <label
+          htmlFor="login-password"
+          className="mb-1 block text-xs font-medium text-gray-700"
+        >
+          Password
+        </label>
+        <input
+          id="login-password"
+          type="password"
+          placeholder="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'login-error' : undefined}
+          className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+      </div>
 
       <button
         type="submit"

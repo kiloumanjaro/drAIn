@@ -34,7 +34,7 @@ export const CAMERA_ANIMATION = {
   speed: 0.8, // Slower speed = smoother, more cinematic (was 1.2)
   curve: 1.2, // Gentle arc for natural movement (was 1)
   targetZoom: 18, // Zoom level when selecting a feature
-  essential: true, // Ensures animation is not skipped even if user prefers reduced motion
+  essential: false, // Not forced: for people who ask for reduced motion Mapbox jumps to the target
 
   // Easing function for smooth acceleration/deceleration
   // Mapbox uses easeInOutCubic by default, which is already smooth

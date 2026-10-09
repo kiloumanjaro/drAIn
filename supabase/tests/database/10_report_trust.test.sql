@@ -35,8 +35,10 @@ values ('00000000-0000-4000-e000-000000000002', 'storm_drains', 'ISD-11',
         '00000000-0000-4000-a000-000000000003', 10.40, 123.99, 0);
 
 select results_eq(
-  $$select photo_check::text, photo_distance_m > 100 from public.reports
-    where id = '00000000-0000-4000-e000-000000000002'$$,
+  $$select r.photo_check::text, d.photo_distance_m > 100
+    from public.reports r
+    join public.report_private_details(array[r.id]) d on d.id = r.id
+    where r.id = '00000000-0000-4000-e000-000000000002'$$,
   $$values ('mismatch', true)$$,
   'a photo taken far away is a mismatch, and the distance is measured, not taken from the client'
 );
@@ -102,6 +104,10 @@ select throws_ok(
 );
 
 -- Columns only the server writes: whatever the client sends is replaced.
+-- The photo is one this person uploaded (the Storage API sets owner_id).
+insert into storage.objects (bucket_id, name, owner_id)
+values ('ReportImage', 'public/0b6f3c52-1a1e-4f7e-9d3a-2c5b8e9f0a31.jpg',
+        '00000000-0000-4000-a000-000000000004');
 insert into public.reports (id, category, component_id, user_id, image, created_at,
                             resolved_at, geocoded_status, address)
 values ('00000000-0000-4000-e000-000000000031', 'storm_drains', 'ISD-31',

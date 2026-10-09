@@ -22,17 +22,24 @@ function originOf(value: string | undefined): string | null {
   }
 }
 
-// Every origin the browser talks to, gathered from the code (2026-09-30):
+// Every origin the browser talks to, gathered from the code (2026-10-04):
 // - Supabase (NEXT_PUBLIC_SUPABASE_URL): REST, auth and storage over https,
 //   realtime over wss; report photos and avatars as images.
 // - The simulation server (NEXT_PUBLIC_BACKEND_URL): fetch only.
 // - Mapbox GL: styles, tiles, sprites and glyphs from api.mapbox.com and
 //   *.tiles.mapbox.com, telemetry to events.mapbox.com. It runs its workers
-//   from blob: URLs and draws images from blob:/data:. The standard v3 build
-//   needs no 'unsafe-eval' (Mapbox's "CSP directives" guide).
+//   from blob: URLs and draws images from blob:/data:. The v3 build has no
+//   eval or new Function in it (checked in 3.18.1), so it needs no
+//   'unsafe-eval'; it does compile WebAssembly (the Draco and Meshopt
+//   decoders it downloads from api.mapbox.com for 3D models in a style),
+//   which is what 'wasm-unsafe-eval' allows.
 // - The 3D model viewer: drei's <Environment preset> fetches its HDR from
-//   raw.githack.com. The .glb models are ours and use no Draco, so gstatic's
-//   decoder is never fetched.
+//   raw.githack.com, which answers with a redirect to
+//   raw.githubusercontent.com; a redirect's target has to be allowed too, so
+//   both are listed. The .glb models are ours and use no Draco, so gstatic's
+//   decoder is never fetched. Their textures are packed inside the file, and
+//   three.js reads each one with fetch() on a blob: URL, hence blob: in
+//   connect-src.
 // - The docs page embeds one YouTube video.
 // - Fonts are self-hosted by next/font. Gemini is called from the server only.
 // Vercel's preview toolbar (vercel.live) is allowed on preview builds only.
@@ -51,18 +58,30 @@ const mapbox = [
   'https://events.mapbox.com',
 ];
 
+const CSP_REPORT_PATH = '/api/csp-report';
+const CSP_REPORT_GROUP = 'csp';
+
 const csp: Record<string, string[]> = {
   'default-src': ["'self'"],
   // Next.js streams its page data in inline <script> tags, and next-themes
   // adds one to set the theme before paint. Nonces would allow those without
   // 'unsafe-inline', but a nonce has to be minted per request in proxy.ts,
   // which turns every static page dynamic. With no nonce in use,
-  // 'unsafe-inline' is the price; the other directives still stop loading
-  // script from anywhere else. 'unsafe-eval' is for React's dev tooling and
-  // is never sent in production.
+  // 'unsafe-inline' is the price.
+  //
+  // What that leaves the enforced policy doing: script files load only from
+  // this site, and a page can send data only to the origins in connect-src,
+  // img-src and form-action. What it does not do: stop an injected inline
+  // <script> or event handler from running. Injected script is limited in
+  // where it can send what it reads, not prevented.
+  //
+  // 'wasm-unsafe-eval' lets Mapbox compile its decoders and allows no
+  // JavaScript eval. 'unsafe-eval' is for React's dev tooling and is never
+  // sent in production.
   'script-src': [
     "'self'",
     "'unsafe-inline'",
+    "'wasm-unsafe-eval'",
     ...(isProd ? [] : ["'unsafe-eval'"]),
     ...vercelLive,
   ],
@@ -80,11 +99,13 @@ const csp: Record<string, string[]> = {
   'font-src': ["'self'", 'data:', ...vercelLive, ...vercelToolbarFont],
   'connect-src': [
     "'self'",
+    'blob:',
     supabaseOrigin,
     supabaseRealtime,
     ...(backendOrigin ? [backendOrigin] : []),
     ...mapbox,
     'https://raw.githack.com',
+    'https://raw.githubusercontent.com',
     // Dev server hot reload.
     ...(isProd ? [] : ['ws:']),
     ...vercelLive,
@@ -104,17 +125,22 @@ const csp: Record<string, string[]> = {
   'frame-ancestors': ["'none'"],
   // Not locally: the dev server and the local Supabase stack are plain http.
   ...(isProd && !localSupabase ? { 'upgrade-insecure-requests': [] } : {}),
+  // Browsers post what the policy blocked to app/api/csp-report, which logs
+  // it. report-uri is the older directive and the one Firefox and Safari
+  // still use; report-to names the endpoint in the Reporting-Endpoints header.
+  'report-uri': [CSP_REPORT_PATH],
+  'report-to': [CSP_REPORT_GROUP],
 };
 
 const contentSecurityPolicy = Object.entries(csp)
   .map(([name, values]) => [name, ...values].join(' '))
   .join('; ');
 
-// Report-only until the map pages have been checked against a real Mapbox
-// token (none is available locally). Flip to true once a preview deployment
-// shows no "Content-Security-Policy" violations in the browser console on
-// /map, /simulation, /dashboard and /docs.
-const ENFORCE_CSP = false;
+// Enforced unless CSP_REPORT_ONLY=true. The switch is there so that a policy
+// found to block something real can be turned back to reporting from the
+// hosting dashboard, with a redeploy and no commit: these headers are fixed
+// when the app is built.
+const cspReportOnly = process.env.CSP_REPORT_ONLY === 'true';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -162,10 +188,14 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=(self)',
           },
           {
-            key: ENFORCE_CSP
-              ? 'Content-Security-Policy'
-              : 'Content-Security-Policy-Report-Only',
+            key: cspReportOnly
+              ? 'Content-Security-Policy-Report-Only'
+              : 'Content-Security-Policy',
             value: contentSecurityPolicy,
+          },
+          {
+            key: 'Reporting-Endpoints',
+            value: `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"`,
           },
           ...(isProd
             ? [

@@ -82,8 +82,9 @@ function SortableItem({ item }: SortableItemProps) {
           className="flex-shrink-0 cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
+          aria-label={`Reorder ${config?.label || item.type}`}
         >
-          <GripVertical className="h-4 w-4 text-gray-400" />
+          <GripVertical aria-hidden="true" className="h-4 w-4 text-gray-400" />
         </div>
 
         {/* Middle: Icon and component info */}

@@ -1,6 +1,5 @@
 import { useQueries } from '@tanstack/react-query';
 import {
-  getRepairTrendData,
   getIssuesPerZone,
   getComponentTypeData,
   getRepairTimeByComponent,
@@ -8,7 +7,6 @@ import {
 } from '@/lib/dashboard/queries';
 import { dashboardKeys } from '@/lib/query/keys';
 import type {
-  RepairTrendData,
   ZoneIssueData,
   ComponentTypeData,
   RepairTimeByComponentData,
@@ -19,7 +17,6 @@ const staleTime = 5 * 60 * 1000; // 5 minutes
 const gcTime = 10 * 60 * 1000; // 10 minutes
 
 interface AnalyticsData {
-  trendData: RepairTrendData[];
   zoneData: ZoneIssueData[];
   componentData: ComponentTypeData[];
   repairTimeData: RepairTimeByComponentData[];
@@ -36,12 +33,6 @@ interface AnalyticsData {
 export function useAnalytics(): AnalyticsData {
   const results = useQueries({
     queries: [
-      {
-        queryKey: dashboardKeys.analyticsDetails().repairTrend(),
-        queryFn: getRepairTrendData,
-        staleTime,
-        gcTime,
-      },
       {
         queryKey: dashboardKeys.analyticsDetails().issuesPerZone(),
         queryFn: getIssuesPerZone,
@@ -73,11 +64,10 @@ export function useAnalytics(): AnalyticsData {
   const error = results.find((result) => result.error)?.error || null;
 
   return {
-    trendData: (results[0].data as RepairTrendData[]) || [],
-    zoneData: (results[1].data as ZoneIssueData[]) || [],
-    componentData: (results[2].data as ComponentTypeData[]) || [],
-    repairTimeData: (results[3].data as RepairTimeByComponentData[]) || [],
-    reportLocations: (results[4].data as ReportLocation[]) || [],
+    zoneData: (results[0].data as ZoneIssueData[]) || [],
+    componentData: (results[1].data as ComponentTypeData[]) || [],
+    repairTimeData: (results[2].data as RepairTimeByComponentData[]) || [],
+    reportLocations: (results[3].data as ReportLocation[]) || [],
     isLoading,
     error: error as Error | null,
   };

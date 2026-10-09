@@ -169,29 +169,10 @@ async function enableFlood3D(
 4. Positions layer correctly in rendering stack
 5. Triggers fade-in animation if enabled
 
-### `disableFlood3D()`
+### `disableFlood3D()` and `toggleFlood3D()`
 
-Removes all flood visualization from the map.
-
-```typescript
-function disableFlood3D(map: mapboxgl.Map): void;
-```
-
-Clears:
-
-- `flood-gradient-layer` layer
-- `flood-3d` source
-- Associated legacy layers/sources (backwards compatibility)
-
-### `toggleFlood3D()`
-
-Shows or hides the flood visualization.
-
-```typescript
-function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void;
-```
-
-Changes layer visibility without removing source/features, allowing quick toggling.
+Removed on 2026-10-04: nothing called either. The flood lines stay on the
+map once a run has drawn them.
 
 ## Usage Example
 
@@ -202,16 +183,6 @@ if (floodData && isFlood3DActive) {
     animate: true,
     animationDuration: 3000,
   });
-}
-
-// When user wants to hide/show:
-if (mapRef.current) {
-  toggleFlood3D(mapRef.current, shouldShow);
-}
-
-// On cleanup or switching simulations:
-if (mapRef.current) {
-  disableFlood3D(mapRef.current);
 }
 ```
 

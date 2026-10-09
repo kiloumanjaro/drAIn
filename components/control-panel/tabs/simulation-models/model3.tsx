@@ -315,8 +315,15 @@ export default function Model3({
               <h1 className="font-base text-sm">Component Selection</h1>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                  <TooltipTrigger
+                    type="button"
+                    aria-label="About component selection"
+                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <IconInfoCircleFilled
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                    />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
@@ -353,6 +360,8 @@ export default function Model3({
                 size="icon"
                 onClick={onToggleNodePanel}
                 disabled={selectedComponentIds.length === 0}
+                aria-label="Parameters of the selected components"
+                aria-pressed={showNodePanel}
                 className={showNodePanel ? 'bg-muted' : ''}
               >
                 <Settings className="h-4 w-4" />
@@ -366,8 +375,15 @@ export default function Model3({
               <h1 className="text-sm">Pipe Selection (Optional)</h1>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                  <TooltipTrigger
+                    type="button"
+                    aria-label="About pipe selection"
+                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <IconInfoCircleFilled
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                    />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
@@ -397,6 +413,8 @@ export default function Model3({
                 size="icon"
                 onClick={onToggleLinkPanel}
                 disabled={selectedPipeIds.length === 0}
+                aria-label="Parameters of the selected pipes"
+                aria-pressed={showLinkPanel}
                 className={showLinkPanel ? 'bg-muted' : ''}
               >
                 <Settings className="h-4 w-4" />
@@ -410,8 +428,15 @@ export default function Model3({
               <h1 className="text-sm">Rainfall Parameters</h1>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                  <TooltipTrigger
+                    type="button"
+                    aria-label="About the rainfall parameters"
+                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <IconInfoCircleFilled
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                    />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
@@ -498,8 +523,15 @@ export default function Model3({
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                    <TooltipTrigger
+                      type="button"
+                      aria-label="About the rain effect"
+                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <IconInfoCircleFilled
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs text-xs">
@@ -539,8 +571,15 @@ export default function Model3({
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <IconInfoCircleFilled className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]" />
+                    <TooltipTrigger
+                      type="button"
+                      aria-label="About flood propagation"
+                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      <IconInfoCircleFilled
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 cursor-help text-[#8D8D8D]/50 hover:text-[#8D8D8D]"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs text-xs">

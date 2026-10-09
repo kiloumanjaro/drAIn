@@ -80,8 +80,12 @@ export function ProfileProgress({
       onOpenChange={setIsOpen}
       className="relative flex-1"
     >
-      <CollapsibleTrigger asChild>
-        <div className="cursor-pointer">{progressBar}</div>
+      {/* A real button, so the steps open from the keyboard too. */}
+      <CollapsibleTrigger
+        aria-label={`Profile ${calculatedPercentage}% complete. Show the steps`}
+        className="block w-full cursor-pointer text-left"
+      >
+        {progressBar}
       </CollapsibleTrigger>
       <CollapsibleContent className="absolute top-full right-0 left-0 z-50 mt-2">
         <TooltipProvider>
@@ -108,8 +112,15 @@ export function ProfileProgress({
                   </p>
                   {step.description && (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <IconInfoCircleFilled className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-[#8D8D8D]/50 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[#8D8D8D]" />
+                      <TooltipTrigger
+                        type="button"
+                        aria-label={`About ${step.title}`}
+                        className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      >
+                        <IconInfoCircleFilled
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 flex-shrink-0 cursor-help text-[#8D8D8D]/50 opacity-0 transition-opacity group-hover:opacity-100 hover:text-[#8D8D8D]"
+                        />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs text-xs">{step.description}</p>

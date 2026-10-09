@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/tooltip';
 
 import { type FloodEvent } from '@/components/docs-page/flood-event-cards';
+import { isTextEntryTarget } from '@/lib/dom/is-text-entry-target';
 import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 import { OverviewSection } from './sections/overview';
 import { ArchitectureSection } from './sections/architecture';
@@ -83,10 +84,12 @@ function DocsContent() {
   // Handle / shortcut
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
+      if (e.key !== '/' || e.ctrlKey || e.metaKey) return;
+      // Typing a "/" into a field, the search box included, is not the
+      // shortcut.
+      if (isTextEntryTarget(e.target as HTMLElement | null)) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -102,12 +105,12 @@ function DocsContent() {
   const sectionGroups = SECTION_GROUPS;
 
   return (
-    <div className="min-h-screen bg-[#f1f1f1] px-4">
+    <div className="min-h-screen bg-[#f1f1f1] px-4 max-md:pt-14">
       <div className="mx-auto pb-5">
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row md:gap-4">
           {/* Sidebar Navigation */}
-          <nav className="w-52 flex-shrink-0">
-            <div className="sticky">
+          <nav className="w-full md:w-52 md:flex-shrink-0">
+            <div className="md:sticky md:top-2 md:max-h-[calc(100vh-1rem)] md:overflow-y-auto">
               <div className="mt-2 mb-4 flex items-center gap-2">
                 <div className="flex w-full justify-center rounded-lg border border-[#dfdfdf] bg-white px-5 py-2">
                   <Image
@@ -121,11 +124,16 @@ function DocsContent() {
               </div>
               <div className="mb-3 flex gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <Search
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                  />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search..."
+                    aria-label="Search the documentation sections"
+                    aria-keyshortcuts="/"
                     value={sidebarSearch}
                     onChange={(e) => setSidebarSearch(e.target.value)}
                     className="w-full rounded-md bg-transparent py-1.5 pr-2 pl-7 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none"
@@ -151,7 +159,7 @@ function DocsContent() {
                     if (filtered.length === 0) return null;
                     return (
                       <div key={group.heading}>
-                        <h2 className="mb-2 px-2 text-xs text-gray-400">
+                        <h2 className="mb-2 px-2 text-xs text-gray-600">
                           {group.heading}
                         </h2>
                         <ul className="space-y-0.5">
@@ -201,7 +209,7 @@ function DocsContent() {
 
           {/* Main Content */}
           {/* div, not main: SidebarInset is already the main landmark */}
-          <div className="mt-5 flex min-h-[calc(100vh-60px)] flex-1 flex-col">
+          <div className="mt-5 flex min-h-[calc(100vh-60px)] min-w-0 flex-1 flex-col">
             {/* Header */}
             <div className="rounded-t-xl border border-[#dfdfdf] bg-white px-6 py-2">
               <div className="flex items-center justify-between gap-4">

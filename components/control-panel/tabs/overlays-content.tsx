@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import {
   DndContext,
   closestCenter,
@@ -19,11 +20,35 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { OverlayLegend } from '@/components/map/overlay-legend';
-import { ChartPieDonutText } from '@/components/control-panel/components/chart-pie';
-import { ReportsToggle } from '@/components/map/reports-toggle';
 import { FloodScenarioCard } from '@/components/map/flood-scenario-card';
 import { PopulationToggle } from '@/components/map/population-toggle';
 import { FloodProneToggle } from '@/components/map/flood-prone-toggle';
+
+// The only two cards here that draw with recharts. Loaded after the panel so
+// the layer switches don't wait on the chart library; each placeholder is
+// about the height of the card it stands in for, so the cards below don't
+// jump when it arrives.
+const ChartPieDonutText = dynamic(
+  () =>
+    import('@/components/control-panel/components/chart-pie').then(
+      (m) => m.ChartPieDonutText
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-card h-[318px] animate-pulse rounded-xl border border-[#ced1cd]" />
+    ),
+  }
+);
+const ReportsToggle = dynamic(
+  () => import('@/components/map/reports-toggle').then((m) => m.ReportsToggle),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[280px] animate-pulse rounded-xl border border-[#e2e2e2] bg-[#f7f7f7]" />
+    ),
+  }
+);
 
 interface OverlayContentProps {
   overlays: {
@@ -102,6 +127,7 @@ function SortableItem({ id, children, isDragEnabled }: SortableItemProps) {
             className="absolute inset-0 z-20 flex cursor-grab items-center justify-center active:cursor-grabbing"
             {...attributes}
             {...listeners}
+            aria-label="Reorder this overlay"
           ></div>
 
           {/* Disabled content when unlocked (drag mode) */}
@@ -221,7 +247,8 @@ export default function OverlaysContent({
           'medium',
           'low',
         ],
-        component: (
+        // The simulation page has no stored hazard layer to switch.
+        component: onChangeFloodScenario ? (
           <FloodScenarioCard
             isVisible={
               overlays.find((o) => o.id === 'flood_hazard-layer')?.visible ??
@@ -232,7 +259,7 @@ export default function OverlaysContent({
             onScenarioChange={onChangeFloodScenario}
             isLoading={isFloodScenarioLoading}
           />
-        ),
+        ) : null,
       },
       {
         id: 'population' as ComponentId,
@@ -339,9 +366,9 @@ export default function OverlaysContent({
   // Calculate relevance scores and reorder based on search
   const orderedComponents = useMemo(() => {
     if (!searchTerm.trim()) {
-      return componentOrder.map(
-        (id) => componentsMetadata.find((c) => c.id === id)!
-      );
+      return componentOrder
+        .map((id) => componentsMetadata.find((c) => c.id === id)!)
+        .filter((c) => c.component !== null);
     }
 
     const query = searchTerm.toLowerCase();
@@ -356,7 +383,7 @@ export default function OverlaysContent({
     });
 
     return scoredComponents
-      .filter((comp) => comp.score > 0)
+      .filter((comp) => comp.score > 0 && comp.component !== null)
       .sort((a, b) => b.score - a.score);
   }, [searchTerm, componentOrder, componentsMetadata]);
 

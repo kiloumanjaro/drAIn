@@ -1,5 +1,6 @@
 import mapboxgl from 'mapbox-gl';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
+import { loadPipesGeoJSON } from './pipes-geojson';
 
 interface PipeFeature {
   type: 'Feature';
@@ -148,17 +149,17 @@ function isNoRisk(category: string): boolean {
 function findNearestFloodedNode(
   coord: [number, number],
   floodedNodes: Map<string, NodeDetails>,
-  nodeCoordinates: NodeCoordinates[]
+  coordinatesById: Map<string, [number, number]>
 ): NodeDetails | null {
   let nearestNode: NodeDetails | null = null;
   let minDistance = Infinity;
 
   floodedNodes.forEach((node, nodeId) => {
-    const nodeCoord = nodeCoordinates.find((n) => n.id === nodeId);
+    const nodeCoord = coordinatesById.get(nodeId);
     if (!nodeCoord) return;
 
-    const dx = coord[0] - nodeCoord.coordinates[0];
-    const dy = coord[1] - nodeCoord.coordinates[1];
+    const dx = coord[0] - nodeCoord[0];
+    const dy = coord[1] - nodeCoord[1];
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance < minDistance) {
@@ -178,9 +179,9 @@ function findNearestFloodedNode(
 function findNearestNonGreenNode(
   sourceNodeId: string,
   floodedNodes: Map<string, NodeDetails>,
-  nodeCoordinates: NodeCoordinates[]
+  coordinatesById: Map<string, [number, number]>
 ): { node: NodeDetails; coordinates: [number, number] } | null {
-  const sourceCoord = nodeCoordinates.find((n) => n.id === sourceNodeId);
+  const sourceCoord = coordinatesById.get(sourceNodeId);
   if (!sourceCoord) return null;
 
   let nearestNode: NodeDetails | null = null;
@@ -192,17 +193,17 @@ function findNearestNonGreenNode(
     if (nodeId === sourceNodeId || isNoRisk(node.Vulnerability_Category))
       return;
 
-    const nodeCoord = nodeCoordinates.find((n) => n.id === nodeId);
+    const nodeCoord = coordinatesById.get(nodeId);
     if (!nodeCoord) return;
 
-    const dx = sourceCoord.coordinates[0] - nodeCoord.coordinates[0];
-    const dy = sourceCoord.coordinates[1] - nodeCoord.coordinates[1];
+    const dx = sourceCoord[0] - nodeCoord[0];
+    const dy = sourceCoord[1] - nodeCoord[1];
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance < minDistance) {
       minDistance = distance;
       nearestNode = node;
-      nearestCoord = nodeCoord.coordinates;
+      nearestCoord = nodeCoord;
     }
   });
 
@@ -229,6 +230,15 @@ export function createFloodAlongPipes(
     }
   });
 
+  // Looked up for every flooded node at every pipe end, so index it once.
+  // The first entry for an id wins, as a search from the front would find.
+  const coordinatesById = new Map<string, [number, number]>();
+  nodeCoordinates.forEach((node) => {
+    if (!coordinatesById.has(node.id)) {
+      coordinatesById.set(node.id, node.coordinates);
+    }
+  });
+
   // Track which high risk nodes have been connected
   const connectedHighRiskNodes = new Set<string>();
 
@@ -241,12 +251,12 @@ export function createFloodAlongPipes(
     const startNode = findNearestFloodedNode(
       coords[0],
       floodedNodes,
-      nodeCoordinates
+      coordinatesById
     );
     const endNode = findNearestFloodedNode(
       coords[coords.length - 1],
       floodedNodes,
-      nodeCoordinates
+      coordinatesById
     );
 
     // STRICT MATCHING: Only show flood if BOTH endpoints have flooded nodes
@@ -290,21 +300,18 @@ export function createFloodAlongPipes(
     if (!isHighRisk(node.Vulnerability_Category)) return;
     if (connectedHighRiskNodes.has(nodeId)) return; // Already connected via pipe
 
-    const sourceCoord = nodeCoordinates.find((n) => n.id === nodeId);
+    const sourceCoord = coordinatesById.get(nodeId);
     if (!sourceCoord) return;
 
     const nearest = findNearestNonGreenNode(
       nodeId,
       floodedNodes,
-      nodeCoordinates
+      coordinatesById
     );
     if (!nearest) return;
 
     // Create a direct line between the high risk node and nearest non-green node
-    const coords: [number, number][] = [
-      sourceCoord.coordinates,
-      nearest.coordinates,
-    ];
+    const coords: [number, number][] = [sourceCoord, nearest.coordinates];
 
     const startColor = getFloodColorRGB(node.Vulnerability_Category); // Red
     const endColor = getFloodColorRGB(nearest.node.Vulnerability_Category); // Yellow or Orange
@@ -352,12 +359,10 @@ export async function enableFlood3D(
   // Combine inlet and drain coordinates
   const allCoordinates = [...inlets, ...drains];
 
-  // Load pipes data directly from GeoJSON file
   let pipes: PipeFeature[] = [];
 
   try {
-    const response = await fetch('/drainage/man_pipes.geojson');
-    const pipesData = (await response.json()) as GeoJSON.FeatureCollection;
+    const pipesData = await loadPipesGeoJSON();
     pipes = (pipesData.features || []) as PipeFeature[];
   } catch (_error) {
     return;
@@ -376,6 +381,10 @@ export async function enableFlood3D(
     );
     return;
   }
+
+  // The layer is about to be replaced: a fade still running on the old one
+  // would go on setting the new one's opacity alongside the new fade.
+  cancelFloodAppearing(map);
 
   // Remove existing layers and sources if they exist
   if (map.getLayer('flood-gradient-layer')) {
@@ -491,7 +500,7 @@ export async function enableFlood3D(
 
   // Animate the flood appearing if enabled
   if (animate) {
-    animateFloodAppearing(map, animationDuration);
+    floodAppearing.set(map, animateFloodAppearing(map, animationDuration));
   }
 
   // Store flag
@@ -503,10 +512,18 @@ export async function enableFlood3D(
 /**
  * Animate the flood water appearing (gradient lines fade in)
  */
-function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
+export function animateFloodAppearing(
+  map: mapboxgl.Map,
+  duration: number
+): () => void {
   const startTime = Date.now();
+  let frame: number | null = null;
+  let cancelled = false;
 
   const animate = () => {
+    frame = null;
+    if (cancelled) return;
+
     // Check if layer still exists before trying to animate
     if (!map.getLayer('flood-gradient-layer')) {
       return;
@@ -532,40 +549,30 @@ function animateFloodAppearing(map: mapboxgl.Map, duration: number): void {
     ]);
 
     if (progress < 1) {
-      requestAnimationFrame(animate);
+      frame = requestAnimationFrame(animate);
     }
   };
 
   animate();
+
+  return () => {
+    cancelled = true;
+    if (frame !== null) {
+      cancelAnimationFrame(frame);
+      frame = null;
+    }
+  };
 }
 
-/**
- * Disable flood visualization
- */
-export function disableFlood3D(map: mapboxgl.Map): void {
-  if (!map) return;
-
-  // Hide the gradient layer instead of removing it
-  if (map.getLayer('flood-gradient-layer')) {
-    map.setLayoutProperty('flood-gradient-layer', 'visibility', 'none');
-  }
-
-  // Hide old layers for backwards compatibility
-  if (map.getLayer('flood-outline-layer')) {
-    map.setLayoutProperty('flood-outline-layer', 'visibility', 'none');
-  }
-  if (map.getLayer('flood-3d-layer')) {
-    map.setLayoutProperty('flood-3d-layer', 'visibility', 'none');
-  }
-}
+/** The fade-in running on each map, so it can be stopped from outside. */
+const floodAppearing = new WeakMap<mapboxgl.Map, () => void>();
 
 /**
- * Toggle flood visualization on/off
+ * Stop the fade-in on this map, if one is running. Call before the map is
+ * removed: the fade otherwise keeps asking for frames for up to three
+ * seconds on a map that is gone.
  */
-export function toggleFlood3D(map: mapboxgl.Map, visible: boolean): void {
-  if (!map || !map.getLayer('flood-gradient-layer')) return;
-
-  const visibility = visible ? 'visible' : 'none';
-
-  map.setLayoutProperty('flood-gradient-layer', 'visibility', visibility);
+export function cancelFloodAppearing(map: mapboxgl.Map): void {
+  floodAppearing.get(map)?.();
+  floodAppearing.delete(map);
 }
