@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,6 +17,31 @@ import type {
   Pipe,
   Drain,
 } from '@/components/control-panel/types';
+
+/** A report's photo, or a plain box when it has none or it fails to load. */
+function ReportThumbnail({ src, alt }: { src?: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded bg-gray-100 text-xs text-gray-600">
+        No image
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={80}
+      height={80}
+      className="h-25 w-21 shrink-0 rounded object-cover"
+      unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 interface AllReportsListProps {
   dateFilter?: DateFilterValue;
@@ -115,20 +141,10 @@ export default function AllReportsList({
               >
                 <div className="flex w-full min-w-0 items-start gap-3">
                   {/* Image Thumbnail with Badges */}
-                  {report.image ? (
-                    <Image
-                      src={report.image}
-                      alt={report.category}
-                      width={80}
-                      height={80}
-                      className="h-25 w-21 rounded object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
-                      No image
-                    </div>
-                  )}
+                  <ReportThumbnail
+                    src={report.image}
+                    alt={componentTypeLabel(report.category)}
+                  />
 
                   {/* Report Details */}
                   <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -140,12 +156,15 @@ export default function AllReportsList({
 
                       {/* Metadata */}
                       <div className="text-muted-foreground flex flex-col gap-1 text-xs">
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">
+                        <div className="flex min-w-0 items-center gap-1">
+                          <span
+                            className="min-w-0 truncate font-medium"
+                            title={report.reporterName || undefined}
+                          >
                             {report.reporterName || 'Anonymous'}
                           </span>
-                          <span>on</span>
-                          <span>{report.componentId}</span>
+                          <span className="shrink-0">on</span>
+                          <span className="shrink-0">{report.componentId}</span>
                         </div>
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="shrink-0">

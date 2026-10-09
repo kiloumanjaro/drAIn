@@ -59,7 +59,7 @@ export const LAYER_COLORS = {
     selectedRadius: 10, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
     selectedStrokeWidth: 1, // Selected border width
-    hitAreaRadius: 50, // Invisible hit area radius for easier clicking (2x from 25px)
+    hitAreaRadius: 20, // Invisible hit area radius for easier clicking (was 50px, which took clicks meant for pipes)
   },
   inlets: {
     color: '#00ca67', // Green for inlets
@@ -70,7 +70,7 @@ export const LAYER_COLORS = {
     selectedRadius: 12, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
     selectedStrokeWidth: 1.2, // Selected border width
-    hitAreaRadius: 50, // Invisible hit area radius for easier clicking (2x from 25px)
+    hitAreaRadius: 20, // Invisible hit area radius for easier clicking (was 50px, which took clicks meant for pipes)
   },
   outlets: {
     color: '#dd4337', // Red for outlets
@@ -81,7 +81,7 @@ export const LAYER_COLORS = {
     selectedRadius: 12, // Selected circle radius
     strokeWidth: 0.5, // Normal border width
     selectedStrokeWidth: 1.2, // Selected border width
-    hitAreaRadius: 50, // Invisible hit area radius for easier clicking (2x from 25px)
+    hitAreaRadius: 20, // Invisible hit area radius for easier clicking (was 50px, which took clicks meant for pipes)
   },
   flood_hazard: {
     icon: '#8d8a89ff',

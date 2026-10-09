@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   ChevronLeft,
@@ -39,6 +39,13 @@ import { LinkBar } from '@/components/control-panel/components/link-bar';
 import { ReportsTabControl } from '@/components/reports/reports-tab-control';
 import { DateSort, type DateFilterValue } from '@/components/common/date-sort';
 import { AdminTabControl } from '@/components/profile/admin-tab-control';
+import { viewLink, withoutScheme } from './top-bar.helpers';
+
+// The origin never changes while the page is open, so there is nothing to
+// subscribe to. It is empty on the server and during hydration.
+const subscribeToNothing = () => () => {};
+const readOrigin = () => window.location.origin;
+const readNoOrigin = () => '';
 
 interface TopBarProps {
   activeTab: string;
@@ -85,16 +92,8 @@ export function TopBar({
 }: TopBarProps) {
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
-  // map simModel query param to specific links
   const searchParams = useSearchParams();
   const simModel = searchParams?.get('simModel') || null;
-  const modelLinkMap: Record<string, string> = {
-    model2: 'project-drain.vercel.app/simulation/model2',
-    model3: 'project-drain.vercel.app/simulation/model3',
-  };
-  const simulationLink = simModel
-    ? (modelLinkMap[simModel] ?? 'project-drain.vercel.app/simulation')
-    : 'project-drain.vercel.app/simulation';
 
   // Profile setup, from the signed-in account. It used to be hard-coded, so
   // everyone saw the same "2 of 4" whatever they had done.
@@ -130,7 +129,7 @@ export function TopBar({
   const showToggle = activeTab === 'overlays';
   const showCombobox = activeTab === 'stats' && !hasSelectedItem;
   const showBackButton = hasSelectedItem && activeTab === 'stats';
-  const showSignOut = activeTab === 'profile';
+  const showSignOut = activeTab === 'profile' && !!user;
   const showProfileProgress = activeTab === 'profile' && !!user;
   const showLinkBar = activeTab === 'simulations' || activeTab === 'chatbot';
   const showReportTabs = activeTab === 'report';
@@ -139,6 +138,15 @@ export function TopBar({
 
   const router = useRouter();
   const pathname = usePathname();
+
+  // The address of this page as it is open now. It used to be a fixed
+  // production address, with model pages that do not exist.
+  const origin = useSyncExternalStore(
+    subscribeToNothing,
+    readOrigin,
+    readNoOrigin
+  );
+  const currentLink = viewLink(origin, pathname, searchParams?.toString());
 
   // new: remove simModel param handler used by the topbar button
   const clearSimModelParam = () => {
@@ -311,8 +319,15 @@ export function TopBar({
 
       {/* Link Bar */}
       {showLinkBar && (
-        <div className="h-8.5 flex-1">
-          <LinkBar link={simulationLink} />
+        <div className="h-8.5 min-w-0 flex-1" title={currentLink || undefined}>
+          {currentLink && (
+            <LinkBar
+              link={withoutScheme(currentLink)}
+              scheme={
+                currentLink.startsWith('http://') ? 'http://' : 'https://'
+              }
+            />
+          )}
         </div>
       )}
 

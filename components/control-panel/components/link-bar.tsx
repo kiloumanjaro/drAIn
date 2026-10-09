@@ -16,9 +16,11 @@ import {
 
 interface LinkBarProps {
   link?: string;
+  /** Printed before the link; the page's own when it is not https. */
+  scheme?: string;
 }
 
-export function LinkBar({ link = '' }: LinkBarProps) {
+export function LinkBar({ link = '', scheme = 'https://' }: LinkBarProps) {
   return (
     <div className="grid w-full max-w-sm gap-6">
       <InputGroup className="min-w-0 bg-white px-1 [--radius:9999px]">
@@ -47,7 +49,7 @@ export function LinkBar({ link = '' }: LinkBarProps) {
           </PopoverContent>
         </Popover>
         <InputGroupAddon className="pl-1.5 font-normal text-[#666666]">
-          https://
+          {scheme}
         </InputGroupAddon>
         <span className="min-w-0 flex-1 truncate py-2 text-sm text-[#666666]">
           {link || 'your-link-here.com'}

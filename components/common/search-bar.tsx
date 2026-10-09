@@ -25,7 +25,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
         aria-label="Search"
         value={searchTerm}
         onChange={handleSearchTermChange}
-        className="h-8.5 flex-1 rounded-full border border-[#DCDCDC] bg-[#EBEBEB] pl-10 shadow-none focus-visible:border-[#DCDCDC] focus-visible:ring-0"
+        className="h-8.5 flex-1 rounded-full border border-[#DCDCDC] bg-[#EBEBEB] pl-10 shadow-none focus-visible:border-[#8D8D8D] focus-visible:ring-2 focus-visible:ring-[#8D8D8D]/40"
       />
     </div>
   );

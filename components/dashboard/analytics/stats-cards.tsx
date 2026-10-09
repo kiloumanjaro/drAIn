@@ -76,6 +76,16 @@ interface StatCard {
   note?: string;
 }
 
+// Shared by the loaded cards and their loading placeholders, so the page
+// does not jump when the figures arrive.
+const GRID_CLASS = 'mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4';
+const CARD_CLASS =
+  'flex flex-col rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]';
+const HEADER_CLASS =
+  'flex flex-row items-center justify-between rounded-t-xl px-4 py-2';
+const BODY_CLASS =
+  'flex-1 gap-3 space-y-3 border-x-0 border-b-0 border-[#dfdfdf]';
+
 /** e.g. "3 checked · 2 jobs awaiting a check". */
 function verificationNote(
   verified: number | undefined,
@@ -109,23 +119,18 @@ export default function StatsCards({
 
   if (loading) {
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className={GRID_CLASS}>
         {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
-          >
-            <div className="rounded-t-xl border-b border-[#dfdfdf] px-4 py-2">
-              <Skeleton className="h-3 w-24" />
+          <div key={i} className={CARD_CLASS}>
+            {/* h-4 and h-8 are the line heights of the label and the value. */}
+            <div className={HEADER_CLASS}>
+              <Skeleton className="h-4 w-24" />
             </div>
-            <div className="flex items-start justify-between px-8 py-6">
-              <div className="flex-1">
+            <Card className={BODY_CLASS}>
+              <div className="flex items-start justify-between px-8">
                 <Skeleton className="h-8 w-16" />
               </div>
-              <div className="ml-4">
-                <Skeleton className="h-7 w-14" />
-              </div>
-            </div>
+            </Card>
           </div>
         ))}
       </div>
@@ -167,7 +172,7 @@ export default function StatsCards({
 
   return (
     <TooltipProvider>
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className={GRID_CLASS}>
         {stats.map((stat) => {
           const isAdminCard = stat.id === 'admins';
           const hasTrend = !!stat.trendData && stat.trendData.length >= 2;
@@ -189,11 +194,8 @@ export default function StatsCards({
           );
 
           return (
-            <div
-              key={stat.id}
-              className="rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
-            >
-              <div className="flex cursor-pointer flex-row items-center justify-between rounded-t-xl px-4 py-2 transition-colors">
+            <div key={stat.id} className={CARD_CLASS}>
+              <div className={HEADER_CLASS}>
                 <span className="text-xs">{stat.label}</span>
                 <Tooltip>
                   <TooltipTrigger
@@ -212,13 +214,11 @@ export default function StatsCards({
                 </Tooltip>
               </div>
 
-              <Card
-                className={`gap-3 space-y-3 border-x-0 border-b-0 border-[#dfdfdf] ${isAdminCard ? 'py-3' : ''}`}
-              >
+              <Card className={`${BODY_CLASS} ${isAdminCard ? 'py-3' : ''}`}>
                 {isAdminCard ? (
                   <div className="flex items-start justify-between px-8 py-2">
                     <div className="flex flex-1 items-center gap-3">
-                      <p className="text-2xl font-semibold text-gray-900">
+                      <p className="text-2xl font-semibold whitespace-nowrap text-gray-900">
                         {stat.value}
                       </p>
                       {change}
@@ -235,7 +235,7 @@ export default function StatsCards({
                   <div className="flex items-start justify-between px-8">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <p className="text-2xl font-semibold text-gray-900">
+                        <p className="text-2xl font-semibold whitespace-nowrap text-gray-900">
                           {stat.value}
                         </p>
                         {change}

@@ -441,6 +441,28 @@ describe('animateFloodAppearing', () => {
     expect(() => cancel()).not.toThrow();
   });
 
+  it('is fully there at once when given no time to fade over', () => {
+    // 0 / 0 used to give the layer a NaN opacity.
+    for (const duration of [0, -500]) {
+      const { map, setPaintProperty } = makeMap();
+      animateFloodAppearing(map, duration);
+
+      expect(setPaintProperty).toHaveBeenCalledTimes(1);
+      expect(setPaintProperty.mock.calls[0][2]).toEqual([
+        'interpolate',
+        ['linear'],
+        ['get', 'floodVolume'],
+        0,
+        0.4,
+        5,
+        0.6,
+        15,
+        0.8,
+      ]);
+      expect(pending.size).toBe(0);
+    }
+  });
+
   it('stops by itself once the layer is gone', () => {
     const { map, setPaintProperty, removeLayer } = makeMap();
     animateFloodAppearing(map, 3000);

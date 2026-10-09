@@ -39,19 +39,20 @@ export const CameraControls: FC<CameraControlsProps> = ({
           </button>
         )}
 
-        {/* Zoom In / Zoom Out */}
+        {/* Zoom In / Zoom Out. The pair is clipped to its rounded corners, so
+            the focus ring is drawn inside each button. */}
         <div className="flex flex-col overflow-hidden rounded-sm bg-white shadow-md">
           <button
             onClick={onZoomIn}
             aria-label="Zoom in"
-            className="rounded-t-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
+            className="rounded-t-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 focus-visible:-outline-offset-2 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
           >
             <Plus className="h-4 w-4 cursor-pointer" />
           </button>
           <button
             onClick={onZoomOut}
             aria-label="Zoom out"
-            className="rounded-b-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
+            className="rounded-b-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 focus-visible:-outline-offset-2 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
           >
             <Minus className="h-4 w-4 cursor-pointer" />
           </button>

@@ -599,9 +599,11 @@ export default function ZoneMap({
             <div className="flex items-start justify-between gap-3">
               {/* City Info */}
               <div className="min-w-0 flex-1">
-                <div className="flex flex-row justify-between">
-                  <h3 className="truncate text-sm text-gray-900">{cityName}</h3>
-                  <p className="text-muted-foreground text-sm">{totalIssues}</p>
+                <div className="flex flex-row justify-between gap-3">
+                  <h3 className="min-w-0 text-sm text-gray-900">{cityName}</h3>
+                  <p className="text-muted-foreground shrink-0 text-sm">
+                    {totalIssues}
+                  </p>
                 </div>
               </div>
             </div>

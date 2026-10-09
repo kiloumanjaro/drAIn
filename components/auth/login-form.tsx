@@ -3,6 +3,11 @@
 import { useState } from 'react';
 import client from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import {
+  AUTH_INPUT_CLASS,
+  AUTH_LABEL_CLASS,
+  AUTH_SUBMIT_CLASS,
+} from './form-classes';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -43,10 +48,7 @@ export default function LoginForm() {
       </p>
 
       <div>
-        <label
-          htmlFor="login-email"
-          className="mb-1 block text-xs font-medium text-gray-700"
-        >
+        <label htmlFor="login-email" className={AUTH_LABEL_CLASS}>
           Email
         </label>
         <input
@@ -59,15 +61,12 @@ export default function LoginForm() {
           required
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? 'login-error' : undefined}
-          className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className={AUTH_INPUT_CLASS}
         />
       </div>
 
       <div>
-        <label
-          htmlFor="login-password"
-          className="mb-1 block text-xs font-medium text-gray-700"
-        >
+        <label htmlFor="login-password" className={AUTH_LABEL_CLASS}>
           Password
         </label>
         <input
@@ -80,15 +79,11 @@ export default function LoginForm() {
           required
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? 'login-error' : undefined}
-          className="w-full rounded-lg border px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className={AUTH_INPUT_CLASS}
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full cursor-pointer rounded-lg bg-blue-600 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-      >
+      <button type="submit" disabled={loading} className={AUTH_SUBMIT_CLASS}>
         {loading ? 'Logging in...' : 'Log In'}
       </button>
     </form>

@@ -594,7 +594,8 @@ export function animateFloodAppearing(
     }
 
     const elapsed = Date.now() - startTime;
-    const progress = Math.min(elapsed / duration, 1);
+    // No time to fade over: the flood is simply there. (0 / 0 is NaN.)
+    const progress = duration > 0 ? Math.min(elapsed / duration, 1) : 1;
 
     // Easing function (ease-out cubic)
     const eased = 1 - Math.pow(1 - progress, 3);

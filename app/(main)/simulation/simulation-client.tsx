@@ -502,7 +502,7 @@ export default function SimulationPage() {
       `}</style>
       {/* div, not main: SidebarInset is already the main landmark */}
       <div
-        className="relative flex min-h-screen flex-col overflow-hidden"
+        className="relative flex min-h-screen flex-col overflow-clip"
         style={{ backgroundColor: '#1e1e1e' }}
       >
         {/* z-0 keeps the covers below inside the map: without it the dark

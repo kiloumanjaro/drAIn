@@ -18,6 +18,10 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import { OverlayLegend } from '@/components/map/overlay-legend';
 import { FloodScenarioCard } from '@/components/map/flood-scenario-card';
@@ -406,6 +410,9 @@ export default function OverlaysContent({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        // A card only moves up and down, and stays inside the list: dragged
+        // sideways or past either end it used to slide out and be clipped.
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
         onDragEnd={handleDragEnd}
       >
         <SortableContext

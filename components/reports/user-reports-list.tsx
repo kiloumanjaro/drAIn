@@ -144,7 +144,9 @@ export default function UserReportsList({
         ) : (
           <div className="space-y-3">
             {reports.map((item) => {
-              const review = reviewLabel(item.reviewStatus, item.reviewNote);
+              const review = reviewLabel(item.reviewStatus, item.reviewNote, {
+                reasonOnly: true,
+              });
               const rejected = item.reviewStatus === 'rejected';
               const verdict = verdicts.get(item.id);
               return (
@@ -182,7 +184,7 @@ export default function UserReportsList({
                       {rejected ? 'Rejected' : statusLabel(item.status)}
                     </div>
                     <div
-                      className={`flex h-auto min-w-0 items-center rounded-md border px-2 py-0.5 text-[10px] break-words whitespace-normal ${TONE_CLASSES[review.tone]}`}
+                      className={`h-auto min-w-0 rounded-md border px-2 py-0.5 text-[10px] [overflow-wrap:anywhere] whitespace-normal ${TONE_CLASSES[review.tone]}`}
                     >
                       {review.text}
                     </div>

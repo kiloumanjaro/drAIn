@@ -7,6 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import {
+  clampDragPosition,
+  measureDragBounds,
+} from '@/lib/simulation/drag-bounds';
 import type { Inlet, Drain } from '@/components/control-panel/types';
 
 interface NodeParams {
@@ -92,10 +96,16 @@ export function NodeParametersPanel({
       const deltaX = e.clientX - dragRef.current.startX;
       const deltaY = e.clientY - dragRef.current.startY;
 
-      onPositionChange({
-        x: dragRef.current.startPosX + deltaX,
-        y: dragRef.current.startPosY + deltaY,
-      });
+      // The same limit as the results table: the header stays in reach.
+      onPositionChange(
+        clampDragPosition(
+          {
+            x: dragRef.current.startPosX + deltaX,
+            y: dragRef.current.startPosY + deltaY,
+          },
+          measureDragBounds(containerRef.current)
+        )
+      );
     },
     [isDragging, onPositionChange]
   );
@@ -136,10 +146,16 @@ export function NodeParametersPanel({
       const deltaX = touch.clientX - dragRef.current.startX;
       const deltaY = touch.clientY - dragRef.current.startY;
 
-      onPositionChange({
-        x: dragRef.current.startPosX + deltaX,
-        y: dragRef.current.startPosY + deltaY,
-      });
+      // The same limit as the results table: the header stays in reach.
+      onPositionChange(
+        clampDragPosition(
+          {
+            x: dragRef.current.startPosX + deltaX,
+            y: dragRef.current.startPosY + deltaY,
+          },
+          measureDragBounds(containerRef.current)
+        )
+      );
     },
     [isDragging, onPositionChange]
   );

@@ -40,8 +40,13 @@ import {
   componentAtHitLayer,
   findComponent,
 } from '@/lib/map/component-selection';
+import { componentLinkTab, readComponentLink } from '@/lib/map/component-link';
+import { drainageHitLayers, nearestFeature } from '@/lib/map/hit-test';
+import { keepMapSized } from '@/lib/map/resize';
+import { isAgencyStaff } from '@/lib/supabase/profile';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/components/context/auth-provider';
 import { useReports } from '@/components/context/report-provider';
 import { toast } from 'sonner';
 import { useComponentSelection } from './use-component-selection';
@@ -54,6 +59,7 @@ const NO_ITEMS: never[] = [];
 
 function MapPageContent() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
+  const { profile, loading: authLoading } = useAuth();
   const {
     latestReports: reports, // Use latestReports from context for map bubbles
     isRefreshingReports,
@@ -160,42 +166,47 @@ function MapPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The link last reported as leading nowhere, so it is reported once: the
-  // effect below runs again on every change of tab.
-  const missingComponentRef = useRef<string | null>(null);
+  // The link last acted on, found or not, so each is acted on once: the
+  // effect below runs again on every change of tab, and used to select the
+  // component and force its tab again each time.
+  const handledLinkRef = useRef<string | null>(null);
 
   // Handle URL parameters for component selection
   useEffect(() => {
-    const componentId = searchParams.get('component');
-    const componentType = searchParams.get('type');
+    const link = readComponentLink(searchParams);
 
-    if (!componentId || !componentType) return;
-    if (!mapRef.current) return;
+    if (!link || handledLinkRef.current === link.key) return;
+    // The map's sources must exist to highlight the component, and who is
+    // signed in must be known to choose the tab. Both are dependencies, so
+    // this runs again as they and the data arrive, in whatever order.
+    if (!mapReady || authLoading) return;
 
-    // Wait a bit for data to load
-    const timer = setTimeout(() => {
-      const component = findComponent(
-        { inlets, outlets, storm_drains: drains, man_pipes: pipes },
-        componentType,
-        componentId
-      );
-      if (component) {
-        selectComponent(component);
-        handleTabChange('admin');
-      } else if (drainageDataLoaded) {
-        // Only once everything has loaded: before that, not found may just
-        // mean not loaded yet. A failed load has its own message.
-        const link = `${componentType}:${componentId}`;
-        if (missingComponentRef.current !== link) {
-          missingComponentRef.current = link;
-          toast.error('Component not found');
-        }
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
+    const component = findComponent(
+      { inlets, outlets, storm_drains: drains, man_pipes: pipes },
+      link.type,
+      link.id
+    );
+    if (component) {
+      handledLinkRef.current = link.key;
+      selectComponent(component);
+      handleTabChange(componentLinkTab(isAgencyStaff(profile)));
+    } else if (drainageDataLoaded) {
+      // Only once everything has loaded: before that, not found may just
+      // mean not loaded yet. A failed load has its own message.
+      handledLinkRef.current = link.key;
+      toast.error('Component not found');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, inlets, outlets, pipes, drains, drainageDataLoaded]);
+  }, [
+    searchParams,
+    inlets,
+    outlets,
+    pipes,
+    drains,
+    drainageDataLoaded,
+    mapReady,
+    authLoading,
+  ]);
 
   const handleFloodScenarioChange = (scenarioId: string) => {
     if (!mapRef.current) {
@@ -291,12 +302,7 @@ function MapPageContent() {
         // Move click handler inside here where map is defined
         map.on('click', (e) => {
           // Query hit area layers for better click detection
-          const validHitLayers = [
-            'inlets-hit-layer',
-            'outlets-hit-layer',
-            'storm_drains-hit-layer',
-            'man_pipes-hit-layer',
-          ].filter((id) => map.getLayer(id));
+          const validHitLayers = drainageHitLayers(map);
 
           if (!validHitLayers.length) {
             return;
@@ -311,9 +317,13 @@ function MapPageContent() {
             return;
           }
 
-          const feature = features[0];
+          // The hit areas are wide and overlap, so several components can be
+          // under one click; the nearest is the one meant.
+          const feature = nearestFeature(features, e.point, (lngLat) =>
+            map.project(lngLat)
+          );
+          if (!feature?.layer) return;
           const props = feature.properties || {};
-          if (!feature.layer) return;
 
           // Use currentTabRef instead of controlPanelTab
           const shouldKeepTab = dataConsumerTabs.includes(
@@ -452,6 +462,14 @@ function MapPageContent() {
     setControlPanelTab(tab);
   }, [searchParams]);
 
+  // Mapbox follows the window's size, not its container's: when the sidebar
+  // opened beside the map, the canvas kept its old size. The container is
+  // watched from the start, before the map exists.
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    return keepMapSized(mapContainerRef.current, () => mapRef.current);
+  }, []);
+
   // Declared last, so on unmount it runs after the effects above have taken
   // their popups and layers off the map. Without it every visit to the map
   // left a WebGL context and its listeners behind.
@@ -466,6 +484,48 @@ function MapPageContent() {
     <>
       {/* div, not main: SidebarInset is already the main landmark */}
       <div className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
+        {/* The panel and the map's buttons come before the map in the
+            document, so the keyboard reaches them first: every report pin is
+            a button inside the map. From tablet width up the panel has no
+            z-index of its own and stayed over the map (z-0) only by coming
+            after it, so this wrapper gives it one: above the map's buttons
+            (z-30), because the panel's own fixed messages are now layered
+            with it and showed over them before. On phones the panel is a
+            fixed sheet with its own z-index, and the wrapper does nothing. */}
+        <div className="md:absolute md:top-0 md:left-0 md:z-[31]">
+          <ControlPanel
+            activeTab={controlPanelTab}
+            dataset={controlPanelDataset}
+            selectedInlet={selected.inlets}
+            selectedOutlet={selected.outlets}
+            selectedPipe={selected.man_pipes}
+            selectedDrain={selected.storm_drains}
+            onTabChange={handleTabChange}
+            onDatasetChange={setControlPanelDataset}
+            onSelectInlet={handleSelectInlet}
+            onSelectOutlet={handleSelectOutlet}
+            onSelectDrain={handleSelectDrain}
+            onSelectPipe={handleSelectPipe}
+            onBack={handleControlPanelBack}
+            overlaysVisible={someVisible}
+            onToggle={handleToggleAllOverlays}
+            overlays={overlayData}
+            onToggleOverlay={handleOverlayToggle}
+            floodProneAreas={floodProneAreasData}
+            onToggleFloodProneArea={handleToggleFloodProneArea}
+            selectedFloodScenario={selectedFloodScenario}
+            onChangeFloodScenario={handleFloodScenarioChange}
+            onRefreshReports={onRefreshReports}
+            isRefreshingReports={isRefreshingReports}
+            isFloodScenarioLoading={isFloodScenarioLoading}
+          />
+        </div>
+        <CameraControls
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetPosition={handleResetPosition}
+          onChangeStyle={handleChangeStyle}
+        />
         {/* A map cannot be read out; the label says where the same
             information is in a form that can. */}
         {/* z-0 keeps what the map draws over itself (its popups, and the
@@ -494,38 +554,6 @@ function MapPageContent() {
             </div>
           )}
         </div>
-        <ControlPanel
-          activeTab={controlPanelTab}
-          dataset={controlPanelDataset}
-          selectedInlet={selected.inlets}
-          selectedOutlet={selected.outlets}
-          selectedPipe={selected.man_pipes}
-          selectedDrain={selected.storm_drains}
-          onTabChange={handleTabChange}
-          onDatasetChange={setControlPanelDataset}
-          onSelectInlet={handleSelectInlet}
-          onSelectOutlet={handleSelectOutlet}
-          onSelectDrain={handleSelectDrain}
-          onSelectPipe={handleSelectPipe}
-          onBack={handleControlPanelBack}
-          overlaysVisible={someVisible}
-          onToggle={handleToggleAllOverlays}
-          overlays={overlayData}
-          onToggleOverlay={handleOverlayToggle}
-          floodProneAreas={floodProneAreasData}
-          onToggleFloodProneArea={handleToggleFloodProneArea}
-          selectedFloodScenario={selectedFloodScenario}
-          onChangeFloodScenario={handleFloodScenarioChange}
-          onRefreshReports={onRefreshReports}
-          isRefreshingReports={isRefreshingReports}
-          isFloodScenarioLoading={isFloodScenarioLoading}
-        />
-        <CameraControls
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onResetPosition={handleResetPosition}
-          onChangeStyle={handleChangeStyle}
-        />
       </div>
     </>
   );

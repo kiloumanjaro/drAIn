@@ -52,6 +52,30 @@ describe('reviewLabel', () => {
     });
   });
 
+  it('says who rejected it when no reason was given', () => {
+    expect(reviewLabel('rejected', null).text).toBe('Rejected by staff');
+  });
+
+  it('gives just the reason beside a "Rejected" badge', () => {
+    expect(
+      reviewLabel('rejected', 'Duplicate of an open report', {
+        reasonOnly: true,
+      })
+    ).toEqual({ text: 'Duplicate of an open report', tone: 'bad' });
+    expect(reviewLabel('rejected', null, { reasonOnly: true }).text).toBe(
+      'No reason given'
+    );
+  });
+
+  it('leaves the other verdicts alone when only the reason is asked for', () => {
+    expect(reviewLabel('confirmed', null, { reasonOnly: true }).text).toBe(
+      'Confirmed by staff'
+    );
+    expect(reviewLabel('unreviewed', null, { reasonOnly: true }).text).toBe(
+      'Not reviewed yet'
+    );
+  });
+
   it('marks unreviewed reports neutrally', () => {
     expect(reviewLabel('unreviewed', null).text).toBe('Not reviewed yet');
   });

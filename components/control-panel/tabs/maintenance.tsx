@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   DEBUG_MODE,
+  MAINTENANCE_PHOTO_MAX_AGE_HOURS,
   checkMaintenancePhoto,
   unverifiedNote,
   getStatusStyles,
@@ -613,7 +614,7 @@ ${note}`
 
       {/* Sticky bottom section - updated positioning */}
       {selectedAsset && (
-        <div className="px-3 pt-0 pb-5">
+        <div className="px-3 pt-0 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
           <Field className="mb-4">
             <FieldContent>
               <Textarea
@@ -621,9 +622,10 @@ ${note}`
                 onChange={(e) => setAgencyComments(e.target.value)}
                 placeholder="Agency Comments Here"
                 aria-label="Agency comments"
-                rows={1}
-                style={{ height: '56px', minHeight: '56px', maxHeight: '56px' }}
-                className="!h-14 resize-none bg-transparent"
+                rows={2}
+                // Two lines to start; grows with the text where the browser
+                // can size a field to its content, and scrolls past max-h.
+                className="field-sizing-content max-h-32 min-h-14 resize-none bg-transparent"
               />
             </FieldContent>
           </Field>
@@ -730,14 +732,15 @@ ${note}`
               emptyDescription="Checking location and time..."
             />
           ) : (
-            <div className="flex h-full flex-col overflow-y-auto p-4">
+            <div className="flex h-full flex-col overflow-y-auto p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">
                     Add Maintenance Photo
                   </h2>
                   <p className="text-muted-foreground text-sm">
-                    Verifying location and time (12h window)
+                    Use a photo taken on site within the last{' '}
+                    {MAINTENANCE_PHOTO_MAX_AGE_HOURS} hours
                   </p>
                 </div>
                 <Button
