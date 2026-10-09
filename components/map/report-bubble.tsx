@@ -212,7 +212,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
               and off a neighbouring pin, whatever their colours. */}
           <span
             aria-hidden="true"
-            className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gray-900 text-[10px] leading-none font-bold text-white ring-1 ring-white"
+            className="absolute -right-1 -bottom-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-900 text-[9px] leading-none font-bold text-white ring-1 ring-white"
           >
             {componentLabel.charAt(0)}
           </span>
@@ -221,7 +221,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
         {/* Popup */}
         {isOpen && (
           <div
-            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg max-md:top-9 max-md:left-1/2 max-md:w-[min(18rem,calc(100vw-7.5rem))] max-md:-translate-x-1/2 ${
+            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg max-md:top-9 max-md:left-[calc(50%-2rem)] max-md:w-[min(18rem,calc(100vw-7.5rem))] max-md:-translate-x-1/2 ${
               isClosing
                 ? 'animate-out fade-out duration-300'
                 : 'animate-in fade-in slide-in-from-left-2'

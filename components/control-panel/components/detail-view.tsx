@@ -10,7 +10,7 @@ const ModelViewer = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="text-muted-foreground flex h-[250px] items-center justify-center text-xs">
+      <div className="text-muted-foreground flex h-[250px] w-full items-center justify-center text-xs">
         Loading viewer…
       </div>
     ),

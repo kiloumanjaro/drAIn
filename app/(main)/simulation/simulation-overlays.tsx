@@ -44,7 +44,9 @@ const PHONE_PIN = 'max-md:fixed! max-md:inset-x-2! max-md:top-16!';
 // wrapper, so the wrapper lets clicks through to the map and the table
 // itself takes them. The wrapper also ends at the right edge of the map,
 // which is what the table measures its width against: it narrows to the
-// room it has rather than running off screen, and scrolls inside.
+// room it has rather than running off screen, and scrolls inside. Dragged
+// far enough right there is no such room, and it keeps its 500px and runs
+// past the edge instead of squeezing its header.
 
 // The parameter panels are fixed to the screen, so their z-index competes
 // with everything on the page. 45 puts them over the map, its buttons (30)
@@ -70,7 +72,7 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
       {tableData && !tables.isTableMinimized && (
         <div
-          className={`pointer-events-none absolute z-20 max-md:z-[35] md:right-0 md:pr-[70px] ${PHONE_PIN}`}
+          className={`pointer-events-none absolute z-20 max-md:z-[35] md:right-0 md:min-w-[570px] md:pr-[70px] ${PHONE_PIN}`}
           style={
             {
               left: `${tablePosition.x}px`,
@@ -99,7 +101,7 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
       {tableData3 && !tables.isTable3Minimized && (
         <div
-          className={`pointer-events-none absolute z-20 max-md:z-[35] md:right-0 md:pr-[70px] ${PHONE_PIN}`}
+          className={`pointer-events-none absolute z-20 max-md:z-[35] md:right-0 md:min-w-[570px] md:pr-[70px] ${PHONE_PIN}`}
           style={
             {
               left: `${table3Position.x}px`,
