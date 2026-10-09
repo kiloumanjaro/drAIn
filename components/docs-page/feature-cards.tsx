@@ -41,7 +41,7 @@ export default function FeatureCards({
           return (
             <div
               key={feature.title}
-              className="min-w-0 rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
+              className="flex min-w-0 flex-col rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
             >
               <div className="flex cursor-pointer flex-row items-center justify-between rounded-t-xl px-4 py-2 transition-colors">
                 <span className="text-xs">{feature.title}</span>
@@ -64,7 +64,7 @@ export default function FeatureCards({
                 )}
               </div>
 
-              <Card className="gap-3 border-x-0 border-b-0 border-[#dfdfdf] px-6 py-6">
+              <Card className="flex-1 gap-3 border-x-0 border-b-0 border-[#dfdfdf] px-6 py-6">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-[#dfdfdf] bg-slate-100">
                     <Icon
