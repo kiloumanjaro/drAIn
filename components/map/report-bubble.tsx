@@ -39,6 +39,16 @@ export interface ReportBubbleRef {
   close: () => void;
 }
 
+/**
+ * On phones, how far below the top of the map an opened pin comes to rest.
+ * The control panel is a sheet over the bottom of the screen there (55dvh
+ * at its usual height; SHEET_HEIGHT in components/control-panel), and the
+ * popup opens below the pin, so the middle of the map puts both behind it.
+ * This is just under the navigation button, which leaves the popup the rest
+ * of the map above the sheet.
+ */
+const PHONE_PIN_TOP_PX = 88;
+
 export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
   function ReportBubble(
     { reportSize, report, map, coordinates, onOpen, onHistoryClick },
@@ -67,11 +77,20 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
 
       if (map) {
         isAnimatingRef.current = true;
+        // An offset, not padding: padding stays on the map afterwards and
+        // would shift every later move, whatever the sheet does next.
+        const onPhone = window.matchMedia('(max-width: 767px)').matches;
         map.flyTo({
           center: coordinates,
           zoom: 18,
           duration: 1500,
           easing: (t) => t * (2 - t),
+          ...(onPhone && {
+            offset: [
+              0,
+              PHONE_PIN_TOP_PX - map.getContainer().clientHeight / 2,
+            ] as [number, number],
+          }),
         });
 
         map.once('moveend', () => {
@@ -232,7 +251,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                   {report.reporterName}
                 </h3>
                 <div className="flex flex-row items-end gap-2">
-                  <p className="text-2xs pb-1 text-gray-500">
+                  <p className="pb-1 text-xs text-gray-500">
                     {formatDistanceToNow(new Date(report.date), {
                       addSuffix: true,
                     })}

@@ -1,7 +1,18 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import AgencyLink from '@/components/profile/agency-link';
 import AgencyAdmin from '@/components/profile/agency-admin';
 import { toast } from 'sonner';
@@ -60,13 +71,36 @@ export default function UserLinks({
             )}
             {/* Admins can't leave on their own; another admin demotes them. */}
             {profile.role !== 'admin' && (
-              <Button
-                className="self-center"
-                onClick={handleLeave}
-                disabled={isGuest}
-              >
-                Leave Agency
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="self-center"
+                    disabled={isGuest}
+                  >
+                    Leave Agency
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Leave Agency</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to leave{' '}
+                      {(profile.agency_name as string) || 'this agency'}?
+                      You&apos;ll need a join code to link your account again.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className={buttonVariants({ variant: 'destructive' })}
+                      onClick={handleLeave}
+                    >
+                      Leave Agency
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         ) : (

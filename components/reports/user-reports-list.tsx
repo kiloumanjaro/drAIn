@@ -22,6 +22,7 @@ import {
 } from '@/lib/supabase/report';
 import type { ReviewVerdict } from '@/lib/supabase/enums';
 import { TONE_CLASSES, reviewLabel } from '@/lib/reports/trust-labels';
+import { componentTypeLabel, statusLabel } from '@/lib/reports/display-labels';
 import { format } from 'date-fns';
 
 interface UserReportsListProps {
@@ -144,6 +145,7 @@ export default function UserReportsList({
           <div className="space-y-3">
             {reports.map((item) => {
               const review = reviewLabel(item.reviewStatus, item.reviewNote);
+              const rejected = item.reviewStatus === 'rejected';
               const verdict = verdicts.get(item.id);
               return (
                 <div
@@ -165,17 +167,22 @@ export default function UserReportsList({
                       variant="outline"
                       className="h-5 justify-center px-3 py-0 text-[10px] font-normal"
                     >
-                      {item.category}
+                      {componentTypeLabel(item.category)}
                     </Badge>
+                    {/* A rejected report is going nowhere: saying "Pending"
+                        beside the reason would promise otherwise. */}
                     <div
                       className={`flex h-5 items-center justify-center rounded-md border px-3 py-0.5 text-[10px] ${
-                        STATUS_STYLES[item.status] ?? STATUS_STYLES.pending
+                        rejected
+                          ? TONE_CLASSES.bad
+                          : (STATUS_STYLES[item.status] ??
+                            STATUS_STYLES.pending)
                       }`}
                     >
-                      {item.status}
+                      {rejected ? 'Rejected' : statusLabel(item.status)}
                     </div>
                     <div
-                      className={`flex h-5 items-center rounded-md border px-2 text-[10px] ${TONE_CLASSES[review.tone]}`}
+                      className={`flex h-auto min-w-0 items-center rounded-md border px-2 py-0.5 text-[10px] break-words whitespace-normal ${TONE_CLASSES[review.tone]}`}
                     >
                       {review.text}
                     </div>

@@ -16,9 +16,9 @@ export function ExploreMapButton() {
   return (
     <Button
       size="lg"
-      className={`text-md pointer-events-auto opacity-100! transition-colors ${
-        isClicked ? 'bg-[#2563EB]' : 'bg-[#3B82F6] hover:bg-[#2563EB]'
-      } focus:bg-[#2563EB] active:bg-[#2563EB]`}
+      className={`pointer-events-auto text-base opacity-100! transition-colors ${
+        isClicked ? 'bg-[#1D4ED8]' : 'bg-[#2563EB] hover:bg-[#1D4ED8]'
+      } focus:bg-[#1D4ED8] active:bg-[#1D4ED8]`}
       onClick={handleClick}
       disabled={isNavigating}
     >

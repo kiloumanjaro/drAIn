@@ -243,6 +243,25 @@ function abortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException('Aborted', 'AbortError');
 }
 
+export const UNREACHABLE_MESSAGE =
+  'Could not reach the simulation server. Check your connection and try again.';
+
+/**
+ * fetch, with a failure to connect put in words. The browser's own
+ * ("Failed to fetch") went to the user as it was. An abort is passed on
+ * untouched, and so is any HTTP status: the response is the caller's to read.
+ */
+async function reach(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (error instanceof TypeError && !init.signal?.aborted) {
+      throw new Error(UNREACHABLE_MESSAGE, { cause: error });
+    }
+    throw error;
+  }
+}
+
 /** The server's own explanation of a refusal, if it sent one. */
 async function refusalDetail(response: Response): Promise<string | null> {
   try {
@@ -279,7 +298,7 @@ export async function runSimulation(
   { accessToken, onStatus, signal }: RunOptions
 ): Promise<SimulationResponse> {
   const authorization = { Authorization: `Bearer ${accessToken}` };
-  const created = await fetch(`${apiBaseUrl()}/simulations`, {
+  const created = await reach(`${apiBaseUrl()}/simulations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authorization },
     body: JSON.stringify(buildSimulationRequest(nodes, links, rainfall)),
@@ -329,7 +348,7 @@ export async function runSimulation(
   while (Date.now() < deadline) {
     await delay(interval, signal);
 
-    const polled = await fetch(`${apiBaseUrl()}${job.poll_url}`, {
+    const polled = await reach(`${apiBaseUrl()}${job.poll_url}`, {
       headers: authorization,
       signal,
     });

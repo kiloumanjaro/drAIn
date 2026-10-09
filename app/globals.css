@@ -157,6 +157,25 @@
   display: none !important;
 }
 
+/* Mapbox attribution ("© Mapbox © OpenStreetMap") on /map and /simulation,
+   kept clear of the app's own buttons over the map.
+   Phones: top left, moved right of the navigation button and level with it.
+   /map from tablet width up: bottom right, moved left of the map-style
+   button. */
+@media (max-width: 767px) {
+  .map-attribution .mapboxgl-ctrl-top-left .mapboxgl-ctrl-attrib {
+    margin: 20px 0 0 60px;
+  }
+}
+
+@media (min-width: 768px) {
+  .map-attribution-beside-style
+    .mapboxgl-ctrl-bottom-right
+    .mapboxgl-ctrl-attrib {
+    margin: 0 64px 20px 0;
+  }
+}
+
 /* Control Panel Scrollbar Styling */
 .control-panel-scroll {
   scrollbar-gutter: stable;

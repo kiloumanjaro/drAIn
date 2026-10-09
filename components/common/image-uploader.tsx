@@ -162,7 +162,7 @@ export default function ImageUploader({
               />
             )}
             <div className="absolute inset-0 flex items-end justify-between p-2">
-              <span className="bg-opacity-70 text-muted-foreground max-w-[80%] truncate rounded-md bg-white px-3 py-1.5 text-[11px]">
+              <span className="text-muted-foreground max-w-[80%] truncate rounded-md bg-white/70 px-3 py-1.5 text-[11px]">
                 {fileName}
               </span>
               <button

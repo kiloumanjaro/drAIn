@@ -32,8 +32,16 @@ export const MAP_LAYER_OVERLAYS_HIDDEN = {
   'mandaue_population-layer': false,
 };
 
-/** Every overlay switch, reports included, set the same way. */
-export function allOverlays(visible: boolean): OverlayVisibility {
+/**
+ * Every overlay switch, reports included, set the same way, except that
+ * switching them all on leaves the population overlay as it was
+ * (`populationWas`). It starts off and covers the whole city, so "all off,
+ * all on" used to end with it switched on.
+ */
+export function allOverlays(
+  visible: boolean,
+  populationWas = false
+): OverlayVisibility {
   return {
     'man_pipes-layer': visible,
     'storm_drains-layer': visible,
@@ -41,7 +49,7 @@ export function allOverlays(visible: boolean): OverlayVisibility {
     'outlets-layer': visible,
     'reports-layer': visible,
     'flood_hazard-layer': visible,
-    'mandaue_population-layer': visible,
+    'mandaue_population-layer': visible && populationWas,
   };
 }
 

@@ -131,7 +131,10 @@ export default function ProfileContent({
 
                   {/* Profile Info */}
                   <div className="min-w-0 flex-1 flex-col self-center">
-                    <h1 className="truncate text-base font-semibold text-black">
+                    <h1
+                      className="truncate text-base font-semibold text-black"
+                      title={profile?.full_name || undefined}
+                    >
                       {profile?.full_name || 'No name set'}
                     </h1>
 

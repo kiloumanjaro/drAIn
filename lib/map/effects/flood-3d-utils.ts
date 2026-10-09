@@ -1,6 +1,7 @@
 import mapboxgl from 'mapbox-gl';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
 import { loadPipesGeoJSON } from './pipes-geojson';
+import { prefersReducedMotion } from './rain-utils';
 
 interface PipeFeature {
   type: 'Feature';
@@ -338,6 +339,64 @@ export function createFloodAlongPipes(
   };
 }
 
+/** The last flood lines worked out, and what they were worked out from. */
+let lastFloodLines: {
+  floodData: NodeDetails[];
+  nodeCoordinates: NodeCoordinates[];
+  pipes: PipeFeature[];
+  lines: GeoJSON.FeatureCollection;
+} | null = null;
+
+/**
+ * createFloodAlongPipes, keeping its last answer.
+ *
+ * A simulation result asks for its flood lines twice, once for the lines
+ * drawn on the map and once for the heatmap sampled from them, and working
+ * them out visits every pipe. The second caller gets the first one's answer
+ * when the results and the pipes are the same arrays; each caller builds its
+ * own list of node positions, so that one is compared item by item.
+ *
+ * Callers get the same object, so they must not change it.
+ */
+export function floodLinesAlongPipes(
+  floodData: NodeDetails[],
+  nodeCoordinates: NodeCoordinates[],
+  pipes: PipeFeature[]
+): GeoJSON.FeatureCollection {
+  const last = lastFloodLines;
+  if (
+    last &&
+    last.floodData === floodData &&
+    last.pipes === pipes &&
+    last.nodeCoordinates.length === nodeCoordinates.length &&
+    last.nodeCoordinates.every((node, index) => node === nodeCoordinates[index])
+  ) {
+    return last.lines;
+  }
+
+  const lines = createFloodAlongPipes(floodData, nodeCoordinates, pipes);
+  lastFloodLines = { floodData, nodeCoordinates, pipes, lines };
+  return lines;
+}
+
+/**
+ * Line opacity by flood volume once the flood has appeared; `shown` runs
+ * from 0 (invisible) to 1 (fully there) while it fades in.
+ */
+function floodLineOpacity(shown: number) {
+  return [
+    'interpolate',
+    ['linear'],
+    ['get', 'floodVolume'],
+    0,
+    0.4 * shown, // Low volume fades to 0.4
+    5,
+    0.6 * shown, // Medium volume fades to 0.6
+    15,
+    0.8 * shown, // High volume fades to 0.8
+  ] as mapboxgl.ExpressionSpecification;
+}
+
 /**
  * Enable 2D flood visualization - water tiles that stick to terrain surface
  */
@@ -355,6 +414,9 @@ export async function enableFlood3D(
   if (!map) return;
 
   const { animate = true, animationDuration = 3000 } = options;
+  // For a visitor who asked for less motion the flood is simply there, as
+  // the fade would have left it.
+  const fadeIn = animate && !prefersReducedMotion();
 
   // Combine inlet and drain coordinates
   const allCoordinates = [...inlets, ...drains];
@@ -373,7 +435,7 @@ export async function enableFlood3D(
   }
 
   // Create flood visualization along pipes
-  const floodGeoJSON = createFloodAlongPipes(floodData, allCoordinates, pipes);
+  const floodGeoJSON = floodLinesAlongPipes(floodData, allCoordinates, pipes);
 
   if (floodGeoJSON.features.length === 0) {
     console.warn(
@@ -433,19 +495,21 @@ export async function enableFlood3D(
         20, // 50+ cubic meters = 20px
       ],
       // Opacity based on average flood volume
-      'line-opacity': animate
+      'line-opacity': fadeIn
         ? 0
-        : [
-            'interpolate',
-            ['linear'],
-            ['get', 'floodVolume'],
-            0,
-            0.2, // Low volume = semi-transparent
-            5,
-            0.6, // Medium volume
-            15,
-            0.8, // High volume = more opaque
-          ],
+        : animate
+          ? floodLineOpacity(1)
+          : [
+              'interpolate',
+              ['linear'],
+              ['get', 'floodVolume'],
+              0,
+              0.2, // Low volume = semi-transparent
+              5,
+              0.6, // Medium volume
+              15,
+              0.8, // High volume = more opaque
+            ],
       // Blur to soften edges and make sharp turns appear smoother
       // 'line-blur': [
       //   'interpolate',
@@ -499,7 +563,7 @@ export async function enableFlood3D(
   }
 
   // Animate the flood appearing if enabled
-  if (animate) {
+  if (fadeIn) {
     floodAppearing.set(map, animateFloodAppearing(map, animationDuration));
   }
 
@@ -536,17 +600,11 @@ export function animateFloodAppearing(
     const eased = 1 - Math.pow(1 - progress, 3);
 
     // Fade in the gradient lines with data-driven opacity
-    map.setPaintProperty('flood-gradient-layer', 'line-opacity', [
-      'interpolate',
-      ['linear'],
-      ['get', 'floodVolume'],
-      0,
-      0.4 * eased, // Low volume fades to 0.4
-      5,
-      0.6 * eased, // Medium volume fades to 0.6
-      15,
-      0.8 * eased, // High volume fades to 0.8
-    ]);
+    map.setPaintProperty(
+      'flood-gradient-layer',
+      'line-opacity',
+      floodLineOpacity(eased)
+    );
 
     if (progress < 1) {
       frame = requestAnimationFrame(animate);

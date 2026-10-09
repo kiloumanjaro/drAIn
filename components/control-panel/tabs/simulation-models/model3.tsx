@@ -312,7 +312,7 @@ export default function Model3({
           {/* Component Multi-Select with Gear Button */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-base text-sm">Component Selection</h1>
+              <h1 className="text-sm font-normal">Component Selection</h1>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger
@@ -450,7 +450,10 @@ export default function Model3({
             {/* Total Precipitation */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-normal">
+                <Label
+                  id="model3-total-precip-label"
+                  className="text-sm font-normal"
+                >
                   Total Precipitation
                 </Label>
                 <span className="text-muted-foreground text-xs">
@@ -458,6 +461,7 @@ export default function Model3({
                 </span>
               </div>
               <Slider
+                aria-labelledby="model3-total-precip-label"
                 value={[rainfallParams.total_precip]}
                 onValueChange={(value) =>
                   onRainfallParamsChange({
@@ -479,12 +483,18 @@ export default function Model3({
             {/* Duration */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-normal">Duration</Label>
+                <Label
+                  id="model3-duration-label"
+                  className="text-sm font-normal"
+                >
+                  Duration
+                </Label>
                 <span className="text-muted-foreground text-xs">
                   {rainfallParams.duration_hr.toFixed(1)} hr
                 </span>
               </div>
               <Slider
+                aria-labelledby="model3-duration-label"
                 value={[rainfallParams.duration_hr]}
                 onValueChange={(value) =>
                   onRainfallParamsChange({
@@ -593,7 +603,7 @@ export default function Model3({
               </div>
               <Switch
                 id="heatmap-toggle-model3"
-                checked={isFloodPropagationActive}
+                checked={hasTable && isFloodPropagationActive}
                 onCheckedChange={onToggleFloodPropagation}
                 disabled={!hasTable}
               />

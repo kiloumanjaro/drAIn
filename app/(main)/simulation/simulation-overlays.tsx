@@ -39,7 +39,9 @@ const PHONE_PIN = 'max-md:fixed! max-md:inset-x-2! max-md:top-16!';
 // A table stretches to the right edge of the map when its content is wide
 // enough. From tablet width up the map buttons live in the last 70px, so the
 // tables stop short of them; on phones the table sits above the buttons.
-// (Both are in the tables' class names below.)
+// (Both are in the tables' class names below.) That gap is part of the
+// wrapper, so the wrapper lets clicks through to the map and the table
+// itself takes them.
 
 /** Everything that floats over the simulation map. */
 export function SimulationOverlays({
@@ -59,7 +61,7 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
       {tableData && !tables.isTableMinimized && (
         <div
-          className={`pointer-events-auto absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
+          className={`pointer-events-none absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
           style={{
             left: `${tablePosition.x}px`,
             top: `${tablePosition.y}px`,
@@ -85,7 +87,7 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
       {tableData3 && !tables.isTable3Minimized && (
         <div
-          className={`pointer-events-auto absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
+          className={`pointer-events-none absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
           style={{
             left: `${table3Position.x}px`,
             top: `${table3Position.y}px`,

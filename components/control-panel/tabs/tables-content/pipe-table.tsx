@@ -64,8 +64,8 @@ export function PipeTable({
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+          ? aValue.localeCompare(bValue, undefined, { numeric: true })
+          : bValue.localeCompare(aValue, undefined, { numeric: true });
       }
 
       if (typeof aValue === 'number' && typeof bValue === 'number') {
@@ -151,7 +151,10 @@ export function PipeTable({
                       {pipe.id}
                     </TableCell>
                     <TableCell className="text-center">
-                      {pipe.Pipe_Lngth}
+                      {/* GeoJSON attributes: typed as numbers, not checked. */}
+                      {typeof pipe.Pipe_Lngth === 'number'
+                        ? pipe.Pipe_Lngth.toFixed(2)
+                        : pipe.Pipe_Lngth}
                     </TableCell>
                   </TableRow>
                 ))

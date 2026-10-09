@@ -90,13 +90,32 @@ function MapPageContent() {
   // Load data from hooks with TanStack Query. The fallback is one shared
   // empty array: a fresh `[]` each render made every callback built on
   // these change on every render.
-  const { data: inlets = NO_ITEMS, error: inletsError } = useInlets();
+  const {
+    data: inlets = NO_ITEMS,
+    error: inletsError,
+    isSuccess: inletsLoaded,
+  } = useInlets();
 
-  const { data: outlets = NO_ITEMS, error: outletsError } = useOutlets();
+  const {
+    data: outlets = NO_ITEMS,
+    error: outletsError,
+    isSuccess: outletsLoaded,
+  } = useOutlets();
 
-  const { data: pipes = NO_ITEMS, error: pipesError } = usePipes();
+  const {
+    data: pipes = NO_ITEMS,
+    error: pipesError,
+    isSuccess: pipesLoaded,
+  } = usePipes();
 
-  const { data: drains = NO_ITEMS, error: drainsError } = useDrains();
+  const {
+    data: drains = NO_ITEMS,
+    error: drainsError,
+    isSuccess: drainsLoaded,
+  } = useDrains();
+
+  const drainageDataLoaded =
+    inletsLoaded && outletsLoaded && pipesLoaded && drainsLoaded;
 
   const drainageDataError =
     inletsError || outletsError || pipesError || drainsError;
@@ -141,6 +160,10 @@ function MapPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The link last reported as leading nowhere, so it is reported once: the
+  // effect below runs again on every change of tab.
+  const missingComponentRef = useRef<string | null>(null);
+
   // Handle URL parameters for component selection
   useEffect(() => {
     const componentId = searchParams.get('component');
@@ -159,12 +182,20 @@ function MapPageContent() {
       if (component) {
         selectComponent(component);
         handleTabChange('admin');
+      } else if (drainageDataLoaded) {
+        // Only once everything has loaded: before that, not found may just
+        // mean not loaded yet. A failed load has its own message.
+        const link = `${componentType}:${componentId}`;
+        if (missingComponentRef.current !== link) {
+          missingComponentRef.current = link;
+          toast.error('Component not found');
+        }
       }
     }, 500);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, inlets, outlets, pipes, drains]);
+  }, [searchParams, inlets, outlets, pipes, drains, drainageDataLoaded]);
 
   const handleFloodScenarioChange = (scenarioId: string) => {
     if (!mapRef.current) {
@@ -226,6 +257,18 @@ function MapPageContent() {
         });
 
         mapRef.current = map;
+
+        // "© Mapbox © OpenStreetMap" must be on show. Where it goes is
+        // chosen once, for the layout the page opened in: on phones the sheet
+        // covers the bottom of the map, so it sits at the top beside the
+        // navigation button; otherwise bottom right, clear of the panel on
+        // the left. (app/globals.css nudges it off the buttons there.)
+        map.addControl(
+          new mapboxgl.AttributionControl({ compact: true }),
+          window.matchMedia('(max-width: 767px)').matches
+            ? 'top-left'
+            : 'bottom-right'
+        );
 
         // Read through refs: after a style switch this runs long after the
         // first render, and used to rebuild the layers with its 5YR scenario.
@@ -429,7 +472,7 @@ function MapPageContent() {
             message shown when it cannot start) inside the map, so the control
             panel and its lists stay usable either way. */}
         <div
-          className="relative z-0 h-screen w-full"
+          className="map-attribution map-attribution-beside-style relative z-0 h-screen w-full"
           ref={mapContainerRef}
           role="region"
           aria-label="Map of the drainage network and flood reports. The same components and reports are listed in the control panel tables."

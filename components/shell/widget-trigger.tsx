@@ -45,8 +45,8 @@ export default function WidgetTrigger() {
       }}
     >
       <span className="flex w-9 shrink-0 items-center justify-center overflow-hidden">
-        {/* The source files are several megabytes; a fixed 36px box lets the
-            image optimiser serve a thumbnail instead. */}
+        {/* A fixed 36px box lets the image optimiser serve a thumbnail of the
+            256px source. */}
         <Image
           src={expanded ? '/images/hovered.png' : '/images/unhovered.png'}
           alt=""

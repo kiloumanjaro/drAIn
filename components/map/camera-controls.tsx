@@ -8,7 +8,8 @@ type CameraControlsProps = {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetPosition: () => void;
-  onChangeStyle: () => void;
+  /** Left out where the style is fixed (simulation); the button then goes. */
+  onChangeStyle?: () => void;
   isSimulationActive?: boolean;
   onExitSimulation?: () => void;
 };
@@ -43,14 +44,14 @@ export const CameraControls: FC<CameraControlsProps> = ({
           <button
             onClick={onZoomIn}
             aria-label="Zoom in"
-            className="rounded-x-md rounded-t-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
+            className="rounded-t-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
           >
             <Plus className="h-4 w-4 cursor-pointer" />
           </button>
           <button
             onClick={onZoomOut}
             aria-label="Zoom out"
-            className="rounded-x-md rounded-t-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
+            className="rounded-b-sm border border-transparent border-b-gray-200 p-2 hover:bg-gray-100 active:border active:border-gray-300 active:bg-gray-300 active:text-black"
           >
             <Minus className="h-4 w-4 cursor-pointer" />
           </button>
@@ -69,15 +70,17 @@ export const CameraControls: FC<CameraControlsProps> = ({
         <WidgetTrigger />
       </div>
 
-      <button
-        onClick={() => {
-          onChangeStyle();
-        }}
-        aria-label="Change map style"
-        className="pointer-events-auto rounded-sm border border-transparent bg-white p-2 shadow-md hover:bg-gray-100 active:border active:border-gray-400 active:bg-gray-300 active:text-black"
-      >
-        <MapIcon className="h-4 w-4 cursor-pointer" />
-      </button>
+      {onChangeStyle && (
+        <button
+          onClick={() => {
+            onChangeStyle();
+          }}
+          aria-label="Change map style"
+          className="pointer-events-auto rounded-sm border border-transparent bg-white p-2 shadow-md hover:bg-gray-100 active:border active:border-gray-400 active:bg-gray-300 active:text-black"
+        >
+          <MapIcon className="h-4 w-4 cursor-pointer" />
+        </button>
+      )}
     </div>
   );
 };

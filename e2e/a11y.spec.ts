@@ -22,6 +22,7 @@ async function settle(page: Page) {
 }
 
 const ROUTES: { path: string; excludeMap?: boolean }[] = [
+  { path: '/' },
   { path: '/login' },
   { path: '/signup' },
   { path: '/docs' },

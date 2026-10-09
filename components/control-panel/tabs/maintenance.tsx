@@ -59,6 +59,7 @@ const measureDistanceM = (
 import client from '@/lib/supabase/client';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { componentTypeLabel, statusLabel } from '@/lib/reports/display-labels';
 
 export type MaintenanceProps = {
   selectedInlet?: Inlet | null;
@@ -340,7 +341,7 @@ ${note}`
                   ? `Displaying ${selectedAsset.id.slice(
                       0,
                       8
-                    )} from ${selectedAsset.type.replace(/_/g, ' ')}`
+                    )} from ${componentTypeLabel(selectedAsset.type)}`
                   : 'Select an asset to view details'}
               </CardDescription>
             </div>
@@ -505,7 +506,7 @@ ${note}`
                                     record.status
                                   )}`}
                                 >
-                                  {record.status}
+                                  {statusLabel(record.status)}
                                 </div>
                               )}
                             </div>
@@ -570,7 +571,7 @@ ${note}`
                                   record.status
                                 )}`}
                               >
-                                {record.status}
+                                {statusLabel(record.status)}
                               </div>
                             )}
                           </div>

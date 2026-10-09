@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { Clock, Search } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,6 +15,11 @@ import {
 
 import { type FloodEvent } from '@/components/docs-page/flood-event-cards';
 import { isTextEntryTarget } from '@/lib/dom/is-text-entry-target';
+import {
+  isFloodEvent,
+  parseCompareEventParam,
+  parseSectionParam,
+} from '@/lib/docs/docs-params';
 import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 import { OverviewSection } from './sections/overview';
 import { ArchitectureSection } from './sections/architecture';
@@ -31,41 +36,51 @@ interface ExpandedSections {
   [key: string]: boolean;
 }
 
-function DocsContent() {
-  const searchParams = useSearchParams();
-  const initialSection =
-    (searchParams.get('section') as SectionID) || 'overview';
-  const [activeSection, setActiveSection] = useState<SectionID>(initialSection);
+const SECTION_IDS: SectionID[] = SECTION_GROUPS.flatMap((group) =>
+  group.items.map((item) => item.id)
+);
 
-  // Follow ?section= when it changes (a link to another section), while
-  // still letting clicks in the page pick a section. Adjusted during render,
-  // as React recommends, rather than in an effect.
-  const sectionParam = searchParams.get('section') as SectionID | null;
-  const [seenSectionParam, setSeenSectionParam] = useState(sectionParam);
-  if (sectionParam !== seenSectionParam) {
-    setSeenSectionParam(sectionParam);
-    if (sectionParam) setActiveSection(sectionParam);
-  }
+function DocsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // The URL is the one record of which section is open, so Back, reload and
+  // a shared link all land on it. An unknown ?section= shows the overview.
+  const activeSection = parseSectionParam(
+    searchParams.get('section'),
+    SECTION_IDS,
+    'overview'
+  );
+
+  // A new history entry per section, so Back returns to the one before.
+  // scroll: false keeps the reader where they are instead of jumping to top.
+  const selectSection = (id: SectionID) => {
+    if (id === activeSection) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('section', id);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const [reportEvents, setReportEvents] = useState<FloodEvent[]>([]);
 
   useEffect(() => {
     fetch('/api/reports')
       .then((r) => r.json())
-      .then((data) => setReportEvents(data.events ?? []));
+      .then((data) =>
+        setReportEvents(
+          Array.isArray(data?.events) ? data.events.filter(isFloodEvent) : []
+        )
+      )
+      .catch((e) => console.error('Failed to load flood reports:', e));
   }, []);
 
   // The event to compare against, passed in the URL by the map.
   const compareParam = searchParams.get('compareEvent');
-  const comparisonEvent = useMemo<FloodEvent | null>(() => {
-    if (!compareParam) return null;
-    try {
-      return JSON.parse(decodeURIComponent(compareParam));
-    } catch (e) {
-      console.error('Failed to parse comparison event:', e);
-      return null;
-    }
-  }, [compareParam]);
+  const comparisonEvent = useMemo<FloodEvent | null>(
+    () => parseCompareEventParam(compareParam),
+    [compareParam]
+  );
 
   const [expandedSections, setExpandedSections] = useState<ExpandedSections>(
     {}
@@ -103,6 +118,11 @@ function DocsContent() {
   };
 
   const sectionGroups = SECTION_GROUPS;
+  const searchMatchesNothing = !sectionGroups.some((group) =>
+    group.items.some((item) =>
+      item.label.toLowerCase().includes(sidebarSearch.toLowerCase())
+    )
+  );
 
   return (
     <div className="min-h-screen bg-[#f1f1f1] px-4 max-md:pt-14">
@@ -175,9 +195,7 @@ function DocsContent() {
                               return (
                                 <li key={id}>
                                   <button
-                                    onClick={() =>
-                                      setActiveSection(id as SectionID)
-                                    }
+                                    onClick={() => selectSection(id)}
                                     className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#535353] transition-colors ${
                                       activeSection === id
                                         ? 'bg-[#e7e7e7]'
@@ -203,6 +221,11 @@ function DocsContent() {
                       )}
                     </React.Fragment>
                   ))}
+                {searchMatchesNothing && (
+                  <p className="px-2 text-xs text-gray-600">
+                    No sections match &ldquo;{sidebarSearch}&rdquo;.
+                  </p>
+                )}
               </div>
             </div>
           </nav>

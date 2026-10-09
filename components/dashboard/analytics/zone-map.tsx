@@ -83,6 +83,13 @@ export default function ZoneMap({
         ],
       });
 
+      // "© Mapbox © OpenStreetMap" must be on show; nothing covers this
+      // map's corners, so it takes the usual one.
+      map.current.addControl(
+        new mapboxgl.AttributionControl({ compact: true }),
+        'bottom-right'
+      );
+
       map.current.on('load', () => {
         setMapReady(true);
         if (map.current) {
