@@ -374,9 +374,17 @@ CREATE INDEX "idx_maintenance_reviews_report_id" ON "public"."maintenance_review
 ALTER TABLE "public"."maintenance_reviews" ENABLE ROW LEVEL SECURITY;
 
 
--- Staff see every review; a citizen sees their own. Written only through
--- the two functions below.
-CREATE POLICY "Staff and the reviewer can read reviews" ON "public"."maintenance_reviews" FOR SELECT TO "authenticated" USING (((( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL) OR ("reviewer_id" = ( SELECT "auth"."uid"() AS "uid"))));
+-- Everyone reads their own reviews; staff also read the checks staff made.
+-- Staff do not read a reporter's answer here: the row holds the reporter's
+-- account id (reviewer_id) beside report_id, which would say which account
+-- filed which report (reports.user_id is private for the same reason). What
+-- staff need from those answers reaches them without the id: the record's
+-- verification_status, and the reason for the latest dispute through
+-- maintenance_history (schema_dashboard.sql). The rule is on rows rather
+-- than a column grant because the app finds a person's own answers by
+-- reviewer_id (fetchMyResolutionVerdicts), which a revoked column would
+-- refuse. Written only through the two functions below.
+CREATE POLICY "Reviewers read their own reviews and staff read staff checks" ON "public"."maintenance_reviews" FOR SELECT TO "authenticated" USING ((("reviewer_id" = ( SELECT "auth"."uid"() AS "uid")) OR (("reviewer_kind" = 'staff'::"text") AND (( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL))));
 
 
 GRANT SELECT ON TABLE "public"."maintenance_reviews" TO "authenticated";
