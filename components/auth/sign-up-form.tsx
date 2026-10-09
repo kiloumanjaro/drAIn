@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import client from '@/lib/supabase/client';
 import { updateUserProfile } from '@/lib/supabase/profile';
 import { CharCount } from '@/components/common/char-count';
+import {
+  AUTH_INPUT_CLASS,
+  AUTH_LABEL_CLASS,
+  AUTH_SUBMIT_CLASS,
+} from './form-classes';
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -64,6 +69,22 @@ export default function SignUpForm() {
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
+      {/* Both stay in the page so their text is announced when it arrives.
+          Above the fields, where the log-in form has its error. */}
+      <p
+        id="signup-error"
+        role="alert"
+        className={error ? 'text-sm text-red-700' : 'sr-only'}
+      >
+        {error}
+      </p>
+      <p
+        role="status"
+        className={notice ? 'text-sm text-green-700' : 'sr-only'}
+      >
+        {notice}
+      </p>
+
       <div>
         <div className="mb-1 flex items-baseline justify-between gap-2">
           <label
@@ -81,16 +102,13 @@ export default function SignUpForm() {
           onChange={(e) => setFullName(e.target.value)}
           placeholder="Full Name"
           autoComplete="name"
-          className="w-full rounded border p-2"
+          className={AUTH_INPUT_CLASS}
           maxLength={100}
           required
         />
       </div>
       <div>
-        <label
-          htmlFor="signup-email"
-          className="mb-1 block text-xs font-medium text-gray-700"
-        >
+        <label htmlFor="signup-email" className={AUTH_LABEL_CLASS}>
           Email
         </label>
         <input
@@ -102,15 +120,12 @@ export default function SignUpForm() {
           autoComplete="email"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? 'signup-error' : undefined}
-          className="w-full rounded border p-2"
+          className={AUTH_INPUT_CLASS}
           required
         />
       </div>
       <div>
-        <label
-          htmlFor="signup-password"
-          className="mb-1 block text-xs font-medium text-gray-700"
-        >
+        <label htmlFor="signup-password" className={AUTH_LABEL_CLASS}>
           Password
         </label>
         <input
@@ -124,7 +139,7 @@ export default function SignUpForm() {
           aria-describedby={
             error ? 'signup-password-hint signup-error' : 'signup-password-hint'
           }
-          className="w-full rounded border p-2"
+          className={AUTH_INPUT_CLASS}
           minLength={8}
           required
         />
@@ -133,25 +148,7 @@ export default function SignUpForm() {
           digit.
         </p>
       </div>
-      {/* Both stay in the page so their text is announced when it arrives. */}
-      <p
-        id="signup-error"
-        role="alert"
-        className={error ? 'text-sm text-red-700' : 'sr-only'}
-      >
-        {error}
-      </p>
-      <p
-        role="status"
-        className={notice ? 'text-sm text-green-700' : 'sr-only'}
-      >
-        {notice}
-      </p>
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded bg-blue-600 p-2 text-white hover:bg-blue-700"
-      >
+      <button type="submit" disabled={loading} className={AUTH_SUBMIT_CLASS}>
         {loading ? 'Signing up...' : 'Sign Up'}
       </button>
     </form>

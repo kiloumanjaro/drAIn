@@ -6,27 +6,22 @@ export const metadata: Metadata = {
   title: 'Log In',
 };
 
+// The page shell (main landmark, logo, card) is in the auth layout.
 export default function LoginPage() {
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      className="flex h-screen w-screen items-center justify-center bg-gray-100 outline-none"
-    >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow">
-        <h1 className="mb-4 text-center text-2xl font-bold">Log In</h1>
-        <LoginForm />
+    <>
+      <h1 className="mb-4 text-center text-2xl font-bold">Log In</h1>
+      <LoginForm />
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don’t have an account?{' '}
-          <Link
-            href="/signup"
-            className="font-medium text-blue-600 hover:underline"
-          >
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </main>
+      <p className="mt-4 text-center text-sm text-gray-600">
+        Don’t have an account?{' '}
+        <Link
+          href="/signup"
+          className="font-medium text-blue-600 hover:underline"
+        >
+          Sign up
+        </Link>
+      </p>
+    </>
   );
 }
