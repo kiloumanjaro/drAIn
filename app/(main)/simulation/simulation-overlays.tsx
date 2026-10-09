@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import dynamic from 'next/dynamic';
 import { LinkParametersPanel } from '@/components/simulation/link-parameters-panel';
 import { NodeParametersPanel } from '@/components/simulation/node-parameters-panel';
@@ -41,7 +42,15 @@ const PHONE_PIN = 'max-md:fixed! max-md:inset-x-2! max-md:top-16!';
 // tables stop short of them; on phones the table sits above the buttons.
 // (Both are in the tables' class names below.) That gap is part of the
 // wrapper, so the wrapper lets clicks through to the map and the table
-// itself takes them.
+// itself takes them. The wrapper also ends at the right edge of the map,
+// which is what the table measures its width against: it narrows to the
+// room it has rather than running off screen, and scrolls inside.
+
+// The parameter panels are fixed to the screen, so their z-index competes
+// with everything on the page. 45 puts them over the map, its buttons (30)
+// and the control panel (40 as the phone sheet), and under what must cover
+// them: the phone navigation drawer, dialogs, menus and tooltips, all at 50.
+const PARAMETER_PANEL_Z_INDEX = 45;
 
 /** Everything that floats over the simulation map. */
 export function SimulationOverlays({
@@ -61,11 +70,14 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 1) - Only render when NOT minimized */}
       {tableData && !tables.isTableMinimized && (
         <div
-          className={`pointer-events-none absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
-          style={{
-            left: `${tablePosition.x}px`,
-            top: `${tablePosition.y}px`,
-          }}
+          className={`pointer-events-none absolute z-20 max-md:z-[35] md:right-0 md:pr-[70px] ${PHONE_PIN}`}
+          style={
+            {
+              left: `${tablePosition.x}px`,
+              top: `${tablePosition.y}px`,
+              '--table-top': `${tablePosition.y}px`,
+            } as CSSProperties
+          }
         >
           {tables.isLoadingTable ? (
             <Spinner />
@@ -87,11 +99,14 @@ export function SimulationOverlays({
       {/* Vulnerability Data Table Overlay (model 2) - Only render when NOT minimized */}
       {tableData3 && !tables.isTable3Minimized && (
         <div
-          className={`pointer-events-none absolute z-20 max-md:z-[35] md:pr-[70px] ${PHONE_PIN}`}
-          style={{
-            left: `${table3Position.x}px`,
-            top: `${table3Position.y}px`,
-          }}
+          className={`pointer-events-none absolute z-20 max-md:z-[35] md:right-0 md:pr-[70px] ${PHONE_PIN}`}
+          style={
+            {
+              left: `${table3Position.x}px`,
+              top: `${table3Position.y}px`,
+              '--table-top': `${table3Position.y}px`,
+            } as CSSProperties
+          }
         >
           {tables.isLoadingTable3 ? (
             <Spinner />
@@ -130,7 +145,7 @@ export function SimulationOverlays({
             position: 'fixed',
             left: nodePanelPosition.x,
             top: nodePanelPosition.y,
-            zIndex: 1000,
+            zIndex: PARAMETER_PANEL_Z_INDEX,
           }}
         >
           <NodeParametersPanel
@@ -154,7 +169,7 @@ export function SimulationOverlays({
             position: 'fixed',
             left: linkPanelPosition.x,
             top: linkPanelPosition.y,
-            zIndex: 1000,
+            zIndex: PARAMETER_PANEL_Z_INDEX,
           }}
         >
           <LinkParametersPanel

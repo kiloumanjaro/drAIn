@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { clampDragPosition, startPosition } from '@/lib/simulation/drag-bounds';
 
 export interface Position {
   x: number;
@@ -14,42 +15,81 @@ export interface PanelAnchor {
   /** Fraction of the viewport to anchor to. Defaults to centred. */
   anchorX?: number;
   anchorY?: number;
+  /** The narrowest the panel gets. */
+  minWidth: number;
+  /** Its width with everything shown. */
+  fullWidth: number;
   /**
-   * Pull the starting position left if a panel this wide would otherwise
-   * run past the right of the screen, leaving `right` pixels clear.
+   * Set for a panel fixed to the screen. The others are placed inside the
+   * map area, which starts to the right of the navigation rail.
    */
-  keepInside?: { width: number; right: number };
+  fixed?: boolean;
+}
+
+/** A panel's position, and whether it was dragged there or only started there. */
+interface Placement {
+  position: Position;
+  moved: boolean;
+}
+
+/** Where the map area starts on screen: the navigation rail's width. */
+function mapAreaLeft(): number {
+  const mapArea = document.getElementById('main-content');
+  return mapArea?.getBoundingClientRect().left ?? 0;
 }
 
 /** Places a floating panel relative to the viewport. */
 function anchoredPosition({
-  width,
-  height,
   anchorX = 0.5,
   anchorY = 0.5,
-  keepInside,
+  fixed,
+  ...size
 }: PanelAnchor): Position {
   if (typeof window === 'undefined') {
     // Server render: any value works, the panel is repositioned on mount.
     return { x: 400, y: 100 };
   }
-  const x = window.innerWidth * anchorX - width / 2;
-  return {
-    x: keepInside
-      ? Math.max(
-          0,
-          Math.min(x, window.innerWidth - keepInside.right - keepInside.width)
-        )
-      : x,
-    y: window.innerHeight * anchorY - height / 2,
-  };
+  const mapLeft = mapAreaLeft();
+  return startPosition({
+    ...size,
+    anchorX,
+    anchorY,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    mapLeft,
+    originX: fixed ? 0 : mapLeft,
+  });
+}
+
+/**
+ * A dragged position, pulled back within reach on this screen: the window
+ * may be smaller than it was when the panel was left there.
+ */
+function withinReach(position: Position, anchor: PanelAnchor): Position {
+  if (typeof window === 'undefined') return position;
+  return clampDragPosition(position, {
+    // The widest it can be, so this is never stricter than the drag limit.
+    width: anchor.fullWidth,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    originX: anchor.fixed ? 0 : mapAreaLeft(),
+    originY: 0,
+  });
 }
 
 function readStored(storageKey: string): Position | null {
   if (typeof window === 'undefined') return null;
   try {
     const saved = localStorage.getItem(storageKey);
-    return saved ? (JSON.parse(saved) as Position) : null;
+    if (!saved) return null;
+    const { x, y } = JSON.parse(saved) as Partial<Position>;
+    // Anything that is not a position counts as nothing stored.
+    return typeof x === 'number' &&
+      typeof y === 'number' &&
+      Number.isFinite(x) &&
+      Number.isFinite(y)
+      ? { x, y }
+      : null;
   } catch (error) {
     console.error(`Failed to read saved position for ${storageKey}`, error);
     return null;
@@ -57,26 +97,65 @@ function readStored(storageKey: string): Position | null {
 }
 
 /**
+ * A floating panel's position. It starts at the stored position if there
+ * is one and at the anchor if not, and is kept on screen as the window
+ * changes size: a panel nobody has dragged is placed afresh, a dragged one
+ * is moved only as far as it takes to keep its header within reach.
+ */
+function usePlacement(anchor: PanelAnchor, readSaved: () => Position | null) {
+  const [placement, setPlacement] = useState<Placement>(() => {
+    const saved = readSaved();
+    return saved
+      ? { position: withinReach(saved, anchor), moved: true }
+      : { position: anchoredPosition(anchor), moved: false };
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPlacement((current) => {
+        const position = current.moved
+          ? withinReach(current.position, anchor)
+          : anchoredPosition(anchor);
+        return position.x === current.position.x &&
+          position.y === current.position.y
+          ? current
+          : { ...current, position };
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [anchor]);
+
+  /** For the drag: from here on the panel stays where it was put. */
+  const moveTo = useCallback((position: Position) => {
+    setPlacement({ position, moved: true });
+  }, []);
+
+  return [placement, moveTo] as const;
+}
+
+/**
  * Position for a draggable panel, remembered across visits.
  *
  * Falls back to the anchor when nothing has been stored yet, or when the
- * stored value cannot be read.
+ * stored value cannot be read. Only a position the panel was dragged to is
+ * stored: one it merely started at is worked out again on the next visit.
  */
 export function usePersistentPosition(storageKey: string, anchor: PanelAnchor) {
-  const [position, setPosition] = useState<Position>(
-    () => readStored(storageKey) ?? anchoredPosition(anchor)
+  const [{ position, moved }, moveTo] = usePlacement(anchor, () =>
+    readStored(storageKey)
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !moved) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify(position));
     } catch (error) {
       console.error(`Failed to save position for ${storageKey}`, error);
     }
-  }, [storageKey, position]);
+  }, [storageKey, position, moved]);
 
-  return [position, setPosition] as const;
+  return [position, moveTo] as const;
 }
 
 /**
@@ -84,5 +163,6 @@ export function usePersistentPosition(storageKey: string, anchor: PanelAnchor) {
  * than remembered.
  */
 export function useAnchoredPosition(anchor: PanelAnchor) {
-  return useState<Position>(() => anchoredPosition(anchor));
+  const [{ position }, moveTo] = usePlacement(anchor, () => null);
+  return [position, moveTo] as const;
 }

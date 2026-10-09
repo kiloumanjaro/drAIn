@@ -220,7 +220,7 @@ export default function Model2({
               >
                 <div className="h-2 w-2 rounded-full bg-[#388E3C] shadow-sm" />
                 <span className="text-foreground text-[10px] font-normal">
-                  No Risk
+                  No risk
                 </span>
               </Badge>
             </div>

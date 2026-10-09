@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   CardContent,
@@ -9,13 +9,14 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { TablePager } from '@/components/common/table-pager';
+import { usePagedRows } from '@/hooks/use-paged-rows';
 import { ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
 import type { Drain } from '@/components/control-panel/types';
 
@@ -30,6 +31,9 @@ interface DrainTableProps {
 
 export type DrainSortField = 'id' | 'In_Name' | 'InvElev' | 'clog_per';
 type SortDirection = 'asc' | 'desc';
+
+/** Rows drawn at a time. */
+const ROWS_PER_PAGE = 50;
 
 export function DrainTable({
   data,
@@ -52,10 +56,12 @@ export function DrainTable({
   // --- Sorting ---
   const sortedData = useMemo(() => {
     const sorted = [...filteredData];
+    // The "Drain ID" column shows the drain's name, so it sorts by the name.
+    const sortKey = sortField === 'id' ? 'In_Name' : sortField;
 
     sorted.sort((a, b) => {
-      const aValue: string | number = a[sortField];
-      const bValue: string | number = b[sortField];
+      const aValue: string | number = a[sortKey];
+      const bValue: string | number = b[sortKey];
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortDirection === 'asc'
@@ -73,6 +79,23 @@ export function DrainTable({
     return sorted;
   }, [filteredData, sortField, sortDirection]);
 
+  // --- Paging ---
+  // Only one page of rows is drawn; the sort and the search above still
+  // cover every row, and changing either starts again from the first page.
+  const topRef = useRef<HTMLDivElement>(null);
+  const { pageRows, range, setPage } = usePagedRows(
+    sortedData,
+    ROWS_PER_PAGE,
+    `${searchTerm}|${sortField}|${sortDirection}`
+  );
+
+  const handlePageChange = (page: number) => {
+    setPage(page);
+    // The next page is read from its top. The panel's content area is what
+    // scrolls, not the table.
+    topRef.current?.closest('.control-panel-scroll')?.scrollTo({ top: 0 });
+  };
+
   // --- Helpers ---
   const renderSortIcon = (field: DrainSortField) => {
     if (sortField !== field) {
@@ -86,7 +109,10 @@ export function DrainTable({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-6 pt-3 pr-3 pb-5 pl-5">
+    <div
+      ref={topRef}
+      className="flex flex-1 flex-col gap-6 pt-3 pr-3 pb-5 pl-5"
+    >
       <CardHeader className="px-1 py-0">
         <CardTitle>Storm Drain Inventory</CardTitle>
         <CardDescription className="text-xs">
@@ -96,10 +122,13 @@ export function DrainTable({
 
       <CardContent className="px-0">
         <div className="rounded-md border">
-          <Table>
+          {/* A plain table, not Table: that one wraps itself in a box that
+              scrolls sideways, and the headings would stick to the box
+              instead of to the panel, which is what scrolls. */}
+          <table className="w-full caption-bottom text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center">
+                <TableHead className="sticky top-0 z-10 bg-white text-center shadow-[inset_0_-1px_0_var(--border)]">
                   <Button
                     variant="ghost"
                     onClick={() => onSort('id')}
@@ -109,7 +138,7 @@ export function DrainTable({
                     {renderSortIcon('id')}
                   </Button>
                 </TableHead>
-                <TableHead className="text-center">
+                <TableHead className="sticky top-0 z-10 bg-white text-center shadow-[inset_0_-1px_0_var(--border)]">
                   <Button
                     variant="ghost"
                     onClick={() => onSort('InvElev')}
@@ -129,7 +158,7 @@ export function DrainTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedData.map((drain) => (
+                pageRows.map((drain) => (
                   <TableRow
                     key={drain.In_Name}
                     onClick={() => onSelectDrain(drain)}
@@ -147,14 +176,23 @@ export function DrainTable({
                       {drain.In_Name}
                     </TableCell>
                     <TableCell className="text-center">
-                      {drain.InvElev}
+                      {/* GeoJSON attributes: typed as numbers, not checked. */}
+                      {typeof drain.InvElev === 'number'
+                        ? drain.InvElev.toFixed(2)
+                        : drain.InvElev}
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
-          </Table>
+          </table>
         </div>
+        <TablePager
+          range={range}
+          total={sortedData.length}
+          onPageChange={handlePageChange}
+          className="sticky bottom-0 z-10 bg-white px-1 py-2"
+        />
       </CardContent>
     </div>
   );
