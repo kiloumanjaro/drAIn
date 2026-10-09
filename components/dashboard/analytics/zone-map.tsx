@@ -629,8 +629,10 @@ export default function ZoneMap({
                         isSelected ? 'ring-1 ring-blue-500' : ''
                       }`}
                     >
-                      <div className="flex min-w-0 items-center justify-between">
-                        <span className="truncate text-sm font-medium">
+                      <div className="flex min-w-0 items-start justify-between">
+                        {/* Wraps: "Outside Mandaue" was cut to "Outside Ma…"
+                            in the narrow tablet column. */}
+                        <span className="min-w-0 text-sm font-medium break-words">
                           {zone.zone}
                         </span>
                         <span className="ml-2 flex-shrink-0 text-xs font-semibold text-gray-700">

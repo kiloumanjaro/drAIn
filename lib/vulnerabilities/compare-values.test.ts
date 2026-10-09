@@ -16,6 +16,27 @@ describe('compareTableValues', () => {
     expect(sortBy(['b', 'a', 'c'], 'desc')).toEqual(['c', 'b', 'a']);
   });
 
+  it('reads the numbers in node ids as numbers', () => {
+    // As plain text they came out I-0, I-1, I-10, I-100, I-2.
+    const ids = ['I-10', 'I-2', 'I-100', 'I-0', 'ISD-3', 'I-1'];
+    expect(sortBy(ids, 'asc')).toEqual([
+      'I-0',
+      'I-1',
+      'I-2',
+      'I-10',
+      'I-100',
+      'ISD-3',
+    ]);
+    expect(sortBy(ids, 'desc')).toEqual([
+      'ISD-3',
+      'I-100',
+      'I-10',
+      'I-2',
+      'I-1',
+      'I-0',
+    ]);
+  });
+
   it.each(['asc', 'desc'] as const)(
     'puts empty cells last when sorting %s',
     (direction) => {

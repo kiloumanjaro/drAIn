@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   KEEP_VISIBLE_LEFT_PART,
   KEEP_VISIBLE_RIGHT_PART,
@@ -6,6 +6,7 @@ import {
   MAP_BUTTONS_STRIP,
   START_MARGIN,
   clampDragPosition,
+  measureDragBounds,
   startPosition,
 } from './drag-bounds';
 
@@ -52,6 +53,118 @@ describe('clampDragPosition', () => {
     expect(clampDragPosition({ x: 500, y: 0 }, narrow).x).toBe(
       clampDragPosition({ x: -500, y: 0 }, narrow).x
     );
+  });
+});
+
+describe('clampDragPosition with a left limit', () => {
+  // A parameter panel: fixed to the screen, so its origin is the screen's,
+  // and stopped at the 59px navigation rail.
+  const panel = {
+    width: 450,
+    viewportWidth: 1366,
+    viewportHeight: 768,
+    originX: 0,
+    originY: 0,
+    leftLimit: 59,
+  };
+
+  it('stops at the navigation rail with the whole header on screen', () => {
+    // Without the limit it stopped at 320 - 450 = -130: title off screen,
+    // the rest over the rail.
+    const { leftLimit: _none, ...unlimited } = panel;
+    expect(clampDragPosition({ x: -5000, y: 0 }, unlimited).x).toBe(-130);
+    expect(clampDragPosition({ x: -5000, y: 0 }, panel).x).toBe(59);
+  });
+
+  it('leaves a position right of the rail alone', () => {
+    expect(clampDragPosition({ x: 60, y: 120 }, panel)).toEqual({
+      x: 60,
+      y: 120,
+    });
+  });
+
+  it('is measured in the container, for one that does not start at the screen edge', () => {
+    const { x } = clampDragPosition(
+      { x: -5000, y: 0 },
+      { ...panel, originX: 20 }
+    );
+    expect(20 + x).toBe(59);
+  });
+
+  it('changes nothing on the right or at the bottom', () => {
+    const { leftLimit: _none, ...unlimited } = panel;
+    const wanted = { x: 5000, y: 5000 };
+    expect(clampDragPosition(wanted, panel)).toEqual(
+      clampDragPosition(wanted, unlimited)
+    );
+    expect(clampDragPosition(wanted, panel).x).toBe(
+      panel.viewportWidth - KEEP_VISIBLE_LEFT_PART
+    );
+  });
+
+  it('keeps to the left limit on a screen too narrow for both', () => {
+    const narrow = { ...panel, viewportWidth: 400 };
+    expect(clampDragPosition({ x: 500, y: 0 }, narrow).x).toBe(59);
+    expect(clampDragPosition({ x: -500, y: 0 }, narrow).x).toBe(59);
+  });
+});
+
+describe('measureDragBounds', () => {
+  const rect = (left: number, top: number) => ({
+    getBoundingClientRect: () => ({ left, top }),
+  });
+
+  beforeEach(() => {
+    vi.stubGlobal('window', { innerWidth: 1366, innerHeight: 768 });
+    vi.stubGlobal('document', {
+      // The map area, right of the 59px navigation rail.
+      getElementById: (id: string) =>
+        id === 'main-content' ? rect(59, 0) : null,
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('gives a table the origin of its container and no left limit', () => {
+    const table = {
+      offsetWidth: 751,
+      parentElement: { offsetParent: rect(59, 0) },
+    } as unknown as HTMLElement;
+    expect(measureDragBounds(table)).toEqual({
+      width: 751,
+      viewportWidth: 1366,
+      viewportHeight: 768,
+      originX: 59,
+      originY: 0,
+      leftLimit: undefined,
+    });
+  });
+
+  it('stops a panel fixed to the screen where the map area starts', () => {
+    // A fixed wrapper has no offset parent.
+    const panel = {
+      offsetWidth: 450,
+      parentElement: { offsetParent: null },
+    } as unknown as HTMLElement;
+    const bounds = measureDragBounds(panel);
+    expect(bounds).toMatchObject({ originX: 0, originY: 0, leftLimit: 59 });
+    expect(clampDragPosition({ x: -5000, y: 0 }, bounds).x).toBe(59);
+  });
+
+  it('has no rail to stop at where the map area starts at the screen edge', () => {
+    vi.stubGlobal('document', { getElementById: () => rect(0, 0) });
+    const panel = {
+      offsetWidth: 450,
+      parentElement: { offsetParent: null },
+    } as unknown as HTMLElement;
+    expect(measureDragBounds(panel).leftLimit).toBe(0);
+  });
+
+  it('falls back to a plain 500px panel before there is one to measure', () => {
+    expect(measureDragBounds(null)).toMatchObject({
+      width: 500,
+      originX: 0,
+      leftLimit: undefined,
+    });
   });
 });
 

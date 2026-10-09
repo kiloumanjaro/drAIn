@@ -14,7 +14,8 @@ function isMissing(value: unknown): boolean {
  *
  * Empty cells sort last whichever way the column is sorted, so flipping the
  * direction reorders the values rather than bringing the blanks to the top.
- * Numbers compare numerically and anything else as text.
+ * Numbers compare numerically and anything else as text, with the numbers
+ * inside the text read as numbers: I-2 comes before I-10, not after I-100.
  */
 export function compareTableValues(
   a: unknown,
@@ -31,6 +32,6 @@ export function compareTableValues(
   const order =
     typeof a === 'number' && typeof b === 'number'
       ? a - b
-      : String(a).localeCompare(String(b));
+      : String(a).localeCompare(String(b), undefined, { numeric: true });
   return direction === 'asc' ? order : -order;
 }

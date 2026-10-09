@@ -20,6 +20,21 @@ interface ComponentTypeChartProps {
 
 const COLORS = ['#3b82f6', '#ef6537', '#f59e0b', '#10b981'];
 
+// From tablet width to a small laptop the card is the left two thirds of a
+// row and narrower than the table's phone width (about 370px at 768, 540px
+// at 1024), so there the columns give up their fixed widths and padding and
+// share what room there is. Phones keep the full-width table and scroll it;
+// wider screens have room for it as it is.
+const HEAD_CELL =
+  'px-4 py-3 text-center font-normal text-gray-700 md:max-xl:px-1.5 md:max-xl:text-xs';
+const BODY_CELL = 'px-3 py-0 leading-none md:max-xl:px-1.5';
+const NUMBER_CELL = `${BODY_CELL} text-center text-sm text-gray-700`;
+// A two-word type ("Storm Drain") may take two lines in the narrow layout.
+const LEGEND_CELL = `${BODY_CELL} md:max-xl:leading-tight`;
+const LEGEND_ROW =
+  'flex items-center gap-3 pl-12 whitespace-nowrap md:max-xl:gap-2 md:max-xl:pl-1 md:max-xl:whitespace-normal';
+const LEGEND_DOT = 'ml-2 h-3 w-3 flex-shrink-0 rounded-full md:max-xl:ml-0';
+
 export default function ComponentTypeChart({
   data,
   loading = false,
@@ -64,12 +79,13 @@ export default function ComponentTypeChart({
   return (
     <TooltipProvider>
       <div>
-        {/* Four columns need about 620px; narrower screens scroll the card. */}
+        {/* Four columns at their full widths need about 620px; phones scroll
+            the card. From tablet width up the table fits the card instead. */}
         <div className="overflow-x-auto rounded-t-2xl border border-[#ced1cd] bg-[#f7f7f7]">
-          <table className="w-full min-w-[620px] text-sm">
+          <table className="w-full min-w-[620px] text-sm md:min-w-0">
             <thead>
               <tr className="rounded-2xl border-b border-[#ced1cd]">
-                <th className="w-[250px] px-4 py-3 text-center font-normal text-gray-700">
+                <th className={`w-[250px] md:max-xl:w-[36%] ${HEAD_CELL}`}>
                   <div className="flex items-center justify-center gap-2">
                     <span>Pie Chart</span>
                     <Tooltip>
@@ -91,15 +107,11 @@ export default function ComponentTypeChart({
                     </Tooltip>
                   </div>
                 </th>
-                <th className="w-[200px] px-4 py-3 text-center font-normal text-gray-700">
+                <th className={`w-[200px] md:max-xl:w-auto ${HEAD_CELL}`}>
                   Component Type
                 </th>
-                <th className="px-4 py-3 text-center font-normal text-gray-700">
-                  Number of Issues
-                </th>
-                <th className="px-4 py-3 text-center font-normal text-gray-700">
-                  Percentage
-                </th>
+                <th className={HEAD_CELL}>Number of Issues</th>
+                <th className={HEAD_CELL}>Percentage</th>
               </tr>
             </thead>
 
@@ -108,7 +120,7 @@ export default function ComponentTypeChart({
               <tr>
                 <td
                   rowSpan={chartData.length}
-                  className="bg-white px-3 py-0 align-middle"
+                  className="bg-white px-3 py-0 align-middle md:max-xl:px-1.5"
                 >
                   {/* The rows beside it give the same numbers as text. */}
                   <div aria-hidden="true" className="h-[220px] w-full">
@@ -120,8 +132,11 @@ export default function ComponentTypeChart({
                           cy="50%"
                           labelLine={false}
                           label={false}
-                          innerRadius={55}
-                          outerRadius={85}
+                          // Shares of the room the chart has, so the ring
+                          // shrinks with a narrow column: 55 and 85px in
+                          // the full 250px one.
+                          innerRadius="52%"
+                          outerRadius="81%"
                           paddingAngle={2}
                           cornerRadius={4}
                           dataKey="value"
@@ -141,10 +156,10 @@ export default function ComponentTypeChart({
                   </div>
                 </td>
                 {/* First data row */}
-                <td className="bg-white px-3 py-0 leading-none">
-                  <div className="flex items-center gap-3 pl-12 whitespace-nowrap">
+                <td className={`bg-white ${LEGEND_CELL}`}>
+                  <div className={LEGEND_ROW}>
                     <div
-                      className="ml-2 h-3 w-3 flex-shrink-0 rounded-full"
+                      className={LEGEND_DOT}
                       style={{ backgroundColor: COLORS[0] }}
                     />
                     <span className="text-sm text-gray-700">
@@ -152,21 +167,21 @@ export default function ComponentTypeChart({
                     </span>
                   </div>
                 </td>
-                <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
+                <td className={`bg-white ${NUMBER_CELL}`}>
                   {chartData[0]?.value} issue
                   {chartData[0]?.value !== 1 ? 's' : ''}
                 </td>
-                <td className="bg-white px-3 py-0 text-center text-sm leading-none text-gray-700">
+                <td className={`bg-white ${NUMBER_CELL}`}>
                   {share(chartData[0]?.value ?? 0)}
                 </td>
               </tr>
               {/* Remaining data rows */}
               {chartData.slice(1).map((item, index) => (
                 <tr key={item.name} className="bg-white">
-                  <td className="px-3 py-0 leading-none">
-                    <div className="flex items-center gap-3 pl-12 whitespace-nowrap">
+                  <td className={LEGEND_CELL}>
+                    <div className={LEGEND_ROW}>
                       <div
-                        className="ml-2 h-3 w-3 flex-shrink-0 rounded-full"
+                        className={LEGEND_DOT}
                         style={{
                           backgroundColor: COLORS[(index + 1) % COLORS.length],
                         }}
@@ -174,12 +189,10 @@ export default function ComponentTypeChart({
                       <span className="text-sm text-gray-700">{item.name}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
+                  <td className={NUMBER_CELL}>
                     {item.value} issue{item.value !== 1 ? 's' : ''}
                   </td>
-                  <td className="px-3 py-0 text-center text-sm leading-none text-gray-700">
-                    {share(item.value)}
-                  </td>
+                  <td className={NUMBER_CELL}>{share(item.value)}</td>
                 </tr>
               ))}
             </tbody>

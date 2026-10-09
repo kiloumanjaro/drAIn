@@ -10,7 +10,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(14);
+select plan(21);
 
 -- record_maintenance -----------------------------------------------------------
 
@@ -102,7 +102,59 @@ insert into storage.objects (bucket_id, name, owner_id) values
   ('Avatars', '00000000-0000-4000-a000-000000000002/avatar.jpg', '00000000-0000-4000-a000-000000000002');
 
 -- If the guard here fires per statement instead of per row, outcomes can't
--- distinguish allowed from blocked; the policy checks above still hold.
+-- distinguish allowed from blocked and the deletes at the end are skipped.
+-- These cannot skip: each condition the two delete policies must carry, read
+-- from the catalog, and what "in use" answers for the photos above.
+create function pg_temp.delete_rule(p_policy text) returns text
+language sql stable as $fn$
+  select qual from pg_policies
+  where schemaname = 'storage' and tablename = 'objects' and policyname = p_policy
+$fn$;
+
+select matches(
+  pg_temp.delete_rule('Uploaders remove their own fresh report photo nothing uses'),
+  'bucket_id = ''ReportImage''.*owner_id = \(+\s*SELECT auth\.uid\(\)',
+  'the report-photo delete policy is limited to the uploader''s own files in ReportImage'
+);
+select matches(
+  pg_temp.delete_rule('Uploaders remove their own fresh report photo nothing uses'),
+  'created_at > \(now\(\) - ''01:00:00''::interval\)',
+  'to uploads from the last hour'
+);
+select matches(
+  pg_temp.delete_rule('Uploaders remove their own fresh report photo nothing uses'),
+  'NOT \(\s*SELECT private\.report_photo_in_use\(objects\.name\)',
+  'and to photos nothing uses'
+);
+select matches(
+  pg_temp.delete_rule('Users remove their own avatars'),
+  'bucket_id = ''Avatars''.*auth\.uid\(\).*= \(storage\.foldername\(name\)\)\[1\]',
+  'the avatar delete policy is limited to the caller''s own folder in Avatars'
+);
+select is(
+  (select string_agg(policyname::text, ' | ' order by policyname::text collate "C")
+     from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and cmd in ('DELETE', 'ALL')),
+  'Uploaders remove their own fresh report photo nothing uses | Users remove their own avatars',
+  'and those two are the only policies that let a client delete from storage'
+);
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
+
+select is(
+  private.report_photo_in_use('public/00000000-0000-4000-c000-000000000002.jpg'),
+  true,
+  'a photo a maintenance record references counts as in use'
+);
+select is(
+  private.report_photo_in_use('public/00000000-0000-4000-c000-000000000003.jpg'),
+  false,
+  'a fresh upload nothing references does not'
+);
+
+reset role;
+
 select case
   when (select t.tgtype & 1 = 0 from pg_trigger t
         where t.tgrelid = 'storage.objects'::regclass

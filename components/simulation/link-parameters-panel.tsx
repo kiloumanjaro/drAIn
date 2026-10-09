@@ -117,7 +117,8 @@ export function LinkParametersPanel({
       const deltaX = e.clientX - dragRef.current.startX;
       const deltaY = e.clientY - dragRef.current.startY;
 
-      // The same limit as the results table: the header stays in reach.
+      // Like the results table, the header stays in reach; on the left the
+      // panel also stops at the navigation rail (see measureDragBounds).
       onPositionChange(
         clampDragPosition(
           {
@@ -167,7 +168,8 @@ export function LinkParametersPanel({
       const deltaX = touch.clientX - dragRef.current.startX;
       const deltaY = touch.clientY - dragRef.current.startY;
 
-      // The same limit as the results table: the header stays in reach.
+      // Like the results table, the header stays in reach; on the left the
+      // panel also stops at the navigation rail (see measureDragBounds).
       onPositionChange(
         clampDragPosition(
           {

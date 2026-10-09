@@ -16,15 +16,31 @@
 //   * the worker only re-triggers itself after a run that got something done.
 //   * reports left 'processing' by a run that died are queued again, and
 //     reports with no coordinates are marked failed rather than left pending.
+// Changed 2026-10-09 (the decisions are in decide.ts, tested by decide.test.ts):
+//   * requests to Nominatim are at least a second apart whatever the last one
+//     did. The pause used to follow only a success, so during an outage a
+//     batch fired up to 50 requests with no pause at all.
+//   * "the service could not be asked" (no connection, a timeout, 5xx, 429,
+//     403) is told apart from "it has nothing for this position". Only the
+//     second marks a report 'failed'; the first leaves it 'pending'. An
+//     outage used to mark every report it touched 'failed', and nothing
+//     retries those.
+//   * after three unavailable answers in a row the run stops and does not
+//     re-trigger itself. The reports are picked up by the next run, which the
+//     next new report starts (private.request_geocode).
+//   * a request is given up on after 10 seconds.
 // Nominatim's usage policy asks for a contact in the User-Agent: set the
 // GEOCODE_CONTACT env var (an email address or URL) on the function.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { classifyGeocodeResponse, msUntilNextRequest, shouldStopRun } from './decide.ts';
 const jsonHeaders = {
   'Content-Type': 'application/json'
 };
 // A run lasts at most MAX_RUNTIME (90 s) plus one request; a lock older than
 // this was left by a run that died.
 const STALE_LOCK_MS = 3 * 60 * 1000;
+// Longest wait for one answer from Nominatim.
+const GEOCODE_TIMEOUT_MS = 10000;
 function timingSafeEqual(a, b) {
   const enc = new TextEncoder();
   const x = enc.encode(a);
@@ -102,11 +118,21 @@ Deno.serve(async (req)=>{
     // Reports this run could not even mark as failed. They stay 'pending',
     // so they are left out of the next batch instead of being retried.
     const stuck = new Set();
-    while(Date.now() - startTime < MAX_RUNTIME){
+    // Reports the service could not be asked about. They stay 'pending' for
+    // a later run and are not asked about again in this one.
+    const deferred = new Set();
+    let consecutiveUnavailable = 0;
+    // Set once the service looks down: the run ends and does not re-trigger.
+    let serviceDown = false;
+    // When the last request to Nominatim finished, whatever came of it.
+    let lastRequestAt = null;
+    while(!serviceDown && Date.now() - startTime < MAX_RUNTIME){
       let query = supabase.from('reports').select('id, lat, long').eq('geocoded_status', 'pending');
-      if (stuck.size > 0) query = query.not('id', 'in', `(${[
-        ...stuck
-      ].join(',')})`);
+      const skipped = [
+        ...stuck,
+        ...deferred
+      ];
+      if (skipped.length > 0) query = query.not('id', 'in', `(${skipped.join(',')})`);
       const { data: reports, error } = await query.order('created_at', {
         ascending: true
       }).limit(50);
@@ -114,12 +140,42 @@ Deno.serve(async (req)=>{
       if (!reports || reports.length === 0) break;
       console.log(`[${invocationId}] Processing ${reports.length} reports`);
       for (const report of reports){
+        if (Date.now() - startTime > MAX_RUNTIME) break;
         try {
           const claimed = await supabase.from('reports').update({
             geocoded_status: 'processing'
           }).eq('id', report.id);
           if (claimed.error) throw claimed.error;
-          const address = await reverseGeocode(report.lat, report.long);
+          // At most one request a second, after failures as much as after
+          // successes.
+          const wait = msUntilNextRequest(lastRequestAt, Date.now());
+          if (wait > 0) await new Promise((resolve)=>setTimeout(resolve, wait));
+          const outcome = await reverseGeocode(report.lat, report.long);
+          lastRequestAt = Date.now();
+          if (outcome.kind === 'unavailable') {
+            // Says nothing about this report: put it back in the queue.
+            const released = await supabase.from('reports').update({
+              geocoded_status: 'pending'
+            }).eq('id', report.id);
+            // Left 'processing', it is queued again by the next run.
+            if (released.error) console.error(`[${invocationId}] Could not requeue ${report.id}:`, released.error);
+            deferred.add(report.id);
+            consecutiveUnavailable++;
+            console.warn(`[${invocationId}] Geocoder unavailable for ${report.id} (${consecutiveUnavailable} in a row)`);
+            if (shouldStopRun(consecutiveUnavailable)) {
+              console.warn(`[${invocationId}] Geocoder looks down, stopping this run`);
+              serviceDown = true;
+              break;
+            }
+            continue;
+          }
+          consecutiveUnavailable = 0;
+          if (outcome.kind === 'no_result') {
+            // The service answered and has nothing for this position: a
+            // real failure, marked below.
+            throw new Error('No address for this position');
+          }
+          const address = outcome.address;
           const saved = await supabase.from('reports').update({
             address,
             geocoded_status: 'completed'
@@ -127,8 +183,6 @@ Deno.serve(async (req)=>{
           if (saved.error) throw saved.error;
           console.log(`[${invocationId}] ${report.id}: ${address}`);
           totalProcessed++;
-          await new Promise((resolve)=>setTimeout(resolve, 1000));
-          if (Date.now() - startTime > MAX_RUNTIME) break;
         } catch (err) {
           console.error(`[${invocationId}] Failed ${report.id}:`, err);
           const failed = await supabase.from('reports').update({
@@ -156,8 +210,9 @@ Deno.serve(async (req)=>{
       console.log(`[${invocationId}] Lock released`);
     }
     // Re-trigger if more work to do, but only after a run that got somewhere:
-    // if nothing could be processed, another run would do no better.
-    if (totalProcessed > 0 && count && count > 0) {
+    // if nothing could be processed, another run would do no better. Nor
+    // after a run the geocoder cut short: it needs leaving alone.
+    if (totalProcessed > 0 && !serviceDown && count && count > 0) {
       console.log(`[${invocationId}] ${count} reports remaining, re-triggering...`);
       fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/geocodeWorker`, {
         method: 'POST',
@@ -169,6 +224,7 @@ Deno.serve(async (req)=>{
     return new Response(JSON.stringify({
       processed: totalProcessed,
       remaining: count || 0,
+      geocoderUnavailable: serviceDown,
       invocationId
     }), {
       headers: jsonHeaders
@@ -196,25 +252,33 @@ Deno.serve(async (req)=>{
     }
   }
 });
+// Asks Nominatim for the address at a position and says what the answer
+// means (classifyGeocodeResponse in decide.ts). Never throws: no response,
+// a timeout and an unreadable body are all "unavailable".
 async function reverseGeocode(lat, long) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${long}`;
   const contact = Deno.env.get('GEOCODE_CONTACT') || 'https://github.com/kiloumanjaro/drAIn';
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': `DrainApp/1.0 (AI-driven drainage monitoring; ${contact})`
-    }
-  });
-  if (!response.ok) {
-    throw new Error('Geocoding failed');
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'User-Agent': `DrainApp/1.0 (AI-driven drainage monitoring; ${contact})`
+      },
+      signal: AbortSignal.timeout(GEOCODE_TIMEOUT_MS)
+    });
+  } catch  {
+    return classifyGeocodeResponse(null);
   }
-  const data = await response.json();
-  const addr = data.address || {};
-  const addr_suffix = "Cebu, Philippines";
-  const parts = [
-    addr.road,
-    addr.suburb || addr.neighbourhood,
-    addr.city || 'Mandaue City',
-    addr_suffix
-  ].filter(Boolean);
-  return parts.join(', ') || 'Address not found';
+  if (!response.ok) {
+    // Discard the body so the connection is released.
+    await response.body?.cancel().catch(()=>{});
+    return classifyGeocodeResponse(response.status);
+  }
+  let data;
+  try {
+    data = await response.json();
+  } catch  {
+    data = undefined;
+  }
+  return classifyGeocodeResponse(response.status, data);
 }

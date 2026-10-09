@@ -71,7 +71,7 @@ export function LoadingScreen({
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeDasharray="70 212"
-                className="text-[#4b72f3]"
+                className="text-[#4569ee]"
                 style={{
                   transformOrigin: 'center',
                   transform: 'rotate(-90deg)',
@@ -80,7 +80,7 @@ export function LoadingScreen({
             </svg>
           </div>
 
-          <div className="absolute top-1/2 left-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#4b72f3] shadow-lg">
+          <div className="absolute top-1/2 left-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#4569ee] shadow-lg">
             {iconContent || <IconCloud className="h-4 w-4 text-white" />}
           </div>
         </div>

@@ -540,7 +540,7 @@ export default function SubmitTab() {
               type="button"
               onClick={handleConfirmSubmit}
               disabled={isDisabled || isConfirming}
-              className="w-full border border-[#2b3ea7] bg-[#4b72f3] text-white hover:bg-blue-600 sm:w-auto"
+              className="w-full border border-[#2b3ea7] bg-[#4569ee] text-white hover:bg-blue-600 sm:w-auto"
             >
               {isConfirming ? 'Confirming...' : 'Confirm'}
             </Button>
@@ -565,15 +565,15 @@ export default function SubmitTab() {
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
               <ul className="space-y-2.5">
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4569ee]"></span>
                   <span>Enable location services on your device</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4569ee]"></span>
                   <span>Capture the photo directly from your camera app</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4569ee]"></span>
                   <span>Ensure your device embeds location data in images</span>
                 </li>
               </ul>

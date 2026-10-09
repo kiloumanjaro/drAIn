@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SYSTEM_INSTRUCTION } from '@/lib/chatbot/prompts';
 import { MAX_BODY_BYTES, parseChatRequest } from '@/lib/chatbot/request';
+import { looksLikeLiveJwt } from '@/lib/chatbot/token';
 import { readTextCapped } from '@/lib/http/read-body';
 import { createRequestClient } from '@/lib/supabase/server';
 
@@ -33,10 +34,12 @@ export async function POST(req: NextRequest) {
 
   // Cheapest checks first: a missing token and the size and shape of the
   // body cost nothing to refuse, while checking the token is a call to the
-  // auth server.
+  // auth server. So is a token that could never pass that check (not a JWT,
+  // or one that says it has expired): it gets the same answer without the
+  // call. looksLikeLiveJwt verifies nothing; auth.getUser below still does.
   const authorization = req.headers.get('authorization');
   const token = authorization?.replace(/^Bearer\s+/i, '');
-  if (!token) {
+  if (!token || !looksLikeLiveJwt(token)) {
     return signInRequired();
   }
 
