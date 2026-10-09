@@ -215,10 +215,18 @@ function Sidebar({
       data-slot="sidebar"
     >
       {/* This is what handles the sidebar gap on desktop */}
+      {/* A sidebar that collapses to icons keeps its gap at icon width below
+          lg, open or not: there is no room to push the page aside there, so
+          the open sidebar lies over it instead. */}
       <div
         data-slot="sidebar-gap"
         className={cn(
-          'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
+          'relative bg-transparent transition-[width] duration-200 ease-linear',
+          collapsible !== 'icon'
+            ? 'w-(--sidebar-width)'
+            : variant === 'floating' || variant === 'inset'
+              ? 'w-[calc(var(--sidebar-width-icon)+(--spacing(4)))] lg:group-data-[state=expanded]:w-(--sidebar-width)'
+              : 'w-(--sidebar-width-icon) lg:group-data-[state=expanded]:w-(--sidebar-width)',
           'group-data-[collapsible=offcanvas]:w-0',
           'group-data-[side=right]:rotate-180',
           variant === 'floating' || variant === 'inset'
@@ -230,6 +238,12 @@ function Sidebar({
         data-slot="sidebar-container"
         className={cn(
           'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
+          // Lying over the page (see the gap above): over everything on it
+          // short of dialogs, and with a shadow to lift it off. The z-index
+          // does not wait for it to open, or the page's own layers showed
+          // through while it slid shut.
+          collapsible === 'icon' &&
+            'max-lg:z-40 max-lg:group-data-[state=expanded]:shadow-xl',
           side === 'left'
             ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
             : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',

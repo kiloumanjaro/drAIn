@@ -11,8 +11,13 @@ type Handler = (event: unknown) => void;
 /**
  * A map that keeps the handlers registered on it so a test can fire them.
  * Layer-scoped handlers are keyed "type:layer", map-wide ones by type.
+ * `featuresAtClick` are the barangays under a click, `componentsAtClick`
+ * the drainage components.
  */
-function makeMap({ featuresAtClick = [] as unknown[] } = {}) {
+function makeMap({
+  featuresAtClick = [] as unknown[],
+  componentsAtClick = [] as unknown[],
+} = {}) {
   const handlers = new Map<string, Handler[]>();
   const canvas = { style: { cursor: '' } };
   const setFeatureState = vi.fn();
@@ -23,8 +28,11 @@ function makeMap({ featuresAtClick = [] as unknown[] } = {}) {
       handlers.set(key, [...(handlers.get(key) ?? []), handler]);
     },
     getCanvas: () => canvas,
-    getLayer: () => ({ id: 'mandaue_population-fill' }),
-    queryRenderedFeatures: () => featuresAtClick,
+    getLayer: (id: string) => ({ id }),
+    queryRenderedFeatures: (_point: unknown, options: { layers: string[] }) =>
+      options.layers.includes('mandaue_population-fill')
+        ? featuresAtClick
+        : componentsAtClick,
     setFeatureState,
   } as unknown as mapboxgl.Map;
   const fire = (key: string, event: unknown = {}) =>
@@ -34,6 +42,7 @@ function makeMap({ featuresAtClick = [] as unknown[] } = {}) {
 
 const MOVE = 'mousemove:mandaue_population-fill';
 const LEAVE = 'mouseleave:mandaue_population-fill';
+const CLICK = 'click:mandaue_population-fill';
 const over = (id: string) => ({ features: [{ id, properties: {} }] });
 
 function setUp(options?: Parameters<typeof makeMap>[0]) {
@@ -114,6 +123,59 @@ describe('population hover', () => {
 
     expect(setFeatureState).not.toHaveBeenCalled();
     expect(canvas.style.cursor).toBe('');
+  });
+});
+
+describe('click on a barangay', () => {
+  it('leaves the click to a drainage component under it', () => {
+    // No popup can be built here (there is no document), so getting through
+    // without a throw is itself the sign that none was.
+    const { fire, setFeatureState, selection } = setUp({
+      componentsAtClick: [{ id: 'I-12' }],
+    });
+
+    fire(CLICK, { ...over('Basak'), point: { x: 1, y: 1 } });
+
+    expect(setFeatureState).not.toHaveBeenCalled();
+    expect(selection).toEqual({ clickedId: null, popup: null });
+  });
+
+  it('closes an earlier popup when a drainage component takes the click', () => {
+    const { fire, setFeatureState, selection } = setUp({
+      componentsAtClick: [{ id: 'I-12' }],
+    });
+    const popup = { remove: vi.fn() };
+    selection.clickedId = 'Tipolo';
+    selection.popup = popup as unknown as mapboxgl.Popup;
+
+    fire(CLICK, { ...over('Basak'), point: { x: 1, y: 1 } });
+
+    expect(setFeatureState.mock.calls).toEqual([
+      [{ source: 'mandaue_population', id: 'Tipolo' }, { clicked: false }],
+    ]);
+    expect(popup.remove).toHaveBeenCalledTimes(1);
+    expect(selection).toEqual({ clickedId: null, popup: null });
+  });
+
+  it('selects the barangay when no drainage component is under the click', () => {
+    const { fire, setFeatureState } = setUp();
+
+    // It goes on to build the popup, which needs a document.
+    expect(() =>
+      fire(CLICK, { ...over('Basak'), point: { x: 1, y: 1 } })
+    ).toThrow();
+    expect(setFeatureState.mock.calls).toEqual([
+      [{ source: 'mandaue_population', id: 'Basak' }, { clicked: true }],
+    ]);
+  });
+
+  it('does nothing while the overlay is switched off', () => {
+    const { fire, setFeatureState, setVisible } = setUp();
+    setVisible(false);
+
+    fire(CLICK, { ...over('Basak'), point: { x: 1, y: 1 } });
+
+    expect(setFeatureState).not.toHaveBeenCalled();
   });
 });
 

@@ -1,6 +1,7 @@
 import mapboxgl from 'mapbox-gl';
 
 import { escapeHtml } from '@/lib/escape-html';
+import { hitsDrainageComponent } from './hit-test';
 
 const SOURCE = 'mandaue_population';
 /** The fill takes the pointer; the outline layer is only drawn. */
@@ -83,6 +84,15 @@ export function registerPopulationInteractions(
 
   map.on('click', FILL_LAYER, (e) => {
     if (!isVisible()) return;
+
+    // A drainage component under the same click takes it: the page selects
+    // it and flies there. Both used to answer, and the popup opened here was
+    // left behind, far off screen. An earlier popup is closed for the same
+    // reason.
+    if (hitsDrainageComponent(map, e.point)) {
+      clearPopulationSelection(map, selection);
+      return;
+    }
 
     if (e.features && e.features.length > 0) {
       const feature = e.features[0];

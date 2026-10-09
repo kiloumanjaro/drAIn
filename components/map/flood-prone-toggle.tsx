@@ -91,6 +91,10 @@ export function FloodProneToggle({
                 />
                 <Label
                   htmlFor={area.id}
+                  // A click on the label is passed on to the switch, which
+                  // toggles; without this the row's onClick toggled as well
+                  // and the two cancelled out.
+                  onClick={(e) => e.stopPropagation()}
                   className={`cursor-pointer text-sm font-normal transition-all duration-200 ${
                     area.visible ? 'text-foreground' : 'text-muted-foreground'
                   } group-hover:text-foreground`}
