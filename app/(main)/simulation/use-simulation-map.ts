@@ -97,6 +97,18 @@ export function useSimulationMap(
       }
       mapRef.current = map;
 
+      // "© Mapbox © OpenStreetMap" must be on show. Where it goes is chosen
+      // once, for the layout the page opened in: on phones the sheet covers
+      // the bottom of the map, so it sits at the top beside the navigation
+      // button; otherwise bottom right, clear of the panel on the left.
+      // (app/globals.css nudges it off the navigation button.)
+      map.addControl(
+        new mapboxgl.AttributionControl({ compact: true }),
+        window.matchMedia('(max-width: 767px)').matches
+          ? 'top-left'
+          : 'bottom-right'
+      );
+
       const addCustomLayers = () => addSimulationLayers(map);
 
       map.on('load', addCustomLayers);
