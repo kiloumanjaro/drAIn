@@ -40,6 +40,8 @@ function makeMap({
     getCanvas: () => canvas,
     getLayer: (id: string) => (layers.includes(id) ? { id } : undefined),
     queryRenderedFeatures,
+    // One pixel per degree, so a feature's coordinates are its place on screen.
+    project: ([x, y]: [number, number]) => ({ x, y }),
   } as unknown as mapboxgl.Map;
   const fire = (key: string, event: unknown = { point: { x: 1, y: 2 } }) =>
     (handlers.get(key) ?? []).forEach((handler) => handler(event));
@@ -51,9 +53,18 @@ const OUTLET = { id: 'O-1' } as Outlet;
 const PIPE = { id: 'P-1' } as Pipe;
 const DRAIN = { id: 'ISD-1' } as Drain;
 
-const hit = (layerId: string, properties: Record<string, string>) => ({
+/** A rendered feature; a point under the default click unless placed. */
+const hit = (
+  layerId: string,
+  properties: Record<string, string>,
+  geometry: { type: string; coordinates: unknown } = {
+    type: 'Point',
+    coordinates: [1, 2],
+  }
+) => ({
   layer: { id: layerId },
   properties,
+  geometry,
 });
 
 function setUp(
@@ -113,6 +124,48 @@ describe('simulation map clicks', () => {
     fire('click');
 
     expect(pageHandlers.selectInlet).toHaveBeenCalledTimes(1);
+    expect(pageHandlers.selectPipe).not.toHaveBeenCalled();
+  });
+
+  it('takes the nearest of two overlapping symbols, not the topmost', () => {
+    // Two circles that overlap at the click: the drain is drawn on top and
+    // comes first, but the click is on the inlet's centre.
+    const { fire, pageHandlers } = setUp({
+      featuresAtClick: [
+        hit(
+          'storm_drains-layer',
+          { In_Name: 'ISD-1' },
+          { type: 'Point', coordinates: [4, 2] }
+        ),
+        hit('inlets-layer', { In_Name: 'I-1' }),
+      ],
+    });
+    fire('click');
+
+    expect(pageHandlers.selectInlet).toHaveBeenCalledWith(INLET);
+    expect(pageHandlers.selectDrain).not.toHaveBeenCalled();
+  });
+
+  it('gives a click where a pipe ends under a node to the node', () => {
+    const { fire, pageHandlers } = setUp({
+      featuresAtClick: [
+        hit(
+          'man_pipes-layer',
+          { Name: 'P-1' },
+          {
+            type: 'LineString',
+            coordinates: [
+              [1, 2],
+              [40, 2],
+            ],
+          }
+        ),
+        hit('outlets-layer', { Out_Name: 'O-1' }),
+      ],
+    });
+    fire('click');
+
+    expect(pageHandlers.selectOutlet).toHaveBeenCalledWith(OUTLET);
     expect(pageHandlers.selectPipe).not.toHaveBeenCalled();
   });
 

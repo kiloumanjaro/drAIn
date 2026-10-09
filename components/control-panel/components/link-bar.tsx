@@ -51,7 +51,10 @@ export function LinkBar({ link = '', scheme = 'https://' }: LinkBarProps) {
         <InputGroupAddon className="pl-1.5 font-normal text-[#666666]">
           {scheme}
         </InputGroupAddon>
-        <span className="min-w-0 flex-1 truncate py-2 text-sm text-[#666666]">
+        <span
+          title={link ? scheme + link : undefined}
+          className="min-w-0 flex-1 truncate py-2 text-sm text-[#666666]"
+        >
           {link || 'your-link-here.com'}
         </span>
       </InputGroup>

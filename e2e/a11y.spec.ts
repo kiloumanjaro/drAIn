@@ -30,6 +30,8 @@ const ROUTES: { path: string; excludeMap?: boolean }[] = [
   // checked is the shell around it. Mapbox's own markup is left out for the
   // runs that do have a token.
   { path: '/map', excludeMap: true },
+  // The entry screen: the map is covered until simulation mode is entered.
+  { path: '/simulation', excludeMap: true },
   { path: '/dashboard', excludeMap: true },
 ];
 

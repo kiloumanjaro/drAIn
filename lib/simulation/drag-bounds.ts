@@ -19,35 +19,65 @@ export interface DragBounds {
   /** Where the table's positioning container starts on screen. */
   originX: number;
   originY: number;
+  /**
+   * Where on screen the panel's left edge must stop, for a panel that may
+   * not leave by the left at all. Set for the parameter panels: their title
+   * is at the left of the header, and being fixed to the screen they would
+   * otherwise slide over the navigation rail. Left out for the tables, which
+   * may go off the left as far as `KEEP_VISIBLE_RIGHT_PART` allows.
+   */
+  leftLimit?: number;
 }
 
 /** The nearest position to `wanted` that leaves the header within reach. */
 export function clampDragPosition(
   wanted: { x: number; y: number },
-  { width, viewportWidth, viewportHeight, originX, originY }: DragBounds
+  {
+    width,
+    viewportWidth,
+    viewportHeight,
+    originX,
+    originY,
+    leftLimit,
+  }: DragBounds
 ): { x: number; y: number } {
-  const minX = KEEP_VISIBLE_RIGHT_PART - width - originX;
   const maxX = viewportWidth - KEEP_VISIBLE_LEFT_PART - originX;
   const maxY = viewportHeight - KEEP_VISIBLE_TOP_PART - originY;
+  const minX =
+    leftLimit === undefined
+      ? // A screen narrower than the two kept parts leaves no range: pin it left.
+        Math.min(KEEP_VISIBLE_RIGHT_PART - width - originX, maxX)
+      : // The left limit wins on a screen too narrow for both.
+        leftLimit - originX;
   return {
-    // A screen narrower than the two kept parts leaves no range: pin it left.
-    x: Math.max(Math.min(minX, maxX), Math.min(maxX, wanted.x)),
+    x: Math.max(minX, Math.min(maxX, wanted.x)),
     y: Math.max(0, Math.min(maxY, wanted.y)),
   };
+}
+
+/** Where the map area starts on screen: the navigation rail's width. */
+function mapAreaLeft(): number {
+  const mapArea = document.getElementById('main-content');
+  return mapArea?.getBoundingClientRect().left ?? 0;
 }
 
 /** What the drag limit needs to know about a floating panel and the screen. */
 export function measureDragBounds(panel: HTMLElement | null): DragBounds {
   // A table's wrapper is placed inside the map area, which starts to the
   // right of the navigation rail. The parameter panels' wrappers are fixed
-  // to the screen: they have no offset parent, so their origin is 0.
-  const origin = panel?.parentElement?.offsetParent?.getBoundingClientRect();
+  // to the screen: they have no offset parent, so their origin is 0, and
+  // nothing but a left limit keeps them off the rail. (With origin 0 the
+  // tables' rule let a 450px panel go 130px past the screen's left edge.)
+  const wrapper = panel?.parentElement;
+  const container = wrapper?.offsetParent;
+  const origin = container?.getBoundingClientRect();
   return {
     width: panel?.offsetWidth ?? 500,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
     originX: origin?.left ?? 0,
     originY: origin?.top ?? 0,
+    leftLimit: wrapper && !container ? mapAreaLeft() : undefined,
   };
 }
 

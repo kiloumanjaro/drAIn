@@ -74,6 +74,8 @@ function withinReach(position: Position, anchor: PanelAnchor): Position {
     viewportHeight: window.innerHeight,
     originX: anchor.fixed ? 0 : mapAreaLeft(),
     originY: 0,
+    // As the drag does: a fixed panel stays off the navigation rail.
+    leftLimit: anchor.fixed ? mapAreaLeft() : undefined,
   });
 }
 
