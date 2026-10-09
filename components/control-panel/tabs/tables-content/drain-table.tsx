@@ -59,8 +59,8 @@ export function DrainTable({
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+          ? aValue.localeCompare(bValue, undefined, { numeric: true })
+          : bValue.localeCompare(aValue, undefined, { numeric: true });
       }
 
       if (typeof aValue === 'number' && typeof bValue === 'number') {

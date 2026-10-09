@@ -14,14 +14,16 @@ export const DataFieldCard = forwardRef<HTMLDivElement, DataFieldCardProps>(
       <Card ref={ref} className="overflow-hidden border-none p-0 py-3">
         <CardContent>
           <div className="space-y-1">
-            <div className="flex flex-row items-center justify-between">
+            <div className="flex flex-row items-center justify-between gap-3">
               {/* Row 1: Data Type/Label */}
-              <div className="text-muted-foreground text-xs font-semibold tracking-wider">
+              <div className="text-muted-foreground shrink-0 text-xs font-semibold tracking-wider">
                 {label}
               </div>
               {/* Row 2: Value */}
-              <div className="flex flex-row items-baseline gap-1">
-                <div className="text-foreground text-xl font-bold">{value}</div>
+              <div className="flex min-w-0 flex-row items-baseline justify-end gap-1">
+                <div className="text-foreground min-w-0 text-right text-xl font-bold break-words">
+                  {value}
+                </div>
                 {unit && (
                   <span className="text-muted-foreground text-sm">{unit}</span>
                 )}
