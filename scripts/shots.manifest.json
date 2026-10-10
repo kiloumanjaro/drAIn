@@ -1,0 +1,168 @@
+{
+  "defaults": {
+    "soft": [".mapboxgl-canvas"],
+    "ignoreText": ["^\\d{1,2}:\\d{2}\\s?[AP]M$"]
+  },
+  "pages": [
+    { "name": "home", "group": "home", "path": "/" },
+
+    { "name": "auth-login", "group": "auth", "path": "/login" },
+    { "name": "auth-signup", "group": "auth", "path": "/signup" },
+
+    { "name": "map", "group": "map", "path": "/map" },
+    { "name": "map-chatbot", "group": "map", "path": "/map?activetab=chatbot" },
+    { "name": "map-stats", "group": "map", "path": "/map?activetab=stats" },
+    {
+      "name": "map-simulations",
+      "group": "map",
+      "path": "/map?activetab=simulations"
+    },
+    { "name": "map-report", "group": "map", "path": "/map?activetab=report" },
+    { "name": "map-admin", "group": "map", "path": "/map?activetab=admin" },
+    { "name": "map-profile", "group": "map", "path": "/map?activetab=profile" },
+    {
+      "name": "map-component",
+      "group": "map",
+      "path": "/map?component=<id>&type=<type>",
+      "param": "a component id and its type (inlets, outlets, storm_drains, man_pipes) from public/drainage/*.geojson"
+    },
+
+    { "name": "simulation", "group": "simulation", "path": "/simulation" },
+    {
+      "name": "simulation-active",
+      "group": "simulation",
+      "path": "/simulation?active=true"
+    },
+    {
+      "name": "simulation-model2",
+      "group": "simulation",
+      "path": "/simulation?active=true&simModel=model2"
+    },
+    {
+      "name": "simulation-model3",
+      "group": "simulation",
+      "path": "/simulation?active=true&simModel=model3"
+    },
+
+    { "name": "dashboard", "group": "dashboard", "path": "/dashboard" },
+
+    { "name": "docs", "group": "docs", "path": "/docs" },
+    {
+      "name": "docs-features",
+      "group": "docs",
+      "path": "/docs?section=features"
+    },
+    { "name": "docs-users", "group": "docs", "path": "/docs?section=users" },
+    {
+      "name": "docs-reports",
+      "group": "docs",
+      "path": "/docs?section=reports"
+    },
+    {
+      "name": "docs-architecture",
+      "group": "docs",
+      "path": "/docs?section=architecture"
+    },
+    {
+      "name": "docs-tech-stack",
+      "group": "docs",
+      "path": "/docs?section=tech-stack"
+    },
+    {
+      "name": "docs-data-sources",
+      "group": "docs",
+      "path": "/docs?section=data-sources"
+    },
+    {
+      "name": "docs-simulation",
+      "group": "docs",
+      "path": "/docs?section=simulation"
+    },
+    {
+      "name": "docs-deployment",
+      "group": "docs",
+      "path": "/docs?section=deployment"
+    },
+    {
+      "name": "docs-limitations",
+      "group": "docs",
+      "path": "/docs?section=limitations"
+    },
+    { "name": "docs-demo", "group": "docs", "path": "/docs?section=demo" },
+    {
+      "name": "docs-compare",
+      "group": "docs",
+      "path": "/docs?section=reports&compareEvent=<event>",
+      "param": "the link the app's own event widget builds (components/shell/event-widget.tsx)"
+    },
+
+    { "name": "system-not-found", "group": "system", "path": "/no-such-page" }
+  ],
+  "states": [
+    {
+      "name": "home-user-menu",
+      "group": "home",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "selector": "button[data-sidebar=\"menu-button\"][aria-haspopup=\"menu\"]"
+          }
+        },
+        { "waitFor": { "role": "menu" } }
+      ]
+    },
+    {
+      "name": "dashboard-all-reports",
+      "group": "dashboard",
+      "path": "/dashboard",
+      "steps": [
+        { "click": { "role": "tab", "name": "All Reports" } },
+        { "waitFor": { "role": "tab", "name": "All Reports" } }
+      ]
+    },
+    {
+      "name": "dashboard-nav-drawer",
+      "group": "dashboard",
+      "path": "/dashboard",
+      "viewports": ["phone"],
+      "steps": [
+        { "click": { "role": "button", "name": "Open navigation" } },
+        { "waitFor": { "text": "Documentation", "exact": true } }
+      ]
+    },
+    {
+      "name": "docs-section-list",
+      "group": "docs",
+      "path": "/docs",
+      "viewports": ["phone"],
+      "steps": [
+        {
+          "click": { "selector": "button[aria-controls=\"docs-section-list\"]" }
+        },
+        { "waitFor": { "label": "Search the documentation sections" } }
+      ]
+    },
+    {
+      "name": "map-sheet-full",
+      "group": "map",
+      "path": "/map",
+      "viewports": ["phone"],
+      "steps": [
+        { "click": { "role": "button", "name": "Expand panel" } },
+        { "waitFor": { "role": "button", "name": "Collapse panel" } }
+      ]
+    },
+    {
+      "name": "map-sheet-collapsed",
+      "group": "map",
+      "path": "/map",
+      "viewports": ["phone"],
+      "steps": [
+        { "click": { "role": "button", "name": "Expand panel" } },
+        { "click": { "role": "button", "name": "Collapse panel" } },
+        { "waitFor": { "role": "button", "name": "Open panel" } }
+      ]
+    }
+  ]
+}

@@ -65,9 +65,10 @@ Documentation for major features and implementations.
 
 Resources for developers contributing to the project.
 
-| Document                                   | Description                           |
-| ------------------------------------------ | ------------------------------------- |
-| [Fixes Applied](_archive/FIXES_APPLIED.md) | History of bug fixes and improvements |
+| Document                                   | Description                              |
+| ------------------------------------------ | ---------------------------------------- |
+| [Fixes Applied](_archive/FIXES_APPLIED.md) | History of bug fixes and improvements    |
+| [Device Testing](guides/DEVICE_TESTING.md) | Screenshots of the app in a real browser |
 
 ## Documentation by Audience
 

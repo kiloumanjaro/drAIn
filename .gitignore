@@ -51,6 +51,9 @@ CLAUDE.
 /test-results/
 /playwright-report/
 
+# Page screenshots from pnpm shots / pnpm screenshot (docs/guides/DEVICE_TESTING.md)
+/screenshots/
+
 # copilot-instructions.md
 .github/copilot-instructions.md
 
