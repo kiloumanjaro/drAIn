@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SYSTEM_INSTRUCTION } from '@/lib/chatbot/prompts';
-import { MAX_BODY_BYTES, parseChatRequest } from '@/lib/chatbot/request';
+import {
+  readHistorySecret,
+  signReply,
+  verifyReply,
+} from '@/lib/chatbot/history-signature';
+import {
+  MAX_BODY_BYTES,
+  parseChatRequest,
+  trustedHistory,
+} from '@/lib/chatbot/request';
 import { looksLikeLiveJwt } from '@/lib/chatbot/token';
 import { readTextCapped } from '@/lib/http/read-body';
 import { createRequestClient } from '@/lib/supabase/server';
@@ -9,8 +18,15 @@ import { createRequestClient } from '@/lib/supabase/server';
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-/** A reply long enough for any answer the assistant should give. */
+/**
+ * A reply long enough for any answer the assistant should give. One this
+ * long comes back as an assistant turn, so MAX_REPLY_CHARS in
+ * lib/chatbot/request.ts is sized to it; raise the two together.
+ */
 const MAX_OUTPUT_TOKENS = 1024;
+
+/** Set once the missing-secret warning is logged, so it is logged once. */
+let warnedNoSecret = false;
 
 const signInRequired = () =>
   NextResponse.json(
@@ -91,11 +107,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // parsed.history is untrusted client input: the browser holds the
+  // conversation, "assistant" turns included. Only the assistant turns this
+  // server signed for this user reach the model as its own words, each with
+  // the question it answered; the rest are dropped. Without a secret nothing
+  // can be checked, so none are kept and the model gets the new message only.
+  const secret = readHistorySecret();
+  if (!secret && !warnedNoSecret) {
+    warnedNoSecret = true;
+    console.warn(
+      'CHATBOT_HISTORY_SECRET is unset or shorter than 32 characters. The assistant will be shown none of the earlier conversation, only the new message.'
+    );
+  }
+  const { history, input } = trustedHistory(
+    parsed.history,
+    parsed.input,
+    (content, sig) => !!secret && verifyReply(secret, user.id, content, sig)
+  );
+
   try {
     // The instructions go in as systemInstruction, apart from the
-    // conversation. parsed.history is untrusted client input (the browser
-    // holds the conversation, "assistant" turns included), so nothing in it
-    // may be given that standing.
+    // conversation, so nothing in the history can be given that standing.
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: SYSTEM_INSTRUCTION,
@@ -103,15 +135,20 @@ export async function POST(req: NextRequest) {
     });
     const result = await model.generateContent({
       contents: [
-        ...parsed.history.map((turn) => ({
+        ...history.map((turn) => ({
           role: turn.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: turn.content }],
         })),
-        { role: 'user', parts: [{ text: parsed.input }] },
+        { role: 'user', parts: [{ text: input }] },
       ],
     });
 
-    return NextResponse.json({ text: result.response.text() });
+    // Signed exactly as sent: the app keeps this string untouched and sends
+    // it back as an assistant turn, and a changed character fails the check.
+    const text = result.response.text();
+    return NextResponse.json(
+      secret ? { text, sig: signReply(secret, user.id, text) } : { text }
+    );
   } catch (error) {
     // The provider's message can carry request details; log it, don't
     // return it.

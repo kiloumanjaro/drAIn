@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/context/auth-provider';
-import { MAX_MESSAGE_CHARS } from '@/lib/chatbot/request';
+import { MAX_MESSAGE_CHARS, historyToSend } from '@/lib/chatbot/request';
 import { CharCount } from '@/components/common/char-count';
 
 // The control panel loads this tab up front, so the Markdown renderer is
@@ -21,6 +21,11 @@ interface Message {
   role: 'user' | 'bot';
   content: string;
   timestamp: Date;
+  /**
+   * On a reply from the server: the signature it came with, sent back with
+   * the reply so the server knows the reply is its own.
+   */
+  sig?: string;
 }
 
 export function ChatbotView() {
@@ -60,10 +65,8 @@ export function ChatbotView() {
 
     try {
       // Who said what, as structured turns; the server trims it further.
-      const history = messages.slice(-6).map((msg) => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content,
-      }));
+      // The greeting and the apology below carry no signature and stay here.
+      const history = historyToSend(messages);
 
       const res = await fetch('/api/chatbot', {
         method: 'POST',
@@ -74,7 +77,11 @@ export function ChatbotView() {
         body: JSON.stringify({ input, history }),
       });
 
-      const payload = (await res.json()) as { text?: string; error?: string };
+      const payload = (await res.json()) as {
+        text?: string;
+        sig?: string;
+        error?: string;
+      };
 
       if (!res.ok || !payload.text) {
         throw new Error(payload.error ?? `Request failed (${res.status})`);
@@ -84,6 +91,7 @@ export function ChatbotView() {
         role: 'bot',
         content: payload.text,
         timestamp: new Date(),
+        sig: payload.sig,
       };
 
       setMessages((prev) => [...prev, botMessage]);
