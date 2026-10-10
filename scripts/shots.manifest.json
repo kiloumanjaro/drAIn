@@ -1,58 +1,124 @@
 {
   "defaults": {
-    "soft": [".mapboxgl-canvas"],
-    "ignoreText": ["^\\d{1,2}:\\d{2}\\s?[AP]M$"]
+    "soft": [".mapboxgl-canvas"]
   },
   "pages": [
-    { "name": "home", "group": "home", "path": "/" },
-
-    { "name": "auth-login", "group": "auth", "path": "/login" },
-    { "name": "auth-signup", "group": "auth", "path": "/signup" },
-
-    { "name": "map", "group": "map", "path": "/map" },
-    { "name": "map-chatbot", "group": "map", "path": "/map?activetab=chatbot" },
-    { "name": "map-stats", "group": "map", "path": "/map?activetab=stats" },
+    {
+      "name": "home",
+      "group": "home",
+      "path": "/"
+    },
+    {
+      "name": "auth-login",
+      "group": "auth",
+      "path": "/login"
+    },
+    {
+      "name": "auth-signup",
+      "group": "auth",
+      "path": "/signup"
+    },
+    {
+      "name": "map",
+      "group": "map",
+      "path": "/map",
+      "still": 2500
+    },
+    {
+      "name": "map-chatbot",
+      "group": "map",
+      "path": "/map?activetab=chatbot",
+      "ignoreText": ["^\\d{1,2}:\\d{2}\\s?[AP]M$"],
+      "still": 2500
+    },
+    {
+      "name": "map-stats",
+      "group": "map",
+      "path": "/map?activetab=stats",
+      "still": 2500
+    },
     {
       "name": "map-simulations",
       "group": "map",
-      "path": "/map?activetab=simulations"
+      "path": "/map?activetab=simulations",
+      "still": 2500
     },
-    { "name": "map-report", "group": "map", "path": "/map?activetab=report" },
-    { "name": "map-admin", "group": "map", "path": "/map?activetab=admin" },
-    { "name": "map-profile", "group": "map", "path": "/map?activetab=profile" },
+    {
+      "name": "map-report",
+      "group": "map",
+      "path": "/map?activetab=report",
+      "still": 2500
+    },
+    {
+      "name": "map-admin",
+      "group": "map",
+      "path": "/map?activetab=admin",
+      "still": 2500
+    },
+    {
+      "name": "map-profile",
+      "group": "map",
+      "path": "/map?activetab=profile",
+      "still": 2500
+    },
+    {
+      "name": "map-unknown-tab",
+      "group": "map",
+      "path": "/map?activetab=no-such-tab",
+      "still": 2500
+    },
     {
       "name": "map-component",
       "group": "map",
       "path": "/map?component=<id>&type=<type>",
-      "param": "a component id and its type (inlets, outlets, storm_drains, man_pipes) from public/drainage/*.geojson"
+      "param": "a component id and its type (inlets, outlets, storm_drains, man_pipes) from public/drainage/*.geojson",
+      "still": 2500
     },
-
-    { "name": "simulation", "group": "simulation", "path": "/simulation" },
+    {
+      "name": "simulation",
+      "group": "simulation",
+      "path": "/simulation",
+      "still": 2500
+    },
     {
       "name": "simulation-active",
       "group": "simulation",
-      "path": "/simulation?active=true"
+      "path": "/simulation?active=true",
+      "still": 2500
     },
     {
       "name": "simulation-model2",
       "group": "simulation",
-      "path": "/simulation?active=true&simModel=model2"
+      "path": "/simulation?active=true&simModel=model2",
+      "still": 2500
     },
     {
       "name": "simulation-model3",
       "group": "simulation",
-      "path": "/simulation?active=true&simModel=model3"
+      "path": "/simulation?active=true&simModel=model3",
+      "still": 2500
     },
-
-    { "name": "dashboard", "group": "dashboard", "path": "/dashboard" },
-
-    { "name": "docs", "group": "docs", "path": "/docs" },
+    {
+      "name": "dashboard",
+      "group": "dashboard",
+      "path": "/dashboard",
+      "still": 2500
+    },
+    {
+      "name": "docs",
+      "group": "docs",
+      "path": "/docs"
+    },
     {
       "name": "docs-features",
       "group": "docs",
       "path": "/docs?section=features"
     },
-    { "name": "docs-users", "group": "docs", "path": "/docs?section=users" },
+    {
+      "name": "docs-users",
+      "group": "docs",
+      "path": "/docs?section=users"
+    },
     {
       "name": "docs-reports",
       "group": "docs",
@@ -88,15 +154,27 @@
       "group": "docs",
       "path": "/docs?section=limitations"
     },
-    { "name": "docs-demo", "group": "docs", "path": "/docs?section=demo" },
+    {
+      "name": "docs-demo",
+      "group": "docs",
+      "path": "/docs?section=demo"
+    },
+    {
+      "name": "docs-unknown-section",
+      "group": "docs",
+      "path": "/docs?section=no-such-section"
+    },
     {
       "name": "docs-compare",
       "group": "docs",
       "path": "/docs?section=reports&compareEvent=<event>",
       "param": "the link the app's own event widget builds (components/shell/event-widget.tsx)"
     },
-
-    { "name": "system-not-found", "group": "system", "path": "/no-such-page" }
+    {
+      "name": "system-not-found",
+      "group": "system",
+      "path": "/no-such-page"
+    }
   ],
   "states": [
     {
@@ -109,7 +187,36 @@
             "selector": "button[data-sidebar=\"menu-button\"][aria-haspopup=\"menu\"]"
           }
         },
-        { "waitFor": { "role": "menu" } }
+        {
+          "waitFor": {
+            "role": "menu"
+          }
+        }
+      ],
+      "minWidth": 768
+    },
+    {
+      "name": "home-user-menu-phone",
+      "group": "home",
+      "path": "/",
+      "maxWidth": 767,
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Open navigation"
+          }
+        },
+        {
+          "click": {
+            "selector": "button[data-sidebar=\"menu-button\"][aria-haspopup=\"menu\"]"
+          }
+        },
+        {
+          "waitFor": {
+            "role": "menu"
+          }
+        }
       ]
     },
     {
@@ -117,9 +224,19 @@
       "group": "dashboard",
       "path": "/dashboard",
       "steps": [
-        { "click": { "role": "tab", "name": "All Reports" } },
-        { "waitFor": { "role": "tab", "name": "All Reports" } }
-      ]
+        {
+          "click": {
+            "role": "tab",
+            "name": "All Reports"
+          }
+        },
+        {
+          "waitFor": {
+            "selector": "[role=\"tab\"][data-state=\"active\"]:has-text(\"All Reports\")"
+          }
+        }
+      ],
+      "still": 2500
     },
     {
       "name": "dashboard-nav-drawer",
@@ -127,9 +244,20 @@
       "path": "/dashboard",
       "viewports": ["phone"],
       "steps": [
-        { "click": { "role": "button", "name": "Open navigation" } },
-        { "waitFor": { "text": "Documentation", "exact": true } }
-      ]
+        {
+          "click": {
+            "role": "button",
+            "name": "Open navigation"
+          }
+        },
+        {
+          "waitFor": {
+            "text": "Documentation",
+            "exact": true
+          }
+        }
+      ],
+      "still": 2500
     },
     {
       "name": "docs-section-list",
@@ -138,9 +266,15 @@
       "viewports": ["phone"],
       "steps": [
         {
-          "click": { "selector": "button[aria-controls=\"docs-section-list\"]" }
+          "click": {
+            "selector": "button[aria-controls=\"docs-section-list\"]"
+          }
         },
-        { "waitFor": { "label": "Search the documentation sections" } }
+        {
+          "waitFor": {
+            "label": "Search the documentation sections"
+          }
+        }
       ]
     },
     {
@@ -149,9 +283,20 @@
       "path": "/map",
       "viewports": ["phone"],
       "steps": [
-        { "click": { "role": "button", "name": "Expand panel" } },
-        { "waitFor": { "role": "button", "name": "Collapse panel" } }
-      ]
+        {
+          "click": {
+            "role": "button",
+            "name": "Expand panel"
+          }
+        },
+        {
+          "waitFor": {
+            "role": "button",
+            "name": "Collapse panel"
+          }
+        }
+      ],
+      "still": 2500
     },
     {
       "name": "map-sheet-collapsed",
@@ -159,10 +304,26 @@
       "path": "/map",
       "viewports": ["phone"],
       "steps": [
-        { "click": { "role": "button", "name": "Expand panel" } },
-        { "click": { "role": "button", "name": "Collapse panel" } },
-        { "waitFor": { "role": "button", "name": "Open panel" } }
-      ]
+        {
+          "click": {
+            "role": "button",
+            "name": "Expand panel"
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Collapse panel"
+          }
+        },
+        {
+          "waitFor": {
+            "role": "button",
+            "name": "Open panel"
+          }
+        }
+      ],
+      "still": 2500
     }
   ]
 }

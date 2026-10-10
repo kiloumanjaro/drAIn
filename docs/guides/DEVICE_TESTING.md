@@ -17,7 +17,8 @@ remote-debugging port. A page's "deep link" is its URL.
 | `/shots <group>`              | Claude command: shoot a group and write `REPORT-<group>.md`        |
 | `screenshots/`                | Output: one folder per run, and `baseline/`. Not in git            |
 
-The two commands live in `.claude/commands/` in the folder above this repo.
+The two commands are kept in `docs/guides/commands/`. Claude loads them from
+`.claude/commands/` in the folder above this repo, which holds a copy.
 
 Everything on this page was run on this machine on 2026-10-10 unless it is
 marked _not verified here_.
@@ -67,23 +68,26 @@ here._
 Port 3056, not 3055: `pnpm test:e2e` reuses whatever answers on 3055, and
 would run against a stale build left there.
 
-`pnpm shots:build` is `pnpm build` plus `pnpm shots --stamp-build`, which
-writes `.next/shots-build.json`: the commit, a fingerprint of uncommitted app
-source, and the Supabase and simulation-server origins that were built in
-(`NEXT_PUBLIC_*` values are fixed at build time). The preflight compares the
-stamp with the working tree:
+`pnpm shots:build` records the app source, runs `pnpm build`, and then writes
+`.next/shots-build.json`: the commit, a fingerprint of the content of every
+app source file, and the Supabase and simulation-server origins that were
+built in (`NEXT_PUBLIC_*` values are fixed at build time). It refuses to stamp
+if the source or `.env.local` changed while the build ran.
 
-| Build age | Means                                                         |
-| --------- | ------------------------------------------------------------- |
-| `CURRENT` | Same commit, same uncommitted app changes                     |
-| `STALE`   | The commit moved, or app source changed since. Rebuild        |
-| `UNKNOWN` | Built with plain `pnpm build`, so there is nothing to compare |
-| `N/A`     | A dev server, or not the build in `.next`                     |
+| Build age | Means                                                               |
+| --------- | ------------------------------------------------------------------- |
+| `CURRENT` | The build was made from the source as it is now                     |
+| `STALE`   | App source or `.env.local` changed since. Rebuild                   |
+| `UNKNOWN` | Built with plain `pnpm build`, so there is nothing to compare       |
+| `N/A`     | A dev server, or a server started before the last build: restart it |
+
+**A batch refuses to run unless the build is `CURRENT`.** `--allow-stale`
+overrides that, and is how to shoot the dev server:
+`pnpm shots --allow-stale --base-url http://localhost:3055 ...`.
 
 Changes under `docs/`, `scripts/`, `e2e/`, `supabase/` and to `*.md` files do
-not count as app source.
-
-To shoot the dev server anyway: `pnpm shots --base-url http://localhost:3055 ...`.
+not count as app source. An edit anywhere else does, a new untracked folder
+included.
 
 ### How the app reaches the local backend
 
@@ -94,10 +98,14 @@ translate: it calls Supabase at `http://127.0.0.1:54321` directly, as
 - Plain HTTP is allowed because `next.config.ts` leaves
   `upgrade-insecure-requests` out when Supabase is local, and lists the
   Supabase origin in the content security policy.
-- Open the app as `http://localhost:3056`, always. The session is a cookie,
-  and `localhost` and `127.0.0.1` are different sites to the browser.
-- **A batch refuses to run when the app's Supabase is not local**, like
-  `scripts/check-write-paths.mjs`. `--allow-hosted` overrides it.
+- Open the app as `http://localhost:3056`, always. The session is kept in
+  the browser's storage for that exact origin, so `localhost` and `127.0.0.1`
+  are signed in separately.
+- **A batch refuses to run when the app or its Supabase is not local**, like
+  `scripts/check-write-paths.mjs`. It asks the running app, not a file: the
+  Supabase origin is read from the content security policy the app sends, and
+  a page that calls a Supabase elsewhere stops the batch. `--allow-hosted`
+  overrides it.
 - The simulation server is separate. `.env.local` points
   `NEXT_PUBLIC_BACKEND_URL` at the hosted one; no page in the manifest
   contacted it on load. To use a local one, run
@@ -110,71 +118,112 @@ translate: it calls Supabase at `http://127.0.0.1:54321` directly, as
 ## Shooting
 
 ```bash
-pnpm shots --group docs                       # every docs page in the manifest
-pnpm shots --group all --states --as guest    # everything, with states
-pnpm shots home= login=login                  # pages by hand
+pnpm shots --group docs                 # every docs page in the manifest
+pnpm shots --group all --states --scroll   # everything, with states
+pnpm shots home= login=login            # pages by hand
 ```
 
 A run folder (`screenshots/<date>_<time>_<viewport>/`, or `--run <folder>`)
 holds:
 
 - `<name>.png`; `<name>--scrolled.png` with `--scroll` if the page moved;
-  `<name>--diff.png` when the page changed (the capture greyed out, differing
-  pixels red).
-- `results.json`: per capture the status (`ok`, `redirected`, `blank`,
-  `crashed`, `left-app`, `error`, `state-error`), HTTP status, where it ended
-  up, seconds taken, `changed` and `diffRatio`, `sameAs`, the page text, hosts
-  contacted, failed requests, uncaught and console errors. Keys and tokens in
-  any of that text are replaced with `<redacted>`.
+  `<name>--diff.png` when it changed (the capture greyed out, differing pixels
+  red).
+- `results.json`. Per run: `complete`, and one record per runner call in
+  `batches` (who was signed in, the build, what was planned). Per capture: the
+  status (`ok`, `redirected`, `blank`, `crashed`, `left-app`, `error`,
+  `state-error`, `http-error`), `changed` and `changedBecause`, per-image
+  pixel counts and where they are (`boxes`), `sameAs`, the page text, hosts
+  contacted, failed and write requests, uncaught and console errors. Keys and
+  tokens in any of it are replaced with `<redacted>`.
 - `index.html`: a contact sheet.
 
-Timings here, at laptop size: a plain page about 2.5 s, a map page 7 to 10 s,
-all 29 captures 3 min 37 s.
+**Exit code**: 0 when every capture was taken, changed or not. 1 when the run
+was refused or interrupted, or a capture failed. A run that was killed has
+`complete: false`; do not read its results as a finished run.
+
+Timings here, at laptop size, with nothing else running: a plain page about
+3 s, a map page 7 to 10 s, all 31 captures about 4 minutes. With another
+session loading the machine, map pages were slower and less reliable.
 
 ### When a page is captured
 
 No fixed sleeps. A page is captured once all of these hold together: its text
 is non-empty and the same on two polls in a row; no request has been in flight
-for half a second; and every capture over a full second is identical. Text
-alone is not enough here: the map page's text holds still on "Loading Map..."
-while it loads.
+for half a second; and every capture over a full second is identical (2.5 s
+on map pages, set by `still` in the manifest). Text alone is not enough here:
+the map page's text holds still on "Loading Map..." while it loads.
 
 If that never happens within `--timeout` (default 30 s) the page is captured
-anyway, with `settled: false` and what it was waiting on.
+anyway, with `settled: false` and what it was waiting on. A page that stops
+answering altogether becomes an `error` after a longer deadline, and the run
+carries on in a new tab.
 
 ### What changed
 
-Each capture is compared with `screenshots/baseline/<viewport>/<name>.png`:
-`new` (no baseline), `unchanged` or `changed`.
+Each capture is compared with the baseline in
+`screenshots/baseline/<viewport>/`: `new`, `unchanged` or `changed`, with the
+reasons in `changedBecause`.
 
 ```bash
-pnpm shots --accept <run>            # that run becomes the baseline
+pnpm shots --accept <run>            # its new and changed captures become the baseline
 pnpm shots --accept <run> docs home  # only those pages
+pnpm shots --group map --against <run>   # compare with another run instead
 ```
 
-Nothing else moves the baseline, so a regression stays "changed" until it is
-fixed or accepted.
+Nothing but `--accept` moves the baseline, so a regression stays "changed"
+until it is fixed or accepted. What `--accept` replaces is kept under
+`baseline/<viewport>/.history/`. It leaves out any capture that was not
+settled, failed, was shot with the role unchecked, in a run that was cut
+short, or on a build that was not current; `--force` takes those too.
 
-- A pixel differs when a colour channel is off by more than 24 of 255. A page
-  changed when more than 0.1% of its pixels differ; a manifest entry can set
-  its own `tolerance`.
-- `soft` selectors (default: the map canvas) mark where a small shift is not a
-  change. The map is drawn a fraction of a pixel off from one load to the
-  next, so there a pixel only counts when nothing within 2 pixels of it
-  matches. This applies only where the map is the topmost thing on screen, not
-  to panels over it.
-- `ignoreText` patterns (default: a clock time such as "10:19 AM") and
-  `ignore` selectors leave an element out of the comparison altogether.
-- Measured with no code change: the 12 map, simulation and dashboard captures
-  re-shot four times, and all 29 once, gave no false "changed". A one-line
-  size change to the not-found heading flagged that page and no other.
-- **Duplicates.** A page whose text equals an earlier page's in the run gets
-  no second image, only `sameAs`. That is how a redirect or a default tab
-  shows.
+Three things are compared:
 
-What it does not catch: a change below the first screen unless `--scroll` is
-on, anything inside an ignored element, and a shift of 2 pixels or less on
-the map itself.
+- **Pixels.** Outside the map a pixel differs when a colour channel is off by
+  more than 4 of 255, and a capture changed when more than 12 pixels differ.
+  These are counts, not a share of the screen, so one changed icon counts. A
+  manifest entry can set its own `tolerance` (pixels).
+- **The map.** `soft` selectors (default: the map canvas) mark where a small
+  shift is not a change: the map is drawn a fraction of a pixel off from one
+  load to the next. There a pixel counts only when it has no match within 2
+  pixels in either direction, and a capture changed when more than 250 such
+  pixels differ (`softTolerance`). This applies only where the map is the
+  topmost thing on screen, not to panels over it.
+- **Text, and where the page ended up.** The page's whole text, its status,
+  final URL and HTTP status are kept with the baseline. A difference is a
+  change even when the first screen looks the same, which covers text below
+  the fold. Clock times and "Updated ... ago" are masked.
+
+Before a capture is reported as changed it is **shot a second time**. A change
+in the app is there on every load; a map caught without its tiles is not.
+`retried: true` marks these, with what the first attempt saw.
+
+`ignore` selectors and `ignoreText` patterns leave an element, or the text
+itself, out of the pixel comparison (the chatbot's message time uses this).
+
+**Duplicates.** A page whose text equals an earlier page's in the same batch
+is recorded `sameAs` it. It gets no image of its own only if it never had
+one: a page that used to be its own screen and now shows another's is
+captured, compared and reported as changed.
+
+Checked here with doctored copies of a run: a colour shift of (6, 9, 5) on a
+16x16 block, a blanked 32x32 block, a 2-pixel line across the map, and a page
+made to show another page's content each read `changed`, with a box on the
+right spot.
+
+What it does not catch:
+
+- A pixel change below the first screen that changes no text, unless
+  `--scroll` is on (one scroll step only).
+- Anything inside an ignored element; a shift of 2 pixels or less on the map.
+- **A map tile that does not arrive.** The base map comes from Mapbox over the
+  network, fetched by a worker the runner cannot see. A capture can settle
+  without a tile and then reads `changed` against a baseline that had it (or
+  the other way round, if the baseline was the unlucky one). Seen here on 1
+  of 31 captures while another session was loading the machine. Open the diff
+  image: a missing tile is a solid block on the map, not a UI change.
+- The local database and today's date. Data pages change when the data does;
+  nothing pins the seed or the clock.
 
 ### Comparable runs
 
@@ -185,10 +234,10 @@ failure. So captures show the app's reduced-motion rendering.
 - `--font-scale 1.5` scales the browser's default font size for the run (the
   equivalent of a phone's larger-text setting), restores it, and compares
   against its own baseline folder.
-- `--clear` clears the app's cookies and storage once, before the first page.
-  That signs the browser out.
 - `--run <folder>` adds to an existing run folder, so one report can cover
-  batches shot as different users.
+  batches shot as different users. It refuses a folder shot at another size,
+  font scale or base URL.
+- `--stop-after` closes the browser when the batch ends.
 
 ## The manifest
 
@@ -205,8 +254,11 @@ name, and with it its baseline, from run to run.
 
 Optional per entry: `needs` (the lowest role it is of use to), `param` (a
 value the URL needs and where a real one comes from; such pages are listed as
-not shot), `tolerance`, `ignore`, `ignoreText`, `soft`. `defaults` at the top
-applies to every entry.
+not shot), `tolerance` and `softTolerance` (pixels), `still` (milliseconds),
+`ignore`, `ignoreText`, `soft`, and `minWidth`/`maxWidth` or `viewports` for
+something that exists only at some sizes. `defaults` at the top applies to
+every entry. A page given on the command line or in a `--pages` file takes the
+defaults but can never carry `steps`.
 
 `/pages` finds routes in the source every time and reports what the manifest
 is missing or still lists. Never rename an entry: the baseline is keyed by
@@ -237,7 +289,14 @@ A state is a screen with no URL of its own. It is a page plus steps:
   `state-error` naming the step, and the capture shows where it stopped.
 - `viewports` limits a state to the sizes where it exists.
 - `"mutates": true` marks a state whose steps would change data. The runner
-  never runs those. Do not put a password in a `fill`.
+  never runs those; they are listed as not shot. To capture a confirmation
+  dialog, write an ordinary state that stops before the confirming click.
+- While steps run, writes that would leave this machine (anything but a read
+  to a non-local host) and calls to the chatbot are blocked and listed in
+  `blockedRequests`. Writes to the local database go through and are listed
+  in `writeRequests`.
+- A `fill` into a password field is refused, and a failed `fill` shows the
+  length of its value, never the value.
 - End with a `waitFor` for what the last click causes.
 
 ## Signing in
@@ -249,35 +308,42 @@ session is put into the browser once, and the runs after that use it.
 The script never signs in and never reads or prints a password, token or key.
 From `.env.local` it reads two URLs and whether two values are set.
 
-With a short script, the account passed in the environment so it is never
-written down. Save it inside `screenshots/` (ignored by git) and delete it
-afterwards:
+Sign in by hand, in a real window:
 
-```js
-// screenshots/act.mjs  ->  SHOTS_EMAIL=... SHOTS_PASSWORD=... node screenshots/act.mjs
-import { attach } from '../scripts/screenshot.mjs';
-
-const { browser, page } = await attach();
-await page.goto('http://localhost:3056/login');
-await page.getByLabel('Email').fill(process.env.SHOTS_EMAIL);
-await page.getByLabel('Password').fill(process.env.SHOTS_PASSWORD);
-await page.getByRole('button', { name: 'Log In' }).click();
-await page.waitForURL('http://localhost:3056/');
-await browser.close(); // disconnects; the browser and the page stay
+```bash
+pnpm shots --stop-browser
+pnpm shots --start-browser --headed
+# sign in at http://localhost:3056/login, then:
+pnpm shots --stop-browser
+pnpm shots --start-browser --viewport laptop
 ```
 
-Or by hand: `pnpm shots --stop-browser`, `pnpm shots --start-browser --headed`,
-sign in at `http://localhost:3056/login`, stop it, and start it headless at
-the size you want. _Not verified here._
+_Not verified here._ The session survives the restart: it is in the browser's
+profile. The local database has seeded accounts for each role
+(`supabase/seed.sql`). An agent should not type or look up a password; a
+password given on a command line ends up in the shell history and the
+transcript.
 
-The local database has seeded accounts for each role (`supabase/seed.sql`).
+Sign out with `pnpm shots --clear` (cookies and storage for the app's origin
+only), or wipe the whole profile with `pnpm shots --forget-profile`.
 
-**`--as <role>` is checked.** Before the first page the runner loads one page
-and reads the role from the profile the app itself fetches (the response
-body only; no cookie or token). `--as staff` in a browser signed in as a
-citizen, or signed out, stops the batch. Signed in, page names gain the role
-(`map-profile@citizen`), so each role has its own baseline. Checked here as
-guest and citizen; _staff and admin not verified here._
+**`--as <role>` is always checked**, and defaults to `guest`. Before the first
+page the runner loads one page and looks at two things: the role in the
+profile the app itself fetches (the response body only), and whether the
+browser's storage holds a Supabase session entry (its name only, never its
+contents).
+
+| It sees                                             | Result                     |
+| --------------------------------------------------- | -------------------------- |
+| A profile with a role                               | That role                  |
+| No profile asked for, nothing stored, page settled  | `guest`                    |
+| Anything else (session stored but no profile, etc.) | `unknown`: the batch stops |
+
+A role other than the one given stops the batch. Signed in, every capture's
+name gains the role (`map-profile@citizen`), however the page was named, so
+one role's capture is never compared with, or accepted over, another's.
+Checked here signed out; _signed-in roles not re-verified since this check was
+rewritten._
 
 ## Typing and clicking from the command line
 
@@ -306,4 +372,12 @@ Quirks:
   `screenshots/`. Delete it when done.
 - **The debugging port (9222) has no password.** While the browser runs, any
   program on this machine can drive it, signed-in session included. Stop it
-  when done: `pnpm shots --stop-browser`.
+  when done: `pnpm shots --stop-browser`, or pass `--stop-after` to a batch.
+- **Only its own browser.** The runner drives, signs out and closes a browser
+  only if it is the one it started from this folder (it compares the port's
+  endpoint with the one written in its profile). Anything else on the port is
+  refused. `SHOTS_CDP_URL` and `SHOTS_BASE_URL` move the two ports, which is
+  how two checkouts run side by side.
+- **A frozen browser.** Under heavy load the browser can stop answering.
+  A capture then fails after its deadline, and `--stop-browser` ends the
+  process it started when asking it to close gets no reply.

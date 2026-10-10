@@ -15,7 +15,7 @@
     "test:e2e": "playwright test",
     "screenshot": "node scripts/screenshot.mjs",
     "shots": "node scripts/shots.mjs",
-    "shots:build": "next build --turbopack && node scripts/shots.mjs --stamp-build",
+    "shots:build": "node scripts/shots.mjs --stamp-build --begin && next build --turbopack && node scripts/shots.mjs --stamp-build",
     "prepare": "husky"
   },
   "dependencies": {

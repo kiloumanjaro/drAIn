@@ -21,6 +21,13 @@ export const CDP_URL = process.env.SHOTS_CDP_URL ?? 'http://127.0.0.1:9222';
 export const SHOTS_DIR = fileURLToPath(
   new URL('../screenshots', import.meta.url)
 );
+// Under node_modules so git, ESLint, Prettier and tsc all leave it alone. It
+// holds the browser's storage, which is where a signed-in session lives.
+export const PROFILE_DIR = fileURLToPath(
+  new URL('../node_modules/.cache/shots-browser-profile', import.meta.url)
+);
+/** Written by Chromium into its profile: the port, then its endpoint path. */
+export const ENDPOINT_FILE = path.join(PROFILE_DIR, 'DevToolsActivePort');
 
 /** A file-safe name: lower case, with anything unusual turned into a dash. */
 export const sanitise = (name) =>
@@ -31,23 +38,52 @@ export const sanitise = (name) =>
     .replace(/^[-.]+|[-.]+$/g, '')
     .slice(0, 80);
 
-/** The attached browser's version string, or null when none is listening. */
-export async function browserVersion() {
+/**
+ * What answers on the debugging port: null when nothing does, else its
+ * version and whether it is the shots browser. Any Chromium started with the
+ * same port would answer; ours is the one whose endpoint matches what it
+ * wrote into our profile folder. Everything that signs out, closes or drives
+ * the browser checks `ours` first.
+ */
+export async function browserInfo() {
+  let info;
   try {
     const res = await fetch(`${CDP_URL}/json/version`, {
       signal: AbortSignal.timeout(1500),
     });
-    return res.ok ? ((await res.json()).Browser ?? 'unknown') : null;
+    if (!res.ok) return null;
+    info = await res.json();
   } catch {
     return null;
   }
+  let endpoint = null;
+  try {
+    endpoint = fs.readFileSync(ENDPOINT_FILE, 'utf8').split(/\r?\n/)[1];
+  } catch {
+    // No file: no shots browser has been started from this folder.
+  }
+  return {
+    version: info.Browser ?? 'unknown',
+    ours: !!endpoint && String(info.webSocketDebuggerUrl).endsWith(endpoint),
+  };
 }
 
+/** The attached browser's version string, or null when none is listening. */
+export const browserVersion = async () =>
+  (await browserInfo())?.version ?? null;
+
+export const NOT_OURS =
+  `The browser at ${CDP_URL} was not started by pnpm shots from this folder. ` +
+  'Close it, or set SHOTS_CDP_URL to another port.';
+
 /**
- * Connect to the running browser. `browser.close()` on the result only
+ * Connect to the running shots browser. `browser.close()` on the result only
  * disconnects: the browser, its tab and its session stay as they were.
  */
 export async function attach() {
+  const info = await browserInfo();
+  if (!info) throw new Error(`No browser attached at ${CDP_URL}.`);
+  if (!info.ours) throw new Error(NOT_OURS);
   const browser = await chromium.connectOverCDP(CDP_URL);
   const context = browser.contexts()[0];
   if (!context) throw new Error('The browser has no default profile open.');
@@ -103,9 +139,12 @@ async function main() {
     console.log(USAGE);
     return 0;
   }
-  if (!(await browserVersion())) {
+  const info = await browserInfo();
+  if (!info?.ours) {
     console.error(
-      `No browser attached at ${CDP_URL}. Start one: pnpm shots --start-browser`
+      info
+        ? NOT_OURS
+        : `No browser attached at ${CDP_URL}. Start one: pnpm shots --start-browser`
     );
     return 1;
   }
