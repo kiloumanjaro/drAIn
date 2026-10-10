@@ -3,38 +3,45 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { latestFloodEvent, stripPrefix } from '@/lib/docs/flood-events';
+import { useFloodEvents } from '@/lib/query/hooks/use-flood-events';
 
-const LATEST_HEADLINE = 'Flash Flood of Nov 14, 2025';
-
-const comparisonEvent = {
-  eventName: 'NEW EVENT: Flash Flood of Nov 14, 2025',
-  summary:
-    'A sudden, intense downpour from a localized thunderstorm caused unexpected flooding in Barangay Tipolo.',
-  data: {
-    Time: '4:30 PM',
-    'Estimated Rainfall': '30mm in 1 hour',
-    'Affected Areas': 'Brgy. Tipolo, near the San Miguel complex.',
-    'Initial Impact': 'Moderate traffic disruption, stranded commuters.',
-  },
-};
-
-const DOCS_HREF = `/docs?section=reports&compareEvent=${encodeURIComponent(
-  JSON.stringify(comparisonEvent)
-)}`;
+const DOCS_HREF = '/docs?section=reports';
 
 export default function WidgetTrigger() {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const { data: events, isPending } = useFloodEvents();
   // Keyboard focus opens the headline the same way the mouse does, so the
   // link is never focused while its text is hidden.
   const expanded = hovered || focused;
+
+  // While the events load, hold the widget's place below md, where the map
+  // style button sits right under it: otherwise that button drops by the
+  // widget's height when the events arrive, and a tap aimed at it lands on
+  // this link. From md up the button is pinned to the bottom, so no slot.
+  if (isPending) {
+    return (
+      <span
+        aria-hidden
+        className="pointer-events-none block h-9 w-9 md:hidden"
+      />
+    );
+  }
+
+  // Nothing to announce when the events fail to load or there are none: the
+  // widget is simply absent.
+  const latest = events ? latestFloodEvent(events) : null;
+  if (!latest) return null;
+  const headline = stripPrefix(latest.eventName);
 
   return (
     <Link
       href={DOCS_HREF}
       prefetch={false}
-      aria-label={`Latest flood event: ${LATEST_HEADLINE}. Read the report`}
-      title={!expanded ? LATEST_HEADLINE : undefined}
+      aria-label={`Latest flood event: ${headline}. Read the report`}
+      // Stays on when expanded: a long headline is cut short there too.
+      title={headline}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}
@@ -61,7 +68,7 @@ export default function WidgetTrigger() {
         className="flex items-center self-stretch bg-white px-4 text-xs font-normal text-gray-600 transition-all duration-500 hover:text-gray-800"
         style={{ opacity: expanded ? 1 : 0, minWidth: '210px' }}
       >
-        <span className="truncate">{LATEST_HEADLINE}</span>
+        <span className="truncate">{headline}</span>
       </span>
     </Link>
   );

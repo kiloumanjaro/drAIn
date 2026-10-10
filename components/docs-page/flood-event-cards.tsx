@@ -10,6 +10,11 @@ import {
 } from '@/components/ui/tooltip';
 import DateBadge from './date-badge';
 import EventTimeline from './event-timeline';
+import {
+  latestCardIndex,
+  orderFloodEventCards,
+  stripPrefix,
+} from '@/lib/docs/flood-events';
 
 /** One historical flood event, as served by /api/reports. */
 export interface FloodEvent {
@@ -21,11 +26,6 @@ export interface FloodEvent {
 interface FloodEventCardsProps {
   events: FloodEvent[];
   comparisonEvent?: FloodEvent | null;
-}
-
-// Strips "Event N: " or "NEW EVENT: " prefix → e.g. "Flash Flood of July 1, 2016"
-function stripPrefix(name: string): string {
-  return name.replace(/^(Event\s+\d+|NEW\s+EVENT):\s*/i, '');
 }
 
 // Extracts { month: "Jul", day: "1" } from "...of July 1, 2016"
@@ -58,13 +58,17 @@ export default function FloodEventCards({
   events,
   comparisonEvent,
 }: FloodEventCardsProps) {
-  const allEvents = comparisonEvent ? [comparisonEvent, ...events] : events;
+  const allEvents = orderFloodEventCards(events, comparisonEvent);
+  // The latest recorded event is the first card unless an older or unrecorded
+  // comparison event has been put ahead of it.
+  const latestIdx = latestCardIndex(events, comparisonEvent);
 
   return (
     <TooltipProvider>
       <div className="grid grid-cols-1 gap-4">
         {allEvents.map((event, idx) => {
           const isComparison = !!comparisonEvent && idx === 0;
+          const isLatest = idx === latestIdx;
           const displayName = stripPrefix(event.eventName);
           const date = extractDate(event.eventName);
 
@@ -91,9 +95,11 @@ export default function FloodEventCards({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      {isComparison
+                      {isLatest
                         ? 'Latest flood event'
-                        : 'Historical flood event'}
+                        : isComparison
+                          ? 'Event from link'
+                          : 'Historical flood event'}
                     </p>
                   </TooltipContent>
                 </Tooltip>

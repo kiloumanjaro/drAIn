@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { flushSync } from 'react-dom';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -17,10 +17,10 @@ import {
 import { type FloodEvent } from '@/components/docs-page/flood-event-cards';
 import { isTextEntryTarget } from '@/lib/dom/is-text-entry-target';
 import {
-  isFloodEvent,
   parseCompareEventParam,
   parseSectionParam,
 } from '@/lib/docs/docs-params';
+import { useFloodEvents } from '@/lib/query/hooks/use-flood-events';
 import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 import { OverviewSection } from './sections/overview';
 import { ArchitectureSection } from './sections/architecture';
@@ -69,20 +69,11 @@ function DocsContent() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const [reportEvents, setReportEvents] = useState<FloodEvent[]>([]);
+  const { data: reportEvents = [] } = useFloodEvents();
 
-  useEffect(() => {
-    fetch('/api/reports')
-      .then((r) => r.json())
-      .then((data) =>
-        setReportEvents(
-          Array.isArray(data?.events) ? data.events.filter(isFloodEvent) : []
-        )
-      )
-      .catch((e) => console.error('Failed to load flood reports:', e));
-  }, []);
-
-  // The event to compare against, passed in the URL by the map.
+  // An event carried in the URL as `compareEvent`. The map widget no longer
+  // builds such links; the parameter is still read so that old links keep
+  // working. See parseCompareEventParam in lib/docs/docs-params.ts.
   const compareParam = searchParams.get('compareEvent');
   const comparisonEvent = useMemo<FloodEvent | null>(
     () => parseCompareEventParam(compareParam),
@@ -366,7 +357,8 @@ function DocsContent() {
 /**
  * Top-level `/docs` route. Wraps {@link DocsContent} in Suspense so the
  * component can read URL search params (`useSearchParams`) to preselect a
- * section / honour `?compareEvent=...` deep links from the EventWidget.
+ * section / honour old `?compareEvent=...` deep links (no longer built by
+ * the app; see parseCompareEventParam).
  */
 export default function Docs() {
   return (

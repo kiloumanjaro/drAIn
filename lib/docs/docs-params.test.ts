@@ -7,10 +7,13 @@ import {
 
 const IDS = ['overview', 'reports', 'tech-stack'] as const;
 
+// Made up, in the shape of an entry of data/mandaue_flood_reports.json. The
+// "%", "&" and "#" are there for the link test: each breaks a URL unless it
+// is encoded.
 const EVENT = {
-  eventName: 'NEW EVENT: Flash Flood of Nov 14, 2025',
+  eventName: 'NEW EVENT: Flash Flood & Landslide of March 3, 2031',
   summary: 'Rainfall was 100% above the monthly average.',
-  data: { Time: '4:30 PM', 'Estimated Rainfall': '30mm in 1 hour' },
+  data: { Time: '4:30 PM', 'Affected Areas': 'Brgy. Tipolo #2 & Subangdaku' },
 };
 
 describe('parseSectionParam', () => {
@@ -71,8 +74,9 @@ describe('parseCompareEventParam', () => {
     }
   );
 
-  it('reads the link the map widget builds', () => {
-    // widget-trigger.tsx encodes once; searchParams.get decodes once.
+  it('reads an event carried in a link', () => {
+    // The map widget no longer builds these, but links it once built are
+    // still about: encoded once there, decoded once by searchParams.get.
     const href = `/docs?section=reports&compareEvent=${encodeURIComponent(
       JSON.stringify(EVENT)
     )}`;
