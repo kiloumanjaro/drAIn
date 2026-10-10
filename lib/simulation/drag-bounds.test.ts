@@ -4,6 +4,7 @@ import {
   KEEP_VISIBLE_RIGHT_PART,
   KEEP_VISIBLE_TOP_PART,
   MAP_BUTTONS_STRIP,
+  MAP_BUTTONS_WIDTH,
   START_MARGIN,
   clampDragPosition,
   measureDragBounds,
@@ -227,17 +228,41 @@ describe('startPosition', () => {
     expect(table.originX + x).toBeGreaterThan(controlPanelRight);
   });
 
-  it('goes as far right as it fits on a tablet, wholly on screen', () => {
-    const screen = { viewportWidth: 768, viewportHeight: 1024 };
-    for (const floating of [table, panel]) {
-      const { x, y } = startPosition({ ...floating, ...screen });
-      const screenX = floating.originX + x;
-      expect(screenX + floating.minWidth).toBe(
-        screen.viewportWidth - MAP_BUTTONS_STRIP
-      );
-      expect(screenX).toBeGreaterThanOrEqual(floating.mapLeft);
+  // Below 1024px the panels are pinned across the top and these positions
+  // are not used, so this is the narrowest screen that matters.
+  describe('on the narrowest desktop (1024px; below it positions are not used, the panels are pinned)', () => {
+    const screen = { viewportWidth: 1024, viewportHeight: 768 };
+    const buttonsLeft = screen.viewportWidth - MAP_BUTTONS_STRIP;
+
+    it('starts a parameter panel clear of the control panel and the map buttons', () => {
+      const { x, y } = startPosition({ ...panel, ...screen });
+      const screenX = panel.originX + x;
+      expect(screenX).toBe(controlPanelRight + START_MARGIN);
+      expect(screenX + panel.minWidth).toBeLessThanOrEqual(buttonsLeft);
       expect(y).toBeGreaterThanOrEqual(START_MARGIN);
-    }
+    });
+
+    it('starts the table at the control panel, 9px into the strip and short of the buttons', () => {
+      // 500px does not fit in the 491px between the two. It went as far
+      // right as the strip allowed, 9px behind the control panel.
+      const { x, y } = startPosition({ ...table, ...screen });
+      const screenX = table.originX + x;
+      expect(screenX).toBe(controlPanelRight);
+      expect(screenX + table.minWidth - buttonsLeft).toBe(9);
+      expect(screenX + table.minWidth).toBeLessThan(
+        screen.viewportWidth - MAP_BUTTONS_WIDTH
+      );
+      expect(y).toBeGreaterThanOrEqual(START_MARGIN);
+    });
+
+    it('gives up the margin beside the control panel before any of the strip', () => {
+      // From 1033px the table fits between the two; the margin returns in
+      // full at 1053px.
+      const { x } = startPosition({ ...table, ...screen, viewportWidth: 1040 });
+      const screenX = table.originX + x;
+      expect(screenX + table.minWidth).toBe(1040 - MAP_BUTTONS_STRIP);
+      expect(screenX).toBeGreaterThan(controlPanelRight);
+    });
   });
 
   it('never starts left of the map area, however narrow the screen', () => {
