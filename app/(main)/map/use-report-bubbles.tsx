@@ -32,6 +32,8 @@ interface ReportBubblesOptions {
   /** The reports overlay switch. */
   visible: boolean;
   onHistoryClick: (category: string, componentId: string) => void;
+  /** A pin was opened where the control sheet leaves its popup no room. */
+  onPinCrowded: () => void;
 }
 
 /**
@@ -50,6 +52,7 @@ export function useReportBubbles({
   reports,
   visible,
   onHistoryClick,
+  onPinCrowded,
 }: ReportBubblesOptions) {
   const entriesRef = useRef(new Map<string, BubbleEntry>());
   // The map the bubbles were put on.
@@ -62,6 +65,7 @@ export function useReportBubbles({
   // handler is a reason to touch the bubbles already there.
   const visibleRef = useLatestRef(visible);
   const onHistoryClickRef = useLatestRef(onHistoryClick);
+  const onPinCrowdedRef = useLatestRef(onPinCrowded);
 
   const removeAllBubbles = useCallback(() => {
     const entries = entriesRef.current;
@@ -137,6 +141,7 @@ export function useReportBubbles({
               if (other !== entry) other.bubble?.close();
             });
           }}
+          onCrowded={() => onPinCrowdedRef.current()}
           onHistoryClick={() =>
             onHistoryClickRef.current(report.category, report.componentId)
           }
@@ -191,6 +196,7 @@ export function useReportBubbles({
     mapRef,
     visibleRef,
     onHistoryClickRef,
+    onPinCrowdedRef,
     removeAllBubbles,
   ]);
 
