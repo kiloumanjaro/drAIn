@@ -98,7 +98,8 @@ pnpm shots --group <group>[,<group>] --run <folder> --as <role in the Session ro
 
 - A full run takes about four minutes: run it in the background or with a
   ten-minute limit. Add no sleeps and no loops; the runner waits for each
-  page, re-shoots anything that reads changed, and compares with the baseline.
+  page (and for the map to say it has loaded), shoots anything that does not
+  read unchanged up to three times, and compares with the baseline.
 - Exit code 1 means refused, interrupted or a failed capture: read its last
   lines before anything else.
 - Then read `screenshots/<folder>/results.json`. **If `complete` is not true,
@@ -130,9 +131,14 @@ does not script yet:
   `changed` its `--diff.png` first: red marks where it differs. Include
   `--scrolled` images. Read `changedBecause` and `textChanged` too: a capture
   can be changed by its text or final URL with identical pixels.
-- A solid red block on the map with nothing else different is a map tile that
-  did not arrive, not a UI change (the doc's "What it does not catch"). Say
-  which captures looked like that; shoot them once more before reporting.
+- **`unsure` is not a verdict.** The map did not finish, or the backend
+  failed, on every attempt (`unsureBecause`). Shoot those once more with the
+  `--only` command the run printed, into the same `--run` folder. Any still
+  `unsure` are reported as **not judged**, with the reason: never as changed
+  and never as unchanged.
+- A capture whose `map` is `unreadable` was taken without the map's own
+  loaded signal: open it whatever it says, and tell the user the map check
+  has stopped working.
 - Captures that are `unchanged` are confirmed from the JSON alone (status,
   final URL, text). Do not open them, and say that you did not. A `sameAs`
   entry counts as unchanged only if its `changed` says so.
@@ -156,7 +162,8 @@ Each group report:
 - Header: date, base URL, viewport, the build's state and commit, and who was
   signed in, all from `batches` in `results.json`.
 - One section per page or state: **status** (reachable, redirected to X,
-  gated, needs seed data, blank, crashed), **changed / unchanged / new** with
+  gated, needs seed data, blank, crashed), **changed / unchanged / new / not
+  judged** with
   the reason, the image path, observations, issues. Map the runner's status:
   `ok` is reachable; `redirected`, or a `sameAs` whose twin is another URL, is
   redirected to that page; `blank` and `crashed` as they are; `error`,
@@ -164,7 +171,8 @@ Each group report:
 - **Issues across pages**: recurring problems grouped, each with the pages it
   appears on, so it can become one batched UI prompt.
 - **How this was checked**: which images were opened, which captures were
-  confirmed by text only, and which were re-shot (`retried`). State it
+  confirmed by text only, which were shot more than once (`retried`, with
+  what the earlier attempts read) and which were not judged. State it
   plainly; do not let "captured" read as "looked at".
 - What was not shot and why: the run's `skipped` list.
 

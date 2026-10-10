@@ -121,6 +121,7 @@ translate: it calls Supabase at `http://127.0.0.1:54321` directly, as
 pnpm shots --group docs                 # every docs page in the manifest
 pnpm shots --group all --states --scroll   # everything, with states
 pnpm shots home= login=login            # pages by hand
+pnpm shots --only map,map-stats         # those manifest entries, nothing else
 ```
 
 A run folder (`screenshots/<date>_<time>_<viewport>/`, or `--run <folder>`)
@@ -132,7 +133,8 @@ holds:
 - `results.json`. Per run: `complete`, and one record per runner call in
   `batches` (who was signed in, the build, what was planned). Per capture: the
   status (`ok`, `redirected`, `blank`, `crashed`, `left-app`, `error`,
-  `state-error`, `http-error`), `changed` and `changedBecause`, per-image
+  `state-error`, `http-error`), `changed` with `changedBecause` or
+  `unsureBecause`, the map's state (`map`, `mapTiles`, `mapView`), per-image
   pixel counts and where they are (`boxes`), `sameAs`, the page text, hosts
   contacted, failed and write requests, uncaught and console errors. Keys and
   tokens in any of it are replaced with `<redacted>`.
@@ -140,11 +142,14 @@ holds:
 
 **Exit code**: 0 when every capture was taken, changed or not. 1 when the run
 was refused or interrupted, or a capture failed. A run that was killed has
-`complete: false`; do not read its results as a finished run.
+`complete: false`; do not read its results as a finished run. When the app
+stops answering mid-run the batch stops after two refused pages, also with
+`complete: false` (checked here by stopping the server during a run).
 
 Timings here, at laptop size, with nothing else running: a plain page about
-3 s, a map page 7 to 10 s, all 31 captures about 4 minutes. With another
-session loading the machine, map pages were slower and less reliable.
+3 s, a map page 7 to 10 s, all 31 captures 3 to 5 minutes (longer when
+captures are shot again). With another session loading the machine, map pages
+were slower and the local backend answered 503 now and then.
 
 ### When a page is captured
 
@@ -154,16 +159,40 @@ for half a second; and every capture over a full second is identical (2.5 s
 on map pages, set by `still` in the manifest). Text alone is not enough here:
 the map page's text holds still on "Loading Map..." while it loads.
 
+A page with a map has a fourth condition: **the map itself says it has
+loaded.** Stillness cannot stand in for that. The map reads most tiles from
+the browser's cache and builds them off the main thread, so on a busy machine
+it sat unchanged for seconds with part of itself missing; `/map` took up to
+9 s to load here. The app gives no "map ready" signal and these scripts may
+not change the app, so the runner finds the Mapbox map object through React's
+bookkeeping on the map's element and calls its public `loaded()`. It only
+reads. It depends on React internals: if a React or app change breaks it, the
+entry's `map` reads `unreadable`, the capture falls back to stillness alone,
+and the run's table says so.
+
 If that never happens within `--timeout` (default 30 s) the page is captured
 anyway, with `settled: false` and what it was waiting on. A page that stops
 answering altogether becomes an `error` after a longer deadline, and the run
-carries on in a new tab.
+carries on in a new tab. Two such captures in a row mean the browser itself
+has frozen: the runner restarts its own headless browser once (the session is
+in the profile, so it survives) and shoots those two again. A second freeze
+ends the batch with exit code 1. _The restart is not verified here: the
+browser did not freeze again._
 
 ### What changed
 
 Each capture is compared with the baseline in
-`screenshots/baseline/<viewport>/`: `new`, `unchanged` or `changed`, with the
-reasons in `changedBecause`.
+`screenshots/baseline/<viewport>/`: `new`, `unchanged`, `changed` (reasons in
+`changedBecause`) or `unsure` (reasons in `unsureBecause`).
+
+`unsure` means the capture cannot say anything about the app: the map had not
+finished loading, a map request or tile failed, the map area came out blank
+where the reference's was not, or the local backend answered with a 5xx
+(seen here: Supabase answered 503 under load and the report pins vanished
+from the map). It is neither changed nor new, `--accept` leaves it out, and
+the run ends by naming these captures with the `--only` command that shoots
+them again. A capture that reads `unchanged` stays `unchanged` whatever went
+wrong: it went wrong the same way in the reference.
 
 ```bash
 pnpm shots --accept <run>            # its new and changed captures become the baseline
@@ -194,9 +223,20 @@ Three things are compared:
   change even when the first screen looks the same, which covers text below
   the fold. Clock times and "Updated ... ago" are masked.
 
-Before a capture is reported as changed it is **shot a second time**. A change
-in the app is there on every load; a map caught without its tiles is not.
-`retried: true` marks these, with what the first attempt saw.
+A capture that does not read `unchanged` is **shot again, up to three times in
+all**, the last time in a new tab. One capture that matches the reference
+settles it; a change has to show on every attempt. A change in the app is
+there on every load. These are not: a backend error that happened once, and
+the map area landing one pixel to the side. The second is this app's layout:
+the map starts 59.19 px from the left, and the browser rounds that either
+way from one load to the next (roughly 1 map load in 10 here), which moves the map
+and the panels over it by a pixel. `retried: true` marks these captures, and
+`earlierAttempts` holds what each earlier attempt saw. When attempts
+disagree, the earlier image and its diff are kept as
+`<name>--attemptN.png`.
+
+The cost: a fault that shows only on some loads can read `unchanged`.
+`earlierAttempts` is where it leaves a trace.
 
 `ignore` selectors and `ignoreText` patterns leave an element, or the text
 itself, out of the pixel comparison (the chatbot's message time uses this).
@@ -206,22 +246,27 @@ is recorded `sameAs` it. It gets no image of its own only if it never had
 one: a page that used to be its own screen and now shows another's is
 captured, compared and reported as changed.
 
+**Measured here** (laptop size, signed out, 2026-10-10): one run as the
+reference, then four more against it, 124 captures. All 124 read `unchanged`;
+5 of them needed a second or third attempt (all on map pages). Among the
+captures that matched, the worst had 0 differing pixels outside the map, 31
+inside it, and a largest channel difference of 31, against thresholds of 12
+and 250. So the thresholds were left as they were.
+
 Checked here with doctored copies of a run: a colour shift of (6, 9, 5) on a
 16x16 block, a blanked 32x32 block, a 2-pixel line across the map, and a page
-made to show another page's content each read `changed`, with a box on the
-right spot.
+made to show another page's content each read `changed` on all three
+attempts, with a box on the right spot. With the map's style blocked, a map
+capture read `unsure` (not loaded, a failed map request, a blank map area).
 
 What it does not catch:
 
 - A pixel change below the first screen that changes no text, unless
   `--scroll` is on (one scroll step only).
 - Anything inside an ignored element; a shift of 2 pixels or less on the map.
-- **A map tile that does not arrive.** The base map comes from Mapbox over the
-  network, fetched by a worker the runner cannot see. A capture can settle
-  without a tile and then reads `changed` against a baseline that had it (or
-  the other way round, if the baseline was the unlucky one). Seen here on 1
-  of 31 captures while another session was loading the machine. Open the diff
-  image: a missing tile is a solid block on the map, not a UI change.
+- A change that shows on some loads only (see the three attempts above).
+- **A map the runner cannot question.** When `map` reads `unreadable` the
+  old weakness is back: a capture can settle before the map has drawn.
 - The local database and today's date. Data pages change when the data does;
   nothing pins the seed or the clock.
 

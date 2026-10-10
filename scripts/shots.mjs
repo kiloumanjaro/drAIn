@@ -2,7 +2,7 @@
 //
 //   pnpm shots --start-browser [--viewport laptop] [--headed]
 //   pnpm shots --preflight
-//   pnpm shots [options] --group <name> [--states]
+//   pnpm shots [options] --group <name> [--states] [--only <name,...>]
 //   pnpm shots [options] <name>=<path> ...
 //   pnpm shots --accept <run> [<name> ...]
 //   pnpm shots --stop-browser
@@ -118,7 +118,7 @@ const PAGE_KEYS = [
 const USAGE = `Usage:
   pnpm shots --start-browser [--viewport <size>] [--headed]
   pnpm shots --preflight [--base-url <url>] [--probe <path>]
-  pnpm shots [options] --group <name> [--states]
+  pnpm shots [options] --group <name> [--states] [--only <name,...>]
   pnpm shots [options] <name>=<path> ...
   pnpm shots --accept <run> [<name> ...] [--force]
   pnpm shots --clear | --forget-profile | --stop-browser
@@ -142,6 +142,8 @@ What to shoot:
   --group <name>      Every page of that group in scripts/shots.manifest.json;
                       "all" for every group. May be repeated.
   --states            With --group: also the group's scripted states.
+  --only <name,...>   Only those captures from the manifest, pages or states,
+                      e.g. to shoot again the ones a run could not judge.
   <name>=<path>       One page, e.g. docs=/docs. The leading slash may be left
                       off (docs=docs), which Git Bash needs.
   --pages <file>      JSON array of {"name", "path"}: no shell quoting at all.
@@ -251,6 +253,7 @@ function parseArgs(argv) {
     mode: 'run',
     pages: [],
     groups: [],
+    only: [],
     states: false,
     accept: null,
     acceptNames: [],
@@ -306,6 +309,7 @@ function parseArgs(argv) {
     else if (arg === '--against') opts.against = sanitise(take(++i, arg));
     else if (arg === '--as') opts.as = take(++i, arg).toLowerCase();
     else if (arg === '--group') opts.groups.push(...take(++i, arg).split(','));
+    else if (arg === '--only') opts.only.push(...take(++i, arg).split(','));
     else if (arg === '--timeout') opts.timeout = Number(take(++i, arg));
     else if (arg === '--font-scale') opts.fontScale = Number(take(++i, arg));
     else if (arg === '--pages') {
@@ -341,6 +345,8 @@ function parseArgs(argv) {
   if (!(opts.fontScale >= 0.5 && opts.fontScale <= 4)) {
     throw new UsageError('--font-scale must be between 0.5 and 4.');
   }
+  // Named captures are looked for everywhere unless a group narrows it.
+  if (opts.only.length && opts.groups.length === 0) opts.groups.push('all');
   if (opts.states && opts.groups.length === 0) {
     throw new UsageError('--states needs --group.');
   }
@@ -656,10 +662,38 @@ async function watchNetwork(page, context) {
   const done = (request) => {
     if (pending.delete(request) && pending.size === 0) quietSince = Date.now();
   };
+  // What the map is drawn from. Not its usage reports (events.mapbox.com,
+  // map-sessions), and not a request the map itself called off.
+  const mapFailed = [];
+  const forMap = (url) =>
+    /(^|\.)mapbox\.com$/.test(url.hostname) &&
+    url.hostname !== 'events.mapbox.com' &&
+    !url.pathname.startsWith('/map-sessions/');
+  const noteMap = (url) => {
+    if (mapFailed.length < 5) mapFailed.push(url.origin + url.pathname);
+  };
   const onFailed = (request) => {
     const url = bare(request);
     if (url && failed.length < 5) failed.push(url.origin + url.pathname);
+    if (
+      url &&
+      forMap(url) &&
+      request.failure()?.errorText !== 'net::ERR_ABORTED'
+    ) {
+      noteMap(url);
+    }
     done(request);
+  };
+  // The app's own backend falling over: the page then shows less, or an
+  // error, and that is the backend's state, not the app's.
+  const backendFailed = [];
+  const onResponse = (response) => {
+    const url = bare(response.request());
+    if (!url) return;
+    if (forMap(url) && response.status() >= 400) noteMap(url);
+    if (response.status() >= 500 && isLocal(url) && backendFailed.length < 5) {
+      backendFailed.push(`${response.status()} ${url.origin}${url.pathname}`);
+    }
   };
   // Requests the page before this one left behind never report an ending
   // when their frame goes (seen with the docs page's embedded video, which
@@ -676,7 +710,10 @@ async function watchNetwork(page, context) {
   page.on('request', onRequest);
   page.on('requestfinished', done);
   page.on('requestfailed', onFailed);
+  page.on('response', onResponse);
   return {
+    mapFailed: () => mapFailed,
+    backendFailed: () => backendFailed,
     quietFor() {
       for (const request of pending) {
         let gone = false;
@@ -697,6 +734,7 @@ async function watchNetwork(page, context) {
       page.off('request', onRequest);
       page.off('requestfinished', done);
       page.off('requestfailed', onFailed);
+      page.off('response', onResponse);
       await cdp.detach().catch(() => {});
     },
   };
@@ -711,16 +749,21 @@ async function watchNetwork(page, context) {
  * loads. Two matching captures 300 ms apart were not enough either: the map
  * stops drawing for longer than that while it reads a large overlay, and one
  * capture in 36 here caught it without its flood areas. A manifest entry can
- * ask for longer with `still` (milliseconds), as the map pages do: the map
- * fetches its tiles from a worker, which the request count cannot see.
+ * ask for longer with `still` (milliseconds), as the map pages do.
+ *
+ * A page with a map has a fourth condition: the map says it has loaded
+ * (mapState). Stillness cannot stand in for that. The map reads its tiles
+ * from the browser's cache and builds them off the main thread, so on a busy
+ * machine it can sit unchanged for seconds with half of itself missing.
  */
 async function settle(page, network, timeoutMs, stillMs = STILL_MS) {
   const deadline = Date.now() + timeoutMs;
-  const spent = { text: 0, network: 0, pixels: 0 };
+  const spent = { text: 0, network: 0, map: 0, pixels: 0 };
   let lastText = '';
   let lastShot = null;
   let stillSince = 0;
   let waitingOn = 'text';
+  let map = null;
   let lap = Date.now();
   while (Date.now() < deadline) {
     await delay(POLL_MS);
@@ -731,13 +774,22 @@ async function settle(page, network, timeoutMs, stillMs = STILL_MS) {
     } else if (network.quietFor() < QUIET_MS) {
       waitingOn = 'network';
       lastShot = null;
+    } else if ((map = await mapState(page))?.state === 'loading') {
+      waitingOn = 'map';
+      lastShot = null;
     } else {
       const shot = await captureBuffer(page);
       waitingOn = 'pixels';
       if (!lastShot?.equals(shot)) stillSince = Date.now();
       else if (Date.now() - stillSince >= stillMs) {
         spent.pixels += Date.now() - lap;
-        return { text, shot, settled: true, waitingOn: null, spent };
+        // Asked once more: a map can start loading again while it is watched.
+        map = await mapState(page);
+        if (map?.state !== 'loading') {
+          return { text, shot, settled: true, waitingOn: null, spent, map };
+        }
+        lap = Date.now();
+        waitingOn = 'map';
       }
       lastShot = shot;
     }
@@ -751,7 +803,92 @@ async function settle(page, network, timeoutMs, stillMs = STILL_MS) {
     settled: false,
     waitingOn,
     spent,
+    map: await mapState(page),
   };
+}
+
+/**
+ * Whether the maps on the page have finished loading: null when there is no
+ * map, else a state ('loaded', 'loading' or 'unreadable') with how many
+ * tiles the maps hold and how many of those failed.
+ *
+ * The app does not say when its map is done, and these scripts may not
+ * change the app, so the map is asked directly. Each map sits in a React ref
+ * of the component that made it; this walks up from the map's element
+ * through React's own bookkeeping until it finds an object that answers like
+ * a Mapbox map, and calls its public loaded(). It reads and nothing else.
+ * It leans on React internals, so a React or app change can break it: then
+ * the answer is 'unreadable', the capture falls back to stillness alone, and
+ * the entry says so.
+ */
+async function mapState(page) {
+  try {
+    return await page.evaluate(() => {
+      const isMap = (value) =>
+        value &&
+        typeof value === 'object' &&
+        typeof value.loaded === 'function' &&
+        typeof value.isMoving === 'function' &&
+        typeof value.getCanvas === 'function';
+      const mapOf = (el) => {
+        const key = Object.keys(el).find((k) => k.startsWith('__reactFiber$'));
+        let fiber = key ? el[key] : null;
+        for (let up = 0; fiber && up < 60; up++, fiber = fiber.return) {
+          let hook = fiber.memoizedState;
+          for (let n = 0; hook && typeof hook === 'object' && n < 200; n++) {
+            if (!('next' in hook)) break;
+            const held = hook.memoizedState;
+            if (isMap(held)) return held;
+            if (held && typeof held === 'object' && isMap(held.current)) {
+              return held.current;
+            }
+            hook = hook.next;
+          }
+        }
+        return null;
+      };
+      const elements = [...document.querySelectorAll('.mapboxgl-map')];
+      if (elements.length === 0) return null;
+      const seen = { state: 'loaded', tiles: 0, errored: 0, view: [] };
+      for (const el of elements) {
+        const map = mapOf(el);
+        if (!map) {
+          seen.state = 'unreadable';
+          continue;
+        }
+        if (!map.loaded() || map.isMoving()) seen.state = 'loading';
+        // Where the map is looking and how big it drew itself: two captures
+        // that differ here differ all over, by a fraction of a pixel.
+        const canvas = map.getCanvas();
+        const box = el.getBoundingClientRect();
+        const centre = map.getCenter();
+        seen.view.push(
+          [
+            `${canvas.width}x${canvas.height}`,
+            `shown ${canvas.clientWidth}x${canvas.clientHeight}`,
+            `in ${box.width.toFixed(2)}x${box.height.toFixed(2)}`,
+            `from ${box.left.toFixed(2)},${box.top.toFixed(2)}`,
+            `at ${centre.lng.toFixed(5)},${centre.lat.toFixed(5)}`,
+            `zoom ${map.getZoom().toFixed(3)}`,
+            `pitch ${map.getPitch().toFixed(1)}`,
+            `bearing ${map.getBearing().toFixed(1)}`,
+            `terrain ${map.getTerrain?.() ? 'on' : 'off'}`,
+          ].join(' ')
+        );
+        // A tile that failed counts as loaded to the map, and leaves a hole.
+        // Mapbox's own records, read if they are where 3.x keeps them.
+        for (const cache of Object.values(map.style?._sourceCaches ?? {})) {
+          for (const tile of Object.values(cache?._tiles ?? {})) {
+            seen.tiles++;
+            if (tile.state === 'errored') seen.errored++;
+          }
+        }
+      }
+      return seen;
+    });
+  } catch {
+    return { state: 'unreadable', tiles: 0, errored: 0, view: [] };
+  }
 }
 
 /** One wheel-scroll at the centre of the page; true if anything scrolled. */
@@ -991,6 +1128,17 @@ async function compareImages(file, reference, regions = {}) {
     return false;
   };
 
+  // How much of the soft area is one colour, now and in the reference: a map
+  // that drew nothing is a flat sheet of its background.
+  const softRow = soft
+    ? Uint8Array.from({ length: width }, (_, x) => Math.floor(x / soft.cell))
+    : null;
+  const coloursNow = new Uint32Array(4096);
+  const coloursBefore = new Uint32Array(4096);
+  const shade = (data, i) =>
+    ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4);
+  let softPixels = 0;
+
   const diff = Buffer.alloc(a.length);
   const tiles = new Map();
   let differing = 0;
@@ -1001,6 +1149,15 @@ async function compareImages(file, reference, regions = {}) {
     const grey = 200 + ((a[i] + a[i + 1] + a[i + 2]) / 3) * 0.2;
     diff[i] = diff[i + 1] = diff[i + 2] = grey;
     diff[i + 3] = 255;
+    if (soft && !skip[p]) {
+      const x = p % width;
+      const row = Math.floor((p - x) / width / soft.cell);
+      if (soft.bits[row * soft.cols + softRow[x]] === '1') {
+        softPixels++;
+        coloursNow[shade(a, i)]++;
+        coloursBefore[shade(b, i)]++;
+      }
+    }
     const off = delta(a, i, b, i);
     if (off === 0 || skip[p]) continue;
     unequal++;
@@ -1040,6 +1197,12 @@ async function compareImages(file, reference, regions = {}) {
     unequal,
     maxDelta,
     boxes,
+    softFlat: softPixels
+      ? {
+          now: Number((Math.max(...coloursNow) / softPixels).toFixed(3)),
+          before: Number((Math.max(...coloursBefore) / softPixels).toFixed(3)),
+        }
+      : null,
   };
 }
 
@@ -1131,6 +1294,12 @@ function textDiff(before, after) {
   };
 }
 
+// How many times a capture that does not read unchanged is taken in all.
+const ATTEMPTS = 3;
+
+// A map area this much one colour, where the reference's was not, drew nothing.
+const FLAT_SHARE = 0.9;
+
 const WORST = { changed: 3, missing: 3, new: 2, unchanged: 1 };
 const worst = (verdicts) =>
   verdicts
@@ -1183,6 +1352,7 @@ function acceptRun(opts) {
     const batch = results.batches?.[entry.batch];
     const doubts = [
       !entry.settled && 'not settled',
+      entry.changed === 'unsure' && 'not judged',
       !['ok', 'redirected'].includes(entry.status) && entry.status,
       !batch?.complete && 'batch cut short',
       !batch?.asVerified && 'role not checked',
@@ -1262,6 +1432,10 @@ const blankEntry = (target, ctx) => ({
   sameAs: null,
   changed: null,
   changedBecause: [],
+  map: null,
+  mapTiles: null,
+  mapView: null,
+  unsureBecause: [],
   textChanged: null,
   tolerance: target.tolerance ?? null,
   softTolerance: target.softTolerance ?? null,
@@ -1269,6 +1443,8 @@ const blankEntry = (target, ctx) => ({
   textHash: null,
   externalHosts: [],
   failedRequests: [],
+  mapFailedRequests: [],
+  backendFailedRequests: [],
   writeRequests: [],
   blockedRequests: [],
   hostedBackend: null,
@@ -1318,6 +1494,7 @@ async function shoot(page, context, target, ctx) {
     }
     const { shot, settled } = rest;
     const text = maskText(rest.text);
+    const maps = [rest.map];
     entry.settled = settled;
     entry.waited = rest.spent;
     entry.text = redact(text).slice(0, TEXT_LIMIT);
@@ -1403,6 +1580,7 @@ async function shoot(page, context, target, ctx) {
           );
           entry.scrollImage = scrolledName;
           entry.settled &&= below.settled;
+          maps.push(below.map);
           await capture(page, path.join(ctx.runDir, scrolledName), below.shot);
           verdicts.push(
             await judge(
@@ -1425,6 +1603,42 @@ async function shoot(page, context, target, ctx) {
       entry.changedBecause.push('pixels');
     }
     entry.changed = worst(verdicts);
+
+    // A map that did not finish drawing, or a backend that failed, says
+    // nothing about the app: the capture is neither changed nor new.
+    const states = maps.filter(Boolean);
+    if (states.length) {
+      entry.map =
+        ['loading', 'unreadable'].find((state) =>
+          states.some((m) => m.state === state)
+        ) ?? 'loaded';
+      entry.mapTiles = states.map((m) => m.tiles);
+      entry.mapView = states[0].view;
+      if (entry.map === 'loading') {
+        entry.unsureBecause.push('the map had not finished loading');
+      }
+      const errored = Math.max(...states.map((m) => m.errored));
+      if (errored) entry.unsureBecause.push(`${errored} map tiles failed`);
+      if (network.mapFailed().length) {
+        entry.unsureBecause.push(
+          `${network.mapFailed().length} map requests failed`
+        );
+      }
+      const flat = Object.values(entry.images).some(
+        (i) => i.softFlat?.now >= FLAT_SHARE && i.softFlat.before < FLAT_SHARE
+      );
+      if (flat) entry.unsureBecause.push('the map area is blank');
+    }
+    if (network.backendFailed().length) {
+      entry.unsureBecause.push(
+        `the backend failed: ${network.backendFailed().join(', ')}`
+      );
+    }
+    // Unchanged is still unchanged: whatever went wrong went wrong the same
+    // way when the reference was shot.
+    if (entry.unsureBecause.length && entry.changed !== 'unchanged') {
+      entry.changed = 'unsure';
+    }
   } catch (err) {
     entry.status = crashed ? 'crashed' : 'error';
     entry.error = redact(err.message.split('\n')[0]);
@@ -1433,6 +1647,8 @@ async function shoot(page, context, target, ctx) {
     if (network) {
       entry.externalHosts = network.hosts();
       entry.failedRequests = network.failed();
+      entry.mapFailedRequests = network.mapFailed();
+      entry.backendFailedRequests = network.backendFailed();
       entry.writeRequests = network.writes();
       entry.hostedBackend = network.hostedBackend();
       await network.stop();
@@ -1474,7 +1690,19 @@ function fromManifest(opts, viewport) {
     .filter(([, size]) => size.join('x') === viewport)
     .map(([name]) => name);
 
-  for (const entry of [...pages, ...(opts.states ? states : [])]) {
+  // With a role in the name (map-profile@staff) or without.
+  const only = opts.only.map((name) => name.replace(/@[a-z]+$/, ''));
+  const missing = only.filter(
+    (name) => ![...pages, ...states].some((e) => e.name === name)
+  );
+  if (missing.length) {
+    throw new Error(`Not in the manifest: ${missing.join(', ')}.`);
+  }
+  const wanted = (entry) =>
+    only.length
+      ? only.includes(entry.name)
+      : opts.states || !states.includes(entry);
+  for (const entry of [...pages, ...states].filter(wanted)) {
     if (!opts.groups.includes('all') && !opts.groups.includes(entry.group)) {
       continue;
     }
@@ -1837,7 +2065,7 @@ ${images || '<div class="none">no image</div>'}
 body{font:13px system-ui,sans-serif;margin:16px;background:#f4f4f4;color:#222}
 main{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 figure{margin:0;padding:8px;background:#fff;border:1px solid #ddd;border-top:4px solid #bbb}
-figure.changed{border-top-color:#d97706}figure.new{border-top-color:#2563eb}
+figure.changed{border-top-color:#d97706}figure.new{border-top-color:#2563eb}figure.unsure{border-top-color:#7c3aed}
 img{width:100%;border:1px solid #eee;margin-bottom:4px}
 .none{padding:32px 0;text-align:center;color:#888}
 code{word-break:break-all}
@@ -1899,8 +2127,7 @@ async function runBatch(opts) {
     return 1;
   }
 
-  const { browser, context, page: firstPage } = await attach();
-  let page = firstPage;
+  let { browser, context, page } = await attach();
   let cdp = null;
   let interrupted = false;
   let code = 0;
@@ -2056,11 +2283,13 @@ async function runBatch(opts) {
     // after a scroll) and room to spare. A tab that crashed or stopped
     // answering cannot be reused, so the next capture gets a new one.
     const deadlineMs = ctx.timeoutMs * 3 + 30000;
+    let hungInARow = 0;
     const attempt = async (target) => {
       let entry = await withDeadline(
         shoot(page, context, target, ctx),
         deadlineMs
       );
+      hungInARow = entry === HUNG ? hungInARow + 1 : 0;
       if (entry === HUNG) {
         entry = {
           ...blankEntry(target, ctx),
@@ -2071,7 +2300,13 @@ async function runBatch(opts) {
       }
       if (entry.status === 'crashed' || entry.error?.startsWith('No answer')) {
         const old = page;
-        page = await context.newPage();
+        // Bounded too: a frozen browser never answers this either.
+        const fresh = await withDeadline(context.newPage(), 15000);
+        if (fresh === HUNG) {
+          hungInARow = 2;
+          return entry;
+        }
+        page = fresh;
         cdp = null;
         await prepare();
         old.close().catch(() => {});
@@ -2079,22 +2314,120 @@ async function runBatch(opts) {
       return entry;
     };
 
+    // Two captures in a row without an answer is the browser, not the page.
+    // It is restarted once (the session is in its profile, so it survives);
+    // a second freeze ends the batch.
+    const restartBrowser = async () => {
+      console.error('The browser stopped answering: restarting it once.');
+      await withDeadline(browser.close(), 5000);
+      if ((await stopBrowser()) !== 0) return false;
+      if ((await startBrowser({ viewport, headed: false })) !== 0) return false;
+      ({ browser, context, page } = await attach());
+      cdp = null;
+      await prepare();
+      if ((await viewportOf(page)) !== viewport) return false;
+      batch.browserRestarted = true;
+      hungInARow = 0;
+      return true;
+    };
+
     const rows = [];
     let hosted = null;
-    for (const target of targets) {
+    let frozen = false;
+    let appGone = false;
+    let refused = 0;
+    for (let at = 0; at < targets.length; at++) {
+      const target = targets[at];
       if (interrupted) break;
       let entry = await attempt(target);
-      if (entry.changed === 'changed' && !FAILED.includes(entry.status)) {
-        // Shoot it again before believing it. A change in the app is there
-        // on every load; a map caught without its tiles, or a request that
-        // failed once, is not.
-        const first = entry;
+      if (hungInARow >= 2) {
+        const headed = !info.version.includes('Headless');
+        if (batch.browserRestarted || headed || !(await restartBrowser())) {
+          results.pages.push(entry);
+          frozen = true;
+          break;
+        }
+        // Again from the capture before this one: it was the first to hang.
+        if (at > 0 && results.pages.at(-1)?.page === targets[at - 1].name) {
+          results.pages.pop();
+          rows.pop();
+          at--;
+        }
+        at--;
+        continue;
+      }
+      // Shoot it again before believing it. A change in the app is there on
+      // every load; a map caught half drawn, a request that failed once, or
+      // the map area landing a pixel to one side (it starts at a fraction of
+      // a pixel here, and the browser rounds it either way) is not. So one
+      // capture that matches the reference settles it, and a change has to
+      // show on every attempt. The last attempt gets a new tab: the rounding
+      // tends to stick to a tab.
+      const earlier = [];
+      while (
+        ['changed', 'unsure'].includes(entry.changed) &&
+        !FAILED.includes(entry.status) &&
+        earlier.length < ATTEMPTS - 1 &&
+        hungInARow === 0 &&
+        !interrupted
+      ) {
+        // Kept aside, so that a capture a later one disagrees with can
+        // still be looked at.
+        const aside = [];
+        for (const [image, info] of Object.entries(entry.images)) {
+          for (const name of [image, info.diffImage].filter(Boolean)) {
+            const from = path.join(runDir, name);
+            if (!fs.existsSync(from)) continue;
+            const kept = name.replace(
+              /\.png$/,
+              `--attempt${earlier.length + 1}.png`
+            );
+            fs.renameSync(from, path.join(runDir, kept));
+            aside.push(kept);
+          }
+        }
+        earlier.push({
+          changed: entry.changed,
+          changedBecause: entry.changedBecause,
+          unsureBecause: entry.unsureBecause,
+          textChanged: entry.textChanged,
+          map: entry.map,
+          mapTiles: entry.mapTiles,
+          waited: entry.waited,
+          images: aside,
+          counts: Object.fromEntries(
+            Object.entries(entry.images).map(([image, info]) => [
+              image,
+              {
+                differing: info.differing,
+                softDiffering: info.softDiffering,
+                maxDelta: info.maxDelta,
+                boxes: info.boxes,
+              },
+            ])
+          ),
+        });
+        if (earlier.length === ATTEMPTS - 1) {
+          const old = page;
+          const fresh = await withDeadline(context.newPage(), 15000);
+          if (fresh !== HUNG) {
+            page = fresh;
+            cdp = null;
+            await prepare();
+            old.close().catch(() => {});
+          }
+        }
         entry = await attempt(target);
+      }
+      if (earlier.length) {
         entry.retried = true;
-        entry.firstAttempt = {
-          changedBecause: first.changedBecause,
-          textChanged: first.textChanged,
-        };
+        for (const tried of earlier) {
+          if (tried.changed !== entry.changed) continue;
+          for (const kept of tried.images.splice(0)) {
+            fs.rmSync(path.join(runDir, kept), { force: true });
+          }
+        }
+        entry.earlierAttempts = earlier;
       }
       results.pages.push(entry);
       results.finishedAt = new Date().toISOString();
@@ -2107,16 +2440,26 @@ async function runBatch(opts) {
         `${entry.waitedSeconds} s`,
         [
           entry.changedBecause.join('; '),
+          entry.unsureBecause.join('; '),
+          entry.map === 'unreadable' && 'map state unreadable',
           entry.retried &&
-            (entry.changed === 'changed'
-              ? 'confirmed by a second capture'
-              : 'first capture differed; the second did not'),
+            (entry.earlierAttempts.every((t) => t.changed === entry.changed)
+              ? `the same on all ${entry.earlierAttempts.length + 1} captures`
+              : `earlier captures read ${entry.earlierAttempts.map((t) => t.changed).join(', ')}`),
           entry.error,
         ]
           .filter(Boolean)
           .join(' | '),
       ]);
       console.log(`${entry.page}: ${entry.status}`);
+      // Two refusals in a row: the app has gone, and so has every page left.
+      refused = entry.error?.includes('ERR_CONNECTION_REFUSED')
+        ? refused + 1
+        : 0;
+      if (refused >= 2) {
+        appGone = true;
+        break;
+      }
       if (entry.hostedBackend && !opts.allowHosted) {
         hosted = entry.hostedBackend;
         break;
@@ -2124,7 +2467,7 @@ async function runBatch(opts) {
     }
     const shot = results.pages.filter((p) => p.batch === ctx.batch);
     batch.finishedAt = new Date().toISOString();
-    batch.interrupted = interrupted || !!hosted;
+    batch.interrupted = interrupted || !!hosted || frozen || appGone;
     batch.complete = !batch.interrupted && shot.length === names.length;
     saveRun(runDir, results);
 
@@ -2158,6 +2501,22 @@ async function runBatch(opts) {
       );
     }
     if (interrupted) console.error('Interrupted: the rest were not shot.');
+    if (appGone) {
+      console.error(
+        `Stopped: nothing answers at ${opts.base.origin} any more. The rest were not shot.`
+      );
+    }
+    if (frozen) {
+      console.error(
+        'Stopped: the browser stopped answering. pnpm shots --stop-browser ends it.'
+      );
+    }
+    const unsure = shot.filter((p) => p.changed === 'unsure');
+    if (unsure.length) {
+      console.log(
+        `Not judged: ${unsure.map((p) => p.page).join(', ')}. Shoot them again: --only ${unsure.map((p) => p.page).join(',')}`
+      );
+    }
     if (failed.length) {
       console.error(`Failed: ${failed.map((p) => p.page).join(', ')}`);
     }
@@ -2165,8 +2524,8 @@ async function runBatch(opts) {
     return code;
   } finally {
     process.off('SIGINT', onInterrupt);
-    await restore();
-    await browser.close().catch(() => {});
+    await withDeadline(restore(), 10000);
+    await withDeadline(browser.close(), 5000);
     if (opts.stopAfter) await stopBrowser();
   }
 }
