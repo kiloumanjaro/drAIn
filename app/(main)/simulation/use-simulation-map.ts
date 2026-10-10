@@ -21,6 +21,7 @@ import {
 import { cancelFloodAppearing } from '@/lib/map/effects/flood-3d-utils';
 import { disableRain } from '@/lib/map/effects/rain-utils';
 import { keepMapSized } from '@/lib/map/resize';
+import { keepAttributionOnShow } from '@/lib/map/attribution';
 import {
   SIMULATION_BEARING,
   SIMULATION_LAYER_IDS,
@@ -98,16 +99,11 @@ export function useSimulationMap(
       }
       mapRef.current = map;
 
-      // "© Mapbox © OpenStreetMap" must be on show. Where it goes is chosen
-      // once, for the layout the page opened in: on phones the sheet covers
-      // the bottom of the map, so it sits at the top beside the navigation
-      // button; otherwise bottom right, clear of the panel on the left.
-      // (app/globals.css nudges it off the navigation button.)
-      map.addControl(
-        new mapboxgl.AttributionControl({ compact: true }),
-        window.matchMedia('(max-width: 767px)').matches
-          ? 'top-left'
-          : 'bottom-right'
+      // "© Mapbox © OpenStreetMap" must be on show, in whichever corner the
+      // layout leaves clear.
+      keepAttributionOnShow(
+        map,
+        new mapboxgl.AttributionControl({ compact: true })
       );
 
       const addCustomLayers = () => addSimulationLayers(map);

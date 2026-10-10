@@ -43,6 +43,7 @@ import {
 import { componentLinkTab, readComponentLink } from '@/lib/map/component-link';
 import { drainageHitLayers, nearestFeature } from '@/lib/map/hit-test';
 import { keepMapSized } from '@/lib/map/resize';
+import { keepAttributionOnShow } from '@/lib/map/attribution';
 import { isAgencyStaff } from '@/lib/supabase/profile';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -269,16 +270,11 @@ function MapPageContent() {
 
         mapRef.current = map;
 
-        // "© Mapbox © OpenStreetMap" must be on show. Where it goes is
-        // chosen once, for the layout the page opened in: on phones the sheet
-        // covers the bottom of the map, so it sits at the top beside the
-        // navigation button; otherwise bottom right, clear of the panel on
-        // the left. (app/globals.css nudges it off the buttons there.)
-        map.addControl(
-          new mapboxgl.AttributionControl({ compact: true }),
-          window.matchMedia('(max-width: 767px)').matches
-            ? 'top-left'
-            : 'bottom-right'
+        // "© Mapbox © OpenStreetMap" must be on show, in whichever corner
+        // the layout leaves clear.
+        keepAttributionOnShow(
+          map,
+          new mapboxgl.AttributionControl({ compact: true })
         );
 
         // Read through refs: after a style switch this runs long after the
@@ -393,12 +389,18 @@ function MapPageContent() {
     [inlets, outlets, pipes, drains, showComponent]
   );
 
+  // Counts the pins opened where the half-open sheet leaves their popup no
+  // room (lib/map/report-pin.ts); the control panel collapses its sheet at
+  // each one.
+  const [sheetCollapseRequests, setSheetCollapseRequests] = useState(0);
+
   useReportBubbles({
     mapRef,
     mapReady,
     reports,
     visible: overlayVisibility['reports-layer'],
     onHistoryClick: handleReportHistoryClick,
+    onPinCrowded: () => setSheetCollapseRequests((count) => count + 1),
   });
 
   useEffect(() => {
@@ -486,13 +488,14 @@ function MapPageContent() {
       <div className="relative flex min-h-screen flex-col bg-[#e0e0d1]">
         {/* The panel and the map's buttons come before the map in the
             document, so the keyboard reaches them first: every report pin is
-            a button inside the map. From tablet width up the panel has no
+            a button inside the map. From desktop width up the panel has no
             z-index of its own and stayed over the map (z-0) only by coming
             after it, so this wrapper gives it one: above the map's buttons
             (z-30), because the panel's own fixed messages are now layered
-            with it and showed over them before. On phones the panel is a
-            fixed sheet with its own z-index, and the wrapper does nothing. */}
-        <div className="md:absolute md:top-0 md:left-0 md:z-[31]">
+            with it and showed over them before. On phones and tablets the
+            panel is a fixed sheet with its own z-index, and the wrapper does
+            nothing. */}
+        <div className="lg:absolute lg:top-0 lg:left-0 lg:z-[31]">
           <ControlPanel
             activeTab={controlPanelTab}
             dataset={controlPanelDataset}
@@ -518,6 +521,7 @@ function MapPageContent() {
             onRefreshReports={onRefreshReports}
             isRefreshingReports={isRefreshingReports}
             isFloodScenarioLoading={isFloodScenarioLoading}
+            sheetCollapseRequests={sheetCollapseRequests}
           />
         </div>
         <CameraControls

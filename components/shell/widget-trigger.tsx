@@ -16,15 +16,15 @@ export default function WidgetTrigger() {
   // link is never focused while its text is hidden.
   const expanded = hovered || focused;
 
-  // While the events load, hold the widget's place below md, where the map
+  // While the events load, hold the widget's place below lg, where the map
   // style button sits right under it: otherwise that button drops by the
   // widget's height when the events arrive, and a tap aimed at it lands on
-  // this link. From md up the button is pinned to the bottom, so no slot.
+  // this link. From lg up the button is pinned to the bottom, so no slot.
   if (isPending) {
     return (
       <span
         aria-hidden
-        className="pointer-events-none block h-9 w-9 md:hidden"
+        className="pointer-events-none block h-9 w-9 lg:hidden"
       />
     );
   }

@@ -169,19 +169,47 @@
 /* Mapbox attribution ("© Mapbox © OpenStreetMap") on /map and /simulation,
    kept clear of the app's own buttons over the map.
    Phones: top left, moved right of the navigation button and level with it.
-   /map from tablet width up: bottom right, moved left of the map-style
-   button. */
-@media (max-width: 767px) {
+   Tablets: top left too (the sheet covers the bottom), but there is no
+   navigation button there, so it sits in the corner, level with the map's
+   buttons.
+   /map from desktop width (1024px) up: bottom right, moved left of the
+   map-style button.
+   The ranges are Tailwind's own (max-md, md to lg, lg), written the way it
+   writes them, so no width falls between two of them. */
+@media (width < 48rem) {
   .map-attribution .mapboxgl-ctrl-top-left .mapboxgl-ctrl-attrib {
     margin: 20px 0 0 60px;
   }
 }
 
-@media (min-width: 768px) {
+@media (width >= 48rem) and (width < 64rem) {
+  .map-attribution .mapboxgl-ctrl-top-left .mapboxgl-ctrl-attrib {
+    margin: 20px 0 0 20px;
+  }
+}
+
+@media (width >= 64rem) {
   .map-attribution-beside-style
     .mapboxgl-ctrl-bottom-right
     .mapboxgl-ctrl-attrib {
     margin: 0 64px 20px 0;
+  }
+}
+
+/* Results tables and parameter panels pinned across the top of /simulation
+   on a tablet (app/(main)/simulation/simulation-overlays.tsx) stop 8px above
+   the control sheet. Its top is 45dvh down at half height, and they are
+   pinned 3.25rem down. Collapsed to its bar (5.25rem) the sheet gives them
+   the rest of the screen: on a tablet-width screen 390px high the first was
+   116px, which a table's header and caveat filled. The sheet says which
+   height it is at in data-sheet (components/control-panel). */
+@media (width >= 48rem) and (width < 64rem) {
+  :root {
+    --pinned-panel-max-height: calc(45dvh - 3.75rem);
+  }
+
+  :root:has([data-sheet='collapsed']) {
+    --pinned-panel-max-height: calc(100dvh - 9rem);
   }
 }
 
