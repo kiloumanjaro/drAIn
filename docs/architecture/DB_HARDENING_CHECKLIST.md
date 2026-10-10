@@ -132,7 +132,7 @@ Needs: step 2.
   - `uploadReport` (`lib/supabase/report.ts:59`) uploads to `public/<crypto.randomUUID()>.<ext>` with no `upsert`;
   - set bucket `file_size_limit` and `allowed_mime_types = ["image/*"]` in `supabase/config.toml`.
 - [x] `app/api/reports/download/route.ts`:
-  - build a user-scoped client with `@supabase/ssr`, following the `proxy.ts:7` pattern;
+  - build a user-scoped client from the caller's bearer token (`createRequestClient` in `lib/supabase/server.ts`) and verify it with `auth.getUser(token)`. The plan was `@supabase/ssr` cookies, but the session is in localStorage, so there is no auth cookie to read;
   - return 401 or 403 unless the caller is staff;
   - stop using the service-role client.
 - [x] `app/api/closest-pipe/route.ts`: use an anon-key server client, not the service role.

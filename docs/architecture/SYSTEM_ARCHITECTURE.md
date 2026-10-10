@@ -261,8 +261,9 @@ Component Re-render
 
 - Supabase Auth for user management
 - JWT tokens for API authentication
-- Row-level security (RLS) policies in PostgreSQL
-- Protected routes with proxy
+- Row-level security (RLS) policies and RPC checks in PostgreSQL decide what each caller may read or write
+- The API routes that need a signed-in caller (`/api/chatbot`, `/api/reports/download`) verify the bearer token with `auth.getUser(token)`; `/api/closest-pipe`, `/api/reports` and `/api/csp-report` are public
+- No proxy or middleware: the session lives in the browser's localStorage, not in a cookie, so pages are not gated on the server
 
 ### Data Validation
 

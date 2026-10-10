@@ -65,9 +65,9 @@ const csp: Record<string, string[]> = {
   'default-src': ["'self'"],
   // Next.js streams its page data in inline <script> tags, and next-themes
   // adds one to set the theme before paint. Nonces would allow those without
-  // 'unsafe-inline', but a nonce has to be minted per request in proxy.ts,
-  // which turns every static page dynamic. With no nonce in use,
-  // 'unsafe-inline' is the price.
+  // 'unsafe-inline', but a nonce has to be minted per request, which needs a
+  // proxy (the app has none) and turns every static page dynamic. With no
+  // nonce in use, 'unsafe-inline' is the price.
   //
   // What that leaves the enforced policy doing: script files load only from
   // this site, and a page can send data only to the origins in connect-src,

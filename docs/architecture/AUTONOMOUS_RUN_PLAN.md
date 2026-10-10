@@ -86,7 +86,7 @@ Do the audit as narrow passes, inline or with small background subagents (see Me
   - wrong field use;
   - clickable `div`s with no keyboard handling.
 - [x] **1d. `lib/` and `hooks/`:** query keys, error handling, anything still reading more than 1,000 rows without paging.
-- [x] **1e. API routes, `proxy.ts`, `next.config.ts`:** security headers, image hosts, input validation, error leakage, `window.open` without `noopener`, rendering model output as HTML.
+- [x] **1e. API routes, `proxy.ts`, `next.config.ts`:** security headers, image hosts, input validation, error leakage, `window.open` without `noopener`, rendering model output as HTML. (`proxy.ts` was deleted on 2026-10-10: it refreshed a session cookie the app never sets. Auth is enforced by Supabase RLS and RPC checks, and the API routes that need a signed-in caller (`/api/chatbot`, `/api/reports/download`) verify the bearer token with `auth.getUser(token)`; the other three are public.)
 - [x] **1f. Database:**
   - anon-readable personal data (`reports.user_id`);
   - SECURITY DEFINER functions still executable by anon;
