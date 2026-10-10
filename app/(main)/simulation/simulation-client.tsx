@@ -15,6 +15,9 @@ import {
 import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
 import type { SimulationMapHandlers } from '@/lib/map/simulation-interactions';
+import { isCompactMap } from '@/lib/layout/compact-map';
+import { PHONE_QUERY } from '@/lib/map/report-pin';
+import { pinnedPanelCrowded } from '@/lib/simulation/pinned-panels';
 import {
   focusMapFeature as focusFeatureOnMap,
   type SelectedFeature,
@@ -373,6 +376,18 @@ export default function SimulationPage() {
     applyVulnerabilityColorsOnMap(map, vulnerabilityData);
   };
 
+  // Counts the tables and parameter panels opened where the half-open sheet
+  // leaves them no room (lib/simulation/pinned-panels.ts); the control panel
+  // collapses its sheet at each one. Not for a panel that opens because a
+  // component was picked: the picking is done in the sheet.
+  const [sheetCollapseRequests, setSheetCollapseRequests] = useState(0);
+  const makeRoomForPinnedPanel = () => {
+    const isTablet = isCompactMap() && !window.matchMedia(PHONE_QUERY).matches;
+    if (pinnedPanelCrowded(isTablet, window.innerHeight)) {
+      setSheetCollapseRequests((count) => count + 1);
+    }
+  };
+
   // Vulnerability table handlers
   /**
    * Switches the map into "results" mode for a freshly generated table:
@@ -387,6 +402,7 @@ export default function SimulationPage() {
       'man_pipes-layer': false,
     }));
 
+    makeRoomForPinnedPanel();
     applyVulnerabilityColors(data);
     updateFloodPropagation(data, [...inletsRef.current, ...drainsRef.current]);
     // Rain is not started for a visitor who asked for less motion, so its
@@ -570,9 +586,15 @@ export default function SimulationPage() {
           rainfallParams={panels.rainfallParams}
           onRainfallParamsChange={panels.setRainfallParams}
           showNodePanel={panels.activePanel === 'node'}
-          onToggleNodePanel={panels.handleToggleNodePanel}
+          onToggleNodePanel={() => {
+            if (panels.activePanel !== 'node') makeRoomForPinnedPanel();
+            panels.handleToggleNodePanel();
+          }}
           showLinkPanel={panels.activePanel === 'link'}
-          onToggleLinkPanel={panels.handleToggleLinkPanel}
+          onToggleLinkPanel={() => {
+            if (panels.activePanel !== 'link') makeRoomForPinnedPanel();
+            panels.handleToggleLinkPanel();
+          }}
           onRefreshReports={async () => {}}
           isRefreshingReports={false}
           selectedYear={tables.selectedYear}
@@ -582,19 +604,26 @@ export default function SimulationPage() {
           onCloseTable={tables.handleCloseTable}
           hasTable={!!tables.tableData}
           isTableMinimized={tables.isTableMinimized}
-          onToggleTableMinimize={tables.handleToggleTableMinimize}
+          onToggleTableMinimize={() => {
+            if (tables.isTableMinimized) makeRoomForPinnedPanel();
+            tables.handleToggleTableMinimize();
+          }}
           onGenerateTable3={tables.handleGenerateTable3}
           isLoadingTable3={tables.isLoadingTable3}
           onCloseTable3={tables.handleCloseTable3}
           hasTable3={!!tables.tableData3}
           isTable3Minimized={tables.isTable3Minimized}
-          onToggleTable3Minimize={tables.handleToggleTable3Minimize}
+          onToggleTable3Minimize={() => {
+            if (tables.isTable3Minimized) makeRoomForPinnedPanel();
+            tables.handleToggleTable3Minimize();
+          }}
           onOpenNodeSimulation={slideshow.handleOpenNodeSimulation}
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
           isFloodPropagationActive={isFloodPropagationActive}
           onToggleFloodPropagation={handleToggleFloodPropagation}
+          sheetCollapseRequests={sheetCollapseRequests}
         />
         <CameraControls
           onZoomIn={handleZoomIn}

@@ -25,12 +25,14 @@ import {
   type SheetState,
 } from '@/lib/control-panel/sheet';
 
-// Heights of the phone sheet. Written out in full so Tailwind finds them.
+// Heights of the sheet (phones and tablets). Written out in full so Tailwind
+// finds them.
 const SHEET_HEIGHT: Record<SheetState, string> = {
-  collapsed: 'max-md:h-[5.25rem]',
-  half: 'max-md:h-[55dvh]',
-  // Leaves the top of the map, and the navigation button on it, in reach.
-  full: 'max-md:h-[calc(100dvh-4.5rem)]',
+  collapsed: 'max-lg:h-[5.25rem]',
+  half: 'max-lg:h-[55dvh]',
+  // Leaves the top of the map, and on phones the navigation button on it,
+  // in reach.
+  full: 'max-lg:h-[calc(100dvh-4.5rem)]',
 };
 
 interface RainfallParams {
@@ -104,6 +106,7 @@ export function ControlPanel({
   isFloodPropagationActive = false,
   onToggleFloodPropagation,
   isFloodScenarioLoading = false,
+  sheetCollapseRequests = 0,
 }: ControlPanelProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -148,7 +151,7 @@ export function ControlPanel({
     selectedInlet || selectedPipe || selectedOutlet || selectedDrain;
   const selectedItemTitle = selectedItem ? DETAIL_TITLES[dataset] : '';
 
-  // Phones only: the panel is a sheet at the bottom of the screen.
+  // Phones and tablets only: the panel is a sheet at the bottom of the screen.
   const [sheet, setSheet] = useState<SheetState>('half');
   const dragStartY = useRef<number | null>(null);
   const dragged = useRef(false);
@@ -160,6 +163,16 @@ export function ControlPanel({
   if (selectionKey !== seenSelectionKey) {
     setSeenSelectionKey(selectionKey);
     if (selectionKey && sheet === 'collapsed') setSheet('half');
+  }
+
+  // The page asks for the map back (see sheetCollapseRequests): the sheet
+  // drops to its bar. Compared during render, as above.
+  const [seenCollapseRequests, setSeenCollapseRequests] = useState(
+    sheetCollapseRequests
+  );
+  if (sheetCollapseRequests !== seenCollapseRequests) {
+    setSeenCollapseRequests(sheetCollapseRequests);
+    setSheet('collapsed');
   }
 
   const handleTabChange = (tab: string) => {
@@ -187,17 +200,25 @@ export function ControlPanel({
   };
 
   return (
-    // From tablet width up: a floating card, never taller than the screen.
-    // On phones: a sheet across the bottom with a handle, the content, then
-    // the tabs, so the map above it stays in reach.
+    // From desktop width (lg) up: a floating card, never taller than the
+    // screen. On phones and tablets: a sheet across the bottom with a handle,
+    // the content, then the tabs, so the map above it stays in reach. Tablets
+    // keep the navigation rail, so there the sheet starts at the rail's right
+    // edge (3.7rem) and sits two layers under it (the rail is z-40): opened,
+    // the navigation lies over the page, and it covers the sheet too. The
+    // layer between is for the simulation's parameter panels, which go over
+    // the sheet and under the rail. data-sheet tells the panels pinned above
+    // the sheet how much of the screen it leaves them (app/globals.css).
     <div
-      className={`flex overflow-hidden motion-reduce:transition-none max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:flex-col max-md:rounded-t-2xl max-md:shadow-[0_-4px_16px_rgba(0,0,0,0.15)] max-md:transition-[height] max-md:duration-200 md:absolute md:m-5 md:h-[min(600px,calc(100dvh-2.5rem))] md:w-sm md:flex-row md:rounded-2xl ${SHEET_HEIGHT[sheet]} ${
+      data-sheet={sheet}
+      className={`flex overflow-hidden motion-reduce:transition-none max-lg:fixed max-lg:right-0 max-lg:bottom-0 max-lg:flex-col max-lg:rounded-t-2xl max-lg:shadow-[0_-4px_16px_rgba(0,0,0,0.15)] max-lg:transition-[height] max-lg:duration-200 max-md:left-0 max-md:z-40 md:max-lg:left-[3.7rem] md:max-lg:z-[38] lg:absolute lg:m-5 lg:h-[min(600px,calc(100dvh-2.5rem))] lg:w-sm lg:flex-row lg:rounded-2xl ${SHEET_HEIGHT[sheet]} ${
         activeTab === 'chatbot'
           ? 'bg-gradient-to-b from-blue-50 via-white to-blue-50'
           : 'bg-white'
       }`}
     >
-      {/* Sheet handle (phones): tap to step through the heights, or drag */}
+      {/* Sheet handle (phones and tablets): tap to step through the heights,
+          or drag */}
       <button
         type="button"
         aria-label={sheetHandleLabel(sheet)}
@@ -227,7 +248,7 @@ export function ControlPanel({
           }
           setSheet(cycleSheet(sheet));
         }}
-        className="flex h-7 w-full shrink-0 touch-none items-center justify-center md:hidden"
+        className="flex h-7 w-full shrink-0 touch-none items-center justify-center lg:hidden"
       >
         <span className="h-1.5 w-10 rounded-full bg-gray-300" />
       </button>
@@ -239,9 +260,12 @@ export function ControlPanel({
         profile={profile}
       />
 
+      {/* The content is laid out for the card's narrow column. A tablet's
+          sheet is two or three times as wide, so there it is held to a
+          readable width in the middle rather than stretched. */}
       <div
-        className={`flex min-h-0 flex-1 flex-col overflow-hidden ${
-          sheet === 'collapsed' ? 'max-md:hidden' : ''
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden md:max-lg:mx-auto md:max-lg:w-full md:max-lg:max-w-2xl ${
+          sheet === 'collapsed' ? 'max-lg:hidden' : ''
         }`}
       >
         {/* Top Bar */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { isCompactMap } from '@/lib/layout/compact-map';
 import { clampDragPosition, startPosition } from '@/lib/simulation/drag-bounds';
 
 export interface Position {
@@ -63,10 +64,12 @@ function anchoredPosition({
 
 /**
  * A dragged position, pulled back within reach on this screen: the window
- * may be smaller than it was when the panel was left there.
+ * may be smaller than it was when the panel was left there. Left as it is
+ * on the compact map, where panels are pinned and the position is not used:
+ * pulled in to fit a phone, it would stay there on a desktop.
  */
 function withinReach(position: Position, anchor: PanelAnchor): Position {
-  if (typeof window === 'undefined') return position;
+  if (typeof window === 'undefined' || isCompactMap()) return position;
   return clampDragPosition(position, {
     // The widest it can be, so this is never stricter than the drag limit.
     width: anchor.fullWidth,
@@ -128,8 +131,12 @@ function usePlacement(anchor: PanelAnchor, readSaved: () => Position | null) {
     return () => window.removeEventListener('resize', handleResize);
   }, [anchor]);
 
-  /** For the drag: from here on the panel stays where it was put. */
+  /**
+   * For the drag: from here on the panel stays where it was put. Not on the
+   * compact map, where panels are pinned and there is nowhere to put one.
+   */
   const moveTo = useCallback((position: Position) => {
+    if (isCompactMap()) return;
     setPlacement({ position, moved: true });
   }, []);
 
@@ -142,6 +149,7 @@ function usePlacement(anchor: PanelAnchor, readSaved: () => Position | null) {
  * Falls back to the anchor when nothing has been stored yet, or when the
  * stored value cannot be read. Only a position the panel was dragged to is
  * stored: one it merely started at is worked out again on the next visit.
+ * Nothing is stored on the compact map, where the panel is pinned.
  */
 export function usePersistentPosition(storageKey: string, anchor: PanelAnchor) {
   const [{ position, moved }, moveTo] = usePlacement(anchor, () =>
@@ -149,7 +157,7 @@ export function usePersistentPosition(storageKey: string, anchor: PanelAnchor) {
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !moved) return;
+    if (typeof window === 'undefined' || !moved || isCompactMap()) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify(position));
     } catch (error) {
