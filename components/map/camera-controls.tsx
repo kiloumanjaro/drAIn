@@ -25,15 +25,23 @@ export const CameraControls: FC<CameraControlsProps> = ({
   return (
     // The column spans the map's height to pin its two groups top and
     // bottom; only the groups themselves take clicks, or the strip between
-    // them would swallow clicks meant for whatever lies under it.
-    <div className="pointer-events-none absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5 max-md:justify-start max-md:gap-2">
-      <div className="pointer-events-auto flex flex-col items-end gap-2">
+    // them would swallow clicks meant for whatever lies under it. On phones
+    // and tablets the control panel's sheet covers the bottom, so both groups
+    // sit at the top. A tablet-width screen under 480px high (a large phone
+    // on its side) has no room for both above the half-open sheet, where
+    // before it had the desktop layout and showed them all; there the two
+    // groups go side by side, the second to the left of the first. The
+    // simulation has no second group but one more button in the first (exit),
+    // which pushed the last of them behind the sheet; there the exit button
+    // takes the second group's place.
+    <div className="pointer-events-none absolute right-0 z-30 mx-5 flex h-full flex-col items-end justify-between py-5 max-lg:justify-start max-lg:gap-2 md:max-lg:[@media(height_<_480px)]:flex-row-reverse md:max-lg:[@media(height_<_480px)]:items-start">
+      <div className="pointer-events-auto relative flex flex-col items-end gap-2">
         {/* Exit button when simulation is active */}
         {isSimulationActive && onExitSimulation && (
           <button
             onClick={onExitSimulation}
             aria-label="Exit simulation"
-            className="rounded-sm border border-[#770504] bg-[#c53231] p-2 shadow-md hover:bg-[#a10018] active:border active:border-[#770504] active:bg-[#c53231] active:text-black"
+            className="rounded-sm border border-[#770504] bg-[#c53231] p-2 shadow-md hover:bg-[#a10018] active:border active:border-[#770504] active:bg-[#c53231] active:text-black md:max-lg:[@media(height_<_480px)]:absolute md:max-lg:[@media(height_<_480px)]:top-0 md:max-lg:[@media(height_<_480px)]:right-full md:max-lg:[@media(height_<_480px)]:mr-2"
           >
             <X className="h-4 w-4 cursor-pointer text-white" />
           </button>

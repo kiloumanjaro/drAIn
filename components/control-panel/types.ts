@@ -159,4 +159,8 @@ export interface ControlPanelProps {
   onToggleFloodPropagation?: (enabled: boolean) => void;
   isFloodScenarioLoading?: boolean;
   isFloodPropagationLoading?: boolean;
+  // Phones and tablets: the sheet drops to its bar each time this changes,
+  // to uncover the map (a report pin, or a simulation's table or parameter
+  // panel, opened on a short screen).
+  sheetCollapseRequests?: number;
 }

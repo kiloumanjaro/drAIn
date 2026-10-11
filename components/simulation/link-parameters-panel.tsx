@@ -17,6 +17,7 @@ import {
   clampDragPosition,
   measureDragBounds,
 } from '@/lib/simulation/drag-bounds';
+import { useCompactMap } from '@/lib/layout/use-compact-map';
 
 interface LinkParams {
   init_flow: number;
@@ -49,6 +50,7 @@ export function LinkParametersPanel({
   // at a time, so one id per parameter is enough.
   const labelId = useId();
   const [isDragging, setIsDragging] = useState(false);
+  const isCompact = useCompactMap();
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
   const dragRef = useRef<{
@@ -100,6 +102,8 @@ export function LinkParametersPanel({
       return;
     }
 
+    // Pinned in place on the compact map: nothing to drag.
+    if (isCompact) return;
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX,
@@ -150,6 +154,7 @@ export function LinkParametersPanel({
       return;
     }
 
+    if (isCompact) return;
     const touch = e.touches[0];
     setIsDragging(true);
     dragRef.current = {
@@ -244,13 +249,13 @@ export function LinkParametersPanel({
   return (
     <div
       ref={containerRef}
-      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-h-[calc(100vh-120px)] md:max-w-[600px] md:min-w-[450px]"
+      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-lg:max-h-(--pinned-panel-max-height) lg:max-h-[calc(100vh-120px)] lg:max-w-[600px] lg:min-w-[450px]"
     >
       {/* Header */}
       <div
         className={cn(
           'bg-muted/50 flex items-center justify-between gap-2 rounded-t-lg border-b px-3 py-2',
-          'cursor-grab active:cursor-grabbing',
+          !isCompact && 'cursor-grab active:cursor-grabbing',
           isDragging && 'cursor-grabbing select-none'
         )}
         onMouseDown={handleMouseDown}

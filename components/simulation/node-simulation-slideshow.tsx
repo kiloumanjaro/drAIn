@@ -132,7 +132,11 @@ export function NodeSimulationSlideshow({
       {/* On the right of the screen, 25px above centre, as it always was;
           placed with CSS so nothing reads the window size while rendering.
           On a screen too short for that (a phone on its side) it starts at
-          the top instead, is no taller than the screen, and scrolls.
+          the top instead, is no taller than the screen, and scrolls. That
+          still fits a tablet with the navigation rail, so unlike the tables
+          it changes at phone width, not with the compact map: there it
+          spans the screen under the navigation button, and its 450px gives
+          way on a screen too short for it.
           The layer sits above the parameter panels (1000), which would
           otherwise cover a dialog that has taken the keyboard. */}
       <DialogContent
@@ -147,7 +151,7 @@ export function NodeSimulationSlideshow({
         }}
         onCloseAutoFocus={returnFocus}
         overlayClassName="z-[1100] bg-black/20"
-        className="top-[max(0.5rem,calc(50%-250px))] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl max-md:inset-x-2 max-md:top-16 max-md:h-auto max-md:max-h-[calc(100dvh-5rem)] max-md:min-h-[450px] max-md:w-auto sm:max-w-none md:max-h-[calc(100dvh-1rem)]"
+        className="top-[max(0.5rem,calc(50%-250px))] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl max-md:inset-x-2 max-md:top-16 max-md:h-auto max-md:max-h-[calc(100dvh-5rem)] max-md:min-h-[min(450px,calc(100dvh-5rem))] max-md:w-auto sm:max-w-none md:max-h-[calc(100dvh-1rem)]"
       >
         {/* Header */}
         <div className="flex items-center justify-between rounded-t-lg bg-[#f7f7f7] p-2 pl-5">

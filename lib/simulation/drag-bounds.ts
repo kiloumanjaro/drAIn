@@ -81,10 +81,16 @@ export function measureDragBounds(panel: HTMLElement | null): DragBounds {
   };
 }
 
-/** Where the control panel ends, from the left of the map area (tablet width up). */
+/**
+ * Where the control panel ends, from the left of the map area. Only on
+ * desktop (1024px up), where it floats: below that it is a sheet across the
+ * bottom and the panels here are pinned, so no start position is used.
+ */
 export const CONTROL_PANEL_RIGHT = 404;
 /** The strip down the right edge of the screen that holds the map buttons. */
 export const MAP_BUTTONS_STRIP = 70;
+/** The buttons themselves: 34px wide, 20px in from the edge of the screen. */
+export const MAP_BUTTONS_WIDTH = 54;
 /** Kept clear around a panel where it starts: the control panel's own margin. */
 export const START_MARGIN = 20;
 
@@ -111,7 +117,12 @@ export interface StartBounds {
  * Where a floating panel opens before it has been dragged anywhere: at its
  * anchor, moved as needed to sit between the control panel and the map
  * buttons with its header on screen. A screen too narrow for that gets it
- * as far right as it fits, over the control panel.
+ * as far right as it fits, without the margin beside the control panel:
+ * the results table on a screen under 1053px wide. Under 1033px that put
+ * its first 9px behind the control panel, so there it stops at the panel's
+ * edge and takes the room from the buttons' strip instead, still short of
+ * the buttons. Below 1024px the panels are pinned across the top instead
+ * (lib/layout/compact-map.ts) and the result is not used.
  */
 export function startPosition({
   width,
@@ -129,10 +140,16 @@ export function startPosition({
   const left = mapLeft + CONTROL_PANEL_RIGHT + START_MARGIN;
   const right = viewportWidth - MAP_BUTTONS_STRIP;
   const anchored = originX + viewportWidth * anchorX - width / 2;
+  const panelEdge = mapLeft + CONTROL_PANEL_RIGHT;
+  const fitsBesidePanel =
+    panelEdge + minWidth <= viewportWidth - MAP_BUTTONS_WIDTH;
   const screenX =
     left + minWidth <= right
       ? Math.max(left, Math.min(anchored, right - fullWidth))
-      : Math.max(mapLeft + START_MARGIN, right - minWidth);
+      : Math.max(
+          fitsBesidePanel ? panelEdge : mapLeft + START_MARGIN,
+          right - minWidth
+        );
 
   const lowest = viewportHeight - height - START_MARGIN;
   const y = Math.min(viewportHeight * anchorY - height / 2, lowest);
