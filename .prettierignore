@@ -8,3 +8,5 @@ pnpm-lock.yaml
 supabase/.temp
 # Deno edge functions, kept exactly as deployed
 supabase/functions
+# Run output of pnpm shots: images, results.json, a generated index.html
+screenshots
