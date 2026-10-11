@@ -36,6 +36,7 @@ import {
   NOT_OURS,
   PROFILE_DIR,
   SHOTS_DIR,
+  STARTED_FILE,
   attach,
   browserInfo,
   capture,
@@ -471,6 +472,7 @@ async function startBrowser(opts) {
   fs.mkdirSync(PROFILE_DIR, { recursive: true });
   // One left by a browser that was killed would vouch for the wrong browser.
   fs.rmSync(ENDPOINT_FILE, { force: true });
+  fs.rmSync(STARTED_FILE, { force: true });
   // Spawned directly, never through a shell. --hide-scrollbars is what
   // Playwright's own headless runs use, so widths match the e2e specs. The
   // rest keep the browser from fetching, updating or recolouring on its own.
@@ -503,7 +505,14 @@ async function startBrowser(opts) {
 
   for (let waited = 0; waited < 20000 && !spawnError; waited += 250) {
     await delay(250);
-    const info = await browserInfo();
+    let info = await browserInfo();
+    // Nothing answered on this port before the start, and the process just
+    // started is still alive: what answers now is that process. Its
+    // endpoint is written down, so that it is known again later.
+    if (info?.endpoint && !info.ours && child.exitCode === null) {
+      fs.writeFileSync(STARTED_FILE, info.endpoint);
+      info = await browserInfo();
+    }
     if (info?.ours) {
       console.log(`Started ${info.version} at ${CDP_URL}.`);
       console.log(
@@ -568,6 +577,7 @@ async function stopBrowser() {
     console.log('It was not answering, so its process was ended.');
   }
   fs.rmSync(ENDPOINT_FILE, { force: true });
+  fs.rmSync(STARTED_FILE, { force: true });
   fs.rmSync(PID_FILE, { force: true });
   console.log('Browser closed. Its profile, and any session in it, is kept.');
   return 0;

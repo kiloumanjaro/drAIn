@@ -28,6 +28,11 @@ export const PROFILE_DIR = fileURLToPath(
 );
 /** Written by Chromium into its profile: the port, then its endpoint path. */
 export const ENDPOINT_FILE = path.join(PROFILE_DIR, 'DevToolsActivePort');
+/**
+ * The same, written by `pnpm shots --start-browser` when Chromium does not:
+ * a headed Chromium given a fixed port leaves no DevToolsActivePort behind.
+ */
+export const STARTED_FILE = path.join(PROFILE_DIR, 'shots-browser.endpoint');
 
 /** A file-safe name: lower case, with anything unusual turned into a dash. */
 export const sanitise = (name) =>
@@ -56,15 +61,25 @@ export async function browserInfo() {
   } catch {
     return null;
   }
-  let endpoint = null;
+  const read = (file, line) => {
+    try {
+      return fs.readFileSync(file, 'utf8').split(/\r?\n/)[line] || null;
+    } catch {
+      // No file: no shots browser has been started from this folder.
+      return null;
+    }
+  };
+  let now = null;
   try {
-    endpoint = fs.readFileSync(ENDPOINT_FILE, 'utf8').split(/\r?\n/)[1];
+    now = new URL(info.webSocketDebuggerUrl).pathname;
   } catch {
-    // No file: no shots browser has been started from this folder.
+    // Not a browser's answer.
   }
   return {
     version: info.Browser ?? 'unknown',
-    ours: !!endpoint && String(info.webSocketDebuggerUrl).endsWith(endpoint),
+    endpoint: now,
+    ours:
+      !!now && [read(ENDPOINT_FILE, 1), read(STARTED_FILE, 0)].includes(now),
   };
 }
 
