@@ -363,8 +363,8 @@ pnpm shots --stop-browser
 pnpm shots --start-browser --viewport laptop
 ```
 
-_Not verified here._ The session survives the restart: it is in the browser's
-profile. The local database has seeded accounts for each role
+The session survives the restart: it is in the browser's profile (checked
+here: signed in headed, read back as `citizen` headless). The local database has seeded accounts for each role
 (`supabase/seed.sql`). An agent should not type or look up a password; a
 password given on a command line ends up in the shell history and the
 transcript.
@@ -387,8 +387,14 @@ contents).
 A role other than the one given stops the batch. Signed in, every capture's
 name gains the role (`map-profile@citizen`), however the page was named, so
 one role's capture is never compared with, or accepted over, another's.
-Checked here signed out; _signed-in roles not re-verified since this check was
-rewritten._
+Checked here signed out and as a citizen (2026-10-11): signed in, a batch
+with no `--as`, or with another role, stopped before the first page; with
+`--as citizen` a manifest page and a hand-given page were both saved with
+`@citizen` in the name. _Staff and admin not checked._
+
+Email addresses are masked in the page text a run keeps, as clock times are.
+The images are not: a capture of a profile page shows whose account it is, so
+treat a signed-in run folder as private.
 
 ## Typing and clicking from the command line
 

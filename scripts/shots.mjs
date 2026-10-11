@@ -86,7 +86,12 @@ const SOFT_CELL = 4;
 const SOFT_RADIUS = 2;
 const BOX = 64;
 // Text that differs between two loads of an unchanged page.
-const MASK_TEXT = [/\b\d{1,2}:\d{2}\s?[AP]M\b/g, /Updated .{1,40}? ago/g];
+const MASK_TEXT = [
+  /\b\d{1,2}:\d{2}\s?[AP]M\b/g,
+  /Updated .{1,40}? ago/g,
+  // Signed in, pages show whose account it is: never kept in a results file.
+  /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g,
+];
 // What counts as the app's own source when asking "is this build stale?".
 const APP_SOURCE = [
   '.',
