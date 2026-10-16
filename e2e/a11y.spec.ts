@@ -6,7 +6,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 // says nothing about whether the page makes sense read aloud, so a clean run
 // is a floor, not a verdict.
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 /** How long late content (fonts, charts, the docs video) gets to settle. */
 const SETTLE_MS = 2_000;
