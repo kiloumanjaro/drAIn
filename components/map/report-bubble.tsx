@@ -160,13 +160,12 @@ function bringPinIntoView(
     });
   }
   // After the move has started: the watch gives way to any move but its own.
-  if (offset) {
-    settlePinAtRest(
-      map,
-      coordinates,
-      reportPinRest(offset, clientWidth, clientHeight)
-    );
-  }
+  // Without an offset (desktop) the pin rests at the middle of the map.
+  settlePinAtRest(
+    map,
+    coordinates,
+    reportPinRest(offset ?? [0, 0], clientWidth, clientHeight)
+  );
   return reportPinCrowded(layout, clientHeight);
 }
 

@@ -88,6 +88,11 @@ describe('reportPinRest', () => {
       y: TABLET_PIN_TOP_PX,
     });
   });
+
+  it('is the middle of the map on desktop, which has no offset', () => {
+    expect(reportPinOffset('desktop', 768)).toBeUndefined();
+    expect(reportPinRest([0, 0], 1307, 768)).toEqual({ x: 653.5, y: 384 });
+  });
 });
 
 describe('reportPinOffRest', () => {

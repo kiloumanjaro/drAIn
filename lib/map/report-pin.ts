@@ -86,8 +86,8 @@ export interface MapPoint {
 }
 
 /**
- * Where the pin's point is meant to rest on a map of this size, for a
- * layout that sends it somewhere (see reportPinOffset).
+ * Where the pin's point is meant to rest on a map of this size, given the
+ * layout's offset (see reportPinOffset; [0, 0] where it has none).
  */
 export function reportPinRest(
   offset: [number, number],
