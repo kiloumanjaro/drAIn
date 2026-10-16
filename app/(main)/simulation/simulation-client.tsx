@@ -378,14 +378,29 @@ export default function SimulationPage() {
 
   // Counts the tables and parameter panels opened where the half-open sheet
   // leaves them no room (lib/simulation/pinned-panels.ts); the control panel
-  // collapses its sheet at each one. Not for a panel that opens because a
-  // component was picked: the picking is done in the sheet.
+  // collapses its sheet at each one. That includes a panel that opens
+  // because a component was picked in the sheet: only the opening collapses
+  // it, so picking more after raising the sheet again leaves it be.
   const [sheetCollapseRequests, setSheetCollapseRequests] = useState(0);
   const makeRoomForPinnedPanel = () => {
     const isTablet = isCompactMap() && !window.matchMedia(PHONE_QUERY).matches;
     if (pinnedPanelCrowded(isTablet, window.innerHeight)) {
       setSheetCollapseRequests((count) => count + 1);
     }
+  };
+  const handleComponentIdsChange = (ids: string[]) => {
+    const opens = ids.length !== panels.selectedComponentIds.length;
+    if (opens && ids.length > 0 && panels.activePanel !== 'node') {
+      makeRoomForPinnedPanel();
+    }
+    panels.setSelectedComponentIds(ids);
+  };
+  const handlePipeIdsChange = (ids: string[]) => {
+    const opens = ids.length !== panels.selectedPipeIds.length;
+    if (opens && ids.length > 0 && panels.activePanel !== 'link') {
+      makeRoomForPinnedPanel();
+    }
+    panels.setSelectedPipeIds(ids);
   };
 
   // Vulnerability table handlers
@@ -576,9 +591,9 @@ export default function SimulationPage() {
           isSimulationMode={isSimulationActive}
           selectedPointForSimulation={selectedPointForSimulation}
           selectedComponentIds={panels.selectedComponentIds}
-          onComponentIdsChange={panels.setSelectedComponentIds}
+          onComponentIdsChange={handleComponentIdsChange}
           selectedPipeIds={panels.selectedPipeIds}
-          onPipeIdsChange={panels.setSelectedPipeIds}
+          onPipeIdsChange={handlePipeIdsChange}
           componentParams={panels.componentParams}
           onComponentParamsChange={panels.setComponentParams}
           pipeParams={panels.pipeParams}
