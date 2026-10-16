@@ -16,7 +16,9 @@ set local search_path = public, extensions;
 select plan(14);
 
 -- Cora says it isn't fixed, then reads her answer back the way the app does
--- (fetchMyResolutionVerdicts in lib/supabase/report.ts).
+-- (fetchMyResolutionVerdicts in lib/supabase/report.ts, through
+-- my_resolution_verdicts: reviewer_id is not readable from the table since
+-- hide_reviewer_ids, see 29_reviewer_ids.test.sql).
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000003","role":"authenticated"}';
 
@@ -27,10 +29,9 @@ select lives_ok(
 );
 
 select results_eq(
-  $$select report_id, verdict::text from public.maintenance_reviews
-    where reviewer_id = '00000000-0000-4000-a000-000000000003' and report_id is not null$$,
+  $$select report_id, verdict::text from public.my_resolution_verdicts()$$,
   $$values ('00000000-0000-4000-b000-000000000001'::uuid, 'disputed')$$,
-  'and read their own answer back, by reviewer_id'
+  'and read their own answer back'
 );
 
 -- Ana checks the same work, so the table holds one row of each kind.
@@ -42,8 +43,8 @@ select lives_ok(
 );
 
 select results_eq(
-  $$select reviewer_kind, reviewer_id, verdict::text from public.maintenance_reviews$$,
-  $$values ('staff', '00000000-0000-4000-a000-000000000001'::uuid, 'confirmed')$$,
+  $$select reviewer_kind, verdict::text from public.maintenance_reviews$$,
+  $$values ('staff', 'confirmed')$$,
   'an admin reads the staff check and not the reporter''s answer'
 );
 
@@ -55,13 +56,15 @@ select results_eq(
   $$values ('staff', 'confirmed')$$,
   'staff still read the checks colleagues made'
 );
-select is_empty(
+select throws_ok(
   $$select reviewer_id from public.maintenance_reviews where reviewer_kind = 'reporter'$$,
+  '42501', null,
   'staff cannot read a reporter''s account id from a review'
 );
-select is_empty(
+select throws_ok(
   $$select id from public.maintenance_reviews
     where reviewer_id = '00000000-0000-4000-a000-000000000003'$$,
+  '42501', null,
   'nor find a reporter''s reviews by guessing the id'
 );
 select is_empty(

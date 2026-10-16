@@ -380,17 +380,38 @@ ALTER TABLE "public"."maintenance_reviews" ENABLE ROW LEVEL SECURITY;
 -- filed which report (reports.user_id is private for the same reason). What
 -- staff need from those answers reaches them without the id: the record's
 -- verification_status, and the reason for the latest dispute through
--- maintenance_history (schema_dashboard.sql). The rule is on rows rather
--- than a column grant because the app finds a person's own answers by
--- reviewer_id (fetchMyResolutionVerdicts), which a revoked column would
--- refuse. Written only through the two functions below.
+-- maintenance_history (schema_dashboard.sql). reviewer_id itself is not
+-- granted (see the column grant below), so staff can't read which colleague
+-- made a check either; a person reads their own answers through
+-- my_resolution_verdicts. Written only through the two functions below.
 CREATE POLICY "Reviewers read their own reviews and staff read staff checks" ON "public"."maintenance_reviews" FOR SELECT TO "authenticated" USING ((("reviewer_id" = ( SELECT "auth"."uid"() AS "uid")) OR (("reviewer_kind" = 'staff'::"text") AND (( SELECT "private"."current_agency_id"() AS "current_agency_id") IS NOT NULL))));
 
 
-GRANT SELECT ON TABLE "public"."maintenance_reviews" TO "authenticated";
+REVOKE ALL ON TABLE "public"."maintenance_reviews" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."maintenance_reviews" TO "service_role";
-REVOKE ALL ON TABLE "public"."maintenance_reviews" FROM "anon";
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE "public"."maintenance_reviews" FROM "authenticated";
+
+-- Signed-in users read every column but who wrote the review (reviewer_id):
+-- staff read their colleagues' checks without their account ids, and
+-- select('*') on this table fails. (Until 2026-10-16 any agency member read
+-- every staff check's reviewer_id.) A new column is hidden until added here.
+GRANT SELECT ("id", "created_at", "maintenance_id", "reviewer_kind", "report_id", "verdict", "note", "evidence_image") ON TABLE "public"."maintenance_reviews" TO "authenticated";
+
+
+-- The signed-in person's answers to "was it fixed?", by the report each
+-- answers for (fetchMyResolutionVerdicts). Only their own: reviewer_id is not
+-- readable from the table (see the column grant above).
+CREATE OR REPLACE FUNCTION "public"."my_resolution_verdicts"() RETURNS TABLE("report_id" "uuid", "verdict" "public"."review_verdict")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select r.report_id, r.verdict from public.maintenance_reviews r
+  where r.reviewer_id = (select auth.uid()) and r.report_id is not null
+$$;
+
+ALTER FUNCTION "public"."my_resolution_verdicts"() OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "public"."my_resolution_verdicts"() FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."my_resolution_verdicts"() TO "authenticated", "service_role";
 
 
 -- Recomputes a record's verification_status from its reviews: any dispute
