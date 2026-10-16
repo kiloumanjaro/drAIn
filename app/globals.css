@@ -135,6 +135,47 @@
     outline: 2px solid oklch(0.45 0 0);
     outline-offset: 2px;
   }
+  /* hit-area (below) needs its element positioned. Zero specificity and the
+     base layer, so a control that is already absolute or fixed keeps it. */
+  :where(.hit-area, .hit-area-sm, .hit-area-lg, .hit-area-y) {
+    position: relative;
+  }
+}
+
+/*
+ * A tap target of at least 24 x 24 px (WCAG 2.2, 2.5.8) around a small
+ * control, without changing how it looks: an invisible ::after reaches past
+ * its edges, and a tap there lands on the control. 4, 6 or 8 px on every
+ * side (sm, default, lg), or 4 px above and below only (y) where neighbours
+ * sit close on either side. The same idea as the sidebar's rail button.
+ */
+@utility hit-area-sm {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+}
+@utility hit-area {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+}
+@utility hit-area-lg {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+@utility hit-area-y {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
+  }
 }
 
 /* Mapbox Popup Styling */
