@@ -61,9 +61,9 @@ export default function DashboardPage() {
         <div className="border-x border-[#dfdfdf] bg-[#fcfcfc] pt-6">
           {/* Header Section */}
           <div className="space-y-6 px-8">
-            <h2 className="mb-1 text-xl font-semibold text-gray-900">
+            <h1 className="mb-1 text-xl font-semibold text-gray-900">
               System Analytics & Overview
-            </h2>
+            </h1>
             <p className="text-muted-foreground text-sm">
               Live citizen reports and repair tracking for the drainage system
               infrastructure.

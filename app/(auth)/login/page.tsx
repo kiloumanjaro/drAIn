@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Log In',
+  alternates: { canonical: '/login' },
 };
 
 // The page shell (main landmark, logo, card) is in the auth layout.
