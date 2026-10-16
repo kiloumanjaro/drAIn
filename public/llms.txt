@@ -1,0 +1,13 @@
+# drAIn
+
+> Drainage flood simulation and citizen flood reporting for Mandaue City, Philippines.
+
+drAIn maps the city's drainage network (inlets, outlets, storm drains and pipes), simulates how it floods under a chosen rainfall with the Storm Water Management Model (SWMM), and lets residents report blocked or damaged drains with a photo. City engineering staff track and resolve those reports.
+
+## Pages
+
+- [Home](/): what drAIn is
+- [Map](/map): the drainage network, flood hazard overlays and citizen reports
+- [Simulation](/simulation): flood hazard per component under adjustable rainfall
+- [Dashboard](/dashboard): report and repair statistics
+- [Documentation](/docs): features, data sources, architecture and limitations

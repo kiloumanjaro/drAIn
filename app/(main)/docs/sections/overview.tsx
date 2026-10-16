@@ -19,7 +19,7 @@ export function OverviewSection() {
       <div className="mb-5 ml-2">
         <h2 className="mb-1 text-xl font-semibold text-gray-900">Overview</h2>
         <p className="text-muted-foreground text-sm">
-          Simulated urban flood risk and community reporting — what drAin is and
+          Simulated urban flood risk and community reporting: what drAin is and
           why it matters.
         </p>
       </div>

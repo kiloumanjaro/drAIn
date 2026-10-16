@@ -364,11 +364,11 @@ export default function SubmitTab() {
             }
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
-            <option value="low">🟡 Low - Minor issue</option>
-            <option value="medium">🟠 Medium - Moderate concern</option>
-            <option value="high">🔴 High - Urgent</option>
+            <option value="low">Low: Minor issue</option>
+            <option value="medium">Medium: Moderate concern</option>
+            <option value="high">High: Urgent</option>
             <option value="critical">
-              ⚠️ Critical - Immediate attention needed
+              Critical: Immediate attention needed
             </option>
           </select>
         </div>
@@ -480,11 +480,11 @@ export default function SubmitTab() {
               <p className="mb-2 block text-sm">Severity Level</p>
               <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 <span>
-                  {severity === 'low' && '🟡 Low - Minor issue'}
-                  {severity === 'medium' && '🟠 Medium - Moderate concern'}
-                  {severity === 'high' && '🔴 High - Urgent'}
+                  {severity === 'low' && 'Low: Minor issue'}
+                  {severity === 'medium' && 'Medium: Moderate concern'}
+                  {severity === 'high' && 'High: Urgent'}
                   {severity === 'critical' &&
-                    '⚠️ Critical - Immediate attention needed'}
+                    'Critical: Immediate attention needed'}
                 </span>
               </div>
             </div>

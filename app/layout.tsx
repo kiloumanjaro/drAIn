@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { NavigationLoadingOverlay } from '@/components/shell/navigation-loading-overlay';
 import { EventWidgetProvider } from '@/components/context/event-widget-provider';
 import EventWidget from '@/components/shell/event-widget';
+import { siteUrl } from '@/lib/site-url';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,13 +35,26 @@ const centuryGothic = localFont({
   variable: '--font-century-gothic',
 });
 
+const description =
+  'Drainage flood simulation and citizen flood reporting for Mandaue City.';
+
+// Each page sets its own canonical URL; one here would be inherited by every
+// page. The share image is app/opengraph-image.tsx.
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default: 'drAIn',
     template: '%s | drAIn',
   },
-  description:
-    'Drainage flood simulation and citizen flood reporting for Mandaue City.',
+  description,
+  openGraph: {
+    type: 'website',
+    siteName: 'drAIn',
+    title: 'drAIn',
+    description,
+    locale: 'en_PH',
+  },
+  twitter: { card: 'summary_large_image' },
 };
 
 export default function RootLayout({

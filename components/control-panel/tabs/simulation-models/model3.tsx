@@ -303,8 +303,8 @@ export default function Model3({
           <CardTitle>Infrastructure Health Model</CardTitle>
           <CardDescription className="text-xs">
             Run SWMM against your own node and pipe parameters. Condition and
-            cleaning history are not inputs — changing them here does not model
-            a cleared drain.
+            cleaning history are not inputs. Changing them here does not model a
+            cleared drain.
           </CardDescription>
         </CardHeader>
 
@@ -312,7 +312,7 @@ export default function Model3({
           {/* Component Multi-Select with Gear Button */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-normal">Component Selection</h1>
+              <h2 className="text-sm font-normal">Component Selection</h2>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger
@@ -372,7 +372,7 @@ export default function Model3({
           {/* Pipe Multi-Select with Gear Button */}
           <div className="mb-2 space-y-2">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm">Pipe Selection (Optional)</h1>
+              <h2 className="text-sm">Pipe Selection (Optional)</h2>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger
@@ -425,7 +425,7 @@ export default function Model3({
           {/* Rainfall Parameters */}
           <div className="space-y-4 px-1">
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm">Rainfall Parameters</h1>
+              <h2 className="text-sm">Rainfall Parameters</h2>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger
