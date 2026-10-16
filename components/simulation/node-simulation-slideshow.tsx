@@ -259,20 +259,26 @@ export function NodeSimulationSlideshow({
           <span className="text-muted-foreground mb-0.5 text-xs">
             Use arrow keys or click page navigation
           </span>
-          <div className="flex gap-2">
+          {/* Each button is 24px for the tap; the dot is drawn inside it. */}
+          <div className="flex">
             {METRIC_SLIDES.map((slide, index) => (
               <button
                 key={index}
                 onClick={() => setActiveSlideIndex(index)}
-                className={cn(
-                  'h-2 rounded-full transition-all',
-                  index === activeSlideIndex
-                    ? 'w-8 bg-[#3f83db]'
-                    : 'bg-muted-foreground/30 hover:bg-muted-foreground/50 w-2'
-                )}
+                className="group flex h-6 min-w-6 items-center justify-center"
                 aria-label={`Slide ${index + 1} of ${METRIC_SLIDES.length}: ${slide.title}`}
                 aria-current={index === activeSlideIndex ? 'true' : undefined}
-              />
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'h-2 rounded-full transition-all',
+                    index === activeSlideIndex
+                      ? 'w-8 bg-[#3f83db]'
+                      : 'bg-muted-foreground/30 group-hover:bg-muted-foreground/50 w-2'
+                  )}
+                />
+              </button>
             ))}
           </div>
         </div>

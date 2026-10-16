@@ -428,7 +428,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                 {report.image && (
                   <button
                     onClick={() => setShowImageViewer(true)}
-                    className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+                    className="hit-area-sm inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
                   >
                     <span className="ml-[-1px] flex cursor-pointer flex-row items-center gap-1">
                       Image Attached

@@ -118,7 +118,7 @@ export default function Model2({
                   <TooltipTrigger
                     type="button"
                     aria-label="About the return period"
-                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <IconInfoCircleFilled
                       aria-hidden="true"
@@ -167,7 +167,7 @@ export default function Model2({
                   <TooltipTrigger
                     type="button"
                     aria-label="About the flood hazard indicator"
-                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <IconInfoCircleFilled
                       aria-hidden="true"
@@ -244,7 +244,7 @@ export default function Model2({
                     <TooltipTrigger
                       type="button"
                       aria-label="About the rain effect"
-                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     >
                       <IconInfoCircleFilled
                         aria-hidden="true"
@@ -288,7 +288,7 @@ export default function Model2({
                     <TooltipTrigger
                       type="button"
                       aria-label="About flood propagation"
-                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     >
                       <IconInfoCircleFilled
                         aria-hidden="true"

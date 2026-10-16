@@ -32,7 +32,7 @@ export function ModelCaveat({
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 text-left"
+        className="hit-area-y flex w-full items-center gap-2 text-left"
       >
         <Info className="h-3.5 w-3.5 shrink-0" />
         <span className="flex-1">{caveatHeadline(model)}</span>
