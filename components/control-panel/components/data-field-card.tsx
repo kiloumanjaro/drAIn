@@ -32,7 +32,7 @@ export const DataFieldCard = forwardRef<HTMLDivElement, DataFieldCardProps>(
 
             {/* Row 3: Description */}
             {description && (
-              <div className="text-muted-foreground text-[11px] leading-relaxed">
+              <div className="text-muted-foreground text-xs leading-relaxed">
                 {description}
               </div>
             )}

@@ -503,7 +503,7 @@ ${note}`
                             <div className="mt-auto flex flex-row gap-2">
                               {record.status && (
                                 <div
-                                  className={`flex h-5 items-center justify-center rounded-md border px-2 py-0.5 text-[10px] ${getStatusStyles(
+                                  className={`flex h-auto items-center justify-center rounded-md border px-2 py-0.5 text-xs ${getStatusStyles(
                                     record.status
                                   )}`}
                                 >
@@ -568,7 +568,7 @@ ${note}`
                           <div className="mt-auto flex flex-row gap-2">
                             {record.status && (
                               <div
-                                className={`flex h-5 items-center justify-center rounded-md border px-2 py-0.5 text-[10px] ${getStatusStyles(
+                                className={`flex h-auto items-center justify-center rounded-md border px-2 py-0.5 text-xs ${getStatusStyles(
                                   record.status
                                 )}`}
                               >

@@ -411,7 +411,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                     })}
                   </p>
                   <div
-                    className={`mb-1 flex h-5 items-center justify-center rounded-md border px-3 text-[10px] ${getStatusStyle(
+                    className={`mb-1 flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
                       report.status
                     )}`}
                   >

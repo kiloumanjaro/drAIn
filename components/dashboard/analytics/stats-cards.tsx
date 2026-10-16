@@ -182,7 +182,7 @@ export default function StatsCards({
           const isPositive = percentageChange >= 0;
           const change = hasTrend && (
             <span
-              className={`rounded px-1.5 py-1 text-[9px] font-semibold ${
+              className={`rounded px-1.5 py-1 text-xs font-semibold ${
                 isPositive
                   ? 'bg-[#f1f7f7] text-green-700'
                   : 'bg-red-100 text-red-700'
@@ -241,7 +241,7 @@ export default function StatsCards({
                         {change}
                       </div>
                       {stat.note && (
-                        <p className="mt-1 text-[11px] text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500">
                           {stat.note}
                         </p>
                       )}

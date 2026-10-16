@@ -181,12 +181,12 @@ export default function AllReportsList({
                     <div className="flex flex-row gap-2">
                       <Badge
                         variant="outline"
-                        className="h-5 justify-center px-3 py-0 text-[10px] font-normal"
+                        className="h-auto justify-center px-3 py-0.5 text-xs font-normal"
                       >
                         {componentTypeLabel(report.category)}
                       </Badge>
                       <div
-                        className={`flex h-5 items-center justify-center rounded-md border px-3 py-0.5 text-[10px] ${getStatusStyle(
+                        className={`flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
                           report.status
                         )}`}
                       >

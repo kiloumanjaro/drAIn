@@ -27,7 +27,7 @@ export function ModelCaveat({
   const model = info ?? FALLBACK_MODEL_INFO;
 
   return (
-    <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+    <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

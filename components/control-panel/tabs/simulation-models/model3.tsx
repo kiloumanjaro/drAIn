@@ -666,7 +666,7 @@ export default function Model3({
             )}
           </div>
 
-          <p className="text-muted-foreground mt-3 text-[10px]">
+          <p className="text-muted-foreground mt-3 text-xs">
             The vulnerability data table will appear on the map and can be
             sorted and dragged to reposition.
           </p>
