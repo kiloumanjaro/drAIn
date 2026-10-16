@@ -303,8 +303,8 @@ export default function Model3({
           <CardTitle>Infrastructure Health Model</CardTitle>
           <CardDescription className="text-xs">
             Run SWMM against your own node and pipe parameters. Condition and
-            cleaning history are not inputs — changing them here does not model
-            a cleared drain.
+            cleaning history are not inputs. Changing them here does not model a
+            cleared drain.
           </CardDescription>
         </CardHeader>
 
