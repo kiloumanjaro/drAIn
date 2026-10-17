@@ -47,6 +47,7 @@ import { SimulationOverlays } from './simulation-overlays';
 import { useFloodPropagationAnimation } from './use-flood-propagation-animation';
 import { useNodeSlideshow } from './use-node-slideshow';
 import { useParameterPanels } from './use-parameter-panels';
+import { selectionOpensPanel } from '@/lib/simulation/parameter-panels';
 import { useSimulationMap } from './use-simulation-map';
 import { useVulnerabilityTables } from './use-vulnerability-tables';
 
@@ -389,15 +390,29 @@ export default function SimulationPage() {
     }
   };
   const handleComponentIdsChange = (ids: string[]) => {
-    const opens = ids.length !== panels.selectedComponentIds.length;
-    if (opens && ids.length > 0 && panels.activePanel !== 'node') {
+    const { activePanel, selectedComponentIds } = panels;
+    if (
+      selectionOpensPanel(
+        activePanel,
+        'node',
+        selectedComponentIds.length,
+        ids.length
+      )
+    ) {
       makeRoomForPinnedPanel();
     }
     panels.setSelectedComponentIds(ids);
   };
   const handlePipeIdsChange = (ids: string[]) => {
-    const opens = ids.length !== panels.selectedPipeIds.length;
-    if (opens && ids.length > 0 && panels.activePanel !== 'link') {
+    const { activePanel, selectedPipeIds } = panels;
+    if (
+      selectionOpensPanel(
+        activePanel,
+        'link',
+        selectedPipeIds.length,
+        ids.length
+      )
+    ) {
       makeRoomForPinnedPanel();
     }
     panels.setSelectedPipeIds(ids);

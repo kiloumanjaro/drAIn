@@ -7,6 +7,7 @@ import {
   panelAfterSelection,
   panelAfterSelectionChange,
   panelAfterToggle,
+  selectionOpensPanel,
   withLinkParam,
   withNodeParam,
 } from './parameter-panels';
@@ -31,6 +32,31 @@ describe('panelAfterSelection', () => {
     expect(panelAfterSelection('link', 'node', 0)).toBe('link');
     expect(panelAfterSelection('node', 'link', 0)).toBe('node');
     expect(panelAfterSelection(null, 'node', 0)).toBe(null);
+  });
+});
+
+describe('selectionOpensPanel', () => {
+  it('opens on the first pick of a kind', () => {
+    expect(selectionOpensPanel(null, 'node', 0, 1)).toBe(true);
+    expect(selectionOpensPanel(null, 'link', 0, 2)).toBe(true);
+  });
+
+  it('opens when switching from the other panel', () => {
+    expect(selectionOpensPanel('link', 'node', 1, 2)).toBe(true);
+  });
+
+  it('reopens a panel closed with its button when the pick changes', () => {
+    expect(selectionOpensPanel(null, 'node', 3, 2)).toBe(true);
+  });
+
+  it('does not open a panel that is already open', () => {
+    expect(selectionOpensPanel('node', 'node', 1, 2)).toBe(false);
+  });
+
+  it('does not open when the count is unchanged or cleared', () => {
+    expect(selectionOpensPanel(null, 'node', 2, 2)).toBe(false);
+    expect(selectionOpensPanel('link', 'node', 1, 0)).toBe(false);
+    expect(selectionOpensPanel(null, 'link', 1, 0)).toBe(false);
   });
 });
 
