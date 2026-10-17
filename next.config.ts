@@ -156,9 +156,10 @@ const nextConfig: NextConfig = {
   },
   // Baseline headers on every response. Not framed by other sites
   // (clickjacking); files served as their declared type; no full URL sent to
-  // other sites; no camera or microphone. Geolocation stays on for this
-  // origin: the report form uses the phone's location. The content security
-  // policy is described above; HSTS only in production (localhost is http).
+  // other sites; no camera, microphone or location (nothing asks for the
+  // phone's position: reports are placed on the map by hand). The content
+  // security policy is described above; HSTS only in production (localhost
+  // is http).
   async headers() {
     return [
       {
@@ -182,7 +183,7 @@ const nextConfig: NextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self)',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
           {
             key: cspReportOnly

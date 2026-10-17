@@ -9,6 +9,12 @@ async function pageHeader(key: string): Promise<string | undefined> {
 }
 
 describe('response headers', () => {
+  it('allows no camera, microphone or location', async () => {
+    expect(await pageHeader('Permissions-Policy')).toBe(
+      'camera=(), microphone=(), geolocation=()'
+    );
+  });
+
   it('frames the demo video from youtube-nocookie only', async () => {
     const csp = await pageHeader('Content-Security-Policy');
     const frameSrc = csp
