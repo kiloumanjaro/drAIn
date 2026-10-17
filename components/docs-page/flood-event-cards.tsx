@@ -86,7 +86,7 @@ export default function FloodEventCards({
                   <TooltipTrigger
                     type="button"
                     aria-label={`About ${displayName}`}
-                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <Info
                       aria-hidden="true"

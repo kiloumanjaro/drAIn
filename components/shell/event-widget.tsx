@@ -50,7 +50,7 @@ export default function EventWidget() {
           <button
             onClick={closeWidget}
             aria-label="Close"
-            className="text-gray-500 hover:text-red-600"
+            className="hit-area-lg text-gray-500 hover:text-red-600"
           >
             &times;
           </button>

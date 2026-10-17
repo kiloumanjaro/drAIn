@@ -91,12 +91,12 @@ export function NodeMetricComparisonChart({
           >
             <XAxis
               dataKey="rank"
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 12 }}
               label={{
                 value: 'Node Rank',
                 position: 'insideBottom',
                 offset: -5,
-                fontSize: 10,
+                fontSize: 12,
               }}
             />
 

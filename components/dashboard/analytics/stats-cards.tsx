@@ -182,7 +182,7 @@ export default function StatsCards({
           const isPositive = percentageChange >= 0;
           const change = hasTrend && (
             <span
-              className={`rounded px-1.5 py-1 text-[9px] font-semibold ${
+              className={`rounded px-1.5 py-1 text-xs font-semibold ${
                 isPositive
                   ? 'bg-[#f1f7f7] text-green-700'
                   : 'bg-red-100 text-red-700'
@@ -201,7 +201,7 @@ export default function StatsCards({
                   <TooltipTrigger
                     type="button"
                     aria-label={`About ${stat.label}`}
-                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <Info
                       aria-hidden="true"
@@ -241,7 +241,7 @@ export default function StatsCards({
                         {change}
                       </div>
                       {stat.note && (
-                        <p className="mt-1 text-[11px] text-gray-500">
+                        <p className="mt-1 text-xs text-gray-500">
                           {stat.note}
                         </p>
                       )}

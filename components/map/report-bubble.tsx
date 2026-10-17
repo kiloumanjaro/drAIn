@@ -410,7 +410,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                     })}
                   </p>
                   <div
-                    className={`mb-1 flex h-5 items-center justify-center rounded-md border px-3 text-[10px] ${getStatusStyle(
+                    className={`mb-1 flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
                       report.status
                     )}`}
                   >
@@ -427,7 +427,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                 {report.image && (
                   <button
                     onClick={() => setShowImageViewer(true)}
-                    className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+                    className="hit-area-sm inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
                   >
                     <span className="ml-[-1px] flex cursor-pointer flex-row items-center gap-1">
                       Image Attached

@@ -186,7 +186,7 @@ export function ChatbotView() {
                   <ChatMarkdown content={msg.content} />
                 )}
                 <div
-                  className={`mt-1 text-[10px] ${
+                  className={`mt-1 text-xs ${
                     msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}
                 >
@@ -262,7 +262,7 @@ export function ChatbotView() {
           <CharCount
             value={input}
             max={MAX_MESSAGE_CHARS}
-            className="absolute top-full right-1 mt-0.5 text-[10px] leading-none"
+            className="absolute top-full right-1 mt-0.5 text-xs leading-none"
           />
         </div>
       </div>

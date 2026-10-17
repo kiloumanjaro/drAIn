@@ -77,16 +77,16 @@ export default function MaintenanceVerification({
   return (
     <div className="flex flex-col gap-1.5">
       <span
-        className={`w-fit rounded-md border px-2 py-0.5 text-[10px] ${badge.className}`}
+        className={`w-fit rounded-md border px-2 py-0.5 text-xs ${badge.className}`}
       >
         {badge.text}
       </span>
       {record.verification_status === 'disputed' && record.latest_dispute && (
-        <p className="text-[11px] text-red-700">“{record.latest_dispute}”</p>
+        <p className="text-xs text-red-700">“{record.latest_dispute}”</p>
       )}
 
       {record.my_verdict ? (
-        <p className="text-muted-foreground text-[11px]">
+        <p className="text-muted-foreground text-xs">
           You {record.my_verdict === 'confirmed' ? 'confirmed' : 'disputed'}{' '}
           this.
         </p>
@@ -95,7 +95,7 @@ export default function MaintenanceVerification({
           <Button
             size="sm"
             variant="outline"
-            className="h-7 text-[11px]"
+            className="h-7 text-xs"
             disabled={saving}
             onClick={() => submit('confirmed')}
           >
@@ -104,7 +104,7 @@ export default function MaintenanceVerification({
           <Button
             size="sm"
             variant="outline"
-            className="h-7 text-[11px] text-red-700"
+            className="h-7 text-xs text-red-700"
             disabled={saving}
             onClick={() => setDisputing(true)}
           >
@@ -112,7 +112,7 @@ export default function MaintenanceVerification({
           </Button>
         </div>
       ) : (
-        <p className="text-muted-foreground text-[11px]">
+        <p className="text-muted-foreground text-xs">
           Someone else has to check your own work.
         </p>
       )}

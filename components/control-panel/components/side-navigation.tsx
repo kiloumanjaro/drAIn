@@ -52,7 +52,7 @@ export function SideNavigation({
         onClick={() => onTabChange(tab.id)}
         aria-label={tab.label}
         aria-current={isActive ? 'true' : undefined}
-        className="relative flex cursor-pointer items-center justify-center max-lg:h-full max-lg:flex-1"
+        className="lg:hit-area-y relative flex cursor-pointer items-center justify-center max-lg:h-full max-lg:flex-1"
       >
         <Icon className="h-5 w-5 text-[#B2ADAB] hover:text-black" />
 

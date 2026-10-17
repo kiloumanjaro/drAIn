@@ -118,7 +118,7 @@ export default function Model2({
                   <TooltipTrigger
                     type="button"
                     aria-label="About the return period"
-                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <IconInfoCircleFilled
                       aria-hidden="true"
@@ -167,7 +167,7 @@ export default function Model2({
                   <TooltipTrigger
                     type="button"
                     aria-label="About the flood hazard indicator"
-                    className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                   >
                     <IconInfoCircleFilled
                       aria-hidden="true"
@@ -189,7 +189,7 @@ export default function Model2({
                 className="justify-start gap-1.5 border-[#D32F2F]/20 bg-[#D32F2F]/5 px-2 py-1 hover:bg-[#D32F2F]/10"
               >
                 <div className="h-2 w-2 rounded-full bg-[#D32F2F] shadow-sm" />
-                <span className="text-foreground text-[10px] font-normal">
+                <span className="text-foreground text-xs font-normal">
                   High
                 </span>
               </Badge>
@@ -199,7 +199,7 @@ export default function Model2({
                 className="justify-start gap-1.5 border-[#FFA000]/20 bg-[#FFA000]/5 px-2 py-1 hover:bg-[#FFA000]/10"
               >
                 <div className="h-2 w-2 rounded-full bg-[#FFA000] shadow-sm" />
-                <span className="text-foreground text-[10px] font-normal">
+                <span className="text-foreground text-xs font-normal">
                   Medium
                 </span>
               </Badge>
@@ -209,9 +209,7 @@ export default function Model2({
                 className="justify-start gap-1.5 border-[#FDD835]/20 bg-[#FDD835]/5 px-2 py-1 hover:bg-[#FDD835]/10"
               >
                 <div className="h-2 w-2 rounded-full bg-[#FDD835] shadow-sm" />
-                <span className="text-foreground text-[10px] font-normal">
-                  Low
-                </span>
+                <span className="text-foreground text-xs font-normal">Low</span>
               </Badge>
 
               <Badge
@@ -219,7 +217,7 @@ export default function Model2({
                 className="justify-start gap-1.5 border-[#388E3C]/20 bg-[#388E3C]/5 px-2 py-1 hover:bg-[#388E3C]/10"
               >
                 <div className="h-2 w-2 rounded-full bg-[#388E3C] shadow-sm" />
-                <span className="text-foreground text-[10px] font-normal">
+                <span className="text-foreground text-xs font-normal">
                   No risk
                 </span>
               </Badge>
@@ -244,7 +242,7 @@ export default function Model2({
                     <TooltipTrigger
                       type="button"
                       aria-label="About the rain effect"
-                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     >
                       <IconInfoCircleFilled
                         aria-hidden="true"
@@ -288,7 +286,7 @@ export default function Model2({
                     <TooltipTrigger
                       type="button"
                       aria-label="About flood propagation"
-                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     >
                       <IconInfoCircleFilled
                         aria-hidden="true"
@@ -351,7 +349,7 @@ export default function Model2({
             </Button>
           </div>
 
-          <p className="text-muted-foreground mt-3 text-[10px]">
+          <p className="text-muted-foreground mt-3 text-xs">
             The vulnerability data table will appear on the map and can be
             sorted and dragged to reposition.
           </p>
