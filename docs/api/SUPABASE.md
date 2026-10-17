@@ -35,14 +35,14 @@ says who filed a report). Rejected reports are readable only by staff and by
 the person who filed them. No client reads which staff member did a piece of
 maintenance; staff get the name from `maintenance_history`.
 
-| Table                                                                                                              | Signed out             | Signed in               | Written by                                                                       |
-| ------------------------------------------------------------------------------------------------------------------ | ---------------------- | ----------------------- | -------------------------------------------------------------------------------- |
-| `reports`                                                                                                          | public columns         | public columns; insert  | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
-| `profiles`                                                                                                         | nothing (RLS)          | own row; update own row | sign-up trigger; `join_agency`, `leave_agency`, `set_member_agency`              |
-| `maintenance`                                                                                                      | all but `performed_by` | all but `performed_by`  | `record_maintenance`                                                             |
-| `maintenance_reviews`                                                                                              | nothing                | own; staff: staff rows  | `review_maintenance`, `respond_to_resolution`                                    |
-| `simulation_runs`                                                                                                  | nothing                | own runs                | the simulation server (service role)                                             |
-| `agencies`, `components`, `flood_results`, `barangay_boundaries`, `inlets`, `outlets`, `man_pipes`, `storm_drains` | read                   | read                    | migrations and seed only                                                         |
+| Table                                                                                                              | Signed out             | Signed in                                     | Written by                                                                       |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `reports`                                                                                                          | public columns         | public columns; insert                        | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
+| `profiles`                                                                                                         | nothing (RLS)          | own row; update own row                       | sign-up trigger; `join_agency`, `leave_agency`, `set_member_agency`              |
+| `maintenance`                                                                                                      | all but `performed_by` | all but `performed_by`                        | `record_maintenance`                                                             |
+| `maintenance_reviews`                                                                                              | nothing                | own; staff: staff rows; all but `reviewer_id` | `review_maintenance`, `respond_to_resolution`                                    |
+| `simulation_runs`                                                                                                  | nothing                | own runs                                      | the simulation server (service role)                                             |
+| `agencies`, `components`, `flood_results`, `barangay_boundaries`, `inlets`, `outlets`, `man_pipes`, `storm_drains` | read                   | read                                          | migrations and seed only                                                         |
 
 ## Functions the app calls
 

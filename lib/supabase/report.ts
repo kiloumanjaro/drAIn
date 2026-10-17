@@ -263,16 +263,12 @@ export const respondToResolution = async (
 
 /**
  * The signed-in person's answers to "was it fixed?", by the report they
- * answered for. Row-level security returns only their own.
+ * answered for (my_resolution_verdicts in schema_trust.sql: only their own).
  */
-export const fetchMyResolutionVerdicts = async (
-  userId: string
-): Promise<Map<string, ReviewVerdict>> => {
-  const { data, error } = await client
-    .from('maintenance_reviews')
-    .select('report_id, verdict')
-    .eq('reviewer_id', userId)
-    .not('report_id', 'is', null);
+export const fetchMyResolutionVerdicts = async (): Promise<
+  Map<string, ReviewVerdict>
+> => {
+  const { data, error } = await client.rpc('my_resolution_verdicts');
   // Thrown rather than read as "no answers yet", which would ask people
   // again about fixes they already answered for.
   if (error) {
