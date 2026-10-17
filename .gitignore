@@ -44,7 +44,6 @@ next-env.d.ts
 .claude/
 .claude
 .CLAUDE.md
-CLAUDE.md
 *.claude.md
 CLAUDE.
 # Playwright run artifacts
