@@ -9,6 +9,7 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   subscribeToReportChanges,
@@ -22,6 +23,7 @@ import {
 } from '@/lib/query/hooks/use-report-queries';
 import { reportKeys } from '@/lib/query/keys';
 import { mergeLatestReport } from '@/lib/reports/latest';
+import { showsLiveReports } from '@/lib/reports/live-reports';
 
 interface ReportContextType {
   /** The newest report on each component: what the map's pins show. */
@@ -40,9 +42,11 @@ const NO_REPORTS: Report[] = [];
 
 export function ReportProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  // Off on the landing page and docs: no fetch and no realtime channel there.
+  const live = showsLiveReports(usePathname());
 
   const { data: latestReports = NO_REPORTS, isLoading: isLoadingLatest } =
-    useLatestReports();
+    useLatestReports({ enabled: live });
   // Taken apart because the mutation object is new on every render, while
   // mutateAsync stays the same function.
   const { mutateAsync: refreshAll, isPending: isRefreshPending } =
@@ -62,6 +66,8 @@ export function ReportProvider({ children }: { children: ReactNode }) {
   // Realtime: move just the changed component's pin, and let any open list
   // or count refetch.
   useEffect(() => {
+    if (!live) return;
+
     const applyChange = (row: ReportRow) => {
       const formatted = formatReport(row);
       const latest = queryClient.getQueryData<Report[]>(
@@ -105,7 +111,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
         unsubscribe();
       }
     };
-  }, [queryClient]);
+  }, [queryClient, live]);
 
   // One object until something in it changes, so the map and the
   // notification bell re-render for report changes only.

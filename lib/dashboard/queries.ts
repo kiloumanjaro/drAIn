@@ -31,10 +31,6 @@ export interface OverviewMetrics {
   verifiedFixedThisMonth: number;
   /** Finished maintenance nobody has checked yet. */
   awaitingVerification: number;
-  fixedTrend?: number[];
-  pendingTrend?: number[];
-  repairTimeTrend?: number[];
-  adminTrend?: number[];
 }
 
 export interface ZoneIssueData {

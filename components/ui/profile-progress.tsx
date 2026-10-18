@@ -115,7 +115,7 @@ export function ProfileProgress({
                       <TooltipTrigger
                         type="button"
                         aria-label={`About ${step.title}`}
-                        className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                        className="focus-visible:ring-ring hit-area-sm inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                       >
                         <IconInfoCircleFilled
                           aria-hidden="true"

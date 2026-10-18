@@ -43,6 +43,8 @@ next-env.d.ts
 # Exclude Claude-related files
 .claude/
 .claude
+# Written by `pnpm dev` (Next 16 agentRules)
+/AGENTS.md
 .CLAUDE.md
 *.claude.md
 CLAUDE.
