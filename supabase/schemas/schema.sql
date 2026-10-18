@@ -982,6 +982,8 @@ BEGIN
 
   PERFORM private.write_audit('maintenance.record', 'maintenance', result.id::text,
     jsonb_build_object('component', p_component_name, 'status', p_status, 'reports', moved));
+  -- Clients can't read maintenance.performed_by (column grants below); the return must not leak it.
+  result.performed_by := NULL;
   RETURN result;
 END;
 $$;

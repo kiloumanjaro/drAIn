@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(12);
+select plan(16);
 
 select hasnt_table('public', 'inlets_maintenance', 'the per-type maintenance tables are gone');
 
@@ -90,6 +90,34 @@ select is(
   (select status::text from public.reports where id = '00000000-0000-4000-b000-000000000001'),
   'resolved',
   'already-resolved reports on other components are untouched'
+);
+
+-- Neither function hands back the column clients can't read.
+select is(
+  (select performed_by from public.record_maintenance('inlets', 'I-1', 'in-progress')),
+  null::uuid,
+  'record_maintenance does not return who did the work'
+);
+
+select is(
+  pg_temp.performed_by('I-1'),
+  '00000000-0000-4000-a000-000000000002'::uuid,
+  'the stored record still names who did the work'
+);
+
+-- Ana (admin) checks Sam's seeded work on I-0 (...c001).
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000001","role":"authenticated"}';
+
+select is(
+  (select performed_by from public.review_maintenance('00000000-0000-4000-c000-000000000001', 'confirmed')),
+  null::uuid,
+  'review_maintenance does not return who did the work'
+);
+
+select is(
+  pg_temp.performed_by('I-0'),
+  '00000000-0000-4000-a000-000000000002'::uuid,
+  'the checked record still names who did the work'
 );
 
 reset role;
