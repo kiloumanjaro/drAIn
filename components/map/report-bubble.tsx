@@ -16,15 +16,12 @@ import { COMPACT_MAP_QUERY, isCompactMap } from '@/lib/layout/compact-map';
 import { prefersReducedMotion } from '@/lib/map/effects/rain-utils';
 import {
   PHONE_QUERY,
-  PIN_REST_CHECKS,
   reportPinCrowded,
-  reportPinOffRest,
   reportPinOffset,
-  reportPinRecentre,
   reportPinRest,
-  type MapPoint,
   type ReportPinLayout,
 } from '@/lib/map/report-pin';
+import { endPinRestWatch, settlePinAtRest } from '@/lib/map/pin-rest-watch';
 
 interface Report {
   reporterName: string;
@@ -64,61 +61,6 @@ function reportPinLayout(): ReportPinLayout {
 const ZOOM_OUT_MARGIN = 0.05;
 
 /**
- * What ends the watch on each map for a pin coming to rest (see
- * settlePinAtRest). A map has one at a time.
- */
-const restWatches = new WeakMap<mapboxgl.Map, () => void>();
-
-/**
- * Move the pin the rest of the way to its rest. The move that sends it
- * there aims at its place on flat ground. How high the ground is the map
- * knows only once it has loaded it, which can be after the move has ended
- * and always is for a jump, so the pin is looked at when the move ends and
- * each time the map falls idle after that, and moved by what is left. Any
- * other move ends the watch: the pin stays where the visitor, or the next
- * pin opened, puts it.
- */
-function settlePinAtRest(
-  map: mapboxgl.Map,
-  coordinates: [number, number],
-  rest: MapPoint
-) {
-  let checksLeft = PIN_REST_CHECKS;
-  let correcting = false;
-
-  const check = () => {
-    checksLeft -= 1;
-    if (checksLeft === 0) end();
-    if (!reportPinOffRest(map.project(coordinates), rest)) return;
-    correcting = true;
-    map.easeTo({
-      center: reportPinRecentre(
-        map.getCenter().toArray(),
-        coordinates,
-        map.unproject([rest.x, rest.y]).toArray()
-      ),
-      duration: 300,
-    });
-    correcting = false;
-  };
-  const giveWay = () => {
-    if (!correcting) end();
-  };
-  const end = () => {
-    map.off('moveend', check);
-    map.off('idle', check);
-    map.off('movestart', giveWay);
-    restWatches.delete(map);
-  };
-
-  // A move made without animation has ended already.
-  if (map.isMoving()) map.once('moveend', check);
-  map.on('idle', check);
-  map.on('movestart', giveWay);
-  restWatches.set(map, end);
-}
-
-/**
  * Move the map so the pin is where its popup can be read: the middle of the
  * map, or under a sheet near the top instead (lib/map/report-pin.ts).
  * With a zoom it is the long way round, for a pin being opened; without,
@@ -138,7 +80,7 @@ function bringPinIntoView(
 
   // A move still under way is ended first, and the watch on the pin it was
   // for: its end must not be taken for the end of this one.
-  restWatches.get(map)?.();
+  endPinRestWatch(map);
   map.stop();
   // Set before the move, which ends inside the call when it is made without
   // animation.
@@ -182,6 +124,8 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
     const containerRef = useRef<HTMLDivElement>(null);
     const previousZoomRef = useRef<number | null>(null);
     const isAnimatingRef = useRef(false);
+    // Open and not being closed: then the map's pin watch, if any, is ours.
+    const isOpenRef = useRef(false);
 
     const CLOSING_DURATION = 300; // Consistent fade-out duration
     const initials = getInitials(report.reporterName);
@@ -194,6 +138,7 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
       onOpen?.();
       setIsClosing(false);
       setIsOpen(true);
+      isOpenRef.current = true;
 
       if (map) {
         isAnimatingRef.current = true;
@@ -209,6 +154,19 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
     };
 
     const onClose = () => {
+      const wasOpen = isOpenRef.current;
+      isOpenRef.current = false;
+      // The pin is no longer brought to rest, and an opening flight still
+      // under way stops where it is rather than running on and recentring.
+      // Closed bubbles are closed again whenever another opens: they leave
+      // the map alone.
+      if (map && wasOpen) {
+        endPinRestWatch(map);
+        if (isAnimatingRef.current) {
+          map.stop();
+          isAnimatingRef.current = false;
+        }
+      }
       setIsClosing(true);
       setTimeout(() => {
         setIsOpen(false);
@@ -219,6 +177,15 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
     useImperativeHandle(ref, () => ({
       close: onClose,
     }));
+
+    // Unmounted while open (its report removed, the page left): the watch
+    // must not go on moving the map for a popup that is gone.
+    useEffect(() => {
+      if (!map) return;
+      return () => {
+        if (isOpenRef.current) endPinRestWatch(map);
+      };
+    }, [map]);
 
     useEffect(() => {
       if (!containerRef.current) return;
