@@ -28,6 +28,7 @@ export default function FeatureCards({
 }: FeatureCardsProps) {
   const gridCols =
     {
+      1: '',
       2: 'md:grid-cols-2',
       3: 'md:grid-cols-2 xl:grid-cols-3',
       4: 'md:grid-cols-2 xl:grid-cols-4',
