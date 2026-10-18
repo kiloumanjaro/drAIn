@@ -1185,6 +1185,29 @@ ALTER FUNCTION "private"."request_geocode"() OWNER TO "postgres";
 
 REVOKE ALL ON FUNCTION "private"."request_geocode"() FROM PUBLIC, "anon", "authenticated";
 
+-- Nothing retries a report the worker marked 'failed' (an outage, a missing
+-- secret). An admin puts them back in the queue from the SQL editor:
+--   select private.reset_failed_geocodes();
+-- It returns how many reports it reset. The next new report's trigger starts
+-- the worker, which picks up every pending one. Reports without coordinates
+-- are left alone: they would only fail again.
+CREATE OR REPLACE FUNCTION "private"."reset_failed_geocodes"() RETURNS integer
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  WITH reset AS (
+    UPDATE public.reports
+    SET geocoded_status = 'pending'
+    WHERE geocoded_status = 'failed' AND lat IS NOT NULL AND long IS NOT NULL
+    RETURNING 1
+  )
+  SELECT count(*)::integer FROM reset;
+$$;
+
+ALTER FUNCTION "private"."reset_failed_geocodes"() OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "private"."reset_failed_geocodes"() FROM PUBLIC, "anon", "authenticated", "service_role";
+
 CREATE OR REPLACE TRIGGER "trigger-geocode-on-insert" AFTER INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "private"."request_geocode"();
 
 CREATE OR REPLACE TRIGGER "set_reporter_name" BEFORE INSERT ON "public"."reports" FOR EACH ROW EXECUTE FUNCTION "public"."set_reporter_name"();

@@ -9,7 +9,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(5);
+select plan(9);
 
 select is(
   (select string_agg(t.tgname, ', ')
@@ -59,6 +59,47 @@ select ok(
   not has_function_privilege('authenticated', 'private.request_geocode()', 'execute'),
   'the trigger function cannot be called through the API'
 );
+
+-- The admin reset for reports the worker marked failed (C5): one failed
+-- with coordinates, one failed without, one completed.
+update public.reports set geocoded_status = 'failed'
+ where id = '00000000-0000-4000-b000-000000000001';
+update public.reports set geocoded_status = 'failed', lat = null, long = null
+ where id = '00000000-0000-4000-b000-000000000002';
+update public.reports set geocoded_status = 'completed'
+ where id = '00000000-0000-4000-b000-000000000003';
+
+select is(
+  private.reset_failed_geocodes(),
+  1,
+  'the reset counts the one failed report that has coordinates'
+);
+
+select results_eq(
+  $$select geocoded_status from public.reports
+     where id in ('00000000-0000-4000-b000-000000000001',
+                  '00000000-0000-4000-b000-000000000002',
+                  '00000000-0000-4000-b000-000000000003')
+     order by id$$,
+  $$values ('pending'::text), ('failed'::text), ('completed'::text)$$,
+  'only that report is pending again; one without coordinates stays failed'
+);
+
+set local role authenticated;
+select throws_ok(
+  'select private.reset_failed_geocodes()',
+  '42501', null,
+  'a signed-in user cannot run the reset'
+);
+reset role;
+
+set local role anon;
+select throws_ok(
+  'select private.reset_failed_geocodes()',
+  '42501', null,
+  'a signed-out visitor cannot run the reset'
+);
+reset role;
 
 select * from finish();
 rollback;
