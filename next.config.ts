@@ -168,10 +168,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // The flood overlays are versioned exports (see
-        // scripts/slim-flood-hazard.mjs): a change ships under a new name,
-        // so browsers may keep these forever instead of revalidating 2-4 MB
-        // downloads on every map visit.
+        // The flood overlay's vector tiles live under a hash of their source
+        // file (scripts/build-flood-tiles.mjs): a changed file ships under a
+        // new path, so browsers may keep these forever.
         source: '/flood-hazard/:path*',
         headers: [
           {
@@ -179,6 +178,12 @@ const nextConfig: NextConfig = {
             value: 'public, max-age=31536000, immutable',
           },
         ],
+      },
+      {
+        // The manifest is what changes between deploys: always revalidate it.
+        // Listed after the pattern above, so this value wins for it.
+        source: '/flood-hazard/manifest.json',
+        headers: [{ key: 'Cache-Control', value: 'no-cache' }],
       },
       {
         source: '/:path*',
