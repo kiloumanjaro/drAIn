@@ -67,11 +67,9 @@ export function TechStackSection() {
           },
           {
             icon: Server,
-            title: 'Railway',
-            description:
-              'Modern cloud infrastructure platform for backend APIs',
-            tooltip:
-              'Simple cloud platform for deploying containerized services',
+            title: 'Render',
+            description: 'Hosts the FastAPI simulation service',
+            tooltip: 'Deploys the backend from its main branch',
           },
         ]}
       />

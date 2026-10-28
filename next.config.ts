@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { siteUrl } from './lib/site-url';
 
 // next/image fetches only from our own storage: the Supabase project's public
 // buckets (report photos, avatars). It used to accept any https host, which
@@ -141,6 +142,10 @@ const cspReportOnly = process.env.CSP_REPORT_ONLY === 'true';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // siteUrl() falls back to Vercel's VERCEL_PROJECT_PRODUCTION_URL, which
+  // only the server can read; inlining the result lets client components
+  // (the docs page) call siteUrl() and get the same answer.
+  env: { NEXT_PUBLIC_SITE_URL: siteUrl() },
   images: {
     remotePatterns: [
       {
