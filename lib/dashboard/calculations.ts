@@ -9,20 +9,6 @@ export function formatDays(days: number): string {
 }
 
 /**
- * Calculate percentage distribution of component types
- */
-export function calculateComponentTypePercentage(
-  data: Array<{ type: string; count: number }>
-): Array<{ type: string; count: number; percentage: number }> {
-  const total = data.reduce((sum, item) => sum + item.count, 0);
-
-  return data.map((item) => ({
-    ...item,
-    percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
-  }));
-}
-
-/**
  * Format component type for display
  */
 export function formatComponentType(
@@ -35,36 +21,6 @@ export function formatComponentType(
     man_pipes: 'Pipes',
   };
   return map[type] || 'Unknown';
-}
-
-/**
- * Get color for priority level
- */
-export function getPriorityColor(
-  priority: 'low' | 'medium' | 'high' | 'critical'
-): string {
-  const colors: Record<string, string> = {
-    low: 'text-gray-500',
-    medium: 'text-yellow-600',
-    high: 'text-orange-600',
-    critical: 'text-red-600',
-  };
-  return colors[priority] || 'text-gray-500';
-}
-
-/**
- * Get background color for priority level
- */
-export function getPriorityBgColor(
-  priority: 'low' | 'medium' | 'high' | 'critical'
-): string {
-  const colors: Record<string, string> = {
-    low: 'bg-gray-100',
-    medium: 'bg-yellow-50',
-    high: 'bg-orange-50',
-    critical: 'bg-red-50',
-  };
-  return colors[priority] || 'bg-gray-100';
 }
 
 /**
