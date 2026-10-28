@@ -22,49 +22,6 @@ interface StatsCardsProps {
   /** Finished work nobody has checked yet. */
   awaitingVerification?: number;
   loading?: boolean;
-  // Past values, oldest first. A trend line and change are shown only when
-  // these are passed. They used to default to made-up numbers, so every
-  // card showed a trend and a percentage change that meant nothing.
-  fixedTrend?: number[];
-  pendingTrend?: number[];
-  repairTimeTrend?: number[];
-  adminTrend?: number[];
-}
-
-// Simple trend line component with color based on direction
-function TrendLine({ data }: { data: number[] }) {
-  if (!data || data.length < 2) return null;
-
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-
-  // Determine trend direction (is the last value higher or lower than the first?)
-  const isIncreasing = data[data.length - 1] >= data[0];
-  const color = isIncreasing ? '#16a34a' : '#dc2626'; // Green if increasing, red if decreasing
-
-  const points = data
-    .map((value, index) => {
-      const x = (index / (data.length - 1)) * 60;
-      // Add padding and adjust scaling to prevent cropping
-      const y = 5 + ((max - value) / range) * 20; // 5px top padding, 20px usable height
-      return `${x},${y}`;
-    })
-    .join(' ');
-
-  return (
-    <svg width="60" height="30" className="opacity-70">
-      <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
-    </svg>
-  );
-}
-
-// Calculate percentage change between first and last values
-function calculatePercentageChange(data: number[]): number {
-  if (!data || data.length < 2) return 0;
-  const firstValue = data[0];
-  if (firstValue === 0) return 0;
-  return ((data[data.length - 1] - firstValue) / firstValue) * 100;
 }
 
 interface StatCard {
@@ -72,7 +29,6 @@ interface StatCard {
   label: string;
   value: string | number;
   tooltipText: string;
-  trendData?: number[];
   note?: string;
 }
 
@@ -106,10 +62,6 @@ export default function StatsCards({
   verifiedFixedThisMonth,
   awaitingVerification,
   loading = false,
-  fixedTrend,
-  pendingTrend,
-  repairTimeTrend,
-  adminTrend,
 }: StatsCardsProps) {
   const router = useRouter();
 
@@ -144,7 +96,6 @@ export default function StatsCards({
       value: fixedThisMonth,
       tooltipText:
         'Reports resolved this month. "Checked" counts fixes confirmed by someone other than the crew that did the work: a colleague, or the person who reported it.',
-      trendData: fixedTrend,
       note: verificationNote(verifiedFixedThisMonth, awaitingVerification),
     },
     {
@@ -152,21 +103,18 @@ export default function StatsCards({
       label: 'Pending Issues',
       value: pendingIssues,
       tooltipText: 'Reports that are awaiting action from an admin',
-      trendData: pendingTrend,
     },
     {
       id: 'repair',
       label: 'Average Repair Time',
       value: formatDays(averageRepairDays),
       tooltipText: 'From report to completion',
-      trendData: repairTimeTrend,
     },
     {
       id: 'admins',
       label: 'Agency Staff',
       value: totalAdmins,
       tooltipText: 'People who have joined an agency with its join code',
-      trendData: adminTrend,
     },
   ] as StatCard[];
 
@@ -175,23 +123,6 @@ export default function StatsCards({
       <div className={GRID_CLASS}>
         {stats.map((stat) => {
           const isAdminCard = stat.id === 'admins';
-          const hasTrend = !!stat.trendData && stat.trendData.length >= 2;
-          const percentageChange = hasTrend
-            ? calculatePercentageChange(stat.trendData!)
-            : 0;
-          const isPositive = percentageChange >= 0;
-          const change = hasTrend && (
-            <span
-              className={`rounded px-1.5 py-1 text-xs font-semibold ${
-                isPositive
-                  ? 'bg-[#f1f7f7] text-green-700'
-                  : 'bg-red-100 text-red-700'
-              }`}
-            >
-              {isPositive ? '+' : ''}
-              {percentageChange.toFixed(1)}%
-            </span>
-          );
 
           return (
             <div key={stat.id} className={CARD_CLASS}>
@@ -221,7 +152,6 @@ export default function StatsCards({
                       <p className="text-2xl font-semibold whitespace-nowrap text-gray-900">
                         {stat.value}
                       </p>
-                      {change}
                     </div>
                     <button
                       onClick={handleAddAdmin}
@@ -238,7 +168,6 @@ export default function StatsCards({
                         <p className="text-2xl font-semibold whitespace-nowrap text-gray-900">
                           {stat.value}
                         </p>
-                        {change}
                       </div>
                       {stat.note && (
                         <p className="mt-1 text-xs text-gray-500">
@@ -246,11 +175,6 @@ export default function StatsCards({
                         </p>
                       )}
                     </div>
-                    {hasTrend && (
-                      <div className="ml-4 flex items-end">
-                        <TrendLine data={stat.trendData!} />
-                      </div>
-                    )}
                   </div>
                 )}
               </Card>

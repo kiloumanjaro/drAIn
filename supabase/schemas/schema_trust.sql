@@ -522,6 +522,8 @@ BEGIN
                        'reports_reopened', coalesce(to_jsonb(reopened), '[]'::jsonb)));
 
   SELECT * INTO work FROM public.maintenance WHERE id = p_maintenance_id;
+  -- Clients can't read maintenance.performed_by (column grants in schema.sql); the return must not leak it.
+  work.performed_by := NULL;
   RETURN work;
 END;
 $$;

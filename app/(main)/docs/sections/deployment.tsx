@@ -1,4 +1,4 @@
-import { Cloud, Server, Users } from 'lucide-react';
+import { Cloud, Server } from 'lucide-react';
 import FeatureCards from '@/components/docs-page/feature-cards';
 
 export function DeploymentSection() {
@@ -7,24 +7,18 @@ export function DeploymentSection() {
       <div className="mb-5 ml-2">
         <h2 className="mb-1 text-xl font-semibold text-gray-900">Deployment</h2>
         <p className="text-muted-foreground text-sm">
-          Hosting infrastructure and live access credentials.
+          Hosting infrastructure and live access.
         </p>
       </div>
 
       <FeatureCards
-        columns={2}
+        columns={1}
         features={[
           {
             icon: Cloud,
             title: 'Live Demo Access',
             description: 'https://ai-drain.vercel.app/',
             tooltip: 'Publicly accessible deployment hosted on Vercel',
-          },
-          {
-            icon: Users,
-            title: 'Test Credentials',
-            description: 'tester@gmail.com (123password)',
-            tooltip: 'Use these credentials to explore the platform',
           },
         ]}
       />
