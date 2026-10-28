@@ -1,4 +1,5 @@
 import { Cloud, Server } from 'lucide-react';
+import { siteUrl } from '@/lib/site-url';
 import FeatureCards from '@/components/docs-page/feature-cards';
 
 export function DeploymentSection() {
@@ -17,7 +18,7 @@ export function DeploymentSection() {
           {
             icon: Cloud,
             title: 'Live Demo Access',
-            description: 'https://ai-drain.vercel.app/',
+            description: `${siteUrl()}/`,
             tooltip: 'Publicly accessible deployment hosted on Vercel',
           },
         ]}
@@ -55,16 +56,16 @@ export function DeploymentSection() {
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white">
               <Server className="h-4 w-4 text-slate-600" />
             </div>
-            <h3 className="text-sm text-slate-900">Railway</h3>
+            <h3 className="text-sm text-slate-900">Render</h3>
           </div>
           <p className="mb-3 text-xs text-slate-700">Backend Deployment</p>
           <div className="space-y-2">
             {[
               'Python FastAPI hosting',
               'SWMM simulation processing',
-              'Automated scaling',
+              'Deploys from the main branch',
               'Environment management',
-              'Integration with Supabase',
+              'Writes results to Supabase',
             ].map((item, idx) => (
               <div
                 key={idx}

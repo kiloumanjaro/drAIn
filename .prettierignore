@@ -10,3 +10,5 @@ supabase/.temp
 supabase/functions
 # Run output of pnpm shots: images, results.json, a generated index.html
 screenshots
+# Researcher exports turned into tiles by scripts/build-flood-tiles.mjs
+data/flood-hazard

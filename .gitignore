@@ -48,6 +48,10 @@ next-env.d.ts
 .CLAUDE.md
 *.claude.md
 CLAUDE.
+# Flood-hazard vector tiles, built from data/flood-hazard/ by
+# scripts/build-flood-tiles.mjs before dev and build
+/public/flood-hazard/
+
 # Playwright run artifacts
 /test-results/
 /playwright-report/

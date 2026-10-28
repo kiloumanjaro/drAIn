@@ -33,6 +33,7 @@ import { DeploymentSection } from './sections/deployment';
 import { LimitationsSection } from './sections/limitations';
 import { ReportsSection } from './sections/reports';
 import { DemoSection } from './sections/demo';
+import { PHONE_QUERY } from '@/lib/map/report-pin';
 interface ExpandedSections {
   [key: string]: boolean;
 }
@@ -95,7 +96,7 @@ function DocsContent() {
   // however far down the list they had scrolled.
   const closeSectionList = () => {
     setSectionListOpen(false);
-    if (window.matchMedia('(max-width: 767px)').matches) {
+    if (window.matchMedia(PHONE_QUERY).matches) {
       window.scrollTo({ top: 0 });
     }
   };

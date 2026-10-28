@@ -1,13 +1,8 @@
 import { test, expect } from '@playwright/test';
 import {
-  getColorForCategory,
-  getStrokeColorForCategory,
-  getVulnerabilityFromColor,
   parseNodeId,
   isPointTooCloseToNodes,
   samplePointsFromLine,
-  VULNERABILITY_FILL_COLORS,
-  VULNERABILITY_STROKE_COLORS,
   REFERENCE_SEGMENT_LENGTH_DEG,
   MIN_POINT_TO_NODE_DISTANCE_DEG,
   FLOOD_PULSE_AMOUNT,
@@ -16,25 +11,29 @@ import {
   FLOOD_PROPAGATION_MAX_RETRIES,
   VULNERABILITY_SAMPLE_MULTIPLIER,
 } from '../app/(main)/simulation/page.helpers';
+import {
+  HAZARD_BANDS,
+  HAZARD_FALLBACK_COLORS,
+  getColorForCategory,
+  getStrokeColorForCategory,
+  hazardBandFromColor,
+} from '../lib/simulation-api/hazard-band';
 
 // Post-refactor: verify the new `page.helpers.ts` module exposes the
 // promised pure helpers and constants with the same behaviour the inline
 // definitions had before extraction.
 test.describe('simulation/page.helpers extracted module', () => {
-  test('VULNERABILITY_FILL_COLORS preserves the original palette', () => {
-    expect(VULNERABILITY_FILL_COLORS.high).toBe('#D32F2F');
-    expect(VULNERABILITY_FILL_COLORS.medium).toBe('#FFA000');
-    expect(VULNERABILITY_FILL_COLORS.low).toBe('#FFF176');
-    expect(VULNERABILITY_FILL_COLORS.none).toBe('#388E3C');
-    expect(VULNERABILITY_FILL_COLORS.fallback).toBe('#5687ca');
-  });
-
-  test('VULNERABILITY_STROKE_COLORS preserves the original palette', () => {
-    expect(VULNERABILITY_STROKE_COLORS.high).toBe('#8B0000');
-    expect(VULNERABILITY_STROKE_COLORS.medium).toBe('#B36200');
-    expect(VULNERABILITY_STROKE_COLORS.low).toBe('#C4B000');
-    expect(VULNERABILITY_STROKE_COLORS.none).toBe('#1B5E20');
-    expect(VULNERABILITY_STROKE_COLORS.fallback).toBe('#00346c');
+  test('HAZARD_BANDS preserves the original palette', () => {
+    expect(HAZARD_BANDS.high.fill).toBe('#D32F2F');
+    expect(HAZARD_BANDS.medium.fill).toBe('#FFA000');
+    expect(HAZARD_BANDS.low.fill).toBe('#FFF176');
+    expect(HAZARD_BANDS.none.fill).toBe('#388E3C');
+    expect(HAZARD_FALLBACK_COLORS.fill).toBe('#5687ca');
+    expect(HAZARD_BANDS.high.stroke).toBe('#8B0000');
+    expect(HAZARD_BANDS.medium.stroke).toBe('#B36200');
+    expect(HAZARD_BANDS.low.stroke).toBe('#C4B000');
+    expect(HAZARD_BANDS.none.stroke).toBe('#1B5E20');
+    expect(HAZARD_FALLBACK_COLORS.stroke).toBe('#00346c');
   });
 
   test('magic-number constants match the original literals', () => {
@@ -71,16 +70,14 @@ test.describe('simulation/page.helpers extracted module', () => {
     expect(getStrokeColorForCategory('xyz')).toBe('#00346c');
   });
 
-  test('getVulnerabilityFromColor handles palette + rgb() + fallback', () => {
-    expect(getVulnerabilityFromColor('rgb(211, 47, 47)')).toBe('High Risk');
-    expect(getVulnerabilityFromColor('rgb(255, 160, 0)')).toBe('Medium Risk');
-    expect(getVulnerabilityFromColor('rgb(255, 235, 100)')).toBe('Low Risk');
-    expect(getVulnerabilityFromColor('rgb(56, 142, 60)')).toBe('No Risk');
-    // Interpolated red → High, interpolated yellow → Low, otherwise Medium
-    expect(getVulnerabilityFromColor('rgb(220, 50, 50)')).toBe('High Risk');
-    expect(getVulnerabilityFromColor('rgb(220, 220, 50)')).toBe('Low Risk');
-    expect(getVulnerabilityFromColor('rgb(100, 100, 100)')).toBe('Medium Risk');
-    expect(getVulnerabilityFromColor('not-a-color')).toBe('Medium Risk');
+  test('hazardBandFromColor reads palette + rgb(); null for a non-colour', () => {
+    expect(hazardBandFromColor('rgb(211, 47, 47)')?.level).toBe('high');
+    expect(hazardBandFromColor('rgb(255, 160, 0)')?.level).toBe('medium');
+    expect(hazardBandFromColor('rgb(255, 235, 100)')?.level).toBe('low');
+    expect(hazardBandFromColor('rgb(56, 142, 60)')?.level).toBe('none');
+    expect(hazardBandFromColor('rgb(220, 50, 50)')?.level).toBe('high');
+    expect(hazardBandFromColor('rgb(220, 220, 50)')?.level).toBe('low');
+    expect(hazardBandFromColor('not-a-color')).toBeNull();
   });
 
   test('parseNodeId routes ISD-* to storm_drains and I-* to inlets', () => {

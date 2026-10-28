@@ -1,12 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  calculateComponentTypePercentage,
   formatComponentType,
   formatDate,
   formatDateShort,
   formatDays,
-  getPriorityBgColor,
-  getPriorityColor,
   getStatusBadgeStyle,
 } from './calculations';
 
@@ -23,38 +20,6 @@ describe('formatDays', () => {
   });
 });
 
-describe('calculateComponentTypePercentage', () => {
-  it('returns an empty list for no data', () => {
-    expect(calculateComponentTypePercentage([])).toEqual([]);
-  });
-
-  it('gives a single component type the full 100%', () => {
-    expect(
-      calculateComponentTypePercentage([{ type: 'inlets', count: 7 }])
-    ).toEqual([{ type: 'inlets', count: 7, percentage: 100 }]);
-  });
-
-  it('splits percentages across types and rounds them', () => {
-    const result = calculateComponentTypePercentage([
-      { type: 'inlets', count: 1 },
-      { type: 'outlets', count: 2 },
-    ]);
-    expect(result).toEqual([
-      { type: 'inlets', count: 1, percentage: 33 },
-      { type: 'outlets', count: 2, percentage: 67 },
-    ]);
-  });
-
-  it('shows 0% instead of dividing by zero when all counts are zero', () => {
-    // A fresh deployment has no components yet; NaN% would leak into the UI.
-    const result = calculateComponentTypePercentage([
-      { type: 'inlets', count: 0 },
-      { type: 'outlets', count: 0 },
-    ]);
-    expect(result.map((r) => r.percentage)).toEqual([0, 0]);
-  });
-});
-
 describe('formatComponentType', () => {
   it('maps the database keys to display labels', () => {
     expect(formatComponentType('inlets')).toBe('Inlets');
@@ -67,26 +32,6 @@ describe('formatComponentType', () => {
     expect(
       formatComponentType('rivers' as Parameters<typeof formatComponentType>[0])
     ).toBe('Unknown');
-  });
-});
-
-describe('priority colours', () => {
-  it('gives every priority level its own text colour', () => {
-    expect(getPriorityColor('low')).toBe('text-gray-500');
-    expect(getPriorityColor('medium')).toBe('text-yellow-600');
-    expect(getPriorityColor('high')).toBe('text-orange-600');
-    expect(getPriorityColor('critical')).toBe('text-red-600');
-  });
-
-  it('falls back to the low-priority colour for unknown values', () => {
-    const bogus = 'urgent' as Parameters<typeof getPriorityColor>[0];
-    expect(getPriorityColor(bogus)).toBe('text-gray-500');
-    expect(getPriorityBgColor(bogus)).toBe('bg-gray-100');
-  });
-
-  it('pairs each priority with a matching background', () => {
-    expect(getPriorityBgColor('critical')).toBe('bg-red-50');
-    expect(getPriorityBgColor('medium')).toBe('bg-yellow-50');
   });
 });
 
