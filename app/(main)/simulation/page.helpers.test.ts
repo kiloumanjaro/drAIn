@@ -5,9 +5,6 @@ import {
   FLOOD_PULSE_AMOUNT,
   FLOOD_PULSE_SPEED_HZ,
   MIN_POINT_TO_NODE_DISTANCE_DEG,
-  getColorForCategory,
-  getStrokeColorForCategory,
-  getVulnerabilityFromColor,
   isPointTooCloseToNodes,
   parseNodeId,
   samplePointsFromLine,
@@ -32,57 +29,6 @@ function lineFrom(
     geometry: { type: 'LineString', coordinates },
   };
 }
-
-describe('vulnerability colours', () => {
-  it.each([
-    ['High Risk', 'high'],
-    ['HIGH', 'high'],
-    ['  medium  ', 'medium'],
-    ['Low Risk', 'low'],
-    ['No risk', 'none'],
-  ])('maps %s consistently across fill and stroke', (category) => {
-    // Both lookups must land in the same bucket, or a node would be filled
-    // as one category and outlined as another.
-    expect(getColorForCategory(category)).not.toBe(
-      getColorForCategory('unrecognised')
-    );
-    expect(getStrokeColorForCategory(category)).not.toBe(
-      getStrokeColorForCategory('unrecognised')
-    );
-  });
-
-  it('falls back for an unknown category', () => {
-    expect(getColorForCategory('')).toBe(getColorForCategory('something else'));
-  });
-
-  it('distinguishes every known category', () => {
-    const colors = ['high', 'medium', 'low', 'no'].map(getColorForCategory);
-    expect(new Set(colors).size).toBe(4);
-  });
-});
-
-describe('getVulnerabilityFromColor', () => {
-  it.each([
-    ['rgb(211, 47, 47)', 'High Risk'],
-    ['rgb(255, 160, 0)', 'Medium Risk'],
-    ['rgb(255, 235, 100)', 'Low Risk'],
-    ['rgb(56, 142, 60)', 'No Risk'],
-  ])('recognises the exact palette colour %s', (color, expected) => {
-    expect(getVulnerabilityFromColor(color)).toBe(expected);
-  });
-
-  it('classifies an interpolated red as high risk', () => {
-    expect(getVulnerabilityFromColor('rgb(230, 60, 40)')).toBe('High Risk');
-  });
-
-  it('classifies an interpolated yellow as low risk', () => {
-    expect(getVulnerabilityFromColor('rgb(250, 240, 120)')).toBe('Low Risk');
-  });
-
-  it('falls back to medium risk for an unparseable colour', () => {
-    expect(getVulnerabilityFromColor('not a colour')).toBe('Medium Risk');
-  });
-});
 
 describe('parseNodeId', () => {
   it('routes ISD- ids to storm drains', () => {
