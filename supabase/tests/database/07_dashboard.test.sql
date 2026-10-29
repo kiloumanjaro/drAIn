@@ -29,23 +29,14 @@ select is(
 );
 
 select results_eq(
-  $$select agency_name, total_issues, resolved_issues, outstanding_issues, median_days_to_resolve
-    from public.team_performance$$,
-  $$values ('City Engineer Office', 2, 1, 1, 5.0::numeric)$$,
-  'team performance counts the reports an agency''s work has touched'
-);
-
-select results_eq(
   $$select component_type::text, average_days, resolved_count from public.repair_time_by_component$$,
   $$values ('inlets', 5.0::numeric, 1)$$,
   'repair time per component type'
 );
 
-select is(
-  (select count(*)::integer from public.repair_trend(30)),
-  1,
-  'the trend has one point per day with a resolved report'
-);
+-- Team performance and the repair trend were built but never shown; deleted 2026-10-30.
+select hasnt_view('public', 'team_performance', 'the unused team_performance view is gone');
+select hasnt_function('public', 'repair_trend', array['integer'], 'and the unused repair_trend function');
 
 select is(
   (select sum(report_count)::integer from public.report_counts_by_category),

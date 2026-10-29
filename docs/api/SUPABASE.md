@@ -58,14 +58,14 @@ maintenance; staff get the name from `maintenance_history`.
 | `my_reports`                                   | signed in            | The caller's own reports, every column                                      |
 | `report_private_details`                       | reporter or staff    | Up to 100 reports' photo position, age, distance and reviewer               |
 | `maintenance_history`                          | staff                | A component's maintenance, with who did it and its checks                   |
-| `dashboard_overview`, `repair_trend`           | anyone               | Dashboard numbers                                                           |
+| `dashboard_overview`                           | anyone               | Dashboard numbers                                                           |
 | `nearest_components`                           | anyone               | Components near a point (report form)                                       |
 | `consume_rate_limit`                           | signed in            | Per-user allowances: the chatbot route, and `join_agency` tries             |
 
 Read models (views, readable by anyone): `latest_report_per_component`,
 `report_counts_by_component`, `report_counts_by_day`,
 `report_counts_by_zone`, `report_counts_by_category`, `report_repair_days`,
-`repair_time_by_component`, `team_performance`, `component_locations`.
+`repair_time_by_component`, `component_locations`.
 Rejected reports are left out of all of them.
 
 ## In the app

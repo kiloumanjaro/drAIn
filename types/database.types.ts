@@ -681,17 +681,6 @@ export type Database = {
           },
         ];
       };
-      team_performance: {
-        Row: {
-          agency_name: string | null;
-          median_days_to_resolve: number | null;
-          outstanding_issues: number | null;
-          resolved_issues: number | null;
-          total_issues: number | null;
-          verified_issues: number | null;
-        };
-        Relationships: [];
-      };
     };
     Functions: {
       agency_members: {
@@ -839,13 +828,6 @@ export type Database = {
           isOneToOne: true;
           isSetofReturn: false;
         };
-      };
-      repair_trend: {
-        Args: { p_days?: number };
-        Returns: {
-          average_days: number;
-          day: string;
-        }[];
       };
       report_private_details: {
         Args: { p_report_ids: string[] };

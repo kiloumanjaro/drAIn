@@ -49,25 +49,6 @@ export interface RepairTimeByComponentData {
   resolvedCount?: number;
 }
 
-export interface TeamPerformanceData {
-  agencyName: string;
-  /** Reports this agency's maintenance has moved along. */
-  totalIssues: number;
-  resolvedIssues: number;
-  /** Of those, the ones not resolved yet. */
-  outstandingIssues: number;
-  /**
-   * Median days from a report being raised to the maintenance that closed
-   * it. Median rather than mean: one report left open for a year should not
-   * swamp fifty closed in a day. `null` when nothing has been resolved with
-   * a linked maintenance record, which is honest about having no figure
-   * rather than showing zero.
-   */
-  medianDaysToResolve: number | null;
-  /** Resolved issues whose fix someone other than the crew confirmed. */
-  verifiedIssues: number;
-}
-
 export interface ReportWithMetadata extends Report {
   zone?: string;
 }
@@ -176,40 +157,6 @@ export async function getRepairTimeByComponent(): Promise<
           },
         ]
       : []
-  );
-}
-
-/**
- * Get team performance metrics
- */
-export async function getTeamPerformance(): Promise<TeamPerformanceData[]> {
-  const { data, error } = await client
-    .from('team_performance')
-    .select(
-      'agency_name, total_issues, resolved_issues, outstanding_issues, median_days_to_resolve, verified_issues'
-    );
-
-  if (error) {
-    console.error('Error fetching team performance:', error);
-    throw error;
-  }
-
-  return (
-    (data ?? [])
-      .map((row) => ({
-        agencyName: row.agency_name ?? 'Unknown agency',
-        totalIssues: row.total_issues ?? 0,
-        resolvedIssues: row.resolved_issues ?? 0,
-        outstandingIssues: row.outstanding_issues ?? 0,
-        medianDaysToResolve: row.median_days_to_resolve,
-        verifiedIssues: row.verified_issues ?? 0,
-      }))
-      .filter((entry) => entry.totalIssues > 0)
-      // Ordered by what is still open, so the table points at where the
-      // work is. It used to lead on total volume, which made the surest
-      // way up the list "receive more reports" and the surest way to look
-      // good "mark them resolved".
-      .sort((a, b) => b.outstandingIssues - a.outstandingIssues)
   );
 }
 
