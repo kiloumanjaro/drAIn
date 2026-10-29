@@ -76,7 +76,7 @@ export type MaintenanceProps = {
  * selected drainage asset (inlet, outlet, pipe, storm drain) — including an
  * EXIF-validated evidence photo — and shows the asset's maintenance history.
  *
- * Renders an "Admin Privileges Required" empty state for visitors that lack
+ * Renders a "Staff access required" empty state for visitors that lack
  * an `agency_id` on their profile.
  */
 export default function Maintenance({
@@ -364,10 +364,10 @@ ${note}`
                   </div>
 
                   <p className="text-sm font-medium text-gray-900">
-                    Admin Privileges Required
+                    Staff access required
                   </p>
                   <p className="mt-0.5 text-xs text-gray-500">
-                    Link an agency account for access
+                    Join your agency from your profile to record work
                   </p>
                 </div>
               </div>

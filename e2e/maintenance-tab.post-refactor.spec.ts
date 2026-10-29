@@ -30,7 +30,7 @@ test.describe('maintenance.helpers extracted module', () => {
 });
 
 // e2e shell check: the maintenance tab still gates unauthenticated visitors
-// behind the same "Admin Privileges Required" empty state.
+// behind the same "Staff access required" empty state.
 test.describe('maintenance tab after helpers extraction', () => {
   test('still shows admin-required empty state after switching to Fix sub-tab', async ({
     page,
@@ -40,7 +40,7 @@ test.describe('maintenance tab after helpers extraction', () => {
     await expect(fixButton).toBeVisible({ timeout: 30_000 });
     await fixButton.dispatchEvent('click');
     await expect(
-      page.getByText('Admin Privileges Required', { exact: true })
+      page.getByText('Staff access required', { exact: true })
     ).toBeVisible({ timeout: 15_000 });
   });
 });
