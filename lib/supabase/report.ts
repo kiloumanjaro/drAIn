@@ -6,6 +6,7 @@ import type {
   PhotoLocationCheck,
   ReportPriority,
   ReportReview,
+  ReportStatus,
   ReviewVerdict,
 } from '@/lib/supabase/enums';
 import type { ExifData } from '@/lib/reports/extract-exif';
@@ -18,7 +19,7 @@ export interface Report {
   description: string;
   image: string;
   reporterName: string;
-  status: string;
+  status: ReportStatus;
   componentId: string;
   coordinates: [number, number];
   geocoded_status: string;

@@ -68,39 +68,6 @@ export function getPriorityBgColor(
 }
 
 /**
- * Get status badge styling
- */
-export function getStatusBadgeStyle(
-  status: 'pending' | 'in-progress' | 'resolved'
-): {
-  bgColor: string;
-  textColor: string;
-  label: string;
-} {
-  const styles: Record<
-    string,
-    { bgColor: string; textColor: string; label: string }
-  > = {
-    pending: {
-      bgColor: 'bg-orange-100',
-      textColor: 'text-orange-800',
-      label: 'Pending',
-    },
-    'in-progress': {
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-800',
-      label: 'In Progress',
-    },
-    resolved: {
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-800',
-      label: 'Resolved',
-    },
-  };
-  return styles[status] || styles.pending;
-}
-
-/**
  * Format date for display
  */
 export function formatDate(dateString: string | Date): string {

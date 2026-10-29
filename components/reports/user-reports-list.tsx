@@ -23,21 +23,13 @@ import {
 import type { ReviewVerdict } from '@/lib/supabase/enums';
 import { TONE_CLASSES, reviewLabel } from '@/lib/reports/trust-labels';
 import { componentTypeLabel, statusLabel } from '@/lib/reports/display-labels';
+import { statusBadgeCss } from '@/lib/reports/status-style';
 import { format } from 'date-fns';
 
 interface UserReportsListProps {
   userId?: string;
   isGuest?: boolean;
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  resolved:
-    'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
-  'in-progress':
-    'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
-  pending:
-    'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20',
-};
 
 /** How long after a fix the reporter may still say whether it held. */
 const ANSWER_WINDOW_DAYS = 30;
@@ -175,11 +167,9 @@ export default function UserReportsList({
                         beside the reason would promise otherwise. */}
                     <div
                       className={`flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${
-                        rejected
-                          ? TONE_CLASSES.bad
-                          : (STATUS_STYLES[item.status] ??
-                            STATUS_STYLES.pending)
+                        rejected ? TONE_CLASSES.bad : ''
                       }`}
+                      style={rejected ? undefined : statusBadgeCss(item.status)}
                     >
                       {rejected ? 'Rejected' : statusLabel(item.status)}
                     </div>

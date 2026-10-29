@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import {
   DEBUG_MODE,
   MAINTENANCE_PHOTO_MAX_AGE_HOURS,
-  getStatusStyles,
 } from '../components/control-panel/tabs/maintenance.helpers';
 
 // Post-refactor: verify the new `maintenance.helpers.ts` module exposes the
@@ -16,16 +15,6 @@ test.describe('maintenance.helpers extracted module', () => {
 
   test('MAINTENANCE_PHOTO_MAX_AGE_HOURS matches the original 12-hour window', () => {
     expect(MAINTENANCE_PHOTO_MAX_AGE_HOURS).toBe(12);
-  });
-
-  test('getStatusStyles returns distinct classes per resolution state', () => {
-    expect(getStatusStyles('resolved')).toContain('bg-green-500/10');
-    expect(getStatusStyles('resolved')).toContain('text-green-700');
-    expect(getStatusStyles('in-progress')).toContain('bg-gray-500/10');
-    expect(getStatusStyles('in-progress')).toContain('text-gray-700');
-    // Unknown / null falls back to the same neutral grey as in-progress.
-    expect(getStatusStyles(null)).toBe(getStatusStyles('in-progress'));
-    expect(getStatusStyles('something-else')).toBe(getStatusStyles(null));
   });
 });
 

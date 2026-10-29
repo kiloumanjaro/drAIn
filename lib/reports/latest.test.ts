@@ -52,7 +52,7 @@ describe('mergeLatestReport', () => {
   });
 
   it('updates the pin in place when its own report changes', () => {
-    const resolved = { ...a1, status: 'resolved' };
+    const resolved = { ...a1, status: 'resolved' as const };
     expect(mergeLatestReport([a1, b1], resolved)).toEqual([resolved, b1]);
   });
 

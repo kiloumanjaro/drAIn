@@ -7,7 +7,6 @@ import {
   formatDays,
   getPriorityBgColor,
   getPriorityColor,
-  getStatusBadgeStyle,
 } from './calculations';
 
 describe('formatDays', () => {
@@ -87,21 +86,6 @@ describe('priority colours', () => {
   it('pairs each priority with a matching background', () => {
     expect(getPriorityBgColor('critical')).toBe('bg-red-50');
     expect(getPriorityBgColor('medium')).toBe('bg-yellow-50');
-  });
-});
-
-describe('getStatusBadgeStyle', () => {
-  it('labels each workflow status for the badge', () => {
-    expect(getStatusBadgeStyle('pending').label).toBe('Pending');
-    expect(getStatusBadgeStyle('in-progress').label).toBe('In Progress');
-    expect(getStatusBadgeStyle('resolved').label).toBe('Resolved');
-  });
-
-  it('treats an unknown status as pending rather than crashing', () => {
-    const style = getStatusBadgeStyle(
-      'archived' as Parameters<typeof getStatusBadgeStyle>[0]
-    );
-    expect(style.label).toBe('Pending');
   });
 });
 

@@ -16,6 +16,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useState } from 'react';
+import { statusLabel } from '@/lib/reports/display-labels';
 import DownloadReportsModal from './download-reports-modal';
 
 interface ReportFiltersProps {
@@ -102,18 +103,12 @@ export default function ReportFilters({
         isSelected: true,
       };
 
-    const statusMap: Record<string, string> = {
-      pending: 'Pending',
-      'in-progress': 'In Progress',
-      resolved: 'Resolved',
-    };
-
     return {
       icon,
       text: (
         <span>
           <span className="font-semibold">Status</span> is{' '}
-          <span className="font-semibold">{statusMap[status]}</span>
+          <span className="font-semibold">{statusLabel(status)}</span>
         </span>
       ),
       isSelected: true,

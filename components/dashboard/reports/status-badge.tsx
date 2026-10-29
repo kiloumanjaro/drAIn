@@ -1,39 +1,26 @@
 'use client';
 
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import type { ReportStatus } from '@/lib/supabase/enums';
+import {
+  REPORT_STATUS_STYLE,
+  statusBadgeCss,
+} from '@/lib/reports/status-style';
 
 interface StatusBadgeProps {
-  status: 'pending' | 'in-progress' | 'resolved';
-  onClick?: (status: 'pending' | 'in-progress' | 'resolved') => void;
+  status: ReportStatus;
+  onClick?: (status: ReportStatus) => void;
 }
 
-export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
-  const statusConfigs = {
-    'in-progress': {
-      label: 'In Progress',
-      bgColor: '#dbf3f7',
-      borderColor: '#b1dde0',
-      textColor: '#007687',
-      icon: Clock,
-    },
-    resolved: {
-      label: 'Resolved',
-      bgColor: '#defee7',
-      borderColor: '#bedbc7',
-      textColor: '#437a56',
-      icon: CheckCircle2,
-    },
-    pending: {
-      label: 'Pending',
-      bgColor: '#ffeee7',
-      borderColor: '#ffb8a8',
-      textColor: '#ba4723',
-      icon: AlertCircle,
-    },
-  };
+const ICONS = {
+  'in-progress': Clock,
+  resolved: CheckCircle2,
+  pending: AlertCircle,
+} as const;
 
-  const config = statusConfigs[status];
-  const IconComponent = config.icon;
+export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
+  const config = REPORT_STATUS_STYLE[status];
+  const IconComponent = ICONS[status];
 
   const content = (
     <>
@@ -43,11 +30,7 @@ export default function StatusBadge({ status, onClick }: StatusBadgeProps) {
   );
   const className =
     'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold';
-  const style = {
-    backgroundColor: config.bgColor,
-    borderColor: config.borderColor,
-    color: config.textColor,
-  };
+  const style = statusBadgeCss(status);
 
   // A badge is a control only where clicking it filters the list; elsewhere
   // it is plain text and takes no tab stop.
