@@ -1,5 +1,6 @@
 import client from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
+import type { FunctionRow } from '@/lib/supabase/function-row';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import type {
   ComponentType,
@@ -417,7 +418,11 @@ export const fetchReportPhotoDetails = async (
       p_report_ids: reportIds.slice(from, from + PHOTO_DETAILS_BATCH),
     });
     if (error) throw error;
-    for (const row of data ?? []) {
+    type PrivateDetailsRow = FunctionRow<
+      'report_private_details',
+      'photo_distance_m' | 'photo_taken_at'
+    >;
+    for (const row of (data ?? []) as PrivateDetailsRow[]) {
       details.set(row.id, {
         photoDistanceM: row.photo_distance_m,
         photoTakenAt: row.photo_taken_at,

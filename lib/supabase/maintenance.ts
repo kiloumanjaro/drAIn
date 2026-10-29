@@ -1,5 +1,6 @@
 import client from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
+import type { FunctionRow } from '@/lib/supabase/function-row';
 import type {
   ComponentType,
   MaintenanceStatus,
@@ -58,8 +59,16 @@ export async function getMaintenanceHistory(componentName: string) {
     return { error: 'Failed to fetch maintenance history.' };
   }
 
+  type HistoryRow = FunctionRow<
+    'maintenance_history',
+    | 'description'
+    | 'evidence_image'
+    | 'latest_dispute'
+    | 'my_verdict'
+    | 'performed_by_name'
+  >;
   return {
-    data: data.map((row) => ({
+    data: (data as HistoryRow[]).map((row) => ({
       id: row.id,
       verification_status: row.verification_status,
       can_review: row.can_review,
