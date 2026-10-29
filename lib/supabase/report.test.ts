@@ -190,16 +190,7 @@ describe('uploadReport', () => {
         : { data: [] };
 
     await expect(
-      uploadReport(
-        photo,
-        'inlets',
-        'Blocked',
-        'I-1',
-        123.9,
-        10.3,
-        'user-1',
-        'Ana'
-      )
+      uploadReport(photo, 'inlets', 'Blocked', 'I-1', 123.9, 10.3, 'user-1')
     ).rejects.toMatchObject({ message: 'Too many reports today.' });
 
     const [upload, remove] = storage.calls;
@@ -219,9 +210,27 @@ describe('uploadReport', () => {
       'I-1',
       123.9,
       10.3,
-      'user-1',
-      'Ana'
+      'user-1'
     );
     expect(storage.calls.map((c) => c.method)).toEqual(['upload']);
+  });
+
+  it('leaves the reporter name to the database', async () => {
+    // set_reporter_name fills it from the profile (or "Anonymous") on insert.
+    await uploadReport(
+      photo,
+      'inlets',
+      'Blocked',
+      'I-1',
+      123.9,
+      10.3,
+      'user-1'
+    );
+    const insert = supabase.state.queries
+      .find((q) => q.source === 'reports')!
+      .calls.find(([method]) => method === 'insert')!;
+    const [row] = insert[1] as Array<Record<string, unknown>>;
+    expect(row).not.toHaveProperty('reporter_name');
+    expect(row).toMatchObject({ user_id: 'user-1', status: 'pending' });
   });
 });

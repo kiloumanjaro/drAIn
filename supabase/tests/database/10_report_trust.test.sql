@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(25);
+select plan(26);
 
 -- A citizen files a report on ISD-10, with a photo taken right there, and
 -- tries to mark it confirmed and to pick its own photo distance.
@@ -185,11 +185,20 @@ select is(
 );
 
 select results_eq(
-  $$select review_status::text, reviewed_by, priority::text
+  $$select review_status::text, reviewed_by, user_id, photo_lat, photo_lon, priority::text
     from public.review_report('00000000-0000-4000-e000-000000000001', 'confirmed', null, 'high')$$,
-  $$values ('confirmed', '00000000-0000-4000-a000-000000000002'::uuid, 'high')$$,
-  'staff can confirm a report and correct its priority'
+  $$values ('confirmed', null::uuid, null::uuid, null::double precision, null::double precision, 'high')$$,
+  'staff can confirm a report and correct its priority; the returned row carries no private column'
 );
+
+reset role;
+select results_eq(
+  $$select reviewed_by, user_id from public.reports where id = '00000000-0000-4000-e000-000000000001'$$,
+  $$values ('00000000-0000-4000-a000-000000000002'::uuid, '00000000-0000-4000-a000-000000000003'::uuid)$$,
+  'the stored row still knows the reviewer and the reporter'
+);
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
 
 -- Maintenance leaves rejected reports alone.
 select public.record_maintenance('storm_drains', 'ISD-11', 'resolved');

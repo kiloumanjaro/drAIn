@@ -124,44 +124,6 @@ CREATE OR REPLACE VIEW "public"."repair_time_by_component" WITH ("security_invok
 ALTER VIEW "public"."repair_time_by_component" OWNER TO "postgres";
 
 
--- Per agency: the reports its maintenance has moved along (the maintenance
--- that last touched a report decides which agency it belongs to), how many
--- are resolved, and the median days to resolve. Reports nobody has worked on
--- belong to no agency yet and aren't counted here. verified_issues: resolved
--- reports whose fix someone other than the crew has confirmed.
-CREATE OR REPLACE VIEW "public"."team_performance" WITH ("security_invoker"='true') AS
- SELECT "a"."name" AS "agency_name",
-    ("count"("r"."id"))::integer AS "total_issues",
-    ("count"("r"."id") FILTER (WHERE ("r"."status" = 'resolved'::"public"."report_status")))::integer AS "resolved_issues",
-    ("count"("r"."id") FILTER (WHERE ("r"."status" <> 'resolved'::"public"."report_status")))::integer AS "outstanding_issues",
-    "round"((percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY (("d"."repair_days")::double precision)))::numeric, 1) AS "median_days_to_resolve",
-    ("count"("r"."id") FILTER (WHERE (("r"."status" = 'resolved'::"public"."report_status") AND ("m"."verification_status" = 'verified'::"public"."verification_status"))))::integer AS "verified_issues"
-   FROM ((("public"."agencies" "a"
-     JOIN "public"."maintenance" "m" ON (("m"."agency_id" = "a"."id")))
-     JOIN "public"."reports" "r" ON ((("r"."resolved_by_maintenance_id" = "m"."id") AND ("r"."review_status" <> 'rejected'::"public"."report_review"))))
-     LEFT JOIN "public"."report_repair_days" "d" ON (("d"."id" = "r"."id")))
-  GROUP BY "a"."id", "a"."name";
-
-
-ALTER VIEW "public"."team_performance" OWNER TO "postgres";
-
-
--- Average repair days per report day (UTC), for the trend chart.
-CREATE OR REPLACE FUNCTION "public"."repair_trend"("p_days" integer DEFAULT 30) RETURNS TABLE("day" "date", "average_days" numeric)
-    LANGUAGE "sql" STABLE
-    SET "search_path" TO ''
-    AS $$
-  select (d.created_at at time zone 'UTC')::date, round(avg(d.repair_days), 1)
-  from public.report_repair_days d
-  where d.created_at >= now() - make_interval(days => p_days)
-  group by 1
-  order by 1
-$$;
-
-
-ALTER FUNCTION "public"."repair_trend"("p_days" integer) OWNER TO "postgres";
-
-
 -- The dashboard's headline numbers. SECURITY DEFINER only so it can count
 -- staff, whose profiles other users can't read; it returns counts, never
 -- rows. p_month_start is the caller's local start of the month.
@@ -233,7 +195,6 @@ GRANT EXECUTE ON FUNCTION "public"."maintenance_history"("p_component_name" "tex
 
 -- Read models are read-only. New objects get no client privileges by
 -- default (see the end of schema.sql), so each is granted here.
-GRANT EXECUTE ON FUNCTION "public"."repair_trend"("p_days" integer) TO "anon", "authenticated";
 GRANT EXECUTE ON FUNCTION "public"."dashboard_overview"("p_month_start" timestamp with time zone) TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."latest_report_per_component" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."report_counts_by_component" TO "anon", "authenticated";
@@ -242,4 +203,3 @@ GRANT SELECT ON TABLE "public"."report_counts_by_category" TO "anon", "authentic
 GRANT SELECT ON TABLE "public"."report_counts_by_day" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."report_repair_days" TO "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."repair_time_by_component" TO "anon", "authenticated";
-GRANT SELECT ON TABLE "public"."team_performance" TO "anon", "authenticated";

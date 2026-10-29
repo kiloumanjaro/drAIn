@@ -27,18 +27,9 @@ export function SideNavigation({
     { id: 'stats', label: 'Stats', icon: IconFolderFilled },
     { id: 'simulations', label: 'Simulations', icon: Play },
     { id: 'report', label: 'Report', icon: IconShieldHalfFilled },
-    { id: 'admin', label: 'Admin', icon: IconUserShield },
+    { id: 'admin', label: 'Staff', icon: IconUserShield },
     { id: 'profile', label: 'Profile', icon: Person },
   ];
-
-  // if (profile?.agency_id) {
-  //   const adminTabIndex = baseTabs.findIndex((tab) => tab.id === "profile");
-  //   baseTabs.splice(adminTabIndex, 0, {
-  //     id: "admin",
-  //     label: "Admin",
-  //     icon: IconUserShield,
-  //   });
-  // }
 
   const chatbotTab = baseTabs.find((tab) => tab.id === 'chatbot');
   const otherTabs = baseTabs.filter((tab) => tab.id !== 'chatbot');

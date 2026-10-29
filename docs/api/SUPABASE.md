@@ -35,14 +35,14 @@ says who filed a report). Rejected reports are readable only by staff and by
 the person who filed them. No client reads which staff member did a piece of
 maintenance; staff get the name from `maintenance_history`.
 
-| Table                                                                                                              | Signed out             | Signed in                                     | Written by                                                                       |
-| ------------------------------------------------------------------------------------------------------------------ | ---------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| `reports`                                                                                                          | public columns         | public columns; insert                        | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
-| `profiles`                                                                                                         | nothing (RLS)          | own row; update own row                       | sign-up trigger; `join_agency`, `leave_agency`, `set_member_agency`              |
-| `maintenance`                                                                                                      | all but `performed_by` | all but `performed_by`                        | `record_maintenance`                                                             |
-| `maintenance_reviews`                                                                                              | nothing                | own; staff: staff rows; all but `reviewer_id` | `review_maintenance`, `respond_to_resolution`                                    |
-| `simulation_runs`                                                                                                  | nothing                | own runs                                      | the simulation server (service role)                                             |
-| `agencies`, `components`, `flood_results`, `barangay_boundaries`, `inlets`, `outlets`, `man_pipes`, `storm_drains` | read                   | read                                          | migrations and seed only                                                         |
+| Table                                                                                                              | Signed out                                         | Signed in                                     | Written by                                                                       |
+| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `reports`                                                                                                          | public columns                                     | public columns; insert                        | the app (insert); `record_maintenance`, `review_report`, `respond_to_resolution` |
+| `profiles`                                                                                                         | nothing (RLS)                                      | own row; update own row                       | sign-up trigger; `join_agency`, `leave_agency`, `set_member_agency`              |
+| `maintenance`                                                                                                      | no `performed_by`, `description`, `evidence_image` | same; staff: all, via `maintenance_history`   | `record_maintenance`                                                             |
+| `maintenance_reviews`                                                                                              | nothing                                            | own; staff: staff rows; all but `reviewer_id` | `review_maintenance`, `respond_to_resolution`                                    |
+| `simulation_runs`                                                                                                  | nothing                                            | own runs                                      | the simulation server (service role)                                             |
+| `agencies`, `components`, `flood_results`, `barangay_boundaries`, `inlets`, `outlets`, `man_pipes`, `storm_drains` | read                                               | read                                          | migrations and seed only                                                         |
 
 ## Functions the app calls
 
@@ -58,14 +58,14 @@ maintenance; staff get the name from `maintenance_history`.
 | `my_reports`                                   | signed in            | The caller's own reports, every column                                      |
 | `report_private_details`                       | reporter or staff    | Up to 100 reports' photo position, age, distance and reviewer               |
 | `maintenance_history`                          | staff                | A component's maintenance, with who did it and its checks                   |
-| `dashboard_overview`, `repair_trend`           | anyone               | Dashboard numbers                                                           |
+| `dashboard_overview`                           | anyone               | Dashboard numbers                                                           |
 | `nearest_components`                           | anyone               | Components near a point (report form)                                       |
 | `consume_rate_limit`                           | signed in            | Per-user allowances: the chatbot route, and `join_agency` tries             |
 
 Read models (views, readable by anyone): `latest_report_per_component`,
 `report_counts_by_component`, `report_counts_by_day`,
 `report_counts_by_zone`, `report_counts_by_category`, `report_repair_days`,
-`repair_time_by_component`, `team_performance`, `component_locations`.
+`repair_time_by_component`, `component_locations`.
 Rejected reports are left out of all of them.
 
 ## In the app

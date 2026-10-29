@@ -126,10 +126,7 @@ export default function ReportCard({
               size="sm"
               onClick={onPriorityFilter}
             />
-            <StatusBadge
-              status={report.status as 'pending' | 'in-progress' | 'resolved'}
-              onClick={onStatusFilter}
-            />
+            <StatusBadge status={report.status} onClick={onStatusFilter} />
             {componentType && (
               <ComponentTypeBadge
                 componentType={componentType}
