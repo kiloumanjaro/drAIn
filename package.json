@@ -95,13 +95,16 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "sharp": "0.35.5",
+    "supabase": "2.118.0",
     "tailwindcss": "^4.1.13",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5",
     "vitest": "^5.0.1"
   },
+  "packageManager": "pnpm@10.34.5",
   "engines": {
-    "pnpm": ">=8.0.0",
+    "node": ">=22",
+    "pnpm": ">=10.0.0",
     "npm": "please-use-pnpm",
     "yarn": "please-use-pnpm"
   },
