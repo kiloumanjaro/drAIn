@@ -43,7 +43,7 @@ interface CategoryData {
 }
 
 export default function SubmitTab() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [severity, setSeverity] = useState<ReportPriority>('low');
@@ -178,7 +178,6 @@ export default function SubmitTab() {
 
     try {
       const userID = user.id;
-      const profileName = profile?.full_name ?? 'Anonymous';
 
       const long = categoryData[categoryIndex].long;
       const lat = categoryData[categoryIndex].lat;
@@ -192,7 +191,6 @@ export default function SubmitTab() {
         long,
         lat,
         userID,
-        profileName,
         severity,
         photoExif
       );

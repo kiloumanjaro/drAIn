@@ -83,7 +83,6 @@ export const uploadReport = async (
   lat: number,
   /** Reporting needs an account; the database refuses signed-out reports. */
   userId: string,
-  reporterName: string,
   priority: ReportPriority = 'low',
   /** What the photo's EXIF says about where and when it was taken. */
   photo: ExifData | null = null
@@ -121,7 +120,6 @@ export const uploadReport = async (
         category,
         description,
         image: imagePath,
-        reporter_name: reporterName,
         status: 'pending',
         component_id: component_id,
         long: long,

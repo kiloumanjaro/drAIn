@@ -57,7 +57,7 @@ export default function NotificationBell() {
                   </span>
                 </p>
                 <span className="mb-2 text-xs font-normal">
-                  {n.category || 'report'} from {n.reporterName || 'Unknown'}
+                  {n.category || 'report'} from {n.reporterName || 'Anonymous'}
                 </span>
 
                 <p className="text-sm text-gray-600">
