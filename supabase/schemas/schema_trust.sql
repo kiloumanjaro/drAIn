@@ -298,6 +298,13 @@ BEGIN
       'after', jsonb_build_object('review_status', result.review_status,
                                   'review_note', result.review_note,
                                   'priority', result.priority)));
+  -- Clients can't read these columns (column grants in schema.sql); the return must not leak them.
+  result.user_id := NULL;
+  result.photo_lat := NULL;
+  result.photo_lon := NULL;
+  result.photo_taken_at := NULL;
+  result.photo_distance_m := NULL;
+  result.reviewed_by := NULL;
   RETURN result;
 END;
 $$;
