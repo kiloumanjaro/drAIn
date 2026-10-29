@@ -1373,12 +1373,13 @@ REVOKE ALL ON TABLE "public"."geocode_worker_lock" FROM "anon", "authenticated";
 GRANT ALL ON TABLE "public"."geocode_worker_lock" TO "service_role";
 
 -- No client reads which staff member did the work (performed_by): the agency
--- is public, the person is not. Staff get the name from maintenance_history.
--- Writes go through record_maintenance only.
+-- is public, the person is not. Nor the crew's comment (description) or
+-- photo (evidence_image): they can name people and places. Staff get all
+-- three from maintenance_history. Writes go through record_maintenance only.
 REVOKE ALL ON TABLE "public"."maintenance" FROM "anon", "authenticated";
 
-GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "anon";
-GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "description", "evidence_image", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "authenticated";
+GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "anon";
+GRANT SELECT ("id", "created_at", "performed_at", "component_name", "agency_id", "component_type", "status", "verification_status") ON TABLE "public"."maintenance" TO "authenticated";
 GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
 
 REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
