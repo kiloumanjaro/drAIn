@@ -590,6 +590,8 @@ BEGIN
     jsonb_build_object('verdict', p_verdict, 'note', note, 'report_id', report.id));
 
   SELECT * INTO report FROM public.reports WHERE id = p_report_id;
+  -- The reporter's own row, but who reviewed it stays private (as in my_reports).
+  report.reviewed_by := NULL;
   RETURN report;
 END;
 $$;

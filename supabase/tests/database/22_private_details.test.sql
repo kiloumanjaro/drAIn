@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(15);
+select plan(16);
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -65,6 +65,11 @@ select throws_ok(
   $$select user_id from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
   '42703', null,
   'but not who filed it'
+);
+select throws_ok(
+  $$select photo_lat, photo_lon from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
+  '42703', null,
+  'nor where the photo was taken'
 );
 select throws_ok(
   $$select * from public.report_private_details(

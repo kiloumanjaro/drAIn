@@ -1243,25 +1243,32 @@ ALTER TABLE "public"."reports" ENABLE ROW LEVEL SECURITY;
 -- the private columns (see the column grants below) never go out.
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."reports";
 
--- The signed-in person's own reports with every column, including any staff
--- rejected. Nobody else's: the column grants below hide who filed a report,
--- the photo's position and age, and who reviewed it, so this is how a
--- reporter reads theirs (fetchMyReports).
+-- The signed-in person's own reports with every column but reviewed_by,
+-- including any staff rejected. Nobody else's: the column grants below hide
+-- who filed a report, the photo's position and age, and who reviewed it, so
+-- this is how a reporter reads theirs (fetchMyReports). Which staff member
+-- reviewed it stays private even from the reporter (jsonb_populate_record
+-- overwrites just that column of the row).
 CREATE OR REPLACE FUNCTION "public"."my_reports"() RETURNS SETOF "public"."reports"
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-  select r.* from public.reports r where r.user_id = (select auth.uid())
+  select (jsonb_populate_record(r, '{"reviewed_by": null}'::jsonb)).*
+  from public.reports r where r.user_id = (select auth.uid())
 $$;
 
 ALTER FUNCTION "public"."my_reports"() OWNER TO "postgres";
 
--- The private columns of up to 100 reports: each one the caller filed, and
--- for agency staff every one asked for (they triage with the photo's position,
--- age and distance). Nothing for anyone else. is_mine says whether the caller
--- filed it; who did is not returned, even to staff. (Until 2026-10-04 staff
--- got the reporter's user id, which with the member list named the reporter.)
-CREATE OR REPLACE FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) RETURNS TABLE("id" "uuid", "is_mine" boolean, "photo_lat" double precision, "photo_lon" double precision, "photo_taken_at" timestamp with time zone, "photo_distance_m" double precision, "reviewed_by" "uuid")
+-- The photo's age and distance from the component for up to 100 reports:
+-- each one the caller filed, and for agency staff every one asked for (they
+-- triage with them). Nothing for anyone else. is_mine says whether the caller
+-- filed it; who did, where the photo was taken and who reviewed the report
+-- are not returned, even to staff. (Until 2026-10-04 staff got the reporter's
+-- user id, which with the member list named the reporter; until 2026-10-30
+-- the photo's position and the reviewer's id, which the app never showed.)
+-- The return type changed, so the function is dropped before it is created.
+DROP FUNCTION IF EXISTS "public"."report_private_details"("uuid"[]);
+CREATE FUNCTION "public"."report_private_details"("p_report_ids" "uuid"[]) RETURNS TABLE("id" "uuid", "is_mine" boolean, "photo_taken_at" timestamp with time zone, "photo_distance_m" double precision)
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -1271,7 +1278,7 @@ BEGIN
   END IF;
   RETURN QUERY
     SELECT r.id, r.user_id IS NOT DISTINCT FROM auth.uid() AND auth.uid() IS NOT NULL,
-           r.photo_lat, r.photo_lon, r.photo_taken_at, r.photo_distance_m, r.reviewed_by
+           r.photo_taken_at, r.photo_distance_m
     FROM public.reports r
     WHERE r.id = ANY (p_report_ids)
       AND (r.user_id = (SELECT auth.uid())
