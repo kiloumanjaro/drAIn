@@ -126,6 +126,56 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Keyboard focus only (a mouse click does not match :focus-visible on
+     links and buttons). The browser's own 1px ring at half opacity was
+     too faint to follow, and --ring is too pale to see on white (under
+     3:1). Components that draw their own ring set outline-none, which, as
+     a utility, still wins over this. */
+  :focus-visible {
+    outline: 2px solid oklch(0.45 0 0);
+    outline-offset: 2px;
+  }
+  /* hit-area (below) needs its element positioned. Zero specificity and the
+     base layer, so a control that is already absolute or fixed keeps it. */
+  :where(.hit-area, .hit-area-sm, .hit-area-lg, .hit-area-y) {
+    position: relative;
+  }
+}
+
+/*
+ * A tap target of at least 24 x 24 px (WCAG 2.2, 2.5.8) around a small
+ * control, without changing how it looks: an invisible ::after reaches past
+ * its edges, and a tap there lands on the control. 4, 6 or 8 px on every
+ * side (sm, default, lg), or 4 px above and below only (y) where neighbours
+ * sit close on either side. The same idea as the sidebar's rail button.
+ */
+@utility hit-area-sm {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+}
+@utility hit-area {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+}
+@utility hit-area-lg {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+@utility hit-area-y {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
+  }
 }
 
 /* Mapbox Popup Styling */
@@ -155,6 +205,53 @@
 /* Optional: Adjust the tip (arrow) position if needed */
 .no-bg-popup .mapboxgl-popup-tip {
   display: none !important;
+}
+
+/* Mapbox attribution ("© Mapbox © OpenStreetMap") on /map and /simulation,
+   kept clear of the app's own buttons over the map.
+   Phones: top left, moved right of the navigation button and level with it.
+   Tablets: top left too (the sheet covers the bottom), but there is no
+   navigation button there, so it sits in the corner, level with the map's
+   buttons.
+   /map from desktop width (1024px) up: bottom right, moved left of the
+   map-style button.
+   The ranges are Tailwind's own (max-md, md to lg, lg), written the way it
+   writes them, so no width falls between two of them. */
+@media (width < 48rem) {
+  .map-attribution .mapboxgl-ctrl-top-left .mapboxgl-ctrl-attrib {
+    margin: 20px 0 0 60px;
+  }
+}
+
+@media (width >= 48rem) and (width < 64rem) {
+  .map-attribution .mapboxgl-ctrl-top-left .mapboxgl-ctrl-attrib {
+    margin: 20px 0 0 20px;
+  }
+}
+
+@media (width >= 64rem) {
+  .map-attribution-beside-style
+    .mapboxgl-ctrl-bottom-right
+    .mapboxgl-ctrl-attrib {
+    margin: 0 64px 20px 0;
+  }
+}
+
+/* Results tables and parameter panels pinned across the top of /simulation
+   on a tablet (app/(main)/simulation/simulation-overlays.tsx) stop 8px above
+   the control sheet. Its top is 45dvh down at half height, and they are
+   pinned 3.25rem down. Collapsed to its bar (5.25rem) the sheet gives them
+   the rest of the screen: on a tablet-width screen 390px high the first was
+   116px, which a table's header and caveat filled. The sheet says which
+   height it is at in data-sheet (components/control-panel). */
+@media (width >= 48rem) and (width < 64rem) {
+  :root {
+    --pinned-panel-max-height: calc(45dvh - 3.75rem);
+  }
+
+  :root:has([data-sheet='collapsed']) {
+    --pinned-panel-max-height: calc(100dvh - 9rem);
+  }
 }
 
 /* Control Panel Scrollbar Styling */

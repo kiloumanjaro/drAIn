@@ -72,14 +72,22 @@ export function photoAgeLabel(
   };
 }
 
+/**
+ * What staff made of the report. `reasonOnly` is for a label shown beside
+ * something that already says "Rejected", so the word is not read twice.
+ */
 export function reviewLabel(
   status: ReportReview,
-  note: string | null
+  note: string | null,
+  { reasonOnly = false }: { reasonOnly?: boolean } = {}
 ): TrustLabel {
   switch (status) {
     case 'confirmed':
       return { text: 'Confirmed by staff', tone: 'good' };
     case 'rejected':
+      if (reasonOnly) {
+        return { text: note || 'No reason given', tone: 'bad' };
+      }
       return {
         text: note ? `Rejected: ${note}` : 'Rejected by staff',
         tone: 'bad',

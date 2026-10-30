@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildSimulationRequest,
+  UNREACHABLE_MESSAGE,
   isAbortError,
   runSimulation,
   transformToNodeDetails,
@@ -573,22 +574,49 @@ describe('runSimulation', () => {
     ).rejects.toThrow('The simulation failed.');
   });
 
-  it('rejects when the network request itself fails', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  it('says the server could not be reached, not "Failed to fetch"', async () => {
+    // The message is shown to the user as it is.
+    const failure = new TypeError('Failed to fetch');
+    fetchMock.mockRejectedValueOnce(failure);
 
-    await expect(
-      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
-    ).rejects.toThrow('Failed to fetch');
+    const error = await runToCompletion(
+      runSimulation(NODES, LINKS, RAINFALL, AUTH)
+    ).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe(UNREACHABLE_MESSAGE);
+    expect((error as Error).message).not.toContain('Failed to fetch');
+    expect((error as Error).cause).toBe(failure);
   });
 
-  it('rejects when a poll cannot reach the server', async () => {
+  it('says the same when a poll cannot reach the server', async () => {
     fetchMock
       .mockResolvedValueOnce(accepted())
       .mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
     await expect(
       runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
-    ).rejects.toThrow('Failed to fetch');
+    ).rejects.toThrow(UNREACHABLE_MESSAGE);
+  });
+
+  it('passes on an abort raised by the request itself', async () => {
+    // fetch rejects with an AbortError, not a TypeError, when its signal
+    // aborts mid-request; it must still read as an abort.
+    fetchMock.mockRejectedValueOnce(new DOMException('Aborted', 'AbortError'));
+
+    const error = await runToCompletion(
+      runSimulation(NODES, LINKS, RAINFALL, AUTH)
+    ).catch((caught: unknown) => caught);
+
+    expect(isAbortError(error)).toBe(true);
+  });
+
+  it('passes on a failure that is not the network', async () => {
+    fetchMock.mockRejectedValueOnce(new RangeError('not the network'));
+
+    await expect(
+      runToCompletion(runSimulation(NODES, LINKS, RAINFALL, AUTH))
+    ).rejects.toThrow('not the network');
   });
 
   it.each([

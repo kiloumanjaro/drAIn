@@ -78,7 +78,9 @@ export function useOverlayToggles() {
   const handleToggleAllOverlays = () => {
     const someVisible = anyVisible(overlayVisibility);
 
-    setOverlayVisibility(allOverlays(!someVisible));
+    setOverlayVisibility((prev) =>
+      allOverlays(!someVisible, prev['mandaue_population-layer'])
+    );
 
     // If turning on overlays, hide all flood prone areas for clarity
     if (!someVisible && anyVisible(floodProneVisibility)) {

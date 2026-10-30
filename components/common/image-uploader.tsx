@@ -121,7 +121,7 @@ export default function ImageUploader({
         {!fileName ? (
           <div className="flex flex-col items-center gap-3 p-6 text-center">
             <label
-              className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#2b3ea7] bg-[#4b72f3] text-white transition-colors ${
+              className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#2b3ea7] bg-[#4569ee] text-white transition-colors ${
                 disabled
                   ? 'cursor-not-allowed opacity-50'
                   : 'cursor-pointer hover:bg-blue-600'
@@ -162,7 +162,7 @@ export default function ImageUploader({
               />
             )}
             <div className="absolute inset-0 flex items-end justify-between p-2">
-              <span className="bg-opacity-70 text-muted-foreground max-w-[80%] truncate rounded-md bg-white px-3 py-1.5 text-[11px]">
+              <span className="text-muted-foreground max-w-[80%] truncate rounded-md bg-white/70 px-3 py-1.5 text-xs">
                 {fileName}
               </span>
               <button

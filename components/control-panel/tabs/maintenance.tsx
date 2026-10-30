@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   DEBUG_MODE,
+  MAINTENANCE_PHOTO_MAX_AGE_HOURS,
   checkMaintenancePhoto,
   unverifiedNote,
   getStatusStyles,
@@ -59,6 +60,7 @@ const measureDistanceM = (
 import client from '@/lib/supabase/client';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { componentTypeLabel, statusLabel } from '@/lib/reports/display-labels';
 
 export type MaintenanceProps = {
   selectedInlet?: Inlet | null;
@@ -340,7 +342,7 @@ ${note}`
                   ? `Displaying ${selectedAsset.id.slice(
                       0,
                       8
-                    )} from ${selectedAsset.type.replace(/_/g, ' ')}`
+                    )} from ${componentTypeLabel(selectedAsset.type)}`
                   : 'Select an asset to view details'}
               </CardDescription>
             </div>
@@ -501,11 +503,11 @@ ${note}`
                             <div className="mt-auto flex flex-row gap-2">
                               {record.status && (
                                 <div
-                                  className={`flex h-5 items-center justify-center rounded-md border px-2 py-0.5 text-[10px] ${getStatusStyles(
+                                  className={`flex h-auto items-center justify-center rounded-md border px-2 py-0.5 text-xs ${getStatusStyles(
                                     record.status
                                   )}`}
                                 >
-                                  {record.status}
+                                  {statusLabel(record.status)}
                                 </div>
                               )}
                             </div>
@@ -566,11 +568,11 @@ ${note}`
                           <div className="mt-auto flex flex-row gap-2">
                             {record.status && (
                               <div
-                                className={`flex h-5 items-center justify-center rounded-md border px-2 py-0.5 text-[10px] ${getStatusStyles(
+                                className={`flex h-auto items-center justify-center rounded-md border px-2 py-0.5 text-xs ${getStatusStyles(
                                   record.status
                                 )}`}
                               >
-                                {record.status}
+                                {statusLabel(record.status)}
                               </div>
                             )}
                           </div>
@@ -612,7 +614,7 @@ ${note}`
 
       {/* Sticky bottom section - updated positioning */}
       {selectedAsset && (
-        <div className="px-3 pt-0 pb-5">
+        <div className="px-3 pt-0 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
           <Field className="mb-4">
             <FieldContent>
               <Textarea
@@ -620,9 +622,10 @@ ${note}`
                 onChange={(e) => setAgencyComments(e.target.value)}
                 placeholder="Agency Comments Here"
                 aria-label="Agency comments"
-                rows={1}
-                style={{ height: '56px', minHeight: '56px', maxHeight: '56px' }}
-                className="!h-14 resize-none bg-transparent"
+                rows={2}
+                // Two lines to start; grows with the text where the browser
+                // can size a field to its content, and scrolls past max-h.
+                className="field-sizing-content max-h-32 min-h-14 resize-none bg-transparent"
               />
             </FieldContent>
           </Field>
@@ -630,7 +633,7 @@ ${note}`
             <DropdownMenuTrigger asChild>
               <Button
                 disabled={isLoading || !selectedAsset}
-                className="flex h-11 w-full min-w-0 items-center justify-between rounded-lg border border-[#2b3ea7] bg-[#4b72f3] text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-full min-w-0 items-center justify-between rounded-lg border border-[#2b3ea7] bg-[#4569ee] text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? (
                   <span className="mx-auto flex items-center gap-2">
@@ -711,7 +714,7 @@ ${note}`
                   setShowIncludePhotoDialog(false);
                   setShowFullPageUpload(true);
                 }}
-                className="flex-1 bg-[#4b72f3]"
+                className="flex-1 bg-[#4569ee]"
               >
                 Yes, Add Photo
               </Button>
@@ -729,14 +732,15 @@ ${note}`
               emptyDescription="Checking location and time..."
             />
           ) : (
-            <div className="flex h-full flex-col overflow-y-auto p-4">
+            <div className="flex h-full flex-col overflow-y-auto p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">
                     Add Maintenance Photo
                   </h2>
                   <p className="text-muted-foreground text-sm">
-                    Verifying location and time (12h window)
+                    Use a photo taken on site within the last{' '}
+                    {MAINTENANCE_PHOTO_MAX_AGE_HOURS} hours
                   </p>
                 </div>
                 <Button
@@ -797,7 +801,7 @@ ${note}`
 
               <div className="mt-4 border-t pt-4">
                 <Button
-                  className="w-full bg-[#4b72f3] hover:bg-blue-600"
+                  className="w-full bg-[#4569ee] hover:bg-blue-600"
                   onClick={handleMaintenanceImageSubmit}
                   disabled={!maintenanceImage}
                 >

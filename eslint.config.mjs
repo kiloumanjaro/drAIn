@@ -12,6 +12,8 @@ const eslintConfig = [
       'dist/**',
       // Deno edge functions: their own runtime and URL imports.
       'supabase/functions/**',
+      // Claude Code worktrees (claude -w): whole second checkouts.
+      '.claude/**',
     ],
   },
   ...nextCoreWebVitals,

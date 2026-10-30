@@ -83,6 +83,13 @@ export default function ZoneMap({
         ],
       });
 
+      // "© Mapbox © OpenStreetMap" must be on show; nothing covers this
+      // map's corners, so it takes the usual one.
+      map.current.addControl(
+        new mapboxgl.AttributionControl({ compact: true }),
+        'bottom-right'
+      );
+
       map.current.on('load', () => {
         setMapReady(true);
         if (map.current) {
@@ -592,9 +599,11 @@ export default function ZoneMap({
             <div className="flex items-start justify-between gap-3">
               {/* City Info */}
               <div className="min-w-0 flex-1">
-                <div className="flex flex-row justify-between">
-                  <h3 className="truncate text-sm text-gray-900">{cityName}</h3>
-                  <p className="text-muted-foreground text-sm">{totalIssues}</p>
+                <div className="flex flex-row justify-between gap-3">
+                  <h3 className="min-w-0 text-sm text-gray-900">{cityName}</h3>
+                  <p className="text-muted-foreground shrink-0 text-sm">
+                    {totalIssues}
+                  </p>
                 </div>
               </div>
             </div>
@@ -620,8 +629,10 @@ export default function ZoneMap({
                         isSelected ? 'ring-1 ring-blue-500' : ''
                       }`}
                     >
-                      <div className="flex min-w-0 items-center justify-between">
-                        <span className="truncate text-sm font-medium">
+                      <div className="flex min-w-0 items-start justify-between">
+                        {/* Wraps: "Outside Mandaue" was cut to "Outside Ma…"
+                            in the narrow tablet column. */}
+                        <span className="min-w-0 text-sm font-medium break-words">
                           {zone.zone}
                         </span>
                         <span className="ml-2 flex-shrink-0 text-xs font-semibold text-gray-700">

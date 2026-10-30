@@ -22,6 +22,7 @@ import {
 } from '@/lib/supabase/report';
 import type { ReviewVerdict } from '@/lib/supabase/enums';
 import { TONE_CLASSES, reviewLabel } from '@/lib/reports/trust-labels';
+import { componentTypeLabel, statusLabel } from '@/lib/reports/display-labels';
 import { format } from 'date-fns';
 
 interface UserReportsListProps {
@@ -84,7 +85,7 @@ export default function UserReportsList({
     try {
       const [mine, answers] = await Promise.all([
         fetchMyReports(),
-        fetchMyResolutionVerdicts(userId),
+        fetchMyResolutionVerdicts(),
       ]);
       setReports(mine);
       setVerdicts(answers);
@@ -143,7 +144,10 @@ export default function UserReportsList({
         ) : (
           <div className="space-y-3">
             {reports.map((item) => {
-              const review = reviewLabel(item.reviewStatus, item.reviewNote);
+              const review = reviewLabel(item.reviewStatus, item.reviewNote, {
+                reasonOnly: true,
+              });
+              const rejected = item.reviewStatus === 'rejected';
               const verdict = verdicts.get(item.id);
               return (
                 <div
@@ -154,7 +158,7 @@ export default function UserReportsList({
                     <p className="text-foreground mb-2 line-clamp-2 text-xs">
                       {item.description}
                     </p>
-                    <div className="text-muted-foreground flex items-center gap-2 text-[10px]">
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
                       <span>{format(new Date(item.date), 'MMM dd, yyyy')}</span>
                       <span>{item.componentId}</span>
                     </div>
@@ -163,43 +167,48 @@ export default function UserReportsList({
                   <div className="flex flex-row flex-wrap gap-2">
                     <Badge
                       variant="outline"
-                      className="h-5 justify-center px-3 py-0 text-[10px] font-normal"
+                      className="h-auto justify-center px-3 py-0.5 text-xs font-normal"
                     >
-                      {item.category}
+                      {componentTypeLabel(item.category)}
                     </Badge>
+                    {/* A rejected report is going nowhere: saying "Pending"
+                        beside the reason would promise otherwise. */}
                     <div
-                      className={`flex h-5 items-center justify-center rounded-md border px-3 py-0.5 text-[10px] ${
-                        STATUS_STYLES[item.status] ?? STATUS_STYLES.pending
+                      className={`flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${
+                        rejected
+                          ? TONE_CLASSES.bad
+                          : (STATUS_STYLES[item.status] ??
+                            STATUS_STYLES.pending)
                       }`}
                     >
-                      {item.status}
+                      {rejected ? 'Rejected' : statusLabel(item.status)}
                     </div>
                     <div
-                      className={`flex h-5 items-center rounded-md border px-2 text-[10px] ${TONE_CLASSES[review.tone]}`}
+                      className={`h-auto min-w-0 rounded-md border px-2 py-0.5 text-xs [overflow-wrap:anywhere] whitespace-normal ${TONE_CLASSES[review.tone]}`}
                     >
                       {review.text}
                     </div>
                   </div>
 
                   {verdict === 'confirmed' && item.status === 'resolved' && (
-                    <p className="text-[11px] text-green-700">
+                    <p className="text-xs text-green-700">
                       You confirmed it was fixed.
                     </p>
                   )}
                   {verdict === 'disputed' && item.status !== 'resolved' && (
-                    <p className="text-[11px] text-red-700">
+                    <p className="text-xs text-red-700">
                       You said it wasn&apos;t fixed, so it is open again.
                     </p>
                   )}
                   {!verdict && canStillAnswer(item) && (
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[11px] font-medium">
+                      <span className="text-xs font-medium">
                         Marked fixed. Is it?
                       </span>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-6 px-2 text-[11px]"
+                        className="h-6 px-2 text-xs"
                         disabled={saving}
                         onClick={() => answer(item, 'confirmed')}
                       >
@@ -208,7 +217,7 @@ export default function UserReportsList({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-6 px-2 text-[11px] text-red-700"
+                        className="h-6 px-2 text-xs text-red-700"
                         disabled={saving}
                         onClick={() => setDisputing(item)}
                       >

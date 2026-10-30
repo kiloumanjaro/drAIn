@@ -14,7 +14,9 @@ export default function MainLayout({
   return (
     // Here rather than in the root providers: its readers are the sidebar's
     // notification bell and the map page, so the sign-in pages no longer
-    // fetch the latest reports or hold a realtime channel open.
+    // fetch the latest reports or hold a realtime channel open. Within
+    // (main) it stays idle on the landing page and docs, which show no bell
+    // (lib/reports/live-reports.ts).
     <ReportProvider>
       <SidebarProvider defaultOpen={false}>
         <AppSidebar />

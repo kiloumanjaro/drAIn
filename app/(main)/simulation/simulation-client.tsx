@@ -7,10 +7,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/context/auth-provider';
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '@/lib/map/config';
 
-import { enableRain, disableRain } from '@/lib/map/effects/rain-utils';
+import {
+  enableRain,
+  disableRain,
+  prefersReducedMotion,
+} from '@/lib/map/effects/rain-utils';
 import { enableFlood3D } from '@/lib/map/effects/flood-3d-utils';
 import { applyVulnerabilityColors as applyVulnerabilityColorsOnMap } from '@/lib/map/effects/vulnerability-colors';
 import type { SimulationMapHandlers } from '@/lib/map/simulation-interactions';
+import { isCompactMap } from '@/lib/layout/compact-map';
+import { PHONE_QUERY } from '@/lib/map/report-pin';
+import { pinnedPanelCrowded } from '@/lib/simulation/pinned-panels';
 import {
   focusMapFeature as focusFeatureOnMap,
   type SelectedFeature,
@@ -40,6 +47,7 @@ import { SimulationOverlays } from './simulation-overlays';
 import { useFloodPropagationAnimation } from './use-flood-propagation-animation';
 import { useNodeSlideshow } from './use-node-slideshow';
 import { useParameterPanels } from './use-parameter-panels';
+import { selectionOpensPanel } from '@/lib/simulation/parameter-panels';
 import { useSimulationMap } from './use-simulation-map';
 import { useVulnerabilityTables } from './use-vulnerability-tables';
 
@@ -189,11 +197,6 @@ export default function SimulationPage() {
   const handleZoomOut = () => mapRef.current?.zoomOut();
   const handleResetPosition = () =>
     mapRef.current?.flyTo({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
-
-  const handleChangeStyle = () => {
-    // Keep dark style in simulation mode
-    return;
-  };
 
   const handleOverlayToggle = (layerId: string) => {
     setOverlayVisibility((prev) => ({
@@ -374,6 +377,47 @@ export default function SimulationPage() {
     applyVulnerabilityColorsOnMap(map, vulnerabilityData);
   };
 
+  // Counts the tables and parameter panels opened where the half-open sheet
+  // leaves them no room (lib/simulation/pinned-panels.ts); the control panel
+  // collapses its sheet at each one. That includes a panel that opens
+  // because a component was picked in the sheet: only the opening collapses
+  // it, so picking more after raising the sheet again leaves it be.
+  const [sheetCollapseRequests, setSheetCollapseRequests] = useState(0);
+  const makeRoomForPinnedPanel = () => {
+    const isTablet = isCompactMap() && !window.matchMedia(PHONE_QUERY).matches;
+    if (pinnedPanelCrowded(isTablet, window.innerHeight)) {
+      setSheetCollapseRequests((count) => count + 1);
+    }
+  };
+  const handleComponentIdsChange = (ids: string[]) => {
+    const { activePanel, selectedComponentIds } = panels;
+    if (
+      selectionOpensPanel(
+        activePanel,
+        'node',
+        selectedComponentIds.length,
+        ids.length
+      )
+    ) {
+      makeRoomForPinnedPanel();
+    }
+    panels.setSelectedComponentIds(ids);
+  };
+  const handlePipeIdsChange = (ids: string[]) => {
+    const { activePanel, selectedPipeIds } = panels;
+    if (
+      selectionOpensPanel(
+        activePanel,
+        'link',
+        selectedPipeIds.length,
+        ids.length
+      )
+    ) {
+      makeRoomForPinnedPanel();
+    }
+    panels.setSelectedPipeIds(ids);
+  };
+
   // Vulnerability table handlers
   /**
    * Switches the map into "results" mode for a freshly generated table:
@@ -388,9 +432,12 @@ export default function SimulationPage() {
       'man_pipes-layer': false,
     }));
 
+    makeRoomForPinnedPanel();
     applyVulnerabilityColors(data);
     updateFloodPropagation(data, [...inletsRef.current, ...drainsRef.current]);
-    setIsRainActive(true);
+    // Rain is not started for a visitor who asked for less motion, so its
+    // switch must not come on either.
+    setIsRainActive(!prefersReducedMotion());
 
     if (mapRef.current) {
       enableFlood3D(
@@ -429,6 +476,12 @@ export default function SimulationPage() {
 
   // Rain toggle handler
   const handleToggleRain = useCallback((enabled: boolean) => {
+    if (enabled && prefersReducedMotion()) {
+      toast.info(
+        'The rain effect is off because your device is set to reduce motion.'
+      );
+      return;
+    }
     setIsRainActive(enabled);
   }, []);
 
@@ -495,7 +548,7 @@ export default function SimulationPage() {
       `}</style>
       {/* div, not main: SidebarInset is already the main landmark */}
       <div
-        className="relative flex min-h-screen flex-col overflow-hidden"
+        className="relative flex min-h-screen flex-col overflow-clip"
         style={{ backgroundColor: '#1e1e1e' }}
       >
         {/* z-0 keeps the covers below inside the map: without it the dark
@@ -511,7 +564,7 @@ export default function SimulationPage() {
             ref={mapContainerRef}
             role="region"
             aria-label="Simulation map of the drainage network. The same results are listed in the vulnerability tables."
-            className="h-full w-full"
+            className="map-attribution h-full w-full"
             style={{ backgroundColor: '#1e1e1e' }}
           />
           {mapError && (
@@ -553,9 +606,9 @@ export default function SimulationPage() {
           isSimulationMode={isSimulationActive}
           selectedPointForSimulation={selectedPointForSimulation}
           selectedComponentIds={panels.selectedComponentIds}
-          onComponentIdsChange={panels.setSelectedComponentIds}
+          onComponentIdsChange={handleComponentIdsChange}
           selectedPipeIds={panels.selectedPipeIds}
-          onPipeIdsChange={panels.setSelectedPipeIds}
+          onPipeIdsChange={handlePipeIdsChange}
           componentParams={panels.componentParams}
           onComponentParamsChange={panels.setComponentParams}
           pipeParams={panels.pipeParams}
@@ -563,9 +616,15 @@ export default function SimulationPage() {
           rainfallParams={panels.rainfallParams}
           onRainfallParamsChange={panels.setRainfallParams}
           showNodePanel={panels.activePanel === 'node'}
-          onToggleNodePanel={panels.handleToggleNodePanel}
+          onToggleNodePanel={() => {
+            if (panels.activePanel !== 'node') makeRoomForPinnedPanel();
+            panels.handleToggleNodePanel();
+          }}
           showLinkPanel={panels.activePanel === 'link'}
-          onToggleLinkPanel={panels.handleToggleLinkPanel}
+          onToggleLinkPanel={() => {
+            if (panels.activePanel !== 'link') makeRoomForPinnedPanel();
+            panels.handleToggleLinkPanel();
+          }}
           onRefreshReports={async () => {}}
           isRefreshingReports={false}
           selectedYear={tables.selectedYear}
@@ -575,25 +634,31 @@ export default function SimulationPage() {
           onCloseTable={tables.handleCloseTable}
           hasTable={!!tables.tableData}
           isTableMinimized={tables.isTableMinimized}
-          onToggleTableMinimize={tables.handleToggleTableMinimize}
+          onToggleTableMinimize={() => {
+            if (tables.isTableMinimized) makeRoomForPinnedPanel();
+            tables.handleToggleTableMinimize();
+          }}
           onGenerateTable3={tables.handleGenerateTable3}
           isLoadingTable3={tables.isLoadingTable3}
           onCloseTable3={tables.handleCloseTable3}
           hasTable3={!!tables.tableData3}
           isTable3Minimized={tables.isTable3Minimized}
-          onToggleTable3Minimize={tables.handleToggleTable3Minimize}
+          onToggleTable3Minimize={() => {
+            if (tables.isTable3Minimized) makeRoomForPinnedPanel();
+            tables.handleToggleTable3Minimize();
+          }}
           onOpenNodeSimulation={slideshow.handleOpenNodeSimulation}
           onClosePopUps={handleClosePopUps}
           isRainActive={isRainActive}
           onToggleRain={handleToggleRain}
           isFloodPropagationActive={isFloodPropagationActive}
           onToggleFloodPropagation={handleToggleFloodPropagation}
+          sheetCollapseRequests={sheetCollapseRequests}
         />
         <CameraControls
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onResetPosition={handleResetPosition}
-          onChangeStyle={handleChangeStyle}
           isSimulationActive={isSimulationActive}
           onExitSimulation={handleExitSimulation}
         />

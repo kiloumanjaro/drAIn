@@ -2,11 +2,37 @@ import DataFlowPipeline from '@/components/landing/data-flow';
 import Image from 'next/image';
 import { FullscreenButton } from '@/components/landing/fullscreen-button';
 import { ExploreMapButton } from '@/components/landing/explore-map-button';
+import type { Metadata } from 'next';
+import { siteUrl } from '@/lib/site-url';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
+
+// Structured data for search engines: what the site is.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'drAIn',
+  url: siteUrl(),
+  description:
+    'Drainage flood simulation and citizen flood reporting for Mandaue City.',
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Any',
+  areaServed: { '@type': 'City', name: 'Mandaue City' },
+};
 
 export default function WelcomePage() {
   return (
     // div, not main: the sidebar shell (SidebarInset) is already the main landmark
     <div className="relative min-h-screen overflow-hidden bg-[#e8e8e8]/50">
+      <script
+        type="application/ld+json"
+        // Static object; escaping "<" keeps the JSON from closing the tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
+      />
       <div className="pointer-events-auto absolute top-4 right-4 z-20">
         <FullscreenButton />
       </div>

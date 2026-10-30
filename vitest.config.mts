@@ -14,6 +14,8 @@ export default defineConfig({
       // Playwright specs, which have their own runner (pnpm test:e2e).
       'e2e/**',
       '.next/**',
+      // Claude Code worktrees (claude -w): whole second checkouts.
+      '.claude/**',
     ],
   },
 });

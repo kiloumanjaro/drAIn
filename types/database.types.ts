@@ -788,6 +788,13 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      my_resolution_verdicts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          report_id: string;
+          verdict: Database['public']['Enums']['review_verdict'];
+        }[];
+      };
       nearest_components: {
         Args: {
           p_lat: number;

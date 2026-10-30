@@ -40,7 +40,8 @@ function originOf(value: string | undefined): string | null {
 //   decoder is never fetched. Their textures are packed inside the file, and
 //   three.js reads each one with fetch() on a blob: URL, hence blob: in
 //   connect-src.
-// - The docs page embeds one YouTube video.
+// - The docs page embeds one YouTube video, from the no-cookie domain so
+//   YouTube sets no cookies until the viewer plays it.
 // - Fonts are self-hosted by next/font. Gemini is called from the server only.
 // Vercel's preview toolbar (vercel.live) is allowed on preview builds only.
 const supabaseOrigin = supabase.origin;
@@ -65,9 +66,9 @@ const csp: Record<string, string[]> = {
   'default-src': ["'self'"],
   // Next.js streams its page data in inline <script> tags, and next-themes
   // adds one to set the theme before paint. Nonces would allow those without
-  // 'unsafe-inline', but a nonce has to be minted per request in proxy.ts,
-  // which turns every static page dynamic. With no nonce in use,
-  // 'unsafe-inline' is the price.
+  // 'unsafe-inline', but a nonce has to be minted per request, which needs a
+  // proxy (the app has none) and turns every static page dynamic. With no
+  // nonce in use, 'unsafe-inline' is the price.
   //
   // What that leaves the enforced policy doing: script files load only from
   // this site, and a page can send data only to the origins in connect-src,
@@ -113,11 +114,7 @@ const csp: Record<string, string[]> = {
   ],
   'worker-src': ["'self'", 'blob:'],
   'child-src': ["'self'", 'blob:'],
-  'frame-src': [
-    'https://www.youtube.com',
-    'https://www.youtube-nocookie.com',
-    ...vercelLive,
-  ],
+  'frame-src': ['https://www.youtube-nocookie.com', ...vercelLive],
   'media-src': ["'self'", 'blob:'],
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
@@ -159,9 +156,10 @@ const nextConfig: NextConfig = {
   },
   // Baseline headers on every response. Not framed by other sites
   // (clickjacking); files served as their declared type; no full URL sent to
-  // other sites; no camera or microphone. Geolocation stays on for this
-  // origin: the report form uses the phone's location. The content security
-  // policy is described above; HSTS only in production (localhost is http).
+  // other sites; no camera, microphone or location (nothing asks for the
+  // phone's position: reports are placed on the map by hand). The content
+  // security policy is described above; HSTS only in production (localhost
+  // is http).
   async headers() {
     return [
       {
@@ -185,7 +183,7 @@ const nextConfig: NextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self)',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
           {
             key: cspReportOnly

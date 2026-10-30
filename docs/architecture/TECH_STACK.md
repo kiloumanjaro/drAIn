@@ -117,7 +117,6 @@ Complete breakdown of all technologies, libraries, and tools used in the drAIn p
   - Row-level security (RLS)
 - **Client Libraries**:
   - `@supabase/supabase-js` - Client SDK
-  - `@supabase/ssr` - Server-side rendering support
 - **Why**: All-in-one backend, real-time built-in, great DX
 
 ### PostgreSQL + PostGIS
@@ -385,6 +384,15 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
 # it back to report-only if it blocks something real, then redeploy: the
 # header is fixed when the app is built. Leave it unset otherwise.
 CSP_REPORT_ONLY=true
+
+# Server only; never give it a NEXT_PUBLIC_ name. Signs the assistant's
+# replies so the chatbot route can tell its own earlier answers from text a
+# caller labelled "assistant" (lib/chatbot/history-signature.ts). At least 32
+# characters of random text, e.g. `openssl rand -base64 48`. Unset or
+# shorter, the assistant still answers but is shown none of its earlier
+# replies, and the server logs a warning once. Changing it has the same
+# effect on conversations already open, until their next reply.
+CHATBOT_HISTORY_SECRET=at_least_32_random_characters
 ```
 
 Whatever the policy blocks is posted by the browser to `/api/csp-report` and

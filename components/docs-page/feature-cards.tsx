@@ -28,6 +28,7 @@ export default function FeatureCards({
 }: FeatureCardsProps) {
   const gridCols =
     {
+      1: '',
       2: 'md:grid-cols-2',
       3: 'md:grid-cols-2 xl:grid-cols-3',
       4: 'md:grid-cols-2 xl:grid-cols-4',
@@ -41,7 +42,7 @@ export default function FeatureCards({
           return (
             <div
               key={feature.title}
-              className="min-w-0 rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
+              className="flex min-w-0 flex-col rounded-xl border border-[#dfdfdf] bg-[#f7f7f7]"
             >
               <div className="flex cursor-pointer flex-row items-center justify-between rounded-t-xl px-4 py-2 transition-colors">
                 <span className="text-xs">{feature.title}</span>
@@ -50,7 +51,7 @@ export default function FeatureCards({
                     <TooltipTrigger
                       type="button"
                       aria-label={`About ${feature.title}`}
-                      className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                     >
                       <Info
                         aria-hidden="true"
@@ -64,7 +65,7 @@ export default function FeatureCards({
                 )}
               </div>
 
-              <Card className="gap-3 border-x-0 border-b-0 border-[#dfdfdf] px-6 py-6">
+              <Card className="flex-1 gap-3 border-x-0 border-b-0 border-[#dfdfdf] px-6 py-6">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-[#dfdfdf] bg-slate-100">
                     <Icon

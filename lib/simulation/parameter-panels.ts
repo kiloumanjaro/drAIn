@@ -20,6 +20,23 @@ export function panelAfterSelection(
   return panel === kind ? null : panel;
 }
 
+/**
+ * Whether a change in how many items of one kind are selected opens that
+ * kind's panel (it was not the open one, and is after the change).
+ */
+export function selectionOpensPanel(
+  panel: ParameterPanel,
+  kind: 'node' | 'link',
+  previousCount: number,
+  nextCount: number
+): boolean {
+  return (
+    previousCount !== nextCount &&
+    panel !== kind &&
+    panelAfterSelection(panel, kind, nextCount) === kind
+  );
+}
+
 /** How many components (node) and pipes (link) are selected for a run. */
 export interface SelectionCounts {
   node: number;

@@ -8,6 +8,7 @@ import { Session } from '@supabase/supabase-js';
 import ImageUploader from '@/components/common/image-uploader';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { CharCount } from '@/components/common/char-count';
 import { IconInfoCircleFilled } from '@tabler/icons-react';
 
 interface EditProfileProps {
@@ -77,7 +78,8 @@ export default function EditProfile({
             <Label htmlFor="fullName" className="block font-normal">
               Display Name
             </Label>
-            <span className="text-muted-foreground text-xs">
+            <span className="text-muted-foreground flex items-baseline gap-2 text-xs">
+              <CharCount value={fullName} max={100} />
               {showName ? 'Visible on reports' : 'Hidden on reports'}
             </span>
           </div>

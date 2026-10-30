@@ -7,10 +7,13 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useReports } from '@/components/context/report-provider';
 
 export default function NotificationBell() {
   const { notifications, unreadCount, handleOpenNotifications } = useReports();
+  // In the phone drawer there is no room beside the bell, so open upwards.
+  const { isMobile } = useSidebar();
 
   return (
     <Popover onOpenChange={(open) => open && handleOpenNotifications()}>
@@ -28,7 +31,7 @@ export default function NotificationBell() {
 
       <PopoverContent
         className="w-72 max-w-[calc(100vw-1rem)] p-4"
-        side="right"
+        side={isMobile ? 'top' : 'right'}
         align="end"
         collisionPadding={8}
       >

@@ -6,7 +6,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 // says nothing about whether the page makes sense read aloud, so a clean run
 // is a floor, not a verdict.
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 /** How long late content (fonts, charts, the docs video) gets to settle. */
 const SETTLE_MS = 2_000;
@@ -22,6 +22,7 @@ async function settle(page: Page) {
 }
 
 const ROUTES: { path: string; excludeMap?: boolean }[] = [
+  { path: '/' },
   { path: '/login' },
   { path: '/signup' },
   { path: '/docs' },
@@ -29,6 +30,8 @@ const ROUTES: { path: string; excludeMap?: boolean }[] = [
   // checked is the shell around it. Mapbox's own markup is left out for the
   // runs that do have a token.
   { path: '/map', excludeMap: true },
+  // The entry screen: the map is covered until simulation mode is entered.
+  { path: '/simulation', excludeMap: true },
   { path: '/dashboard', excludeMap: true },
 ];
 

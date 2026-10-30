@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { X, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import {
+  clampDragPosition,
+  measureDragBounds,
+} from '@/lib/simulation/drag-bounds';
+import { useCompactMap } from '@/lib/layout/use-compact-map';
 
 interface LinkParams {
   init_flow: number;
@@ -41,7 +46,11 @@ export function LinkParametersPanel({
   onPositionChange,
 }: LinkParametersPanelProps) {
   const [activeTab, setActiveTab] = useState<string>(selectedPipeIds[0] || '');
+  // Ties each slider to its visible label. One tab's sliders are on the page
+  // at a time, so one id per parameter is enough.
+  const labelId = useId();
   const [isDragging, setIsDragging] = useState(false);
+  const isCompact = useCompactMap();
   const [showLeftScroll, setShowLeftScroll] = useState(false);
   const [showRightScroll, setShowRightScroll] = useState(false);
   const dragRef = useRef<{
@@ -93,6 +102,8 @@ export function LinkParametersPanel({
       return;
     }
 
+    // Pinned in place on the compact map: nothing to drag.
+    if (isCompact) return;
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX,
@@ -110,10 +121,17 @@ export function LinkParametersPanel({
       const deltaX = e.clientX - dragRef.current.startX;
       const deltaY = e.clientY - dragRef.current.startY;
 
-      onPositionChange({
-        x: dragRef.current.startPosX + deltaX,
-        y: dragRef.current.startPosY + deltaY,
-      });
+      // Like the results table, the header stays in reach; on the left the
+      // panel also stops at the navigation rail (see measureDragBounds).
+      onPositionChange(
+        clampDragPosition(
+          {
+            x: dragRef.current.startPosX + deltaX,
+            y: dragRef.current.startPosY + deltaY,
+          },
+          measureDragBounds(containerRef.current)
+        )
+      );
     },
     [isDragging, onPositionChange]
   );
@@ -136,6 +154,7 @@ export function LinkParametersPanel({
       return;
     }
 
+    if (isCompact) return;
     const touch = e.touches[0];
     setIsDragging(true);
     dragRef.current = {
@@ -154,10 +173,17 @@ export function LinkParametersPanel({
       const deltaX = touch.clientX - dragRef.current.startX;
       const deltaY = touch.clientY - dragRef.current.startY;
 
-      onPositionChange({
-        x: dragRef.current.startPosX + deltaX,
-        y: dragRef.current.startPosY + deltaY,
-      });
+      // Like the results table, the header stays in reach; on the left the
+      // panel also stops at the navigation rail (see measureDragBounds).
+      onPositionChange(
+        clampDragPosition(
+          {
+            x: dragRef.current.startPosX + deltaX,
+            y: dragRef.current.startPosY + deltaY,
+          },
+          measureDragBounds(containerRef.current)
+        )
+      );
     },
     [isDragging, onPositionChange]
   );
@@ -223,13 +249,13 @@ export function LinkParametersPanel({
   return (
     <div
       ref={containerRef}
-      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-h-[calc(100vh-120px)] md:max-w-[600px] md:min-w-[450px]"
+      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-lg:max-h-(--pinned-panel-max-height) lg:max-h-[calc(100vh-120px)] lg:max-w-[600px] lg:min-w-[450px]"
     >
       {/* Header */}
       <div
         className={cn(
           'bg-muted/50 flex items-center justify-between gap-2 rounded-t-lg border-b px-3 py-2',
-          'cursor-grab active:cursor-grabbing',
+          !isCompact && 'cursor-grab active:cursor-grabbing',
           isDragging && 'cursor-grabbing select-none'
         )}
         onMouseDown={handleMouseDown}
@@ -323,7 +349,10 @@ export function LinkParametersPanel({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Label className="text-sm font-normal">
+                        <Label
+                          id={`${labelId}-init-flow`}
+                          className="text-sm font-normal"
+                        >
                           Flow limit (m³/s)
                         </Label>
                         <TooltipProvider>
@@ -331,7 +360,7 @@ export function LinkParametersPanel({
                             <TooltipTrigger
                               type="button"
                               aria-label="About the flow limit"
-                              className="focus-visible:ring-ring inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                              className="focus-visible:ring-ring hit-area inline-flex cursor-help rounded-full focus-visible:ring-2 focus-visible:outline-none"
                             >
                               <Info
                                 aria-hidden="true"
@@ -354,6 +383,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-init-flow`}
                       value={[params.init_flow]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'init_flow', value[0])
@@ -372,7 +402,10 @@ export function LinkParametersPanel({
                   {/* Upstream Offset Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-upstream-offset`}
+                        className="text-sm font-normal"
+                      >
                         Upstream Offset
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -380,6 +413,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-upstream-offset`}
                       value={[params.upstrm_offset_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'upstrm_offset_depth', value[0])
@@ -398,7 +432,10 @@ export function LinkParametersPanel({
                   {/* Downstream Offset Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-downstream-offset`}
+                        className="text-sm font-normal"
+                      >
                         Downstream Offset
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -406,6 +443,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-downstream-offset`}
                       value={[params.downstrm_offset_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'downstrm_offset_depth', value[0])
@@ -424,7 +462,10 @@ export function LinkParametersPanel({
                   {/* Average Conduit Loss */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-conduit-loss`}
+                        className="text-sm font-normal"
+                      >
                         Avg Conduit Loss
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -432,6 +473,7 @@ export function LinkParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-conduit-loss`}
                       value={[params.avg_conduit_loss]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'avg_conduit_loss', value[0])

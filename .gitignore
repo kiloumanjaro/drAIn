@@ -43,13 +43,17 @@ next-env.d.ts
 # Exclude Claude-related files
 .claude/
 .claude
+# Written by `pnpm dev` (Next 16 agentRules)
+/AGENTS.md
 .CLAUDE.md
-CLAUDE.md
 *.claude.md
 CLAUDE.
 # Playwright run artifacts
 /test-results/
 /playwright-report/
+
+# Page screenshots from pnpm shots / pnpm screenshot (docs/guides/DEVICE_TESTING.md)
+/screenshots/
 
 # copilot-instructions.md
 .github/copilot-instructions.md

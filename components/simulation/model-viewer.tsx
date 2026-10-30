@@ -109,7 +109,12 @@ const Loader: FC<{ placeholderSrc?: string }> = ({ placeholderSrc }) => {
           className="rounded-lg blur-lg"
         />
       ) : (
-        `${Math.round(progress)} %`
+        // The percentage is left out of what is announced: it changes many
+        // times a second.
+        <span role="status" aria-live="polite" className="whitespace-nowrap">
+          Loading 3D model…{' '}
+          <span aria-hidden="true">{Math.round(progress)}%</span>
+        </span>
       )}
     </Html>
   );

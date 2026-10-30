@@ -95,7 +95,7 @@ export function MultiSelect({
                     className={cn(
                       'border-primary/40 mr-2 flex h-4 w-4 items-center justify-center rounded-sm border',
                       selected.includes(option.value)
-                        ? 'bg-[#4b72f3] text-white'
+                        ? 'bg-[#4569ee] text-white'
                         : '[&_svg]:invisible'
                     )}
                   ></div>

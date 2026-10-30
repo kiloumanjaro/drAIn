@@ -14,7 +14,7 @@ export function DemoSection() {
       <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-700">
         <iframe
           className="absolute top-0 left-0 h-full w-full"
-          src="https://www.youtube.com/embed/ZHE9dCcayRQ"
+          src="https://www.youtube-nocookie.com/embed/ZHE9dCcayRQ"
           title="YouTube video player"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerPolicy="strict-origin-when-cross-origin"

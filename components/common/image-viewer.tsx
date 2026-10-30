@@ -12,6 +12,7 @@ import {
   Compass,
   MapPinned,
   Info,
+  ImageOff,
 } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -57,6 +58,7 @@ export function ImageViewer({
 }: ImageViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
+  const [hasImageError, setHasImageError] = useState(false);
 
   // Escape and a click on the backdrop step back out of the full-screen
   // photo first; from the normal view they close the viewer.
@@ -106,11 +108,13 @@ export function ImageViewer({
             </button>
           </div>
         ) : (
-          /* Main viewer container */
-          <div className="relative flex max-h-[95vh] max-w-[90vw] items-stretch gap-4 max-md:w-[92vw] max-md:max-w-none max-md:flex-col max-md:gap-2 max-md:overflow-y-auto">
+          /* Main viewer container. Side by side needs about 950px (photo,
+             gap, details), so anything narrower than lg stacks and scrolls;
+             a phone on its side is wide enough for md but not for both. */
+          <div className="relative flex max-h-[95vh] max-w-[95vw] items-stretch gap-4 max-lg:max-h-[90dvh] max-lg:w-[92vw] max-lg:max-w-none max-lg:flex-col max-lg:gap-2 max-lg:overflow-y-auto">
             {/* Image section */}
             <div
-              className="group relative flex items-center justify-center overflow-hidden rounded-lg max-md:h-[38vh] max-md:w-full max-md:shrink-0 md:min-h-[min(37.5rem,95vh)] md:w-137.5"
+              className="group relative flex items-center justify-center overflow-hidden rounded-lg max-lg:h-[max(38vh,12rem)] max-lg:w-full max-lg:shrink-0 lg:min-h-[min(37.5rem,95vh)] lg:w-137.5"
               style={{ backgroundColor: '#4b4b4c' }}
             >
               {isImageLoading && (
@@ -126,31 +130,47 @@ export function ImageViewer({
                   <span className="sr-only">Loading photo</span>
                 </div>
               )}
-              <Image
-                src={imageUrl}
-                alt="Report evidence"
-                fill
-                className="rounded-lg object-cover"
-                sizes="550px"
-                priority
-                onLoadingComplete={() => setIsImageLoading(false)}
-              />
-              {/* Expand button */}
-              <button
-                type="button"
-                onClick={() => setIsFullscreen(true)}
-                aria-label="View photo full screen"
-                className="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 opacity-0 transition-all group-hover:opacity-100 hover:bg-black/70 focus-visible:opacity-100"
-              >
-                <Maximize2
-                  aria-hidden="true"
-                  className="h-4 w-4 cursor-pointer text-white"
-                />
-              </button>
+              {hasImageError ? (
+                <div
+                  role="status"
+                  className="flex flex-col items-center gap-2 text-gray-200"
+                >
+                  <ImageOff aria-hidden="true" className="h-8 w-8" />
+                  <p className="text-sm">Photo unavailable</p>
+                </div>
+              ) : (
+                <>
+                  <Image
+                    src={imageUrl}
+                    alt="Report evidence"
+                    fill
+                    className="rounded-lg object-cover"
+                    sizes="(max-width: 1023px) 92vw, 550px"
+                    priority
+                    onLoadingComplete={() => setIsImageLoading(false)}
+                    onError={() => {
+                      setIsImageLoading(false);
+                      setHasImageError(true);
+                    }}
+                  />
+                  {/* Expand button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsFullscreen(true)}
+                    aria-label="View photo full screen"
+                    className="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 opacity-0 transition-all group-hover:opacity-100 hover:bg-black/70 focus-visible:opacity-100"
+                  >
+                    <Maximize2
+                      aria-hidden="true"
+                      className="h-4 w-4 cursor-pointer text-white"
+                    />
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Metadata sidebar */}
-            <div className="w-96 overflow-y-auto rounded-lg bg-white shadow-2xl max-md:w-full max-md:shrink-0 max-md:overflow-visible">
+            <div className="w-96 overflow-y-auto rounded-lg bg-white shadow-2xl max-lg:w-full max-lg:shrink-0 max-lg:overflow-visible">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-200 p-3 pr-4">
                 <div className="flex items-center gap-2 pl-3.5">
@@ -190,8 +210,10 @@ export function ImageViewer({
                   >
                     {getInitials(reporterName)}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-900">{reporterName}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm [overflow-wrap:anywhere] text-gray-900">
+                      {reporterName}
+                    </p>
                     <p className="text-xs text-gray-500">
                       {new Date(date).toLocaleString('en-US', {
                         month: 'short',

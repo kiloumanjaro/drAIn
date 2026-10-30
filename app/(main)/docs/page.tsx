@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
+import { flushSync } from 'react-dom';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { Clock, Search } from 'lucide-react';
+import { ChevronDown, Clock, Search } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Tooltip,
@@ -15,6 +16,11 @@ import {
 
 import { type FloodEvent } from '@/components/docs-page/flood-event-cards';
 import { isTextEntryTarget } from '@/lib/dom/is-text-entry-target';
+import {
+  parseCompareEventParam,
+  parseSectionParam,
+} from '@/lib/docs/docs-params';
+import { useFloodEvents } from '@/lib/query/hooks/use-flood-events';
 import { DEVELOPERS, SECTION_GROUPS, type SectionID } from './page.constants';
 import { OverviewSection } from './sections/overview';
 import { ArchitectureSection } from './sections/architecture';
@@ -31,47 +37,68 @@ interface ExpandedSections {
   [key: string]: boolean;
 }
 
+const SECTION_IDS: SectionID[] = SECTION_GROUPS.flatMap((group) =>
+  group.items.map((item) => item.id)
+);
+
+const SECTION_LABELS = new Map<SectionID, string>(
+  SECTION_GROUPS.flatMap((group) =>
+    group.items.map((item) => [item.id, item.label] as const)
+  )
+);
+
 function DocsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const initialSection =
-    (searchParams.get('section') as SectionID) || 'overview';
-  const [activeSection, setActiveSection] = useState<SectionID>(initialSection);
 
-  // Follow ?section= when it changes (a link to another section), while
-  // still letting clicks in the page pick a section. Adjusted during render,
-  // as React recommends, rather than in an effect.
-  const sectionParam = searchParams.get('section') as SectionID | null;
-  const [seenSectionParam, setSeenSectionParam] = useState(sectionParam);
-  if (sectionParam !== seenSectionParam) {
-    setSeenSectionParam(sectionParam);
-    if (sectionParam) setActiveSection(sectionParam);
-  }
+  // The URL is the one record of which section is open, so Back, reload and
+  // a shared link all land on it. An unknown ?section= shows the overview.
+  const activeSection = parseSectionParam(
+    searchParams.get('section'),
+    SECTION_IDS,
+    'overview'
+  );
 
-  const [reportEvents, setReportEvents] = useState<FloodEvent[]>([]);
+  // A new history entry per section, so Back returns to the one before.
+  // scroll: false keeps the reader where they are instead of jumping to top.
+  const selectSection = (id: SectionID) => {
+    if (id === activeSection) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('section', id);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
-  useEffect(() => {
-    fetch('/api/reports')
-      .then((r) => r.json())
-      .then((data) => setReportEvents(data.events ?? []));
-  }, []);
+  const { data: reportEvents = [] } = useFloodEvents();
 
-  // The event to compare against, passed in the URL by the map.
+  // An event carried in the URL as `compareEvent`. The map widget no longer
+  // builds such links; the parameter is still read so that old links keep
+  // working. See parseCompareEventParam in lib/docs/docs-params.ts.
   const compareParam = searchParams.get('compareEvent');
-  const comparisonEvent = useMemo<FloodEvent | null>(() => {
-    if (!compareParam) return null;
-    try {
-      return JSON.parse(decodeURIComponent(compareParam));
-    } catch (e) {
-      console.error('Failed to parse comparison event:', e);
-      return null;
-    }
-  }, [compareParam]);
+  const comparisonEvent = useMemo<FloodEvent | null>(
+    () => parseCompareEventParam(compareParam),
+    [compareParam]
+  );
 
   const [expandedSections, setExpandedSections] = useState<ExpandedSections>(
     {}
   );
   const [sidebarSearch, setSidebarSearch] = useState('');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
+  // Below md the search box and section list fold away behind a button, so
+  // the content is on the first screen. From md up they always show.
+  const [sectionListOpen, setSectionListOpen] = useState(false);
+  const activeSectionLabel = SECTION_LABELS.get(activeSection);
+
+  // After a pick on a small screen: fold the list and go back to the top,
+  // where the section now starts. Folding alone would leave the reader
+  // however far down the list they had scrolled.
+  const closeSectionList = () => {
+    setSectionListOpen(false);
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      window.scrollTo({ top: 0 });
+    }
+  };
 
   // Add scrollbar-gutter to body only for this page
   React.useEffect(() => {
@@ -89,6 +116,9 @@ function DocsContent() {
       // shortcut.
       if (isTextEntryTarget(e.target as HTMLElement | null)) return;
       e.preventDefault();
+      // The search box is inside the folded list on a small screen, and a
+      // hidden field cannot take focus: show it first.
+      flushSync(() => setSectionListOpen(true));
       searchInputRef.current?.focus();
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -103,6 +133,11 @@ function DocsContent() {
   };
 
   const sectionGroups = SECTION_GROUPS;
+  const searchMatchesNothing = !sectionGroups.some((group) =>
+    group.items.some((item) =>
+      item.label.toLowerCase().includes(sidebarSearch.toLowerCase())
+    )
+  );
 
   return (
     <div className="min-h-screen bg-[#f1f1f1] px-4 max-md:pt-14">
@@ -122,87 +157,116 @@ function DocsContent() {
                   />
                 </div>
               </div>
-              <div className="mb-3 flex gap-2">
-                <div className="relative flex-1">
-                  <Search
-                    aria-hidden="true"
-                    className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search..."
-                    aria-label="Search the documentation sections"
-                    aria-keyshortcuts="/"
-                    value={sidebarSearch}
-                    onChange={(e) => setSidebarSearch(e.target.value)}
-                    className="w-full rounded-md bg-transparent py-1.5 pr-2 pl-7 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none"
-                  />
-                </div>
-                {!sidebarSearch && (
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md border border-[#dfdfdf] bg-white">
-                    <kbd className="text-xs font-semibold text-[#28385a]">
-                      /
-                    </kbd>
+              <button
+                type="button"
+                aria-expanded={sectionListOpen}
+                aria-controls="docs-section-list"
+                onClick={() => setSectionListOpen((open) => !open)}
+                className="mb-3 flex w-full items-center justify-between gap-3 rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-left text-sm text-[#535353] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none md:hidden"
+              >
+                <span className="min-w-0">
+                  <span className="text-gray-600">Section: </span>
+                  <span className="font-medium">{activeSectionLabel}</span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-4 w-4 flex-shrink-0 transition-transform ${
+                    sectionListOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              <div
+                id="docs-section-list"
+                className={sectionListOpen ? '' : 'max-md:hidden'}
+              >
+                <div className="mb-3 flex gap-2">
+                  <div className="relative flex-1">
+                    <Search
+                      aria-hidden="true"
+                      className="absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Search..."
+                      aria-label="Search the documentation sections"
+                      aria-keyshortcuts="/"
+                      value={sidebarSearch}
+                      onChange={(e) => setSidebarSearch(e.target.value)}
+                      className="w-full rounded-md bg-transparent py-1.5 pr-2 pl-7 text-sm text-gray-600 placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                    />
                   </div>
-                )}
-              </div>
-              <div className="mt-0 mb-3 border-t-2 border-b border-t-[#e7e7e7] border-b-white" />
-              <div className="space-y-3">
-                {sectionGroups
-                  .map((group) => {
-                    const filtered = group.items.filter((item) =>
-                      item.label
-                        .toLowerCase()
-                        .includes(sidebarSearch.toLowerCase())
-                    );
-                    if (filtered.length === 0) return null;
-                    return (
-                      <div key={group.heading}>
-                        <h2 className="mb-2 px-2 text-xs text-gray-600">
-                          {group.heading}
-                        </h2>
-                        <ul className="space-y-0.5">
-                          {filtered.map(
-                            ({
-                              id,
-                              label,
-                              icon: Icon,
-                              iconSolid: IconSolid,
-                            }) => {
-                              const ActiveIcon =
-                                activeSection === id ? IconSolid : Icon;
-                              return (
-                                <li key={id}>
-                                  <button
-                                    onClick={() =>
-                                      setActiveSection(id as SectionID)
-                                    }
-                                    className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#535353] transition-colors ${
-                                      activeSection === id
-                                        ? 'bg-[#e7e7e7]'
-                                        : 'hover:bg-[#e7e7e7]/50'
-                                    }`}
-                                  >
-                                    <ActiveIcon className="h-3.5 w-3.5" />
-                                    <span>{label}</span>
-                                  </button>
-                                </li>
-                              );
-                            }
-                          )}
-                        </ul>
-                      </div>
-                    );
-                  })
-                  .map((element, idx, arr) => (
-                    <React.Fragment key={idx}>
-                      {element}
-                      {idx < arr.length - 1 && !sidebarSearch && (
-                        <div className="my-3 border-t-2 border-b border-t-[#e7e7e7] border-b-white" />
-                      )}
-                    </React.Fragment>
-                  ))}
+                  {!sidebarSearch && (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md border border-[#dfdfdf] bg-white">
+                      <kbd className="text-xs font-semibold text-[#28385a]">
+                        /
+                      </kbd>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-0 mb-3 border-t-2 border-b border-t-[#e7e7e7] border-b-white" />
+                <div className="space-y-3">
+                  {sectionGroups
+                    .map((group) => {
+                      const filtered = group.items.filter((item) =>
+                        item.label
+                          .toLowerCase()
+                          .includes(sidebarSearch.toLowerCase())
+                      );
+                      if (filtered.length === 0) return null;
+                      return (
+                        <div key={group.heading}>
+                          <h2 className="mb-2 px-2 text-xs text-gray-600">
+                            {group.heading}
+                          </h2>
+                          <ul className="space-y-0.5">
+                            {filtered.map(
+                              ({
+                                id,
+                                label,
+                                icon: Icon,
+                                iconSolid: IconSolid,
+                              }) => {
+                                const ActiveIcon =
+                                  activeSection === id ? IconSolid : Icon;
+                                return (
+                                  <li key={id}>
+                                    <button
+                                      onClick={() => {
+                                        selectSection(id);
+                                        closeSectionList();
+                                      }}
+                                      className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[#535353] transition-colors ${
+                                        activeSection === id
+                                          ? 'bg-[#e7e7e7]'
+                                          : 'hover:bg-[#e7e7e7]/50'
+                                      }`}
+                                    >
+                                      <ActiveIcon className="h-3.5 w-3.5" />
+                                      <span>{label}</span>
+                                    </button>
+                                  </li>
+                                );
+                              }
+                            )}
+                          </ul>
+                        </div>
+                      );
+                    })
+                    .map((element, idx, arr) => (
+                      <React.Fragment key={idx}>
+                        {element}
+                        {idx < arr.length - 1 && !sidebarSearch && (
+                          <div className="my-3 border-t-2 border-b border-t-[#e7e7e7] border-b-white" />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  {searchMatchesNothing && (
+                    <p className="px-2 text-xs text-gray-600">
+                      No sections match &ldquo;{sidebarSearch}&rdquo;.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </nav>
@@ -293,7 +357,8 @@ function DocsContent() {
 /**
  * Top-level `/docs` route. Wraps {@link DocsContent} in Suspense so the
  * component can read URL search params (`useSearchParams`) to preselect a
- * section / honour `?compareEvent=...` deep links from the EventWidget.
+ * section / honour old `?compareEvent=...` deep links (no longer built by
+ * the app; see parseCompareEventParam).
  */
 export default function Docs() {
   return (

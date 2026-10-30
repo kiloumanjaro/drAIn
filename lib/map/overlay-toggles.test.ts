@@ -19,12 +19,35 @@ describe('overlay switches', () => {
     ).toBe(true);
   });
 
-  it('allOverlays sets every switch, reports included', () => {
+  it('allOverlays sets every switch but population, reports included', () => {
     expect(Object.keys(allOverlays(true)).sort()).toEqual(
       Object.keys(INITIAL_OVERLAY_VISIBILITY).sort()
     );
     expect(anyVisible(allOverlays(false))).toBe(false);
-    expect(Object.values(allOverlays(true)).every(Boolean)).toBe(true);
+    expect(
+      Object.entries(allOverlays(true))
+        .filter(([key]) => key !== 'mandaue_population-layer')
+        .every(([, on]) => on)
+    ).toBe(true);
+  });
+
+  it('all off then all on ends where the page started', () => {
+    // It used to end with the population overlay switched on as well.
+    const off = allOverlays(
+      false,
+      INITIAL_OVERLAY_VISIBILITY['mandaue_population-layer']
+    );
+    const on = allOverlays(true, off['mandaue_population-layer']);
+    expect(on).toEqual(INITIAL_OVERLAY_VISIBILITY);
+  });
+
+  it('switching all on leaves the population overlay as it was', () => {
+    expect(allOverlays(true, false)['mandaue_population-layer']).toBe(false);
+    expect(allOverlays(true, true)['mandaue_population-layer']).toBe(true);
+  });
+
+  it('switching all off turns the population overlay off too', () => {
+    expect(allOverlays(false, true)['mandaue_population-layer']).toBe(false);
   });
 
   it('hiding the map layers covers every map layer and leaves reports', () => {

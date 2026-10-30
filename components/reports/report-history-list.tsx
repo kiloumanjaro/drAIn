@@ -251,7 +251,7 @@ export default function ReportHistoryList({
                           )}
 
                           {hasResolvedImage && !isSwapped && (
-                            <div className="absolute inset-0 flex items-center justify-center rounded bg-black/0 text-[10px] font-medium text-white opacity-0 transition-colors group-hover:bg-black/10 group-hover:opacity-100">
+                            <div className="absolute inset-0 flex items-center justify-center rounded bg-black/0 text-xs font-medium text-white opacity-0 transition-colors group-hover:bg-black/10 group-hover:opacity-100">
                               See Status
                             </div>
                           )}
@@ -293,12 +293,12 @@ export default function ReportHistoryList({
                       <div className="flex flex-row gap-2">
                         <Badge
                           variant="outline"
-                          className="h-5 justify-center px-3 py-0 text-[10px] font-normal"
+                          className="h-auto justify-center px-3 py-0.5 text-xs font-normal"
                         >
                           {report.category}
                         </Badge>
                         <div
-                          className={`flex h-5 items-center justify-center rounded-md border px-3 py-0.5 text-[10px] ${getStatusStyle(
+                          className={`flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
                             report.status
                           )}`}
                         >

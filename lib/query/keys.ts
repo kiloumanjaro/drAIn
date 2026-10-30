@@ -83,6 +83,15 @@ export const reportKeys = {
 };
 
 /**
+ * Query key factory for the historical flood events (/api/reports).
+ * Not `reportKeys`: those are the reports users submit.
+ */
+export const floodEventKeys = {
+  all: ['flood-events'],
+  list: () => [...floodEventKeys.all, 'list'],
+};
+
+/**
  * Query key factory for the simulation page
  */
 export const simulationKeys = {

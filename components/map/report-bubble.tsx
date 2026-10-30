@@ -12,6 +12,16 @@ import { X, History, Link } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type mapboxgl from 'mapbox-gl';
 import { ImageViewer } from '@/components/common/image-viewer';
+import { COMPACT_MAP_QUERY, isCompactMap } from '@/lib/layout/compact-map';
+import { prefersReducedMotion } from '@/lib/map/effects/rain-utils';
+import {
+  PHONE_QUERY,
+  reportPinCrowded,
+  reportPinOffset,
+  reportPinRest,
+  type ReportPinLayout,
+} from '@/lib/map/report-pin';
+import { endPinRestWatch, settlePinAtRest } from '@/lib/map/pin-rest-watch';
 
 interface Report {
   reporterName: string;
@@ -32,6 +42,8 @@ interface Props {
   map: mapboxgl.Map | null;
   coordinates: [number, number];
   onOpen?: () => void;
+  /** The pin was opened where the control sheet leaves its popup no room. */
+  onCrowded?: () => void;
   onHistoryClick?: () => void;
 }
 
@@ -39,9 +51,69 @@ export interface ReportBubbleRef {
   close: () => void;
 }
 
+/** Which layout /map is in now (see lib/map/report-pin.ts). */
+function reportPinLayout(): ReportPinLayout {
+  if (!isCompactMap()) return 'desktop';
+  return window.matchMedia(PHONE_QUERY).matches ? 'phone' : 'tablet';
+}
+
+/** How far the map zooms out before an open popup is closed. */
+const ZOOM_OUT_MARGIN = 0.05;
+
+/**
+ * Move the map so the pin is where its popup can be read: the middle of the
+ * map, or under a sheet near the top instead (lib/map/report-pin.ts).
+ * With a zoom it is the long way round, for a pin being opened; without,
+ * the map slides there at the zoom it is at. `onArrive` is called when that
+ * move ends. Returns whether the sheet leaves the popup no room even so.
+ */
+function bringPinIntoView(
+  map: mapboxgl.Map,
+  coordinates: [number, number],
+  { zoom, onArrive }: { zoom?: number; onArrive?: () => void } = {}
+): boolean {
+  const layout = reportPinLayout();
+  const { clientWidth, clientHeight } = map.getContainer();
+  // An offset, not padding: padding stays on the map afterwards and would
+  // shift every later move, whatever the sheet does next.
+  const offset = reportPinOffset(layout, clientHeight);
+
+  // A move still under way is ended first, and the watch on the pin it was
+  // for: its end must not be taken for the end of this one.
+  endPinRestWatch(map);
+  map.stop();
+  // Set before the move, which ends inside the call when it is made without
+  // animation.
+  if (onArrive) map.once('moveend', onArrive);
+  const camera = { center: coordinates, ...(offset && { offset }) };
+  // For a visitor who asked for less motion Mapbox turns flyTo into a plain
+  // jump to the centre, dropping the offset: the pin and its popup ended up
+  // behind the sheet. easeTo jumps for them too, and keeps the offset.
+  if (zoom === undefined) {
+    map.easeTo(camera);
+  } else if (prefersReducedMotion()) {
+    map.easeTo({ ...camera, zoom });
+  } else {
+    map.flyTo({
+      ...camera,
+      zoom,
+      duration: 1500,
+      easing: (t) => t * (2 - t),
+    });
+  }
+  // After the move has started: the watch gives way to any move but its own.
+  // Without an offset (desktop) the pin rests at the middle of the map.
+  settlePinAtRest(
+    map,
+    coordinates,
+    reportPinRest(offset ?? [0, 0], clientWidth, clientHeight)
+  );
+  return reportPinCrowded(layout, clientHeight);
+}
+
 export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
   function ReportBubble(
-    { reportSize, report, map, coordinates, onOpen, onHistoryClick },
+    { reportSize, report, map, coordinates, onOpen, onCrowded, onHistoryClick },
     ref
   ) {
     const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +124,8 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
     const containerRef = useRef<HTMLDivElement>(null);
     const previousZoomRef = useRef<number | null>(null);
     const isAnimatingRef = useRef(false);
+    // Open and not being closed: then the map's pin watch, if any, is ours.
+    const isOpenRef = useRef(false);
 
     const CLOSING_DURATION = 300; // Consistent fade-out duration
     const initials = getInitials(report.reporterName);
@@ -64,24 +138,35 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
       onOpen?.();
       setIsClosing(false);
       setIsOpen(true);
+      isOpenRef.current = true;
 
       if (map) {
         isAnimatingRef.current = true;
-        map.flyTo({
-          center: coordinates,
+        const crowded = bringPinIntoView(map, coordinates, {
           zoom: 18,
-          duration: 1500,
-          easing: (t) => t * (2 - t),
+          onArrive: () => {
+            isAnimatingRef.current = false;
+            previousZoomRef.current = map.getZoom();
+          },
         });
-
-        map.once('moveend', () => {
-          isAnimatingRef.current = false;
-          previousZoomRef.current = map.getZoom();
-        });
+        if (crowded) onCrowded?.();
       }
     };
 
     const onClose = () => {
+      const wasOpen = isOpenRef.current;
+      isOpenRef.current = false;
+      // The pin is no longer brought to rest, and an opening flight still
+      // under way stops where it is rather than running on and recentring.
+      // Closed bubbles are closed again whenever another opens: they leave
+      // the map alone.
+      if (map && wasOpen) {
+        endPinRestWatch(map);
+        if (isAnimatingRef.current) {
+          map.stop();
+          isAnimatingRef.current = false;
+        }
+      }
       setIsClosing(true);
       setTimeout(() => {
         setIsOpen(false);
@@ -93,6 +178,15 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
       close: onClose,
     }));
 
+    // Unmounted while open (its report removed, the page left): the watch
+    // must not go on moving the map for a popup that is gone.
+    useEffect(() => {
+      if (!map) return;
+      return () => {
+        if (isOpenRef.current) endPinRestWatch(map);
+      };
+    }, [map]);
+
     useEffect(() => {
       if (!containerRef.current) return;
       const mapboxPopup = containerRef.current.closest('.mapboxgl-popup');
@@ -102,25 +196,59 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
       }
     }, [isOpen]);
 
+    // The layout can change under an open popup (a window resized, a tablet
+    // turned): the sheet arrives over the middle of the map, or goes. The
+    // pin is sent to its place in the new layout.
+    useEffect(() => {
+      if (!map || !isOpen) return;
+
+      const layouts = [COMPACT_MAP_QUERY, PHONE_QUERY].map((query) =>
+        window.matchMedia(query)
+      );
+      const handleLayoutChange = () => {
+        // The offset is measured from the middle of the map as it is now.
+        map.resize();
+        if (bringPinIntoView(map, coordinates)) onCrowded?.();
+      };
+
+      layouts.forEach((layout) =>
+        layout.addEventListener('change', handleLayoutChange)
+      );
+      return () => {
+        layouts.forEach((layout) =>
+          layout.removeEventListener('change', handleLayoutChange)
+        );
+      };
+    }, [map, isOpen, coordinates, onCrowded]);
+
     // Close popup when zooming OUT
     useEffect(() => {
       if (!map || !isOpen) return;
 
+      // Measured from where each zoom starts, and only past a margin. Over
+      // terrain the map's zoom shifts a little with every move, zooming or
+      // not, and the first step of a zoom in comes a touch below where it
+      // started (0.003 over the 50m contour): either closed the popup.
+      const handleZoomStart = () => {
+        if (!isAnimatingRef.current) previousZoomRef.current = map.getZoom();
+      };
+
       const handleZoom = () => {
         if (isAnimatingRef.current) return;
 
-        const currentZoom = map.getZoom();
         const previousZoom = previousZoomRef.current;
-
-        if (previousZoom !== null && currentZoom < previousZoom) {
+        if (
+          previousZoom !== null &&
+          map.getZoom() < previousZoom - ZOOM_OUT_MARGIN
+        ) {
           onClose();
         }
-
-        previousZoomRef.current = currentZoom;
       };
 
+      map.on('zoomstart', handleZoomStart);
       map.on('zoom', handleZoom);
       return () => {
+        map.off('zoomstart', handleZoomStart);
         map.off('zoom', handleZoom);
       };
     }, [map, isOpen]);
@@ -189,18 +317,25 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
           )}`}
         >
           {initials}
+          {/* Dark with a white ring, so it stands off the pin it sits on
+              and off a neighbouring pin, whatever their colours. */}
           <span
             aria-hidden="true"
-            className="absolute -right-1.5 -bottom-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-white text-[8px] leading-none font-bold text-gray-900 shadow"
+            className="absolute -right-1 -bottom-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-900 text-[9px] leading-none font-bold text-white ring-1 ring-white"
           >
             {componentLabel.charAt(0)}
           </span>
         </button>
 
-        {/* Popup */}
+        {/* Popup. Beside the pin; on phones below it, a little left of
+            centre and narrow enough to miss the buttons down the map's right
+            edge. A tablet has the width for the desktop placement, and the
+            pin is sent left of centre to make room for it
+            (lib/map/report-pin.ts). There a long description stops at six
+            lines and scrolls, so the footer stays above the control sheet. */}
         {isOpen && (
           <div
-            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg max-md:top-9 max-md:left-1/2 max-md:w-[min(18rem,calc(100vw-2rem))] max-md:-translate-x-1/2 ${
+            className={`absolute top-0 left-10 w-2xs rounded-lg border border-gray-200 bg-white p-4 shadow-lg max-md:top-9 max-md:left-[calc(50%-2rem)] max-md:w-[min(18rem,calc(100vw-7.5rem))] max-md:-translate-x-1/2 ${
               isClosing
                 ? 'animate-out fade-out duration-300'
                 : 'animate-in fade-in slide-in-from-left-2'
@@ -227,18 +362,22 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
               >
                 {initials}
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">
+              <div className="min-w-0 flex-1">
+                {/* pr-6: the close button sits over this corner. */}
+                <h3
+                  title={report.reporterName}
+                  className="min-w-0 truncate pr-6 font-semibold text-gray-900"
+                >
                   {report.reporterName}
                 </h3>
                 <div className="flex flex-row items-end gap-2">
-                  <p className="text-2xs pb-1 text-gray-500">
+                  <p className="pb-1 text-xs text-gray-500">
                     {formatDistanceToNow(new Date(report.date), {
                       addSuffix: true,
                     })}
                   </p>
                   <div
-                    className={`mb-1 flex h-5 items-center justify-center rounded-md border px-3 text-[10px] ${getStatusStyle(
+                    className={`mb-1 flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
                       report.status
                     )}`}
                   >
@@ -249,13 +388,13 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
             </div>
 
             {/* Description */}
-            <div className="mb-4 ml-[48px]">
+            <div className="mb-4 ml-[48px] md:max-lg:max-h-24 md:max-lg:overflow-y-auto">
               <p className="flex flex-col gap-2 text-xs [overflow-wrap:anywhere] text-gray-800">
                 {report.description}{' '}
                 {report.image && (
                   <button
                     onClick={() => setShowImageViewer(true)}
-                    className="inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+                    className="hit-area-sm inline-flex items-center gap-1 font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
                   >
                     <span className="ml-[-1px] flex cursor-pointer flex-row items-center gap-1">
                       Image Attached

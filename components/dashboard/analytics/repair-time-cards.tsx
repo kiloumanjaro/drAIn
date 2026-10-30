@@ -76,7 +76,9 @@ function SortableItem({ item }: SortableItemProps) {
       style={style}
       className="rounded-lg border border-[#ced1cd] bg-gradient-to-b from-[#ffffff] to-[#f3f3f3] px-3 py-3 pr-6 transition-shadow hover:border-blue-400 hover:from-[#f9f9f9] hover:to-[#eaeaea]"
     >
-      <div className="flex items-center justify-between gap-3">
+      {/* Wraps when the card is narrow: the average then takes its own line
+          under the name instead of squeezing it. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         {/* Drag handle - Left */}
         <div
           className="flex-shrink-0 cursor-grab active:cursor-grabbing"
@@ -88,7 +90,7 @@ function SortableItem({ item }: SortableItemProps) {
         </div>
 
         {/* Middle: Icon and component info */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-32 flex-1 items-center gap-3">
           <div className="flex flex-col items-center">
             {IconComponent && (
               <IconComponent className="h-5 w-5 text-gray-600" />
@@ -105,8 +107,8 @@ function SortableItem({ item }: SortableItemProps) {
         </div>
 
         {/* Right side: Average days */}
-        <div className="flex flex-shrink-0 items-baseline gap-1 leading-tight">
-          <p className="text-xl font-semibold text-gray-900">
+        <div className="ml-auto flex flex-shrink-0 items-baseline gap-1 leading-tight whitespace-nowrap">
+          <p className="text-lg font-semibold text-gray-900 xl:text-xl">
             {formatDays(item.averageDays)}
           </p>
           <p className="text-xs text-gray-500">avg</p>

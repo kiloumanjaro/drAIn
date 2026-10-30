@@ -29,7 +29,7 @@ import {
 function Chip({ label }: { label: TrustLabel }) {
   return (
     <span
-      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ${TONE_CLASSES[label.tone]}`}
+      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs ${TONE_CLASSES[label.tone]}`}
     >
       {label.text}
     </span>

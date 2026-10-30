@@ -1,12 +1,17 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import {
+  clampDragPosition,
+  measureDragBounds,
+} from '@/lib/simulation/drag-bounds';
+import { useCompactMap } from '@/lib/layout/use-compact-map';
 import type { Inlet, Drain } from '@/components/control-panel/types';
 
 interface NodeParams {
@@ -44,6 +49,10 @@ export function NodeParametersPanel({
     selectedComponentIds[0] || ''
   );
   const [isDragging, setIsDragging] = useState(false);
+  const isCompact = useCompactMap();
+  // Ties each slider to its visible label. One tab's sliders are on the page
+  // at a time, so one id per parameter is enough.
+  const labelId = useId();
   const dragRef = useRef<{
     startX: number;
     startY: number;
@@ -72,6 +81,8 @@ export function NodeParametersPanel({
       return;
     }
 
+    // Pinned in place on the compact map: nothing to drag.
+    if (isCompact) return;
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX,
@@ -89,10 +100,17 @@ export function NodeParametersPanel({
       const deltaX = e.clientX - dragRef.current.startX;
       const deltaY = e.clientY - dragRef.current.startY;
 
-      onPositionChange({
-        x: dragRef.current.startPosX + deltaX,
-        y: dragRef.current.startPosY + deltaY,
-      });
+      // Like the results table, the header stays in reach; on the left the
+      // panel also stops at the navigation rail (see measureDragBounds).
+      onPositionChange(
+        clampDragPosition(
+          {
+            x: dragRef.current.startPosX + deltaX,
+            y: dragRef.current.startPosY + deltaY,
+          },
+          measureDragBounds(containerRef.current)
+        )
+      );
     },
     [isDragging, onPositionChange]
   );
@@ -115,6 +133,7 @@ export function NodeParametersPanel({
       return;
     }
 
+    if (isCompact) return;
     const touch = e.touches[0];
     setIsDragging(true);
     dragRef.current = {
@@ -133,10 +152,17 @@ export function NodeParametersPanel({
       const deltaX = touch.clientX - dragRef.current.startX;
       const deltaY = touch.clientY - dragRef.current.startY;
 
-      onPositionChange({
-        x: dragRef.current.startPosX + deltaX,
-        y: dragRef.current.startPosY + deltaY,
-      });
+      // Like the results table, the header stays in reach; on the left the
+      // panel also stops at the navigation rail (see measureDragBounds).
+      onPositionChange(
+        clampDragPosition(
+          {
+            x: dragRef.current.startPosX + deltaX,
+            y: dragRef.current.startPosY + deltaY,
+          },
+          measureDragBounds(containerRef.current)
+        )
+      );
     },
     [isDragging, onPositionChange]
   );
@@ -192,13 +218,13 @@ export function NodeParametersPanel({
   return (
     <div
       ref={containerRef}
-      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-h-[calc(100vh-120px)] md:max-w-[600px] md:min-w-[450px]"
+      className="bg-background flex flex-col rounded-lg border pb-2 shadow-lg max-md:max-h-[calc(45dvh-4.5rem)] md:max-lg:max-h-(--pinned-panel-max-height) lg:max-h-[calc(100vh-120px)] lg:max-w-[600px] lg:min-w-[450px]"
     >
       {/* Header */}
       <div
         className={cn(
           'bg-muted/50 flex items-center justify-between gap-2 rounded-t-lg border-b px-3 py-2',
-          'cursor-grab active:cursor-grabbing',
+          !isCompact && 'cursor-grab active:cursor-grabbing',
           isDragging && 'cursor-grabbing select-none'
         )}
         onMouseDown={handleMouseDown}
@@ -256,7 +282,10 @@ export function NodeParametersPanel({
                   {/* Inversion Elevation */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-inv-elev`}
+                        className="text-sm font-normal"
+                      >
                         Inversion Elevation
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -266,6 +295,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-inv-elev`}
                       value={[params.inv_elev ?? 0]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'inv_elev', value[0])
@@ -284,7 +314,10 @@ export function NodeParametersPanel({
                   {/* Initial Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-init-depth`}
+                        className="text-sm font-normal"
+                      >
                         Initial Depth
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -292,6 +325,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-init-depth`}
                       value={[params.init_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'init_depth', value[0])
@@ -310,7 +344,10 @@ export function NodeParametersPanel({
                   {/* Ponding Area */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-ponding-area`}
+                        className="text-sm font-normal"
+                      >
                         Ponding Area
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -318,6 +355,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-ponding-area`}
                       value={[params.ponding_area]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'ponding_area', value[0])
@@ -336,7 +374,10 @@ export function NodeParametersPanel({
                   {/* Surcharge Depth */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">
+                      <Label
+                        id={`${labelId}-surcharge-depth`}
+                        className="text-sm font-normal"
+                      >
                         Surcharge Depth
                       </Label>
                       <span className="text-muted-foreground text-xs">
@@ -344,6 +385,7 @@ export function NodeParametersPanel({
                       </span>
                     </div>
                     <Slider
+                      aria-labelledby={`${labelId}-surcharge-depth`}
                       value={[params.surcharge_depth]}
                       onValueChange={(value) =>
                         onUpdateParam(id, 'surcharge_depth', value[0])

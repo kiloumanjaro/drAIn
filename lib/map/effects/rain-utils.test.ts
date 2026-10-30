@@ -1,12 +1,51 @@
 import type mapboxgl from 'mapbox-gl';
-import { describe, expect, it, vi } from 'vitest';
-import { disableRain, enableRain, zoomBasedReveal } from './rain-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { REDUCED_MOTION_QUERY } from './flood-propagation-animation';
+import {
+  disableRain,
+  enableRain,
+  prefersReducedMotion,
+  zoomBasedReveal,
+} from './rain-utils';
 
 // The functions only touch getZoom/setRain, so a tiny stub stands in for
 // the real map; no WebGL context is needed.
 function mapAtZoom(zoom: number, setRain?: (options: unknown) => void) {
   return { getZoom: () => zoom, setRain } as unknown as mapboxgl.Map;
 }
+
+/** A browser whose visitor did, or did not, ask for less motion. */
+function stubReducedMotion(reduced: boolean) {
+  const matchMedia = vi.fn((query: string) => ({
+    matches: reduced && query === REDUCED_MOTION_QUERY,
+  }));
+  vi.stubGlobal('window', { matchMedia });
+  return matchMedia;
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('prefersReducedMotion', () => {
+  it('is false where there is no browser to ask', () => {
+    expect(prefersReducedMotion()).toBe(false);
+  });
+
+  it('is false in a browser that cannot be asked', () => {
+    vi.stubGlobal('window', {});
+    expect(prefersReducedMotion()).toBe(false);
+  });
+
+  it('follows the reduced-motion setting', () => {
+    const matchMedia = stubReducedMotion(true);
+    expect(prefersReducedMotion()).toBe(true);
+    expect(matchMedia).toHaveBeenCalledWith(REDUCED_MOTION_QUERY);
+
+    stubReducedMotion(false);
+    expect(prefersReducedMotion()).toBe(false);
+  });
+});
 
 describe('zoomBasedReveal', () => {
   it('hides the effect entirely when zoomed out past 10', () => {
@@ -40,6 +79,20 @@ describe('enableRain', () => {
     expect(options.intensity).toBe(1.0);
   });
 
+  it('does not start the rain for a visitor who asked for less motion', () => {
+    stubReducedMotion(true);
+    const setRain = vi.fn();
+    enableRain(mapAtZoom(15, setRain));
+    expect(setRain).not.toHaveBeenCalled();
+  });
+
+  it('starts the rain when no such request was made', () => {
+    stubReducedMotion(false);
+    const setRain = vi.fn();
+    enableRain(mapAtZoom(15, setRain));
+    expect(setRain).toHaveBeenCalledTimes(1);
+  });
+
   it('swallows a setRain failure instead of crashing the map page', () => {
     const consoleError = vi
       .spyOn(console, 'error')
@@ -54,6 +107,14 @@ describe('enableRain', () => {
 });
 
 describe('disableRain', () => {
+  it('still stops the rain under reduced motion', () => {
+    // The setting may be switched on while the rain is falling.
+    stubReducedMotion(true);
+    const setRain = vi.fn();
+    disableRain(mapAtZoom(12, setRain));
+    expect(setRain).toHaveBeenCalledWith({ intensity: 0 });
+  });
+
   it('turns the intensity down to zero', () => {
     const setRain = vi.fn();
     disableRain(mapAtZoom(12, setRain));

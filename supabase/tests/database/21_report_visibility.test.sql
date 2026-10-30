@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(17);
+select plan(24);
 
 -- A rejected report of citizen's own, with a photo they uploaded.
 insert into storage.objects (bucket_id, name, owner_id) values
@@ -132,6 +132,58 @@ exception when insufficient_privilege then
   return case when sqlerrm like 'Direct deletion%' then 'allowed'
               else 'error: ' || sqlerrm end;
 end $fn$;
+
+-- The deletes below go through a Supabase guard and are skipped where it
+-- fires per statement, so the rule is also checked in ways that cannot skip:
+-- what the delete policy says, what the function it calls looks at, and what
+-- that function answers for someone who cannot read the row that uses the
+-- photo (citizen2, ...0004: neither the rejected report nor the staff review
+-- is theirs to see).
+select matches(
+  (select qual from pg_policies
+   where schemaname = 'storage' and tablename = 'objects'
+     and policyname = 'Uploaders remove their own fresh report photo nothing uses'),
+  'NOT \(\s*SELECT private\.report_photo_in_use\(objects\.name\)',
+  'the report-photo delete policy refuses a photo that is in use'
+);
+select is(
+  (select string_agg(policyname::text, ' | ' order by policyname::text collate "C")
+     from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and cmd in ('DELETE', 'ALL')),
+  'Uploaders remove their own fresh report photo nothing uses | Users remove their own avatars',
+  'and no other policy lets a client delete from storage'
+);
+select matches(
+  (select prosrc from pg_proc where oid = 'private.report_photo_in_use(text)'::regprocedure),
+  'public\.reports r\s+WHERE r\.image = p_name OR r\.resolved_image = p_name',
+  '"in use" covers a report''s photo and its fix photo'
+);
+select matches(
+  (select prosrc from pg_proc where oid = 'private.report_photo_in_use(text)'::regprocedure),
+  'public\.maintenance m\s+WHERE m\.evidence_image = p_name.*public\.maintenance_reviews v\s+WHERE v\.evidence_image = p_name',
+  'and the evidence photo of a maintenance record or of a review'
+);
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000004","role":"authenticated"}';
+
+select is(
+  private.report_photo_in_use('public/00000000-0000-4000-d000-000000000001.jpg'),
+  true,
+  'the photo of a rejected report counts as in use, even asked by someone who cannot read the report'
+);
+select is(
+  private.report_photo_in_use('public/00000000-0000-4000-d000-000000000002.jpg'),
+  true,
+  'so does the photo a maintenance review cites'
+);
+select is(
+  private.report_photo_in_use('public/00000000-0000-4000-d000-000000000003.jpg'),
+  false,
+  'an upload nothing points at does not'
+);
+
+reset role;
 
 select case
   when (select t.tgtype & 1 = 0 from pg_trigger t

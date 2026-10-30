@@ -310,8 +310,11 @@ User Opens Login Page
          ↓
   Redirect to Dashboard/Map
          ↓
-  Protected Routes Check Session
-  (proxy validates JWT)
+  Every Request Carries the JWT
+  (Supabase RLS and RPC checks decide what it may read or write;
+   the API routes that need a user, /api/chatbot and
+   /api/reports/download, verify the bearer token with
+   auth.getUser(token))
 ```
 
 **Key Files:**

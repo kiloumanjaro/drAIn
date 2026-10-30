@@ -21,8 +21,11 @@ import { dateFilterCutoff } from '@/lib/reports/date-filter';
  * The newest report on each component, for the map's pins. Realtime keeps
  * it current between fetches (components/context/report-provider.tsx).
  */
-export function useLatestReports(): UseQueryResult<Report[], Error> {
+export function useLatestReports({
+  enabled = true,
+}: { enabled?: boolean } = {}): UseQueryResult<Report[], Error> {
   return useQuery({
+    enabled,
     queryKey: reportKeys.latestPerComponent(),
     queryFn: fetchLatestReportsPerComponent,
     staleTime: 1 * 60 * 1000,

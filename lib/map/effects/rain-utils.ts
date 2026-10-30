@@ -1,4 +1,12 @@
 import mapboxgl from 'mapbox-gl';
+import { REDUCED_MOTION_QUERY } from './flood-propagation-animation';
+
+/** True when the visitor asked their system for less motion. */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
 
 /**
  * Calculate zoom-based reveal value for rain parameters
@@ -17,10 +25,16 @@ export function zoomBasedReveal(map: mapboxgl.Map, value: number): number {
 /**
  * Enable rain effect on the map using Mapbox's setRain API
  *
+ * Falling rain has no still form, so it is not started for a visitor who
+ * asked for less motion.
+ *
  * @param map - Mapbox GL JS map instance
  */
 export function enableRain(map: mapboxgl.Map): void {
   if (!map || typeof map.setRain !== 'function') {
+    return;
+  }
+  if (prefersReducedMotion()) {
     return;
   }
 

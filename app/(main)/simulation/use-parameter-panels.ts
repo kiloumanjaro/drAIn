@@ -21,8 +21,18 @@ const DEFAULT_RAINFALL: RainfallParams = {
   duration_hr: 1,
 };
 
-/** Node and link parameter panels open centred. */
-const PARAMETER_PANEL_ANCHOR = { width: 500, height: 600 };
+/**
+ * Node and link parameter panels open centred where that is clear of the
+ * control panel, and just right of it otherwise. They are 450px to 600px
+ * wide and fixed to the screen.
+ */
+const PARAMETER_PANEL_ANCHOR = {
+  width: 500,
+  height: 600,
+  minWidth: 450,
+  fullWidth: 600,
+  fixed: true,
+};
 
 /**
  * What a custom run is made from: the components and pipes picked for it,

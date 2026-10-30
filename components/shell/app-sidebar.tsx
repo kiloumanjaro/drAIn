@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import Logo from '@/public/icons/logo.svg';
 import {
@@ -19,11 +19,14 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/components/context/auth-provider';
 import { signOutAndForgetProfile } from '@/lib/supabase/sign-out';
 
 import NotificationBell from '@/components/shell/report-notif';
+import { showsLiveReports } from '@/lib/reports/live-reports';
 
 // This is the data structure for the sidebar
 const data = {
@@ -58,8 +61,12 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const { user, profile, publicAvatarUrl } = useAuth();
+  const { state, isMobile } = useSidebar();
+  const railLabel =
+    state === 'expanded' ? 'Collapse navigation' : 'Expand navigation';
 
   const handleLogout = async () => {
     await signOutAndForgetProfile(queryClient);
@@ -102,12 +109,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
       </SidebarContent>
-      <div className="flex justify-center px-3 py-2">
-        <NotificationBell />
-      </div>
+      {showsLiveReports(pathname) && (
+        <div className="flex justify-center px-3 py-2">
+          <NotificationBell />
+        </div>
+      )}
       <SidebarFooter className="border-t">
         <NavUser user={userData} onLogout={handleLogout} />
       </SidebarFooter>
+      {/* The strip along the sidebar's edge that opens and closes it; until
+          it was here, only Ctrl+B did. Reachable with Tab, and it shows its
+          line under the pointer or the focus. On phones the sidebar is a
+          drawer with its own button, so it is left out. */}
+      {!isMobile && (
+        <SidebarRail
+          tabIndex={0}
+          aria-label={railLabel}
+          title={railLabel}
+          className="outline-hidden hover:after:w-1 hover:after:-translate-x-px hover:after:bg-[#5a87e7] focus-visible:after:w-1 focus-visible:after:-translate-x-px focus-visible:after:bg-[#5a87e7]"
+        />
+      )}
     </Sidebar>
   );
 }

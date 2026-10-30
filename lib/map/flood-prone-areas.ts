@@ -61,7 +61,7 @@ export const FLOOD_PRONE_AREAS: readonly FloodProneArea[] = [
   },
   {
     id: 'basak_pagsabungan',
-    name: 'Bask & Pagsabungan',
+    name: 'Basak & Pagsabungan',
     file: 'basak_pagsabungan.geojson',
     color: '#0891B2',
   },

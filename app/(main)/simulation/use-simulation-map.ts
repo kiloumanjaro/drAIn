@@ -20,6 +20,8 @@ import {
 } from '@/lib/map/config';
 import { cancelFloodAppearing } from '@/lib/map/effects/flood-3d-utils';
 import { disableRain } from '@/lib/map/effects/rain-utils';
+import { keepMapSized } from '@/lib/map/resize';
+import { keepAttributionOnShow } from '@/lib/map/attribution';
 import {
   SIMULATION_BEARING,
   SIMULATION_LAYER_IDS,
@@ -97,6 +99,13 @@ export function useSimulationMap(
       }
       mapRef.current = map;
 
+      // "© Mapbox © OpenStreetMap" must be on show, in whichever corner the
+      // layout leaves clear.
+      keepAttributionOnShow(
+        map,
+        new mapboxgl.AttributionControl({ compact: true })
+      );
+
       const addCustomLayers = () => addSimulationLayers(map);
 
       map.on('load', addCustomLayers);
@@ -119,6 +128,14 @@ export function useSimulationMap(
     pipesRef,
     drainsRef,
   ]);
+
+  // Mapbox follows the window's size, not its container's: when the sidebar
+  // opened beside the map, the canvas kept its old size. The container is
+  // watched from the start, before the map exists.
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    return keepMapSized(mapContainerRef.current, () => mapRef.current);
+  }, [mapRef]);
 
   /**
    * Stop the rain and the flood fade-in, then remove the map. Without

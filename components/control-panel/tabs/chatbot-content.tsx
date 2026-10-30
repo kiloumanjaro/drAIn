@@ -8,13 +8,24 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/context/auth-provider';
-import { MAX_MESSAGE_CHARS } from '@/lib/chatbot/request';
+import { MAX_MESSAGE_CHARS, historyToSend } from '@/lib/chatbot/request';
+import { CharCount } from '@/components/common/char-count';
+
+// The control panel loads this tab up front, so the Markdown renderer is
+// fetched on its own, when the tab first shows a reply.
+const ChatMarkdown = dynamic(() => import('./chat-markdown'));
 
 interface Message {
   role: 'user' | 'bot';
   content: string;
   timestamp: Date;
+  /**
+   * On a reply from the server: the signature it came with, sent back with
+   * the reply so the server knows the reply is its own.
+   */
+  sig?: string;
 }
 
 export function ChatbotView() {
@@ -54,10 +65,8 @@ export function ChatbotView() {
 
     try {
       // Who said what, as structured turns; the server trims it further.
-      const history = messages.slice(-6).map((msg) => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content,
-      }));
+      // The greeting and the apology below carry no signature and stay here.
+      const history = historyToSend(messages);
 
       const res = await fetch('/api/chatbot', {
         method: 'POST',
@@ -68,7 +77,11 @@ export function ChatbotView() {
         body: JSON.stringify({ input, history }),
       });
 
-      const payload = (await res.json()) as { text?: string; error?: string };
+      const payload = (await res.json()) as {
+        text?: string;
+        sig?: string;
+        error?: string;
+      };
 
       if (!res.ok || !payload.text) {
         throw new Error(payload.error ?? `Request failed (${res.status})`);
@@ -78,6 +91,7 @@ export function ChatbotView() {
         role: 'bot',
         content: payload.text,
         timestamp: new Date(),
+        sig: payload.sig,
       };
 
       setMessages((prev) => [...prev, botMessage]);
@@ -164,9 +178,15 @@ export function ChatbotView() {
                     : 'rounded-2xl border border-gray-300 bg-white text-gray-800'
                 }`}
               >
-                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                {msg.role === 'user' ? (
+                  <div className="text-sm whitespace-pre-wrap">
+                    {msg.content}
+                  </div>
+                ) : (
+                  <ChatMarkdown content={msg.content} />
+                )}
                 <div
-                  className={`mt-1 text-[10px] ${
+                  className={`mt-1 text-xs ${
                     msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}
                 >
@@ -238,6 +258,12 @@ export function ChatbotView() {
               <Send aria-hidden="true" className="h-5 w-5" />
             )}
           </Button>
+          {/* In the padding under the input, so the row keeps its height. */}
+          <CharCount
+            value={input}
+            max={MAX_MESSAGE_CHARS}
+            className="absolute top-full right-1 mt-0.5 text-xs leading-none"
+          />
         </div>
       </div>
     </div>

@@ -27,6 +27,7 @@ import { ComboboxForm } from '@/components/common/combobox-form';
 import type { ComboboxOption } from '@/components/common/combobox-form';
 import { Field, FieldContent } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
+import { CharCount } from '@/components/common/char-count';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { AlertCircle, CheckCircle2Icon } from 'lucide-react';
@@ -105,8 +106,6 @@ export default function SubmitTab() {
     const cancelled = () => checkRun.current !== run;
 
     if (!image) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (cancelled()) return;
       setIsSubmitting(false);
       setIsErrorModalOpen(true);
       setErrorCode('Not a valid image');
@@ -119,8 +118,6 @@ export default function SubmitTab() {
       //   longitude: 123.927200298236968,
       // };
       if (location.latitude == null || location.longitude == null) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (cancelled()) return;
         setIsSubmitting(false);
         setIsErrorModalOpen(true);
         setErrorCode('No GPS data found in image');
@@ -138,8 +135,6 @@ export default function SubmitTab() {
         if (cancelled()) return;
 
         if (Pipedata.length === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          if (cancelled()) return;
           setIsSubmitting(false);
           setIsErrorModalOpen(true);
           setErrorCode('No component found within your location!');
@@ -369,23 +364,26 @@ export default function SubmitTab() {
             }
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
-            <option value="low">🟡 Low - Minor issue</option>
-            <option value="medium">🟠 Medium - Moderate concern</option>
-            <option value="high">🔴 High - Urgent</option>
+            <option value="low">Low: Minor issue</option>
+            <option value="medium">Medium: Moderate concern</option>
+            <option value="high">High: Urgent</option>
             <option value="critical">
-              ⚠️ Critical - Immediate attention needed
+              Critical: Immediate attention needed
             </option>
           </select>
         </div>
 
         {/* Description Input */}
         <Field className="gap-2">
-          <label
-            htmlFor="report-description"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Description
-          </label>
+          <div className="flex items-baseline justify-between gap-2">
+            <label
+              htmlFor="report-description"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Description
+            </label>
+            <CharCount value={description} max={1000} />
+          </div>
           <FieldContent className="max-h-44">
             <Textarea
               id="report-description"
@@ -482,11 +480,11 @@ export default function SubmitTab() {
               <p className="mb-2 block text-sm">Severity Level</p>
               <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm">
                 <span>
-                  {severity === 'low' && '🟡 Low - Minor issue'}
-                  {severity === 'medium' && '🟠 Medium - Moderate concern'}
-                  {severity === 'high' && '🔴 High - Urgent'}
+                  {severity === 'low' && 'Low: Minor issue'}
+                  {severity === 'medium' && 'Medium: Moderate concern'}
+                  {severity === 'high' && 'High: Urgent'}
                   {severity === 'critical' &&
-                    '⚠️ Critical - Immediate attention needed'}
+                    'Critical: Immediate attention needed'}
                 </span>
               </div>
             </div>
@@ -542,7 +540,7 @@ export default function SubmitTab() {
               type="button"
               onClick={handleConfirmSubmit}
               disabled={isDisabled || isConfirming}
-              className="w-full border border-[#2b3ea7] bg-[#4b72f3] text-white hover:bg-blue-600 sm:w-auto"
+              className="w-full border border-[#2b3ea7] bg-[#4569ee] text-white hover:bg-blue-600 sm:w-auto"
             >
               {isConfirming ? 'Confirming...' : 'Confirm'}
             </Button>
@@ -559,7 +557,7 @@ export default function SubmitTab() {
             </div>
             <DialogDescription className="text-muted-foreground">
               Please ensure your photo was taken at the issue site and includes
-              location sufficient data.
+              sufficient location data.
             </DialogDescription>
           </DialogHeader>
 
@@ -567,15 +565,15 @@ export default function SubmitTab() {
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
               <ul className="space-y-2.5">
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4569ee]"></span>
                   <span>Enable location services on your device</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4569ee]"></span>
                   <span>Capture the photo directly from your camera app</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4b72f3]"></span>
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4569ee]"></span>
                   <span>Ensure your device embeds location data in images</span>
                 </li>
               </ul>

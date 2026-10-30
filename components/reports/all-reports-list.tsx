@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +9,7 @@ import { SpinnerEmpty } from '@/components/common/spinner-empty';
 import { format } from 'date-fns';
 import { useReportList } from '@/lib/query/hooks/use-report-queries';
 import type { DateFilterValue } from '@/components/common/date-sort';
+import { componentTypeLabel, statusLabel } from '@/lib/reports/display-labels';
 import { RefreshCw } from 'lucide-react';
 import type {
   Inlet,
@@ -15,6 +17,31 @@ import type {
   Pipe,
   Drain,
 } from '@/components/control-panel/types';
+
+/** A report's photo, or a plain box when it has none or it fails to load. */
+function ReportThumbnail({ src, alt }: { src?: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded bg-gray-100 text-xs text-gray-600">
+        No image
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={80}
+      height={80}
+      className="h-25 w-21 shrink-0 rounded object-cover"
+      unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 interface AllReportsListProps {
   dateFilter?: DateFilterValue;
@@ -94,7 +121,9 @@ export default function AllReportsList({
         </button>
       </CardHeader>
 
-      <ScrollArea className="relative flex-1">
+      {/* Radix lays the list out as a table, which grows to fit its longest
+          line: as a block it keeps to the panel's width. */}
+      <ScrollArea className="relative flex-1 [&>[data-slot=scroll-area-viewport]>div]:block!">
         {filteredReports.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-muted-foreground rounded px-4 py-8 pb-25 text-center text-sm">
@@ -108,24 +137,14 @@ export default function AllReportsList({
             {filteredReports.map((report) => (
               <div
                 key={report.id}
-                className="hover:bg-accent flex flex-row gap-3 rounded-lg border p-3 transition-colors"
+                className="hover:bg-accent flex w-full min-w-0 flex-row gap-3 rounded-lg border p-3 transition-colors"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex w-full min-w-0 items-start gap-3">
                   {/* Image Thumbnail with Badges */}
-                  {report.image ? (
-                    <Image
-                      src={report.image}
-                      alt={report.category}
-                      width={80}
-                      height={80}
-                      className="h-25 w-21 rounded object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
-                      No image
-                    </div>
-                  )}
+                  <ReportThumbnail
+                    src={report.image}
+                    alt={componentTypeLabel(report.category)}
+                  />
 
                   {/* Report Details */}
                   <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -137,19 +156,24 @@ export default function AllReportsList({
 
                       {/* Metadata */}
                       <div className="text-muted-foreground flex flex-col gap-1 text-xs">
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">
+                        <div className="flex min-w-0 items-center gap-1">
+                          <span
+                            className="min-w-0 truncate font-medium"
+                            title={report.reporterName || undefined}
+                          >
                             {report.reporterName || 'Anonymous'}
                           </span>
-                          <span>on</span>
-                          <span>{report.componentId}</span>
+                          <span className="shrink-0">on</span>
+                          <span className="shrink-0">{report.componentId}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="shrink-0">
                             {format(new Date(report.date), 'MMM dd, yyyy')}
                           </span>
                           {/*Apply Geocoding Here */}
-                          <span>{report.address}</span>
+                          <span className="truncate" title={report.address}>
+                            {report.address}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -157,16 +181,16 @@ export default function AllReportsList({
                     <div className="flex flex-row gap-2">
                       <Badge
                         variant="outline"
-                        className="h-5 justify-center px-3 py-0 text-[10px] font-normal"
+                        className="h-auto justify-center px-3 py-0.5 text-xs font-normal"
                       >
-                        {report.category}
+                        {componentTypeLabel(report.category)}
                       </Badge>
                       <div
-                        className={`flex h-5 items-center justify-center rounded-md border px-3 py-0.5 text-[10px] ${getStatusStyle(
+                        className={`flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
                           report.status
                         )}`}
                       >
-                        {report.status}
+                        {statusLabel(report.status)}
                       </div>
                     </div>
                   </div>

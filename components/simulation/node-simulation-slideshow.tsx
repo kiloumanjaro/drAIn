@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import {
@@ -82,9 +82,35 @@ export function NodeSimulationSlideshow({
   allNodesData,
 }: NodeSimulationSlideshowProps) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  // What had the keyboard when the slideshow opened.
+  const openerRef = useRef<HTMLElement | null>(null);
 
-  // Arrow keys change the slide. Escape, the focus trap and the return of
-  // focus to the table row come from the dialog.
+  /**
+   * Where the keyboard goes when the slideshow closes: back to whatever had
+   * it, if that is still on the page. Usually it is not: opening from a
+   * results table puts the table away, and it comes back as new elements. So
+   * failing that, the row's own button in the table that has come back.
+   */
+  const returnFocus = (event: Event) => {
+    const opener = openerRef.current;
+    openerRef.current = null;
+
+    const rowButtonLabel = `Open ${nodeId} simulation`;
+    const target = opener?.isConnected
+      ? opener
+      : Array.from(
+          document.querySelectorAll<HTMLElement>('button[aria-label]')
+        ).find(
+          (button) => button.getAttribute('aria-label') === rowButtonLabel
+        );
+    if (!target) return;
+
+    event.preventDefault();
+    target.focus();
+  };
+
+  // Arrow keys change the slide. Escape and the focus trap come from the
+  // dialog; the return of focus is above.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' && activeSlideIndex > 0) {
@@ -105,13 +131,27 @@ export function NodeSimulationSlideshow({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       {/* On the right of the screen, 25px above centre, as it always was;
           placed with CSS so nothing reads the window size while rendering.
+          On a screen too short for that (a phone on its side) it starts at
+          the top instead, is no taller than the screen, and scrolls. That
+          still fits a tablet with the navigation rail, so unlike the tables
+          it changes at phone width, not with the compact map: there it
+          spans the screen under the navigation button, and its 450px gives
+          way on a screen too short for it.
           The layer sits above the parameter panels (1000), which would
           otherwise cover a dialog that has taken the keyboard. */}
       <DialogContent
         showCloseButton={false}
         aria-describedby={undefined}
+        onOpenAutoFocus={() => {
+          const focused = document.activeElement;
+          openerRef.current =
+            focused instanceof HTMLElement && focused !== document.body
+              ? focused
+              : null;
+        }}
+        onCloseAutoFocus={returnFocus}
         overlayClassName="z-[1100] bg-black/20"
-        className="top-[calc(50%-250px)] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl max-md:inset-x-2 max-md:top-16 max-md:h-auto max-md:max-h-[calc(100dvh-5rem)] max-md:min-h-[450px] max-md:w-auto max-md:overflow-y-auto sm:max-w-none"
+        className="top-[max(0.5rem,calc(50%-250px))] right-[100px] left-auto z-[1101] flex h-[450px] w-[550px] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto border-[#ced1cd] bg-[#f7f7f7] p-0 shadow-2xl max-md:inset-x-2 max-md:top-16 max-md:h-auto max-md:max-h-[calc(100dvh-5rem)] max-md:min-h-[min(450px,calc(100dvh-5rem))] max-md:w-auto sm:max-w-none md:max-h-[calc(100dvh-1rem)]"
       >
         {/* Header */}
         <div className="flex items-center justify-between rounded-t-lg bg-[#f7f7f7] p-2 pl-5">
@@ -219,20 +259,26 @@ export function NodeSimulationSlideshow({
           <span className="text-muted-foreground mb-0.5 text-xs">
             Use arrow keys or click page navigation
           </span>
-          <div className="flex gap-2">
+          {/* Each button is 24px for the tap; the dot is drawn inside it. */}
+          <div className="flex">
             {METRIC_SLIDES.map((slide, index) => (
               <button
                 key={index}
                 onClick={() => setActiveSlideIndex(index)}
-                className={cn(
-                  'h-2 rounded-full transition-all',
-                  index === activeSlideIndex
-                    ? 'w-8 bg-[#3f83db]'
-                    : 'bg-muted-foreground/30 hover:bg-muted-foreground/50 w-2'
-                )}
+                className="group flex h-6 min-w-6 items-center justify-center"
                 aria-label={`Slide ${index + 1} of ${METRIC_SLIDES.length}: ${slide.title}`}
                 aria-current={index === activeSlideIndex ? 'true' : undefined}
-              />
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'h-2 rounded-full transition-all',
+                    index === activeSlideIndex
+                      ? 'w-8 bg-[#3f83db]'
+                      : 'bg-muted-foreground/30 group-hover:bg-muted-foreground/50 w-2'
+                  )}
+                />
+              </button>
             ))}
           </div>
         </div>
