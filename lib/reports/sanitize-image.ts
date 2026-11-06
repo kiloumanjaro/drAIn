@@ -39,6 +39,8 @@ const ACCEPTED_EXTENSIONS: Record<string, string> = {
 export const MAX_IMAGE_EDGE = 2560;
 /** JPEG quality of the re-encoded photo. */
 export const JPEG_QUALITY = 0.85;
+/** The ReportImage bucket's file_size_limit (supabase/config.toml). */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 type FileLike = Pick<File, 'name' | 'type'>;
 
@@ -151,11 +153,16 @@ async function encodeJpeg(
 
 /**
  * A metadata-free JPEG copy of the photo, at most `maxEdge` px on its long
- * side. Read EXIF from the original before calling this: the copy has none.
+ * side and `maxBytes` long (the bucket refuses anything larger). Read EXIF
+ * from the original before calling this: the copy has none.
  */
 export async function sanitizeImage(
   file: File,
-  { maxEdge = MAX_IMAGE_EDGE, quality = JPEG_QUALITY } = {}
+  {
+    maxEdge = MAX_IMAGE_EDGE,
+    quality = JPEG_QUALITY,
+    maxBytes = MAX_UPLOAD_BYTES,
+  } = {}
 ): Promise<File> {
   if (!acceptedImageType(file)) {
     throw new ImageSanitizeError(
@@ -167,6 +174,11 @@ export async function sanitizeImage(
   try {
     const { width, height } = fitWithin(bitmap.width, bitmap.height, maxEdge);
     const blob = await encodeJpeg(bitmap, width, height, quality);
+    if (blob.size > maxBytes) {
+      throw new ImageSanitizeError(
+        `This photo is still ${Math.ceil(blob.size / (1024 * 1024))} MB after resizing; the limit is ${Math.floor(maxBytes / (1024 * 1024))} MB.`
+      );
+    }
     return new File([blob], 'photo.jpg', {
       type: 'image/jpeg',
       lastModified: Date.now(),

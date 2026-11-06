@@ -123,6 +123,29 @@ describe('sanitizeImage', () => {
     expect(out.name).toBe('photo.jpg');
   });
 
+  it('refuses a resized JPEG over maxBytes, in plain English', async () => {
+    const s = stubCanvas({ width: 10, height: 10 });
+    s.convertToBlob.mockResolvedValueOnce(
+      new Blob([new Uint8Array(3 * 1024 * 1024)], { type: 'image/jpeg' })
+    );
+    await expect(
+      sanitizeImage(file('big.jpg', 'image/jpeg'), {
+        maxBytes: 2 * 1024 * 1024,
+      })
+    ).rejects.toThrow(
+      'This photo is still 3 MB after resizing; the limit is 2 MB.'
+    );
+    expect(s.close).toHaveBeenCalled();
+  });
+
+  it('passes a resized JPEG under maxBytes, whatever the original weighed', async () => {
+    stubCanvas({ width: 10, height: 10 });
+    const original = file('huge.jpg', 'image/jpeg');
+    Object.defineProperty(original, 'size', { value: 40 * 1024 * 1024 });
+    const out = await sanitizeImage(original, { maxBytes: 2 * 1024 * 1024 });
+    expect(out.size).toBe(3);
+  });
+
   it('refuses types outside the list before decoding', async () => {
     const s = stubCanvas({ width: 10, height: 10 });
     await expect(
