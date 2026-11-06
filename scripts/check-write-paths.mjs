@@ -1,6 +1,9 @@
-// Exercises every write the app makes through the API (photo and avatar
+// Exercises the app's main writes through the API (photo and avatar
 // uploads, report inserts, profile edit, joining/leaving an agency,
-// recording maintenance) against the LOCAL stack, as the seeded users. Run
+// recording maintenance) against the LOCAL stack, as the seeded users. Not
+// covered: review_report, review_maintenance, respond_to_resolution,
+// set_member_agency, rotate_agency_join_code, consume_rate_limit (pgTAP
+// covers those). Run
 // after changing grants or policies: `node scripts/check-write-paths.mjs`
 // (after `supabase db reset`; it files reports, so a second run hits the
 // duplicate-report rule). The storage checks matter most: pgTAP can only

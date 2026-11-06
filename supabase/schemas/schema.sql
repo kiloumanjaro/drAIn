@@ -1148,7 +1148,9 @@ CREATE INDEX "idx_reports_zone" ON "public"."reports" USING "btree" ("zone");
 -- its arguments). On the hosted project, once:
 --   select vault.create_secret('https://<ref>.supabase.co/functions/v1/geocodeWorker', 'geocode_worker_url');
 --   select vault.create_secret('<random secret>', 'geocode_worker_secret');
--- and give the edge function the same secret as GEOCODE_WORKER_SECRET.
+-- and give the edge function the same secret as GEOCODE_WORKER_SECRET. The
+-- function refuses every call while its secret is under 16 characters
+-- (supabase/functions/geocodeWorker/index.ts), so make it at least that long.
 -- Without both secrets (the local stack) the trigger does nothing, so local
 -- reports stay 'pending' with no address and the UI shows "Unknown address".
 -- A failure here never blocks filing a report; it is logged as a warning.
