@@ -3,11 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   DEBUG_MODE,
+  MAINTENANCE_COMMENTS_MAX,
   MAINTENANCE_PHOTO_MAX_AGE_HOURS,
+  MAINTENANCE_PHOTO_MAX_DISTANCE_M,
+  MAINTENANCE_PHOTO_NOTE_MAX,
   checkMaintenancePhoto,
-  unverifiedNote,
+  describeMaintenance,
   type HistoryItem,
 } from './maintenance.helpers';
+import { CharCount } from '@/components/common/char-count';
 import { assetActions } from './maintenance.actions';
 import MaintenanceVerification from './maintenance-verification';
 import type { Inlet, Outlet, Pipe, Drain } from '../types';
@@ -197,26 +201,12 @@ export default function Maintenance({
     setIsLoading(true);
     setMessage('');
 
-    // Combine agency comments with specific image description if both exist
-    let commentsToSubmit = agencyComments.trim();
-    if (imagePath && maintenanceDescription.trim()) {
-      commentsToSubmit = commentsToSubmit
-        ? `${commentsToSubmit}\n\n[Photo Note]: ${maintenanceDescription}`
-        : maintenanceDescription;
-    } else if (commentsToSubmit === '') {
-      commentsToSubmit = '';
-    }
-
-    // Recorded on the entry itself, so a reviewer can see which evidence
-    // was checked and which merely could not be.
-    if (unverifiedReason) {
-      const note = unverifiedNote(unverifiedReason);
-      commentsToSubmit = commentsToSubmit
-        ? `${commentsToSubmit}
-
-${note}`
-        : note;
-    }
+    const commentsToSubmit = describeMaintenance(
+      agencyComments,
+      maintenanceDescription,
+      !!imagePath,
+      unverifiedReason
+    );
 
     const { type, id } = selectedAsset;
     const actions = assetActions[type as keyof typeof assetActions];
@@ -234,17 +224,23 @@ ${note}`
     );
 
     setIsLoading(false);
-    setShowIncludePhotoDialog(false);
-    setShowFullPageUpload(false);
-    setPendingStatus(null);
-    setMaintenanceImage(null);
-    setMaintenanceDescription('');
 
     // A toast, because the upload view that could show a message has just
     // closed: failures (and successes) used to pass without a word.
     if (result.error) {
+      // The photo is up but nothing points at it: take it down (it counts
+      // against the daily upload allowance) and keep what was typed for a
+      // second try.
+      if (imagePath) {
+        await client.storage.from('ReportImage').remove([imagePath]);
+      }
       toast.error(`Could not record the maintenance: ${result.error}`);
     } else {
+      setShowIncludePhotoDialog(false);
+      setShowFullPageUpload(false);
+      setPendingStatus(null);
+      setMaintenanceImage(null);
+      setMaintenanceDescription('');
       toast.success(
         status === 'resolved'
           ? 'Recorded as fixed. Someone other than you can now confirm it.'
@@ -621,9 +617,15 @@ ${note}`
                 placeholder="Agency Comments Here"
                 aria-label="Agency comments"
                 rows={2}
+                maxLength={MAINTENANCE_COMMENTS_MAX}
                 // Two lines to start; grows with the text where the browser
                 // can size a field to its content, and scrolls past max-h.
                 className="field-sizing-content max-h-32 min-h-14 resize-none bg-transparent"
+              />
+              <CharCount
+                value={agencyComments}
+                max={MAINTENANCE_COMMENTS_MAX}
+                className="block text-right"
               />
             </FieldContent>
           </Field>
@@ -773,25 +775,33 @@ ${note}`
                   />
                   <p className="text-muted-foreground text-xs">
                     * The photo&apos;s own location and time are checked: one
-                    taken more than 50 m from the asset or over 12 hours ago is
-                    refused. A photo without them is accepted but marked
+                    taken more than {MAINTENANCE_PHOTO_MAX_DISTANCE_M} m from
+                    the asset or over {MAINTENANCE_PHOTO_MAX_AGE_HOURS} hours
+                    ago is refused. A photo without them is accepted but marked
                     unverified.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="maintenance-photo-description"
-                    className="text-sm font-medium"
-                  >
-                    Description
-                  </label>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <label
+                      htmlFor="maintenance-photo-description"
+                      className="text-sm font-medium"
+                    >
+                      Description
+                    </label>
+                    <CharCount
+                      value={maintenanceDescription}
+                      max={MAINTENANCE_PHOTO_NOTE_MAX}
+                    />
+                  </div>
                   <Textarea
                     id="maintenance-photo-description"
                     value={maintenanceDescription}
                     onChange={(e) => setMaintenanceDescription(e.target.value)}
                     placeholder="Describe the photo or work done..."
                     rows={4}
+                    maxLength={MAINTENANCE_PHOTO_NOTE_MAX}
                     className="resize-none"
                   />
                 </div>

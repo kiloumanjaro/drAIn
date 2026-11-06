@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MAINTENANCE_COMMENTS_MAX,
   MAINTENANCE_PHOTO_MAX_AGE_HOURS,
   MAINTENANCE_PHOTO_MAX_DISTANCE_M,
+  MAINTENANCE_PHOTO_NOTE_MAX,
   checkMaintenancePhoto,
+  describeMaintenance,
   unverifiedNote,
 } from './maintenance.helpers';
 
@@ -168,5 +171,40 @@ describe('unverifiedNote', () => {
   it('marks the record so a reviewer can tell them apart', () => {
     expect(unverifiedNote('no timestamp')).toContain('unverified');
     expect(unverifiedNote('no timestamp')).toContain('no timestamp');
+  });
+});
+
+describe('describeMaintenance', () => {
+  it('joins the comments, the photo note and the unverified note', () => {
+    expect(describeMaintenance(' Cleared ', 'Before', true, 'no GPS')).toBe(
+      'Cleared\n\n[Photo Note]: Before\n\n[evidence unverified: no GPS]'
+    );
+  });
+
+  it('uses the photo note alone when there are no comments', () => {
+    expect(describeMaintenance('', 'Before', true)).toBe('Before');
+  });
+
+  it('drops the photo note when no photo goes with it', () => {
+    expect(describeMaintenance('Cleared', 'Before', false)).toBe('Cleared');
+    expect(describeMaintenance('', '', false)).toBe('');
+  });
+
+  it('fits the database cap at both boxes full with the longest note', () => {
+    // The longest reason: a photo with no time, matched against an asset
+    // with no location (both gaps, each with its own sentence).
+    const worst = checkMaintenancePhoto(
+      { latitude: null, longitude: null, date: null },
+      [],
+      () => 0
+    );
+    expect(worst.outcome).toBe('unverifiable');
+    const text = describeMaintenance(
+      'c'.repeat(MAINTENANCE_COMMENTS_MAX),
+      'p'.repeat(MAINTENANCE_PHOTO_NOTE_MAX),
+      true,
+      worst.outcome === 'unverifiable' ? worst.reason : ''
+    );
+    expect(text.length).toBeLessThanOrEqual(2000);
   });
 });

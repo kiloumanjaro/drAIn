@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { CharCount } from '@/components/common/char-count';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -132,7 +133,10 @@ export default function ReportReview({ report }: { report: Report }) {
             placeholder="e.g. Duplicate of an open report; photo is from elsewhere"
             aria-label="Reason for rejecting the report"
             rows={3}
+            // 1,000 characters: the note cap in supabase/schemas/schema_trust.sql
+            maxLength={1000}
           />
+          <CharCount value={reason} max={1000} className="block text-right" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejecting(false)}>
               Cancel

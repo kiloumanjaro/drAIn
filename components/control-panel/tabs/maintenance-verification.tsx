@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { CharCount } from '@/components/common/char-count';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -132,7 +133,10 @@ export default function MaintenanceVerification({
             placeholder="e.g. Grate still full of silt"
             aria-label="What is still wrong"
             rows={3}
+            // 1,000 characters: the note cap in supabase/schemas/schema_trust.sql
+            maxLength={1000}
           />
+          <CharCount value={note} max={1000} className="block text-right" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setDisputing(false)}>
               Cancel
