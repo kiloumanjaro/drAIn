@@ -43,7 +43,7 @@ interface CategoryData {
 }
 
 export default function SubmitTab() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [severity, setSeverity] = useState<ReportPriority>('low');
@@ -130,7 +130,8 @@ export default function SubmitTab() {
       try {
         const Pipedata = await getClosestPipes(
           { lat: location.latitude, lon: location.longitude },
-          category
+          category,
+          session?.access_token ?? ''
         );
         if (cancelled()) return;
 

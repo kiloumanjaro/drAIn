@@ -25,12 +25,19 @@ describe('getClosestPipes', () => {
       json: async () => ({ success: true, count: 1, results }),
     });
 
-    const pipes = await getClosestPipes({ lat: 10.3, lon: 123.9 }, 'man_pipes');
+    const pipes = await getClosestPipes(
+      { lat: 10.3, lon: 123.9 },
+      'man_pipes',
+      'test-token'
+    );
 
     expect(pipes).toEqual(results);
     expect(fetchMock).toHaveBeenCalledWith('/api/closest-pipe', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer test-token',
+      },
       body: JSON.stringify({
         location: { lat: 10.3, lon: 123.9 },
         category: 'man_pipes',
@@ -45,17 +52,17 @@ describe('getClosestPipes', () => {
       json: async () => ({ error: 'category not recognised' }),
     });
 
-    await expect(getClosestPipes({ lat: 0, lon: 0 }, 'bogus')).rejects.toThrow(
-      'category not recognised'
-    );
+    await expect(
+      getClosestPipes({ lat: 0, lon: 0 }, 'bogus', 't')
+    ).rejects.toThrow('category not recognised');
   });
 
   it('falls back to a generic message when the error body is empty', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     stubFetch({ ok: false, json: async () => ({}) });
 
-    await expect(getClosestPipes({ lat: 0, lon: 0 }, 'inlets')).rejects.toThrow(
-      'Failed to fetch closest pipes'
-    );
+    await expect(
+      getClosestPipes({ lat: 0, lon: 0 }, 'inlets', 't')
+    ).rejects.toThrow('Failed to fetch closest pipes');
   });
 });

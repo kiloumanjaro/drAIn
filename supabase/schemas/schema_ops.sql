@@ -38,6 +38,8 @@ CREATE INDEX "idx_rate_limit_events_created_at" ON "private"."rate_limit_events"
 --   record_maintenance: 30 in an hour, 200 in a day.
 --   review_report:      120 in an hour, 500 in a day.
 --   review_maintenance: 60 in an hour, 200 in a day.
+--   closest_pipe:       60 in an hour, 300 in a day (the report form's
+--                       nearest-components lookup, once per map pick).
 -- The last three are far above a working day's use; they stop one staff
 -- account (or whoever holds an agency's join code) from closing, rejecting
 -- or disputing everything in a loop. Those functions take their own
@@ -70,6 +72,8 @@ BEGIN
       short_max := 120; short_window := interval '1 hour'; day_max := 500;
     WHEN 'review_maintenance' THEN
       short_max := 60; short_window := interval '1 hour'; day_max := 200;
+    WHEN 'closest_pipe' THEN
+      short_max := 60; short_window := interval '1 hour'; day_max := 300;
     ELSE
       RAISE EXCEPTION 'Unknown rate limit %.', p_bucket USING ERRCODE = '22023';
   END CASE;

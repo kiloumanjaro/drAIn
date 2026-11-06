@@ -16,15 +16,18 @@ interface ClosestPipesResponse {
   results: PipeResult[];
 }
 
+/** Needs the signed-in user's access token: the route is for the report form. */
 export async function getClosestPipes(
   location: Location,
-  category: string
+  category: string,
+  accessToken: string
 ): Promise<PipeResult[]> {
   try {
     const response = await fetch('/api/closest-pipe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ location, category }),
     });
