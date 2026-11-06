@@ -219,9 +219,11 @@ const results = await runSimulation(nodes, links, rainfall, (status) => {
 
 `runSimulation` throws an `Error` whose message is safe to show the user —
 it distinguishes a busy queue, a failed run and an expired result. It gives
-up after 30 minutes: a run takes about two, but a job can wait in the queue
-behind others for 16-30 minutes first. The
-simulation page surfaces `error.message` directly in a toast.
+up after 90 minutes, what the backend allows (an hour queued, then half an
+hour running): a run takes about two minutes, but a job can wait in the
+queue behind others. The token is read afresh before every request, so a
+run longer than a token's hour keeps working. The simulation page surfaces
+`error.message` directly in a toast.
 
 ## Performance
 

@@ -31,7 +31,7 @@ function result(
 }
 
 /** A signed-in caller. */
-const AUTH = { accessToken: 'test-token' };
+const AUTH = { getAccessToken: async () => 'test-token' };
 
 describe('transformToNodeDetails', () => {
   it('maps the backend field names onto the table shape', () => {
@@ -392,6 +392,30 @@ describe('runSimulation', () => {
     }
   });
 
+  it('reads the token afresh for every request, so a refreshed one is used', async () => {
+    // A run can outlive a token (an hour); Supabase refreshes it meanwhile.
+    fetchMock
+      .mockResolvedValueOnce(accepted())
+      .mockResolvedValueOnce(state('running'))
+      .mockResolvedValueOnce(
+        state('succeeded', { result: { nodes_list: [] } })
+      );
+    const getAccessToken = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second')
+      .mockResolvedValueOnce('third');
+
+    await runToCompletion(
+      runSimulation(NODES, LINKS, RAINFALL, { getAccessToken })
+    );
+
+    expect(getAccessToken).toHaveBeenCalledTimes(3);
+    expect(
+      fetchMock.mock.calls.map(([, init]) => init.headers.Authorization)
+    ).toEqual(['Bearer first', 'Bearer second', 'Bearer third']);
+  });
+
   it('surfaces the reason a run failed', async () => {
     fetchMock
       .mockResolvedValueOnce(accepted())
@@ -470,7 +494,10 @@ describe('runSimulation', () => {
     await expect(settled).resolves.toEqual({ ok: true, value: result });
   });
 
-  it('gives up once the job has had half an hour', async () => {
+  it('gives up once the job has had an hour and a half, as the backend allows', async () => {
+    // Up to an hour queued (MAX_QUEUE_WAIT_SECONDS) plus half an hour
+    // running (MAX_RUNTIME_SECONDS); it used to stop at 30 minutes while
+    // the backend still had the job.
     fetchMock.mockImplementation(async (url: string) =>
       url.endsWith('/simulations') ? accepted() : state('running')
     );
@@ -480,7 +507,7 @@ describe('runSimulation', () => {
       () => 'resolved',
       (error: Error) => error.message
     );
-    await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
+    await vi.advanceTimersByTimeAsync(89 * 60 * 1000);
     await expect(
       Promise.race([settled, Promise.resolve('pending')])
     ).resolves.toBe('pending');
