@@ -56,7 +56,7 @@ test.describe('docs/page.constants extracted module', () => {
 });
 
 // e2e shell check: the docs page still renders the same content after the
-// constants extraction (same anchors as the pre-refactor test).
+// constants extraction (same anchors as before the extraction).
 test.describe('/docs page after constants extraction', () => {
   test('overview heading + Our Vision subhead still render', async ({
     page,
