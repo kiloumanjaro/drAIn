@@ -29,6 +29,8 @@ interface ReportFiltersProps {
   filteredCount?: number;
   totalCount?: number;
   isLoading?: boolean;
+  /** Only staff may download; the server refuses everyone else. */
+  canDownload?: boolean;
 }
 
 export default function ReportFilters({
@@ -42,6 +44,7 @@ export default function ReportFilters({
   filteredCount = 0,
   totalCount = 0,
   isLoading = false,
+  canDownload = false,
 }: ReportFiltersProps) {
   const [_openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -331,21 +334,25 @@ export default function ReportFilters({
           )}
 
           {/* Download Button */}
-          <button
-            onClick={() => setIsDownloadModalOpen(true)}
-            className="flex h-9 w-auto min-w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-            title="Download reports"
-          >
-            <Download className="h-4 w-4" style={{ color: '#5a87e7' }} />
-          </button>
+          {canDownload && (
+            <button
+              onClick={() => setIsDownloadModalOpen(true)}
+              className="flex h-9 w-auto min-w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              title="Download reports"
+            >
+              <Download className="h-4 w-4" style={{ color: '#5a87e7' }} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Download Modal */}
-      <DownloadReportsModal
-        open={isDownloadModalOpen}
-        onOpenChange={setIsDownloadModalOpen}
-      />
+      {canDownload && (
+        <DownloadReportsModal
+          open={isDownloadModalOpen}
+          onOpenChange={setIsDownloadModalOpen}
+        />
+      )}
     </div>
   );
 }

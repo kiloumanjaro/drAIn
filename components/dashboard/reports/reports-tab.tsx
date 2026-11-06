@@ -74,6 +74,7 @@ export default function ReportsTab() {
         onClear={handleClear}
         filteredCount={data?.matching ?? 0}
         totalCount={data?.total ?? 0}
+        canDownload={staff}
       />
 
       {staff && (

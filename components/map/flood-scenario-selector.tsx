@@ -23,6 +23,8 @@ export function FloodScenarioSelector({
   selectedScenario,
   onScenarioChange,
 }: FloodScenarioSelectorProps) {
+  // A new scenario needs a `data/flood-hazard/<ID>.geojson` file and an
+  // entry here.
   const scenarios = [
     { id: '5YR', label: '5-Year Return Period', probability: '20%' },
     { id: '15YR', label: '15-Year Return Period', probability: '10%' },

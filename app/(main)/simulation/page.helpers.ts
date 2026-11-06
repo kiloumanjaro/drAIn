@@ -5,27 +5,10 @@
  * they take all inputs as parameters and are safe to import anywhere.
  */
 
-// ---------------------------------------------------------------------------
-// Vulnerability colour tables
-// ---------------------------------------------------------------------------
-
-/** Fill colours per vulnerability category (Mapbox circle paint). */
-export const VULNERABILITY_FILL_COLORS = {
-  high: '#D32F2F',
-  medium: '#FFA000',
-  low: '#FFF176',
-  none: '#388E3C',
-  fallback: '#5687ca',
-} as const;
-
-/** Darker stroke colours per vulnerability category. */
-export const VULNERABILITY_STROKE_COLORS = {
-  high: '#8B0000',
-  medium: '#B36200',
-  low: '#C4B000',
-  none: '#1B5E20',
-  fallback: '#00346c',
-} as const;
+import {
+  hazardBandFromColor,
+  type HazardLevel,
+} from '@/lib/simulation-api/hazard-band';
 
 // ---------------------------------------------------------------------------
 // Magic numbers
@@ -53,7 +36,7 @@ export const CAMERA_FLY_DURATION_MS = 1500;
 export const FLOOD_PROPAGATION_MAX_RETRIES = 10;
 
 /** Multipliers controlling how dense line samples become per vulnerability bucket. */
-export const VULNERABILITY_SAMPLE_MULTIPLIER = {
+export const VULNERABILITY_SAMPLE_MULTIPLIER: Record<HazardLevel, number> = {
   high: 3,
   medium: 2,
   low: 1.5,
@@ -63,51 +46,6 @@ export const VULNERABILITY_SAMPLE_MULTIPLIER = {
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Look up the fill colour for a vulnerability category. Uses substring
- * matching so capitalisation and "Risk" suffixes are tolerated.
- */
-export function getColorForCategory(category: string): string {
-  const normalized = category.toLowerCase().trim();
-  if (normalized.includes('high')) return VULNERABILITY_FILL_COLORS.high;
-  if (normalized.includes('medium')) return VULNERABILITY_FILL_COLORS.medium;
-  if (normalized.includes('low')) return VULNERABILITY_FILL_COLORS.low;
-  if (normalized.includes('no')) return VULNERABILITY_FILL_COLORS.none;
-  return VULNERABILITY_FILL_COLORS.fallback;
-}
-
-/**
- * Look up the stroke (border) colour for a vulnerability category. Same
- * substring-matching behaviour as {@link getColorForCategory}.
- */
-export function getStrokeColorForCategory(category: string): string {
-  const normalized = category.toLowerCase().trim();
-  if (normalized.includes('high')) return VULNERABILITY_STROKE_COLORS.high;
-  if (normalized.includes('medium')) return VULNERABILITY_STROKE_COLORS.medium;
-  if (normalized.includes('low')) return VULNERABILITY_STROKE_COLORS.low;
-  if (normalized.includes('no')) return VULNERABILITY_STROKE_COLORS.none;
-  return VULNERABILITY_STROKE_COLORS.fallback;
-}
-
-/**
- * Reverse-engineer the vulnerability bucket from a colour string emitted by
- * Mapbox. Handles both the exact palette and interpolated `rgb(...)` values.
- */
-export function getVulnerabilityFromColor(color: string): string {
-  if (color.includes('211, 47, 47')) return 'High Risk';
-  if (color.includes('255, 160, 0')) return 'Medium Risk';
-  if (color.includes('255, 235, 100')) return 'Low Risk';
-  if (color.includes('56, 142, 60')) return 'No Risk';
-
-  const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (!match) return 'Medium Risk';
-
-  const [, r, g] = match.map(Number);
-  if (r > 200 && g < 100) return 'High Risk';
-  if (r > 200 && g > 200) return 'Low Risk';
-  return 'Medium Risk';
-}
 
 /**
  * Sample evenly spaced points along a Mapbox `LineString` feature, weighted
@@ -122,7 +60,9 @@ export function samplePointsFromLine(
   if (coords.length < 2) return [];
 
   const props = lineFeature.properties || {};
-  const vulnerability = getVulnerabilityFromColor(props.color || '');
+  // A line between two nodes is a gradient between their bands' colours.
+  const band = hazardBandFromColor(props.color || '');
+  const level = band?.level ?? 'none';
   const points: GeoJSON.Feature[] = [];
 
   const segLengths: number[] = [];
@@ -136,14 +76,7 @@ export function samplePointsFromLine(
   }
   if (totalLength === 0) return [];
 
-  const vulnerabilityMultiplier =
-    vulnerability === 'High Risk'
-      ? VULNERABILITY_SAMPLE_MULTIPLIER.high
-      : vulnerability === 'Medium Risk'
-        ? VULNERABILITY_SAMPLE_MULTIPLIER.medium
-        : vulnerability === 'Low Risk'
-          ? VULNERABILITY_SAMPLE_MULTIPLIER.low
-          : VULNERABILITY_SAMPLE_MULTIPLIER.none;
+  const vulnerabilityMultiplier = VULNERABILITY_SAMPLE_MULTIPLIER[level];
 
   const numSegments = Math.max(
     1,
@@ -169,7 +102,7 @@ export function samplePointsFromLine(
           type: 'Feature',
           properties: {
             source: 'line',
-            vulnerability,
+            vulnerability: band?.label ?? null,
             floodVolume: props.floodVolume || 0,
             pipeName: props.pipeName || '',
             phase: Math.random() * Math.PI * 2,

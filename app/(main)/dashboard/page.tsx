@@ -10,16 +10,18 @@ import AnalyticsTab from '@/components/dashboard/analytics/analytics-tab';
 import ReportsTab from '@/components/dashboard/reports/reports-tab';
 import StatsCards from '@/components/dashboard/analytics/stats-cards';
 import { useOverviewMetrics } from '@/lib/query/hooks/use-overview-metrics';
+import { refreshDashboard } from '@/lib/dashboard/refresh';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function DashboardPage() {
   const {
     data: metrics,
     isLoading: metricsLoading,
     isError: metricsFailed,
-    refetch,
     isFetching,
     dataUpdatedAt,
   } = useOverviewMetrics();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('analytics');
 
   return (
@@ -43,7 +45,7 @@ export default function DashboardPage() {
               )}
 
               <button
-                onClick={() => refetch()}
+                onClick={() => refreshDashboard(queryClient)}
                 title={isFetching ? 'Refreshing...' : 'Refresh data'}
                 aria-busy={isFetching}
                 disabled={isFetching}

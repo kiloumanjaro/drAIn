@@ -44,9 +44,8 @@ export function ArchitectureSection() {
             icon: Cloud,
             title: 'Deployment',
             description:
-              'Distributed deployment across Vercel for frontend hosting and Railway for backend services with scalable infrastructure',
-            tooltip:
-              'Cloud-based hosting with auto-scaling and global content delivery',
+              'Vercel hosts the frontend; Render runs the FastAPI simulation service from the main branch',
+            tooltip: 'Both deploy from the main branch of their repository',
           },
         ]}
       />
