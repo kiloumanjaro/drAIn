@@ -29,9 +29,14 @@ import {
 import { useLatestRef } from '@/hooks/use-latest-ref';
 import {
   addMapLayers,
-  floodHazardDataUrl,
   registerFloodProneHover,
+  setFloodHazardScenario,
 } from '@/lib/map/layers';
+import {
+  EMPTY_FLOOD_HAZARD_MANIFEST,
+  loadFloodHazardManifest,
+  type FloodHazardManifest,
+} from '@/lib/map/flood-hazard-manifest';
 import {
   applyFloodProneVisibility,
   applyOverlayVisibility,
@@ -73,6 +78,16 @@ function MapPageContent() {
   const [selectedFloodScenario, setSelectedFloodScenario] =
     useState<string>('5YR');
   const [isFloodScenarioLoading, setIsFloodScenarioLoading] = useState(false);
+  // Which tiles each return period has (built on every deploy). The map
+  // waits for it; without it the map shows no flood overlay but still works.
+  const [floodHazardManifest, setFloodHazardManifest] =
+    useState<FloodHazardManifest | null>(null);
+  useEffect(() => {
+    loadFloodHazardManifest().then(setFloodHazardManifest, (error) => {
+      console.error('Flood-hazard manifest failed to load:', error);
+      setFloodHazardManifest(EMPTY_FLOOD_HAZARD_MANIFEST);
+    });
+  }, []);
   const {
     overlayVisibility,
     floodProneVisibility,
@@ -215,25 +230,14 @@ function MapPageContent() {
       return;
     }
 
-    setIsFloodScenarioLoading(true);
     setSelectedFloodScenario(scenarioId);
+    if (!floodHazardManifest) return;
 
-    const source = mapRef.current.getSource(
-      'flood_hazard'
-    ) as mapboxgl.GeoJSONSource;
-
-    if (source) {
-      const dataUrl = floodHazardDataUrl(scenarioId);
-
-      source.setData(dataUrl);
-
-      mapRef.current.once('idle', () => {
-        setIsFloodScenarioLoading(false);
-      });
-    } else {
-      console.error('flood_hazard source not found');
+    setIsFloodScenarioLoading(true);
+    setFloodHazardScenario(mapRef.current, floodHazardManifest, scenarioId);
+    mapRef.current.once('idle', () => {
       setIsFloodScenarioLoading(false);
-    }
+    });
   };
 
   // The Mapbox click handler is registered once, so it must read drainage
@@ -246,8 +250,14 @@ function MapPageContent() {
   useEffect(() => {
     mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
-    // Only initialize map after sidebar is closed to ensure proper sizing
-    if (mapContainerRef.current && !mapRef.current && !open) {
+    // Only initialize map after sidebar is closed to ensure proper sizing,
+    // and once the flood-hazard manifest is in (the layers need it).
+    if (
+      mapContainerRef.current &&
+      !mapRef.current &&
+      !open &&
+      floodHazardManifest
+    ) {
       try {
         // Check WebGL support before initializing map
         if (!mapboxgl.supported()) {
@@ -285,6 +295,7 @@ function MapPageContent() {
         const addCustomLayers = () => {
           addMapLayers(map, {
             floodScenario: selectedFloodScenarioRef.current,
+            floodHazardManifest,
           });
           applyOverlayVisibility(map, layerIds, overlayVisibilityRef.current);
           applyFloodProneVisibility(map, floodProneVisibilityRef.current);
@@ -371,7 +382,7 @@ function MapPageContent() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layerIds, open]);
+  }, [layerIds, open, floodHazardManifest]);
 
   // Handler for clicking history button on report bubble
   const handleReportHistoryClick = useCallback(

@@ -2,6 +2,23 @@ import mapboxgl from 'mapbox-gl';
 import type { NodeCoordinates, NodeDetails } from '@/types/simulation';
 import { loadPipesGeoJSON } from './pipes-geojson';
 import { prefersReducedMotion } from './rain-utils';
+import {
+  HAZARD_FALLBACK_COLORS,
+  hazardBand,
+} from '@/lib/simulation-api/hazard-band';
+
+/** The `rgb(r, g, b)` a flood line is drawn in for a category. */
+function getFloodColorRGB(category: string): string {
+  return hazardBand(category)?.rgb ?? HAZARD_FALLBACK_COLORS.rgb;
+}
+
+function isHighRisk(category: string): boolean {
+  return hazardBand(category)?.level === 'high';
+}
+
+function isNoRisk(category: string): boolean {
+  return hazardBand(category)?.level === 'none';
+}
 
 interface PipeFeature {
   type: 'Feature';
@@ -14,21 +31,6 @@ interface PipeFeature {
     type: 'LineString';
     coordinates: [number, number][];
   };
-}
-
-/**
- * Get RGB color (without alpha) for line visualization
- * Returns format: "rgb(r, g, b)"
- */
-function getFloodColorRGB(category: string): string {
-  const normalized = category.toLowerCase().trim();
-
-  if (normalized.includes('high')) return 'rgb(211, 47, 47)';
-  if (normalized.includes('medium')) return 'rgb(255, 160, 0)';
-  if (normalized.includes('low')) return 'rgb(255, 235, 100)';
-  if (normalized.includes('no')) return 'rgb(56, 142, 60)';
-
-  return 'rgb(33, 150, 243)'; // Default water blue
 }
 
 /**
@@ -128,20 +130,6 @@ function createGradientSegments(
   }
 
   return segments;
-}
-
-/**
- * Check if a node is high risk (red)
- */
-function isHighRisk(category: string): boolean {
-  return category.toLowerCase().trim().includes('high');
-}
-
-/**
- * Check if a node is "no risk" (green)
- */
-function isNoRisk(category: string): boolean {
-  return category.toLowerCase().trim().includes('no');
 }
 
 /**

@@ -1,6 +1,7 @@
 import mapboxgl from 'mapbox-gl';
 
 import { escapeHtml } from '@/lib/escape-html';
+import type { FloodHazardManifest } from '@/lib/map/flood-hazard-manifest';
 import { FLOOD_PRONE_AREAS } from '@/lib/map/flood-prone-areas';
 import {
   getCircleHitAreaPaintConfig,
@@ -10,14 +11,57 @@ import {
   getLinePaintConfig,
 } from '@/lib/map/config';
 
+const FLOOD_HAZARD_SOURCE = 'flood_hazard';
+const FLOOD_HAZARD_LAYER = 'flood_hazard-layer';
+
 /**
- * Where a flood-hazard scenario's GeoJSON lives. The files are slimmed,
- * versioned exports (scripts/slim-flood-hazard.mjs) served with immutable
- * caching (next.config.ts), so a re-export must bump the version in both
- * places.
+ * Point the flood-hazard overlay at one scenario's vector tiles (built by
+ * scripts/build-flood-tiles.mjs, listed in the manifest). A vector source
+ * cannot change its tiles in place, so the layer and source are removed and
+ * added back, keeping the layer's visibility and its place in the layer
+ * order. A scenario the manifest does not list leaves no overlay.
  */
-export function floodHazardDataUrl(scenarioId: string): string {
-  return `/flood-hazard/${scenarioId} Flood Hazard.v2.json`;
+export function setFloodHazardScenario(
+  map: mapboxgl.Map,
+  manifest: FloodHazardManifest,
+  scenarioId: string
+): void {
+  let visibility: 'visible' | 'none' | undefined;
+  let beforeId: string | undefined;
+  if (map.getLayer(FLOOD_HAZARD_LAYER)) {
+    visibility = map.getLayoutProperty(FLOOD_HAZARD_LAYER, 'visibility') as
+      | 'visible'
+      | 'none'
+      | undefined;
+    const layers = map.getStyle()?.layers ?? [];
+    const index = layers.findIndex((layer) => layer.id === FLOOD_HAZARD_LAYER);
+    beforeId = layers[index + 1]?.id;
+    map.removeLayer(FLOOD_HAZARD_LAYER);
+  }
+  if (map.getSource(FLOOD_HAZARD_SOURCE)) map.removeSource(FLOOD_HAZARD_SOURCE);
+
+  const scenario = manifest.scenarios[scenarioId];
+  if (!scenario) return;
+  // Mapbox requests tile URLs as given; make the manifest's path absolute.
+  const origin = typeof window === 'undefined' ? '' : window.location.origin;
+  map.addSource(FLOOD_HAZARD_SOURCE, {
+    type: 'vector',
+    tiles: [origin + scenario.tiles],
+    minzoom: scenario.minzoom,
+    maxzoom: scenario.maxzoom,
+    bounds: scenario.bounds,
+  });
+  map.addLayer(
+    {
+      id: FLOOD_HAZARD_LAYER,
+      type: 'fill',
+      source: FLOOD_HAZARD_SOURCE,
+      'source-layer': 'flood_hazard',
+      ...(visibility ? { layout: { visibility } } : {}),
+      paint: getFloodHazardPaintConfig(),
+    },
+    beforeId
+  );
 }
 
 /**
@@ -31,7 +75,10 @@ export function floodHazardDataUrl(scenarioId: string): string {
  */
 export function addMapLayers(
   map: mapboxgl.Map,
-  { floodScenario }: { floodScenario: string }
+  {
+    floodScenario,
+    floodHazardManifest,
+  }: { floodScenario: string; floodHazardManifest: FloodHazardManifest }
 ): void {
   if (!map.getSource('mapbox-dem')) {
     map.addSource('mapbox-dem', {
@@ -71,18 +118,8 @@ export function addMapLayers(
     );
   }
 
-  if (!map.getSource('flood_hazard')) {
-    map.addSource('flood_hazard', {
-      type: 'geojson',
-      data: floodHazardDataUrl(floodScenario),
-    });
-
-    map.addLayer({
-      id: 'flood_hazard-layer',
-      type: 'fill',
-      source: 'flood_hazard',
-      paint: getFloodHazardPaintConfig(),
-    });
+  if (!map.getSource(FLOOD_HAZARD_SOURCE)) {
+    setFloodHazardScenario(map, floodHazardManifest, floodScenario);
   }
 
   if (!map.getSource('mandaue_population')) {
