@@ -1,0 +1,178 @@
+/**
+ * Sampling and animation of the flood-propagation heatmap points: evenly
+ * spaced points along a pipe, suppression near nodes, and the per-frame
+ * wobble. Pure; no map or component state.
+ */
+
+import {
+  hazardBandFromColor,
+  type HazardLevel,
+} from '@/lib/simulation-api/hazard-band';
+
+/** Reference longitude/latitude length used when sampling along a pipe (~55 m). */
+export const REFERENCE_SEGMENT_LENGTH_DEG = 0.0005;
+
+/** Minimum distance (in degrees) between a sampled line point and an existing node. */
+export const MIN_POINT_TO_NODE_DISTANCE_DEG = 0.00008;
+
+/** Default samples emitted per reference segment when sampling a pipe. */
+export const DEFAULT_SAMPLES_PER_SEGMENT = 3;
+
+/** Flood-propagation pulse animation speed in cycles per second. */
+export const FLOOD_PULSE_SPEED_HZ = 0.3;
+
+/** Flood-propagation pulse amplitude (fraction of full intensity). */
+export const FLOOD_PULSE_AMOUNT = 0.35;
+
+/** Max attempts when waiting for a Mapbox source/layer to be ready. */
+export const FLOOD_PROPAGATION_MAX_RETRIES = 10;
+
+/** Multipliers controlling how dense line samples become per vulnerability bucket. */
+export const VULNERABILITY_SAMPLE_MULTIPLIER: Record<HazardLevel, number> = {
+  high: 3,
+  medium: 2,
+  low: 1.5,
+  none: 1,
+} as const;
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Sample evenly spaced points along a Mapbox `LineString` feature, weighted
+ * by the line's vulnerability category so higher-risk pipes get denser
+ * sampling for the flood-propagation heatmap.
+ */
+export function samplePointsFromLine(
+  lineFeature: GeoJSON.Feature<GeoJSON.LineString>,
+  samplesPerSegment: number = DEFAULT_SAMPLES_PER_SEGMENT
+): GeoJSON.Feature[] {
+  const coords = lineFeature.geometry.coordinates as [number, number][];
+  if (coords.length < 2) return [];
+
+  const props = lineFeature.properties || {};
+  // A line between two nodes is a gradient between their bands' colours.
+  const band = hazardBandFromColor(props.color || '');
+  const level = band?.level ?? 'none';
+  const points: GeoJSON.Feature[] = [];
+
+  const segLengths: number[] = [];
+  let totalLength = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const dx = coords[i + 1][0] - coords[i][0];
+    const dy = coords[i + 1][1] - coords[i][1];
+    const len = Math.sqrt(dx * dx + dy * dy);
+    segLengths.push(len);
+    totalLength += len;
+  }
+  if (totalLength === 0) return [];
+
+  const vulnerabilityMultiplier = VULNERABILITY_SAMPLE_MULTIPLIER[level];
+
+  const numSegments = Math.max(
+    1,
+    Math.round(totalLength / REFERENCE_SEGMENT_LENGTH_DEG)
+  );
+  const numSamples = Math.max(
+    samplesPerSegment,
+    Math.round(numSegments * samplesPerSegment * vulnerabilityMultiplier)
+  );
+
+  for (let i = 1; i <= numSamples; i++) {
+    const t = i / (numSamples + 1);
+    const targetDist = t * totalLength;
+
+    let walked = 0;
+    for (let s = 0; s < segLengths.length; s++) {
+      if (walked + segLengths[s] >= targetDist) {
+        const segT = (targetDist - walked) / segLengths[s];
+        const lng = coords[s][0] + (coords[s + 1][0] - coords[s][0]) * segT;
+        const lat = coords[s][1] + (coords[s + 1][1] - coords[s][1]) * segT;
+
+        points.push({
+          type: 'Feature',
+          properties: {
+            source: 'line',
+            vulnerability: band?.label ?? null,
+            floodVolume: props.floodVolume || 0,
+            pipeName: props.pipeName || '',
+            phase: Math.random() * Math.PI * 2,
+            offsetAngle: Math.random() * Math.PI * 2,
+            offsetDistance: Math.random() * 0.00009,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat],
+          },
+        } as GeoJSON.Feature);
+        break;
+      }
+      walked += segLengths[s];
+    }
+  }
+
+  return points;
+}
+
+/**
+ * Returns true if `linePoint` is within `minDistance` (degrees) of any node
+ * in `nodeFeatures` — used to suppress redundant heatmap points near nodes.
+ */
+export function isPointTooCloseToNodes(
+  linePoint: [number, number],
+  nodeFeatures: GeoJSON.Feature[],
+  minDistance: number = MIN_POINT_TO_NODE_DISTANCE_DEG
+): boolean {
+  return nodeFeatures.some((nodeFeature) => {
+    const nodeCoord = (nodeFeature.geometry as GeoJSON.Point).coordinates as [
+      number,
+      number,
+    ];
+    const dx = linePoint[0] - nodeCoord[0];
+    const dy = linePoint[1] - nodeCoord[1];
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return distance < minDistance;
+  });
+}
+
+/**
+ * One animation frame of the flood-propagation heatmap: every point gets a
+ * pulsed intensity and is nudged along its own wobble direction.
+ *
+ * `time` is in seconds. The motion depends on the time alone, not on how
+ * often this is called, so the frame rate can change without changing the
+ * speed. Returns new features; anything that is not a Point is passed through
+ * as it is.
+ */
+export function wobbleFeatures(
+  features: GeoJSON.Feature[],
+  time: number
+): GeoJSON.Feature[] {
+  return features.map((feature) => {
+    if (feature.geometry?.type !== 'Point') return feature;
+
+    const phase = feature.properties?.phase || 0;
+    const offsetAngle = feature.properties?.offsetAngle || 0;
+    const offsetDistance = feature.properties?.offsetDistance || 0;
+
+    const wave = Math.sin(time * FLOOD_PULSE_SPEED_HZ * Math.PI * 2 + phase);
+    const pulse = 1 - FLOOD_PULSE_AMOUNT / 2 + wave * FLOOD_PULSE_AMOUNT;
+    const wobbleAmount = wave * offsetDistance;
+
+    const [lng, lat] = feature.geometry.coordinates as [number, number];
+
+    return {
+      ...feature,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [
+          lng + Math.cos(offsetAngle) * wobbleAmount,
+          lat + Math.sin(offsetAngle) * wobbleAmount,
+        ],
+      },
+      properties: {
+        ...feature.properties,
+        pulseMultiplier: pulse,
+      },
+    };
+  });
+}
