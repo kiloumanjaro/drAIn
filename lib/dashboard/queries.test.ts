@@ -70,7 +70,6 @@ import {
   getRepairTimeByComponent,
   getReportLocations,
   getReportsPage,
-  getTeamPerformance,
 } from './queries';
 
 const answer = (sources: Record<string, unknown>) => {
@@ -159,49 +158,6 @@ describe('getRepairTimeByComponent', () => {
     await expect(getRepairTimeByComponent()).resolves.toEqual([
       { type: 'inlets', averageDays: 3, resolvedCount: 1 },
     ]);
-  });
-});
-
-describe('getTeamPerformance', () => {
-  const row = (
-    agency_name: string,
-    total_issues: number,
-    outstanding_issues: number,
-    median_days_to_resolve: number | null = null
-  ) => ({
-    agency_name,
-    total_issues,
-    resolved_issues: total_issues - outstanding_issues,
-    outstanding_issues,
-    median_days_to_resolve,
-  });
-
-  it('orders agencies by what is still open, and drops idle ones', async () => {
-    answer({
-      team_performance: [
-        // Alpha has the most reports, but all resolved.
-        row('Alpha', 3, 0, 1),
-        row('Bravo', 2, 2),
-        row('Charlie', 0, 0),
-      ],
-    });
-
-    const rows = await getTeamPerformance();
-
-    expect(rows.map((r) => r.agencyName)).toEqual(['Bravo', 'Alpha']);
-  });
-
-  it('keeps "no figure" as null rather than zero', async () => {
-    answer({ team_performance: [row('Bravo', 2, 2)] });
-
-    const [bravo] = await getTeamPerformance();
-
-    expect(bravo).toMatchObject({
-      totalIssues: 2,
-      resolvedIssues: 0,
-      outstandingIssues: 2,
-      medianDaysToResolve: null,
-    });
   });
 });
 

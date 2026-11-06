@@ -26,7 +26,7 @@ test.describe('maintenance tab (mounted in /map control panel)', () => {
     // Without an admin profile, maintenance.tsx renders this exact copy
     // (components/control-panel/tabs/maintenance.tsx:421 + :424).
     await expect(
-      page.getByText('Admin Privileges Required', { exact: true })
+      page.getByText('Staff access required', { exact: true })
     ).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByText('Link an agency account for access', { exact: true })

@@ -4,7 +4,6 @@ import {
   MAINTENANCE_PHOTO_MAX_AGE_HOURS,
   MAINTENANCE_PHOTO_MAX_DISTANCE_M,
   checkMaintenancePhoto,
-  getStatusStyles,
   unverifiedNote,
 } from './maintenance.helpers';
 
@@ -169,17 +168,5 @@ describe('unverifiedNote', () => {
   it('marks the record so a reviewer can tell them apart', () => {
     expect(unverifiedNote('no timestamp')).toContain('unverified');
     expect(unverifiedNote('no timestamp')).toContain('no timestamp');
-  });
-});
-
-describe('getStatusStyles', () => {
-  it('gives resolved rows a distinct style', () => {
-    expect(getStatusStyles('resolved')).not.toBe(
-      getStatusStyles('in-progress')
-    );
-  });
-
-  it('falls back for an unknown or missing status', () => {
-    expect(getStatusStyles(null)).toBe(getStatusStyles('something-else'));
   });
 });

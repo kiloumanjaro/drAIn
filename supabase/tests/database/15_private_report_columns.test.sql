@@ -12,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(23);
+select plan(25);
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -66,10 +66,15 @@ select results_eq(
   'and only their own'
 );
 select results_eq(
-  $$select is_mine, photo_lat, photo_lon
+  $$select is_mine, photo_distance_m is not null, photo_taken_at is not null
     from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
-  $$values (true, 10.31456::double precision, 123.92322::double precision)$$,
-  'a reporter reads where they stood for their own report'
+  $$values (true, true, true)$$,
+  'a reporter reads their own photo''s age and distance'
+);
+select is(
+  (select count(*)::int from public.my_reports() where reviewed_by is not null),
+  0,
+  'my_reports keeps who reviewed a report to itself'
 );
 select is_empty(
   $$select * from public.report_private_details(array['00000000-0000-4000-b000-000000000002'::uuid])$$,
@@ -81,12 +86,19 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
 
 select throws_ok($$select reviewed_by, user_id from public.reports$$, '42501', null, 'staff cannot select the private columns directly either');
-select results_eq(
-  $$select is_mine, reviewed_by
-    from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
-  $$values (false, '00000000-0000-4000-a000-000000000002'::uuid)$$,
-  'staff read a report''s reviewer through report_private_details, not who filed it'
+select throws_ok(
+  $$select reviewed_by from public.report_private_details(array['00000000-0000-4000-b000-000000000003'::uuid])$$,
+  '42703', null,
+  'report_private_details no longer says who reviewed a report'
 );
+reset role;
+select is(
+  (select reviewed_by from public.reports where id = '00000000-0000-4000-b000-000000000003'),
+  '00000000-0000-4000-a000-000000000002'::uuid,
+  'the stored row still knows the reviewer'
+);
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}';
 select throws_ok($$select performed_by from public.maintenance$$, '42501', null,
   'staff cannot read who did the maintenance from the table; maintenance_history names them');
 

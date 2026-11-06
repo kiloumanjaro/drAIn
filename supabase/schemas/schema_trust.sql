@@ -298,6 +298,13 @@ BEGIN
       'after', jsonb_build_object('review_status', result.review_status,
                                   'review_note', result.review_note,
                                   'priority', result.priority)));
+  -- Clients can't read these columns (column grants in schema.sql); the return must not leak them.
+  result.user_id := NULL;
+  result.photo_lat := NULL;
+  result.photo_lon := NULL;
+  result.photo_taken_at := NULL;
+  result.photo_distance_m := NULL;
+  result.reviewed_by := NULL;
   RETURN result;
 END;
 $$;
@@ -583,6 +590,8 @@ BEGIN
     jsonb_build_object('verdict', p_verdict, 'note', note, 'report_id', report.id));
 
   SELECT * INTO report FROM public.reports WHERE id = p_report_id;
+  -- The reporter's own row, but who reviewed it stays private (as in my_reports).
+  report.reviewed_by := NULL;
   RETURN report;
 END;
 $$;

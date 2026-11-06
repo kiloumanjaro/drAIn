@@ -40,21 +40,6 @@ export type HistoryItem = {
   evidence_image: string | null;
 };
 
-/**
- * Returns the Tailwind class string used to badge a maintenance status row
- * (`resolved`, `in-progress`, anything else / null).
- */
-export function getStatusStyles(status: string | null): string {
-  switch (status) {
-    case 'resolved':
-      return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
-    case 'in-progress':
-      return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-    default:
-      return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-  }
-}
-
 /** The location and timestamp read out of a photo's EXIF block. */
 export interface PhotoExif {
   date?: Date | null;

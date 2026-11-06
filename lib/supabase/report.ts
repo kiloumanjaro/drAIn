@@ -1,11 +1,13 @@
 import client from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
+import type { FunctionRow } from '@/lib/supabase/function-row';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import type {
   ComponentType,
   PhotoLocationCheck,
   ReportPriority,
   ReportReview,
+  ReportStatus,
   ReviewVerdict,
 } from '@/lib/supabase/enums';
 import type { ExifData } from '@/lib/reports/extract-exif';
@@ -18,7 +20,7 @@ export interface Report {
   description: string;
   image: string;
   reporterName: string;
-  status: string;
+  status: ReportStatus;
   componentId: string;
   coordinates: [number, number];
   geocoded_status: string;
@@ -83,7 +85,6 @@ export const uploadReport = async (
   lat: number,
   /** Reporting needs an account; the database refuses signed-out reports. */
   userId: string,
-  reporterName: string,
   priority: ReportPriority = 'low',
   /** What the photo's EXIF says about where and when it was taken. */
   photo: ExifData | null = null
@@ -121,7 +122,6 @@ export const uploadReport = async (
         category,
         description,
         image: imagePath,
-        reporter_name: reporterName,
         status: 'pending',
         component_id: component_id,
         long: long,
@@ -418,7 +418,11 @@ export const fetchReportPhotoDetails = async (
       p_report_ids: reportIds.slice(from, from + PHOTO_DETAILS_BATCH),
     });
     if (error) throw error;
-    for (const row of data ?? []) {
+    type PrivateDetailsRow = FunctionRow<
+      'report_private_details',
+      'photo_distance_m' | 'photo_taken_at'
+    >;
+    for (const row of (data ?? []) as PrivateDetailsRow[]) {
       details.set(row.id, {
         photoDistanceM: row.photo_distance_m,
         photoTakenAt: row.photo_taken_at,

@@ -2,6 +2,7 @@ import client from '@/lib/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import type { Tables } from '@/types/database.types';
 import type { UserRole } from '@/lib/supabase/enums';
+import type { FunctionRow } from '@/lib/supabase/function-row';
 import { sanitizeImage } from '@/lib/reports/sanitize-image';
 
 export type Profile = Pick<
@@ -150,12 +151,15 @@ export const joinAgency = async (code: string): Promise<Tables<'agencies'>> => {
     throw new Error(error.message);
   }
 
-  // A null composite arrives as null or as an object of nulls.
-  if (!data?.id) {
+  // NULL when the code matches no agency (a wrong code is not an error, so
+  // a failed try still counts against the rate limit). A null composite
+  // arrives as null or as an object of nulls.
+  const agency = data as Tables<'agencies'> | null;
+  if (!agency?.id) {
     throw new Error('That code is not valid.');
   }
 
-  return data;
+  return agency;
 };
 
 /** Leave the signed-in user's agency; they become a citizen again. */
@@ -169,13 +173,7 @@ export const leaveAgency = async (): Promise<void> => {
 };
 
 /** One member of an agency, as its admin screen lists them. */
-export type AgencyMember = {
-  id: string;
-  full_name: string | null;
-  email: string;
-  role: UserRole;
-  account_created_at: string;
-};
+export type AgencyMember = FunctionRow<'agency_members', 'full_name'>;
 
 /** The agency's members (admin only; the database checks). */
 export const fetchAgencyMembers = async (
@@ -185,7 +183,7 @@ export const fetchAgencyMembers = async (
     p_agency_id: agencyId,
   });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []) as AgencyMember[];
 };
 
 /**

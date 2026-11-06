@@ -22,6 +22,8 @@ import {
   type ReportPinLayout,
 } from '@/lib/map/report-pin';
 import { endPinRestWatch, settlePinAtRest } from '@/lib/map/pin-rest-watch';
+import { statusLabel } from '@/lib/reports/display-labels';
+import { statusBadgeCss } from '@/lib/reports/status-style';
 
 interface Report {
   reporterName: string;
@@ -253,19 +255,6 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
       };
     }, [map, isOpen]);
 
-    const getStatusStyle = (status: string) => {
-      switch (status) {
-        case 'resolved':
-          return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
-        case 'unresolved':
-          return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20';
-        case 'pending':
-          return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20';
-        default:
-          return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-      }
-    };
-
     // The pin's colour alone told the four component types apart. The
     // letter in its corner and its name say the same without colour.
     const getComponentLabel = (type: string) => {
@@ -377,11 +366,10 @@ export const ReportBubble = forwardRef<ReportBubbleRef, Props>(
                     })}
                   </p>
                   <div
-                    className={`mb-1 flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs ${getStatusStyle(
-                      report.status
-                    )}`}
+                    className="mb-1 flex h-auto items-center justify-center rounded-md border px-3 py-0.5 text-xs"
+                    style={statusBadgeCss(report.status)}
                   >
-                    {report.status}
+                    {statusLabel(report.status)}
                   </div>
                 </div>
               </div>

@@ -74,11 +74,11 @@ select is(
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000003","role":"authenticated"}';
 
 select results_eq(
-  $$select status::text, resolved_at is null, resolved_by_maintenance_id is null
+  $$select status::text, resolved_at is null, resolved_by_maintenance_id is null, reviewed_by
     from public.respond_to_resolution('00000000-0000-4000-b000-000000000001', 'disputed',
                                       'Still blocked after the rain.')$$,
-  $$values ('pending', true, true)$$,
-  'a reporter saying it is not fixed reopens their report'
+  $$values ('pending', true, true, null::uuid)$$,
+  'a reporter saying it is not fixed reopens their report; the row names no reviewer'
 );
 
 select is(

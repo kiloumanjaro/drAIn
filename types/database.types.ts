@@ -681,17 +681,6 @@ export type Database = {
           },
         ];
       };
-      team_performance: {
-        Row: {
-          agency_name: string | null;
-          median_days_to_resolve: number | null;
-          outstanding_issues: number | null;
-          resolved_issues: number | null;
-          total_issues: number | null;
-          verified_issues: number | null;
-        };
-        Relationships: [];
-      };
     };
     Functions: {
       agency_members: {
@@ -699,7 +688,7 @@ export type Database = {
         Returns: {
           account_created_at: string;
           email: string;
-          full_name: string | null;
+          full_name: string;
           id: string;
           role: Database['public']['Enums']['user_role'];
         }[];
@@ -718,14 +707,12 @@ export type Database = {
       };
       join_agency: {
         Args: { p_code: string };
-        // NULL when the code matches no agency (a wrong code is not an
-        // error, so a failed try still counts against the rate limit).
         Returns: {
           contact_details: Json | null;
           created_at: string;
           id: string;
           name: string;
-        } | null;
+        };
         SetofOptions: {
           from: '*';
           to: 'agencies';
@@ -739,13 +726,13 @@ export type Database = {
         Returns: {
           agency_name: string;
           can_review: boolean;
-          description: string | null;
-          evidence_image: string | null;
+          description: string;
+          evidence_image: string;
           id: string;
-          latest_dispute: string | null;
-          my_verdict: Database['public']['Enums']['review_verdict'] | null;
+          latest_dispute: string;
+          my_verdict: Database['public']['Enums']['review_verdict'];
           performed_at: string;
-          performed_by_name: string | null;
+          performed_by_name: string;
           status: Database['public']['Enums']['maintenance_status'];
           verification_status: Database['public']['Enums']['verification_status'];
         }[];
@@ -842,23 +829,13 @@ export type Database = {
           isSetofReturn: false;
         };
       };
-      repair_trend: {
-        Args: { p_days?: number };
-        Returns: {
-          average_days: number;
-          day: string;
-        }[];
-      };
       report_private_details: {
         Args: { p_report_ids: string[] };
         Returns: {
           id: string;
           is_mine: boolean;
-          photo_distance_m: number | null;
-          photo_lat: number | null;
-          photo_lon: number | null;
-          photo_taken_at: string | null;
-          reviewed_by: string | null;
+          photo_distance_m: number;
+          photo_taken_at: string;
         }[];
       };
       respond_to_resolution: {
