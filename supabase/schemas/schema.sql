@@ -879,6 +879,10 @@ CREATE TABLE IF NOT EXISTS "public"."maintenance" (
     "description" "text",
     "evidence_image" "text",
     "verification_status" "public"."verification_status" DEFAULT 'unverified'::"public"."verification_status" NOT NULL,
+    "evidence_lat" double precision,
+    "evidence_lon" double precision,
+    "evidence_taken_at" timestamp with time zone,
+    "evidence_distance_m" double precision,
     CONSTRAINT "maintenance_pkey" PRIMARY KEY ("id")
 );
 
@@ -887,6 +891,10 @@ COMMENT ON COLUMN "public"."maintenance"."component_name" IS 'The component''s n
 COMMENT ON COLUMN "public"."maintenance"."performed_by" IS 'The staff member who recorded it. Null once their account is deleted; agency_id still says who did the work.';
 COMMENT ON COLUMN "public"."maintenance"."verification_status" IS 'Kept by review_maintenance and respond_to_resolution from maintenance_reviews: disputed if anyone disputed it, verified if someone other than the person who did it confirmed it, else unverified.';
 COMMENT ON COLUMN "public"."maintenance"."description" IS 'Agency comments, including photo notes and evidence-check notes.';
+COMMENT ON COLUMN "public"."maintenance"."evidence_lat" IS 'Where the evidence photo says it was taken (its EXIF, read by the app); null when it carried no position. Staff-only: no column grant, and nothing shows it yet.';
+COMMENT ON COLUMN "public"."maintenance"."evidence_lon" IS 'See evidence_lat.';
+COMMENT ON COLUMN "public"."maintenance"."evidence_taken_at" IS 'When the evidence photo says it was taken; null when it carried no time. Staff-only.';
+COMMENT ON COLUMN "public"."maintenance"."evidence_distance_m" IS 'Metres from the photo''s position to the component (a pipe''s whole run), computed by record_maintenance; null = unverified. Staff-only.';
 
 -- NOT VALID, like profiles_full_name_length: older rows are left alone.
 ALTER TABLE "public"."maintenance"
@@ -917,7 +925,17 @@ ALTER TABLE ONLY "public"."maintenance"
 -- member may record 30 an hour and 200 a day (consume_rate_limit), and each
 -- call is written to the audit log with the reports it moved and what they
 -- were before, so a mistaken or malicious run can be put back.
-CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text") RETURNS "public"."maintenance"
+-- The evidence photo's own position and time (its EXIF, which the app reads
+-- and sends) must be within 50 m of the component (a pipe's whole run) and
+-- 12 hours; a photo with neither is accepted and left unverified (null
+-- evidence columns). The limits match MAINTENANCE_PHOTO_MAX_DISTANCE_M and
+-- MAINTENANCE_PHOTO_MAX_AGE_HOURS in
+-- components/control-panel/tabs/maintenance.helpers.ts, whose check gives
+-- the early message in the browser; this is the one that counts.
+-- A signature change needs DROP then CREATE (the old frontend omits the new
+-- parameters, which default to null).
+DROP FUNCTION IF EXISTS "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text");
+CREATE OR REPLACE FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text" DEFAULT NULL::"text", "p_evidence_image" "text" DEFAULT NULL::"text", "p_evidence_lat" double precision DEFAULT NULL, "p_evidence_lon" double precision DEFAULT NULL, "p_evidence_taken_at" timestamp with time zone DEFAULT NULL) RETURNS "public"."maintenance"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -925,6 +943,7 @@ DECLARE
   staff_agency uuid := private.current_agency_id();
   result public.maintenance;
   moved jsonb;
+  evidence_distance double precision;
 BEGIN
   IF staff_agency IS NULL THEN
     RAISE EXCEPTION 'Only agency staff can record maintenance.' USING ERRCODE = '42501';
@@ -941,6 +960,24 @@ BEGIN
   IF p_evidence_image IS NOT NULL AND NOT private.owns_report_photo(p_evidence_image) THEN
     RAISE EXCEPTION 'The photo must be uploaded through the app.' USING ERRCODE = '22023';
   END IF;
+  -- The position and time describe the photo; without one they mean nothing.
+  IF p_evidence_image IS NULL THEN
+    p_evidence_lat := NULL; p_evidence_lon := NULL; p_evidence_taken_at := NULL;
+  END IF;
+  IF p_evidence_lat IS NOT NULL AND p_evidence_lon IS NOT NULL THEN
+    SELECT extensions.st_distance(
+             coalesce(c.path, c.location),
+             extensions.st_setsrid(extensions.st_makepoint(p_evidence_lon, p_evidence_lat), 4326)::extensions.geography)
+    INTO evidence_distance
+    FROM public.components c
+    WHERE c.name = p_component_name;
+    IF evidence_distance > 50 THEN
+      RAISE EXCEPTION 'Evidence must be from within 50 m of the component.' USING ERRCODE = '22023';
+    END IF;
+  END IF;
+  IF p_evidence_taken_at < now() - interval '12 hours' THEN
+    RAISE EXCEPTION 'Evidence must be from within the last 12 hours.' USING ERRCODE = '22023';
+  END IF;
   -- After the checks, so only work that is actually recorded is counted.
   IF NOT public.consume_rate_limit('record_maintenance') THEN
     RAISE EXCEPTION 'You have recorded a lot of work recently. Please try again later.'
@@ -948,10 +985,12 @@ BEGIN
   END IF;
 
   INSERT INTO public.maintenance
-    (component_type, component_name, agency_id, performed_by, status, description, evidence_image)
+    (component_type, component_name, agency_id, performed_by, status, description, evidence_image,
+     evidence_lat, evidence_lon, evidence_taken_at, evidence_distance_m)
   VALUES
     (p_component_type, p_component_name, staff_agency, auth.uid(), p_status,
-     nullif(btrim(p_description), ''), p_evidence_image)
+     nullif(btrim(p_description), ''), p_evidence_image,
+     p_evidence_lat, p_evidence_lon, p_evidence_taken_at, evidence_distance)
   RETURNING * INTO result;
 
   WITH open_reports AS (
@@ -989,7 +1028,7 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text", "p_evidence_lat" double precision, "p_evidence_lon" double precision, "p_evidence_taken_at" timestamp with time zone) OWNER TO "postgres";
 ALTER TABLE "public"."maintenance" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read maintenance" ON "public"."maintenance" FOR SELECT USING (true);
 
@@ -1309,8 +1348,8 @@ REVOKE ALL ON FUNCTION "public"."join_agency"("p_code" "text") FROM PUBLIC, "ano
 REVOKE ALL ON FUNCTION "public"."leave_agency"() FROM PUBLIC, "anon";
 REVOKE ALL ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") FROM PUBLIC, "anon";
 GRANT EXECUTE ON FUNCTION "public"."rotate_agency_join_code"("p_agency_id" "uuid") TO "authenticated", "service_role";
-REVOKE ALL ON FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") FROM PUBLIC, "anon";
-GRANT EXECUTE ON FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text") TO "authenticated", "service_role";
+REVOKE ALL ON FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text", "p_evidence_lat" double precision, "p_evidence_lon" double precision, "p_evidence_taken_at" timestamp with time zone) FROM PUBLIC, "anon";
+GRANT EXECUTE ON FUNCTION "public"."record_maintenance"("p_component_type" "public"."component_type", "p_component_name" "text", "p_status" "public"."maintenance_status", "p_description" "text", "p_evidence_image" "text", "p_evidence_lat" double precision, "p_evidence_lon" double precision, "p_evidence_taken_at" timestamp with time zone) TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."join_agency"("p_code" "text") TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."leave_agency"() TO "authenticated", "service_role";
 GRANT EXECUTE ON FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") TO "authenticated", "service_role";

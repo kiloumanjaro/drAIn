@@ -21,7 +21,7 @@ select is(
 
 select is(
   (select string_agg(f, ', ' order by f) from unnest(array[
-      'public.record_maintenance(public.component_type, text, public.maintenance_status, text, text)',
+      'public.record_maintenance(public.component_type, text, public.maintenance_status, text, text, double precision, double precision, timestamptz)',
       'public.review_report(uuid, public.report_review, text, public.report_priority)',
       'public.review_maintenance(uuid, public.review_verdict, text, text)',
       'public.respond_to_resolution(uuid, public.review_verdict, text)',

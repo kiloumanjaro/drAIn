@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  DEBUG_MODE,
   MAINTENANCE_COMMENTS_MAX,
   MAINTENANCE_PHOTO_MAX_AGE_HOURS,
   MAINTENANCE_PHOTO_MAX_DISTANCE_M,
@@ -39,7 +38,7 @@ import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, FieldContent } from '@/components/ui/field';
 import ImageUploader from '@/components/common/image-uploader';
-import { extractExifLocation } from '@/lib/reports/extract-exif';
+import { extractExifLocation, type ExifData } from '@/lib/reports/extract-exif';
 import { sanitizeImage } from '@/lib/reports/sanitize-image';
 import { useAuth } from '@/components/context/auth-provider';
 import {
@@ -192,7 +191,8 @@ export default function Maintenance({
   const finalRecordMaintenance = async (
     status: 'in-progress' | 'resolved',
     imagePath?: string,
-    unverifiedReason?: string
+    unverifiedReason?: string,
+    photo?: ExifData | null
   ) => {
     if (!selectedAsset) {
       setMessage('No asset selected.');
@@ -220,7 +220,8 @@ export default function Maintenance({
       id,
       status,
       commentsToSubmit,
-      imagePath
+      imagePath,
+      photo
     );
 
     setIsLoading(false);
@@ -275,21 +276,20 @@ export default function Maintenance({
       // The photo is only turned away when its own metadata contradicts
       // the claim. When there is simply nothing to check -- a stripped
       // EXIF block, which is the common case for a shared photo -- the
-      // submission goes through marked unverified.
+      // submission goes through marked unverified. This check gives the
+      // message before the upload; record_maintenance enforces the rule.
       let unverifiedReason: string | undefined;
-      if (!DEBUG_MODE) {
-        const check = checkMaintenancePhoto(
-          exifData,
-          assetCoordinates(),
-          measureDistanceM
-        );
-        if (check.outcome === 'rejected') {
-          throw new Error(check.reason);
-        }
-        if (check.outcome === 'unverifiable') {
-          unverifiedReason = check.reason;
-          toast.warning(check.reason);
-        }
+      const check = checkMaintenancePhoto(
+        exifData,
+        assetCoordinates(),
+        measureDistanceM
+      );
+      if (check.outcome === 'rejected') {
+        throw new Error(check.reason);
+      }
+      if (check.outcome === 'unverifiable') {
+        unverifiedReason = check.reason;
+        toast.warning(check.reason);
       }
 
       // 2. Upload Image to 'ReportImage' bucket
@@ -308,8 +308,13 @@ export default function Maintenance({
         throw new Error(`Image upload failed: ${uploadError.message}`);
       }
 
-      // 3. Record Maintenance with Image Path
-      await finalRecordMaintenance(pendingStatus, filePath, unverifiedReason);
+      // 3. Record Maintenance with Image Path and what its EXIF said
+      await finalRecordMaintenance(
+        pendingStatus,
+        filePath,
+        unverifiedReason,
+        exifData
+      );
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Submission failed';

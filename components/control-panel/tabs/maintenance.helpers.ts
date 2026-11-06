@@ -7,15 +7,13 @@
  */
 
 /**
- * Set to `true` to bypass EXIF/location validation when submitting a
- * maintenance photo. Used during local development only.
+ * Maximum age (hours) for a maintenance evidence photo. The database
+ * enforces the same limit in record_maintenance (schema.sql); the check
+ * here only gives the message early.
  */
-export const DEBUG_MODE = false;
-
-/** Maximum age (hours) for a maintenance evidence photo. */
 export const MAINTENANCE_PHOTO_MAX_AGE_HOURS = 12;
 
-/** How close to the asset the photo must have been taken, in metres. */
+/** How close to the asset the photo must have been taken, in metres (same). */
 export const MAINTENANCE_PHOTO_MAX_DISTANCE_M = 50;
 
 /**
