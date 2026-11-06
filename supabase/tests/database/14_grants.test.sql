@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(13);
+select plan(14);
 
 -- No client role can write to any table except the two the app writes:
 -- reports (INSERT, signed in only) and profiles (INSERT/UPDATE of one's own row).
@@ -16,8 +16,20 @@ select is(
     where table_schema = 'public'
       and grantee in ('anon', 'authenticated')
       and privilege_type not in ('SELECT')),
-  'authenticated INSERT profiles, authenticated UPDATE profiles, authenticated INSERT reports',
+  'authenticated INSERT profiles, authenticated INSERT reports',
   'the only client writes are report inserts and own-profile edits'
+);
+
+-- The profile edit is a column grant: what the profile page saves, and id
+-- because its upsert sends it. created_at, role and agency_id stay out.
+select is(
+  (select coalesce(string_agg(column_name, ', ' order by column_name), '')
+     from information_schema.role_column_grants
+    where table_schema = 'public'
+      and grantee in ('anon', 'authenticated')
+      and privilege_type = 'UPDATE'),
+  'avatar_url, full_name, id, show_name_on_reports',
+  'and the profile edit reaches only name, avatar, show-name and id'
 );
 
 select is(

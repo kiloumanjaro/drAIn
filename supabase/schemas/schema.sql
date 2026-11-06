@@ -622,8 +622,9 @@ $$;
 ALTER FUNCTION "public"."set_member_agency"("p_user_id" "uuid", "p_agency_id" "uuid", "p_role" "public"."user_role") OWNER TO "postgres";
 
 -- An agency's members, for its admin screen: name, sign-in email, role and
--- when the account was made. That agency's admin only; the email comes from
--- auth.users, which clients can't read.
+-- when the account was made (auth.users, not the profile row). That
+-- agency's admin only; the email comes from auth.users, which clients can't
+-- read.
 CREATE OR REPLACE FUNCTION "public"."agency_members"("p_agency_id" "uuid") RETURNS TABLE("id" "uuid", "full_name" "text", "email" "text", "role" "public"."user_role", "account_created_at" timestamp with time zone)
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -634,7 +635,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-    SELECT p.id, p.full_name, u.email::text, p.role, p.created_at
+    SELECT p.id, p.full_name, u.email::text, p.role, u.created_at
     FROM public.profiles p
     JOIN auth.users u ON u.id = p.id
     WHERE p.agency_id = p_agency_id
@@ -1386,7 +1387,11 @@ GRANT ALL ON TABLE "public"."maintenance" TO "service_role";
 
 REVOKE ALL ON TABLE "public"."profiles" FROM "anon", "authenticated";
 GRANT SELECT ON TABLE "public"."profiles" TO "anon";
-GRANT SELECT, INSERT, UPDATE ON TABLE "public"."profiles" TO "authenticated";
+GRANT SELECT, INSERT ON TABLE "public"."profiles" TO "authenticated";
+-- A member edits only their name, avatar and show-name (what the profile
+-- page saves); created_at (shown to admins as the account's age) and the
+-- rest are the database's. id stays because the app's upsert sends it.
+GRANT UPDATE ("id", "full_name", "avatar_url", "show_name_on_reports") ON TABLE "public"."profiles" TO "authenticated";
 GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 REVOKE ALL ON TABLE "public"."reports" FROM "anon", "authenticated";
 
