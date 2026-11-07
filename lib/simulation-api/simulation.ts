@@ -174,12 +174,13 @@ interface JobState {
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 
 /**
- * Give up after this long. A run is around two minutes, but a job can sit
- * in the backend's queue behind others for 16-30 minutes first; stopping at
- * 10 reported a failure for runs that were still coming. Well past 30 and
- * something is wrong, and we would rather say so than poll forever.
+ * Give up after this long: what the backend itself allows, a job queued for
+ * up to MAX_QUEUE_WAIT_SECONDS (3600) then running for up to
+ * MAX_RUNTIME_SECONDS (1800), both in drAIn-backend's app/config.py. A run
+ * is around two minutes; past the backend's own limits something is wrong,
+ * and we would rather say so than poll forever.
  */
-const POLL_TIMEOUT_MS = 30 * 60 * 1000;
+const POLL_TIMEOUT_MS = 90 * 60 * 1000;
 
 /**
  * Transient server errors tolerated in a row while polling. The server
@@ -220,10 +221,12 @@ function retryAfterMs(response: Response): number {
 
 export interface RunOptions {
   /**
-   * The signed-in user's Supabase access token. The simulation server runs
-   * nothing for callers who aren't signed in.
+   * The signed-in user's current Supabase access token, read before every
+   * request: a run can outlive a token (they last an hour), and Supabase
+   * refreshes it meanwhile. The simulation server runs nothing for callers
+   * who aren't signed in.
    */
-  accessToken: string;
+  getAccessToken: () => Promise<string>;
   /** Called on each status change, for callers that show progress. */
   onStatus?: (status: SimulationJobStatus) => void;
   /**
@@ -295,12 +298,14 @@ export async function runSimulation(
   nodes: Record<string, NodeData>,
   links: Record<string, LinkData>,
   rainfall: RainfallData,
-  { accessToken, onStatus, signal }: RunOptions
+  { getAccessToken, onStatus, signal }: RunOptions
 ): Promise<SimulationResponse> {
-  const authorization = { Authorization: `Bearer ${accessToken}` };
+  const authorization = async () => ({
+    Authorization: `Bearer ${await getAccessToken()}`,
+  });
   const created = await reach(`${apiBaseUrl()}/simulations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authorization },
+    headers: { 'Content-Type': 'application/json', ...(await authorization()) },
     body: JSON.stringify(buildSimulationRequest(nodes, links, rainfall)),
     signal,
   });
@@ -349,7 +354,7 @@ export async function runSimulation(
     await delay(interval, signal);
 
     const polled = await reach(`${apiBaseUrl()}${job.poll_url}`, {
-      headers: authorization,
+      headers: await authorization(),
       signal,
     });
     if (polled.status === 401) {

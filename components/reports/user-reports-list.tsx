@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CharCount } from '@/components/common/char-count';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -240,7 +241,10 @@ export default function UserReportsList({
             placeholder="e.g. Still floods when it rains"
             aria-label="What is still wrong"
             rows={3}
+            // 1,000 characters: the note cap in supabase/schemas/schema_trust.sql
+            maxLength={1000}
           />
+          <CharCount value={note} max={1000} className="block text-right" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setDisputing(null)}>
               Cancel

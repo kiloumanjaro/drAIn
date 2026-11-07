@@ -179,7 +179,11 @@ export type Database = {
           component_type: Database['public']['Enums']['component_type'];
           created_at: string;
           description: string | null;
+          evidence_distance_m: number | null;
           evidence_image: string | null;
+          evidence_lat: number | null;
+          evidence_lon: number | null;
+          evidence_taken_at: string | null;
           id: string;
           performed_at: string;
           performed_by: string | null;
@@ -192,7 +196,11 @@ export type Database = {
           component_type: Database['public']['Enums']['component_type'];
           created_at?: string;
           description?: string | null;
+          evidence_distance_m?: number | null;
           evidence_image?: string | null;
+          evidence_lat?: number | null;
+          evidence_lon?: number | null;
+          evidence_taken_at?: string | null;
           id?: string;
           performed_at?: string;
           performed_by?: string | null;
@@ -205,7 +213,11 @@ export type Database = {
           component_type?: Database['public']['Enums']['component_type'];
           created_at?: string;
           description?: string | null;
+          evidence_distance_m?: number | null;
           evidence_image?: string | null;
+          evidence_lat?: number | null;
+          evidence_lon?: number | null;
+          evidence_taken_at?: string | null;
           id?: string;
           performed_at?: string;
           performed_by?: string | null;
@@ -807,6 +819,9 @@ export type Database = {
           p_component_type: Database['public']['Enums']['component_type'];
           p_description?: string;
           p_evidence_image?: string;
+          p_evidence_lat?: number;
+          p_evidence_lon?: number;
+          p_evidence_taken_at?: string;
           p_status: Database['public']['Enums']['maintenance_status'];
         };
         Returns: {
@@ -815,7 +830,11 @@ export type Database = {
           component_type: Database['public']['Enums']['component_type'];
           created_at: string;
           description: string | null;
+          evidence_distance_m: number | null;
           evidence_image: string | null;
+          evidence_lat: number | null;
+          evidence_lon: number | null;
+          evidence_taken_at: string | null;
           id: string;
           performed_at: string;
           performed_by: string | null;
@@ -893,7 +912,11 @@ export type Database = {
           component_type: Database['public']['Enums']['component_type'];
           created_at: string;
           description: string | null;
+          evidence_distance_m: number | null;
           evidence_image: string | null;
+          evidence_lat: number | null;
+          evidence_lon: number | null;
+          evidence_taken_at: string | null;
           id: string;
           performed_at: string;
           performed_by: string | null;

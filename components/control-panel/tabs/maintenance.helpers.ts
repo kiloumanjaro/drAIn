@@ -7,16 +7,23 @@
  */
 
 /**
- * Set to `true` to bypass EXIF/location validation when submitting a
- * maintenance photo. Used during local development only.
+ * Maximum age (hours) for a maintenance evidence photo. The database
+ * enforces the same limit in record_maintenance (schema.sql); the check
+ * here only gives the message early.
  */
-export const DEBUG_MODE = false;
-
-/** Maximum age (hours) for a maintenance evidence photo. */
 export const MAINTENANCE_PHOTO_MAX_AGE_HOURS = 12;
 
-/** How close to the asset the photo must have been taken, in metres. */
+/** How close to the asset the photo must have been taken, in metres (same). */
 export const MAINTENANCE_PHOTO_MAX_DISTANCE_M = 50;
+
+/**
+ * The two text boxes that make up a record's description. Together with
+ * the longest note describeMaintenance can append they stay under the
+ * 2,000 characters maintenance.description allows (schema.sql), so nothing
+ * is ever cut; the test checks the worst case.
+ */
+export const MAINTENANCE_COMMENTS_MAX = 1000;
+export const MAINTENANCE_PHOTO_NOTE_MAX = 500;
 
 /**
  * Shape of a maintenance-history row returned by getMaintenanceHistory.
@@ -203,4 +210,23 @@ function checkPhotoPlace(
 /** Note appended to a record whose photo could not be checked. */
 export function unverifiedNote(reason: string): string {
   return `[evidence unverified: ${reason}]`;
+}
+
+/**
+ * The record's description: the agency comments, then the photo note (only
+ * when a photo goes with it), then the unverified note so a reviewer can
+ * see which evidence was checked and which merely could not be.
+ */
+export function describeMaintenance(
+  comments: string,
+  photoNote: string,
+  hasPhoto: boolean,
+  unverifiedReason?: string
+): string {
+  const parts = [comments.trim()];
+  if (hasPhoto && photoNote.trim()) {
+    parts.push(parts[0] ? `[Photo Note]: ${photoNote}` : photoNote);
+  }
+  if (unverifiedReason) parts.push(unverifiedNote(unverifiedReason));
+  return parts.filter(Boolean).join('\n\n');
 }

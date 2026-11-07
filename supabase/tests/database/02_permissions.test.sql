@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(21);
 
 -- Sign-up can't claim a role -------------------------------------------------
 
@@ -27,22 +27,48 @@ select is(
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000003","role":"authenticated"}';
 
+-- The column-level UPDATE grant (name, avatar, show-name) refuses these
+-- before protect_profile_privileges gets to say its line.
 select throws_ok(
   $$update public.profiles set role = 'admin' where id = '00000000-0000-4000-a000-000000000003'$$,
-  '42501', 'Only an admin can change a role or agency.',
+  '42501', 'permission denied for table profiles',
   'a citizen cannot change their own role'
 );
 
 select throws_ok(
   $$update public.profiles set agency_id = '6b307b70-0fa4-46df-a66c-0df8a16cca3d'
     where id = '00000000-0000-4000-a000-000000000003'$$,
-  '42501', 'Only an admin can change a role or agency.',
+  '42501', 'permission denied for table profiles',
   'a citizen cannot set their own agency'
 );
 
 select lives_ok(
   $$update public.profiles set full_name = 'Cora C.' where id = '00000000-0000-4000-a000-000000000003'$$,
   'a citizen can still edit their own name'
+);
+
+-- Column-level UPDATE grant: name, avatar and show-name only, so nobody
+-- rewrites created_at (the account age the admin screen used to show).
+select throws_ok(
+  $$update public.profiles set created_at = now() - interval '10 years'
+    where id = '00000000-0000-4000-a000-000000000003'$$,
+  '42501', 'permission denied for table profiles',
+  'a citizen cannot change when their profile was made'
+);
+
+-- The upsert the profile page sends (PostgREST: insert, on conflict update
+-- every column it was sent, id included).
+select lives_ok(
+  $$insert into public.profiles (id, full_name, avatar_url, show_name_on_reports)
+    values ('00000000-0000-4000-a000-000000000003', 'Cora C.', '00000000-0000-4000-a000-000000000003/avatar.jpg', false)
+    on conflict (id) do update set id = excluded.id, full_name = excluded.full_name,
+      avatar_url = excluded.avatar_url, show_name_on_reports = excluded.show_name_on_reports$$,
+  'the profile page''s upsert still works'
+);
+select is(
+  (select show_name_on_reports from public.profiles where id = '00000000-0000-4000-a000-000000000003'),
+  false,
+  'and it saved'
 );
 
 select throws_ok(
@@ -108,7 +134,7 @@ set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000002","r
 
 select throws_ok(
   $$update public.profiles set role = 'admin' where id = '00000000-0000-4000-a000-000000000002'$$,
-  '42501', 'Only an admin can change a role or agency.',
+  '42501', 'permission denied for table profiles',
   'staff cannot make themselves admin'
 );
 

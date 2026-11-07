@@ -6,6 +6,7 @@ import type {
   MaintenanceStatus,
   ReviewVerdict,
 } from '@/lib/supabase/enums';
+import type { ExifData } from '@/lib/reports/extract-exif';
 
 export type { ComponentType, MaintenanceStatus };
 
@@ -14,14 +15,18 @@ export type { ComponentType, MaintenanceStatus };
  *
  * The database does the whole job in one transaction (record_maintenance in
  * supabase/schemas): it checks the caller is agency staff, files the record
- * under their agency, and moves the component's open reports along.
+ * under their agency, and moves the component's open reports along. `photo`
+ * is what the evidence photo's EXIF said; the database refuses one taken too
+ * far from the component or too long ago, and records one without either
+ * as unverified.
  */
 export async function recordMaintenance(
   componentType: ComponentType,
   componentName: string,
   status: MaintenanceStatus,
   description?: string,
-  imagePath?: string
+  imagePath?: string,
+  photo?: ExifData | null
 ): Promise<{
   success: boolean;
   data?: Tables<'maintenance'>;
@@ -33,6 +38,9 @@ export async function recordMaintenance(
     p_status: status,
     p_description: description,
     p_evidence_image: imagePath,
+    p_evidence_lat: photo?.latitude ?? undefined,
+    p_evidence_lon: photo?.longitude ?? undefined,
+    p_evidence_taken_at: photo?.date?.toISOString(),
   });
 
   if (error) {

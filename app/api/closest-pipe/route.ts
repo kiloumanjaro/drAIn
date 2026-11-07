@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { looksLikeLiveJwt } from '@/lib/chatbot/token';
+import { readTextCapped } from '@/lib/http/read-body';
 import { createRequestClient } from '@/lib/supabase/server';
 import { isComponentType } from '@/lib/supabase/enums';
+
+/** A position and a category; anything bigger is not this request. */
+const MAX_BODY_BYTES = 1024;
+
+const signInRequired = () =>
+  NextResponse.json(
+    { error: 'Sign in to look up nearby components.' },
+    { status: 401 }
+  );
 
 interface Location {
   lat: number;
@@ -14,14 +25,42 @@ interface PipeResult {
   distance: number;
 }
 
+/**
+ * Only the signed-in report form calls this, so it asks for a sign-in and
+ * spends a rate-limit allowance like the chatbot route (the same order:
+ * the cheap refusals first, the auth server last).
+ */
 export async function POST(req: NextRequest) {
-  // Component locations are public; no user is needed.
-  const supabase = createRequestClient();
+  const authorization = req.headers.get('authorization');
+  const token = authorization?.replace(/^Bearer\s+/i, '');
+  if (!token || !looksLikeLiveJwt(token)) {
+    return signInRequired();
+  }
+
+  const text = await readTextCapped(req, MAX_BODY_BYTES);
+  if (text === null) {
+    return NextResponse.json(
+      { error: 'That request is too large.' },
+      { status: 413 }
+    );
+  }
+
+  const supabase = createRequestClient(authorization);
 
   try {
-    const body = await req.json();
-    const { location, category }: { location: Location; category: string } =
-      body;
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return NextResponse.json(
+        { error: 'Send a JSON object.' },
+        { status: 400 }
+      );
+    }
+    const { location, category } = (body ?? {}) as {
+      location?: Location;
+      category?: unknown;
+    };
 
     // Validate input
     if (
@@ -56,6 +95,32 @@ export async function POST(req: NextRequest) {
           error: `Invalid category: ${category}. Must be one of: inlets, outlets, storm_drains, man_pipes.`,
         },
         { status: 400 }
+      );
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(token);
+    if (!user) {
+      return signInRequired();
+    }
+
+    // Counted only once the request is known to be valid and signed in.
+    const { data: allowed, error: limitError } = await supabase.rpc(
+      'consume_rate_limit',
+      { p_bucket: 'closest_pipe' }
+    );
+    if (limitError) {
+      console.error('closest-pipe rate limit check failed:', limitError);
+      return NextResponse.json(
+        { error: 'Failed to fetch closest pipes.' },
+        { status: 503 }
+      );
+    }
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many lookups in a row. Please wait a while.' },
+        { status: 429 }
       );
     }
 

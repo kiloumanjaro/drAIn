@@ -4,6 +4,7 @@ import {
   type ComponentType,
   type MaintenanceStatus,
 } from '@/lib/supabase/maintenance';
+import type { ExifData } from '@/lib/reports/extract-exif';
 
 const actionsFor = (type: ComponentType) => ({
   getHistory: (componentName: string) => getMaintenanceHistory(componentName),
@@ -11,8 +12,17 @@ const actionsFor = (type: ComponentType) => ({
     componentName: string,
     status: MaintenanceStatus,
     description?: string,
-    imagePath?: string
-  ) => recordMaintenance(type, componentName, status, description, imagePath),
+    imagePath?: string,
+    photo?: ExifData | null
+  ) =>
+    recordMaintenance(
+      type,
+      componentName,
+      status,
+      description,
+      imagePath,
+      photo
+    ),
 });
 
 /**

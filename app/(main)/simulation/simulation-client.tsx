@@ -4,7 +4,7 @@ import { ControlPanel } from '@/components/control-panel';
 import { CameraControls } from '@/components/map/camera-controls';
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/components/context/auth-provider';
+import client from '@/lib/supabase/client';
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '@/lib/map/config';
 
 import {
@@ -69,7 +69,6 @@ export default function SimulationPage() {
   const { setOpen, isMobile, setOpenMobile, open } = useSidebar();
   // Custom runs use the simulation server, which runs nothing for callers
   // who aren't signed in.
-  const { session } = useAuth();
 
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -451,7 +450,8 @@ export default function SimulationPage() {
   };
 
   const tables = useVulnerabilityTables({
-    accessToken: session?.access_token,
+    getAccessToken: async () =>
+      (await client.auth.getSession()).data.session?.access_token,
     selectedComponentIds: panels.selectedComponentIds,
     componentParams: panels.componentParams,
     pipeParams: panels.pipeParams,

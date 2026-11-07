@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(9);
+select plan(11);
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -36,6 +36,20 @@ select is(
   public.consume_rate_limit('chatbot'),
   false,
   'the twenty-first is refused'
+);
+
+-- The report form's nearest-components lookup (/api/closest-pipe), once
+-- per map pick: 60 an hour.
+select is(
+  (select bool_and(public.consume_rate_limit('closest_pipe')) from generate_series(1, 60)),
+  true,
+  'sixty closest-pipe lookups in an hour are allowed'
+);
+
+select is(
+  public.consume_rate_limit('closest_pipe'),
+  false,
+  'the sixty-first is refused'
 );
 
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-a000-000000000004","role":"authenticated"}';

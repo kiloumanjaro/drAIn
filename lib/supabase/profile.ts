@@ -72,7 +72,10 @@ export const updateUserProfile = async (
     if (avatarFile) {
       // Avatars are public: upload a re-encoded copy with no EXIF (GPS,
       // device), capped small since it's only ever shown as an avatar.
-      const cleanAvatar = await sanitizeImage(avatarFile, { maxEdge: 512 });
+      const cleanAvatar = await sanitizeImage(avatarFile, {
+        maxEdge: 512,
+        maxBytes: 5 * 1024 * 1024, // the Avatars bucket's limit
+      });
       // New file path to align with RLS policies (user_id/avatar.ext)
       const filePath = `${user.id}/avatar.jpg`;
       newAvatarPath = filePath;

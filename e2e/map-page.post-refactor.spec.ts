@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 // strings (POPULATION_POPUP_CLOSE_BUTTON_CSS, hover colours) and adding
 // JSDoc to the default export. There are no new exported symbols to unit
 // test, so this spec re-verifies the same shell behaviour as the
-// pre-refactor smoke test to prove the constants extraction was a no-op
+// smoke test from before the extraction, to prove the constants extraction was a no-op
 // behaviourally.
 test.describe('/map page after constants extraction', () => {
   test('main shell + map container still mount and no uncaught errors', async ({

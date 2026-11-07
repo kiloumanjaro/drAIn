@@ -1,16 +1,18 @@
 import { test, expect } from '@playwright/test';
 import {
   parseNodeId,
+  CAMERA_FLY_DURATION_MS,
+} from '../app/(main)/simulation/page.helpers';
+import {
   isPointTooCloseToNodes,
   samplePointsFromLine,
   REFERENCE_SEGMENT_LENGTH_DEG,
   MIN_POINT_TO_NODE_DISTANCE_DEG,
   FLOOD_PULSE_AMOUNT,
   FLOOD_PULSE_SPEED_HZ,
-  CAMERA_FLY_DURATION_MS,
   FLOOD_PROPAGATION_MAX_RETRIES,
   VULNERABILITY_SAMPLE_MULTIPLIER,
-} from '../app/(main)/simulation/page.helpers';
+} from '../lib/map/effects/line-sampling';
 import {
   HAZARD_BANDS,
   HAZARD_FALLBACK_COLORS,

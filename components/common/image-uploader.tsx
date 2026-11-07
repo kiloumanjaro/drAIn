@@ -31,7 +31,9 @@ export default function ImageUploader({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+  // The bucket's 10 MB limit applies to the resized JPEG, checked in
+  // sanitizeImage at upload. This only keeps a bogus file from being decoded.
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
   // One preview URL per file, released when the file changes or on unmount.
   const fileUrl = useMemo(
@@ -55,7 +57,7 @@ export default function ImageUploader({
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError('File size exceeds 10 MB limit.');
+      setError('This file is too large to be a photo (over 50 MB).');
       return;
     }
 

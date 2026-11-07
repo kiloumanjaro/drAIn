@@ -5,7 +5,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-<a href="https://github.com/eliseoalcaraz/drAIn/blob/main/LICENSE">
+<a href="https://github.com/kiloumanjaro/drAIn/blob/main/LICENSE">
 <img alt="License" src="https://img.shields.io/badge/License-GPL--2.0-blue?style=for-the-badge" />
 </a>
 
@@ -22,12 +22,12 @@
     <br />
     <p align="center">
       <a href="#"><img alt="Status" src="https://img.shields.io/badge/status-Beta-yellow?style=flat&color=yellow" /></a>
-      <a href="https://nextjs.org/"><img alt="Next.js" src="https://img.shields.io/badge/Next.js-15.5.4-2B2B2B?logo=nextdotjs&logoColor=white&style=flat" /></a>
-      <a href="https://github.com/eliseoalcaraz/drAIn/commits/main"><img alt="Last commit" src="https://proxy.cyb3rko.de/shields/github/last-commit/eliseoalcaraz/drAIn?color=coral&logo=git&logoColor=white" /></a>
+      <a href="https://nextjs.org/"><img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-2B2B2B?logo=nextdotjs&logoColor=white&style=flat" /></a>
+      <a href="https://github.com/kiloumanjaro/drAIn/commits/main"><img alt="Last commit" src="https://proxy.cyb3rko.de/shields/github/last-commit/kiloumanjaro/drAIn?color=coral&logo=git&logoColor=white" /></a>
   </p>
-  <a href="https://github.com/eliseoalcaraz/drAIn/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+  <a href="https://github.com/kiloumanjaro/drAIn/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
   &middot;
-  <a href="https://github.com/eliseoalcaraz/drAIn/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  <a href="https://github.com/kiloumanjaro/drAIn/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
 </div>
 
 <!-- TABLE OF CONTENTS -->
@@ -110,31 +110,46 @@ Follow these steps to set up and run **drAIn** locally.
 
 ### 🔧 Prerequisites
 
-- [Node.js](https://nodejs.org/) (version 16.0 or higher)
-- [pnpm](https://pnpm.io/)
+- [Node.js](https://nodejs.org/) 22 (`.nvmrc`; `engines` in `package.json` allows 22 or newer)
+- [pnpm](https://pnpm.io/) 10 (`packageManager` in `package.json`; Corepack picks it up)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) for the local Supabase stack
 
 ### 🛠️ Installation
 
 #### 1. Clone the Repository
 
 ```sh
-git clone https://github.com/eliseoalcaraz/drAIn.git
+git clone https://github.com/kiloumanjaro/drAIn.git
 cd drAIn
 ```
 
 #### 2. Install Dependencies
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
 #### 3. Environment Setup
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-Edit the `.env` file with your configuration (API keys, database URL, etc.)
+Next.js reads `.env.local`. `.env.example` lists every variable with a
+one-line comment; `npx supabase start` prints the local Supabase URL and
+anon key. The variables:
+
+| Variable                                           | Used by                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                         | the browser and server Supabase clients                                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                    | same                                                                            |
+| `NEXT_PUBLIC_BACKEND_URL`                          | the simulation API (`docs/api/SIMULATION.md`)                                   |
+| `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`                  | the map                                                                         |
+| `NEXT_PUBLIC_SITE_URL`                             | canonical links and `robots.txt`; falls back to Vercel's production URL         |
+| `GEMINI_API_KEY`                                   | `/api/chatbot` (server only)                                                    |
+| `CHATBOT_HISTORY_SECRET`                           | signs the chatbot's conversation history; 32+ characters, or history is dropped |
+| `CSP_REPORT_ONLY`                                  | `true` reports Content-Security-Policy violations instead of enforcing them     |
+| `SHOTS_BASE_URL`, `SHOTS_CDP_URL`, `SHOTS_BROWSER` | `pnpm shots` (`scripts/shots.mjs`), optional                                    |
 
 ### ▶️ Running the Application
 
@@ -147,10 +162,10 @@ pnpm run dev
 The gates CI runs:
 
 ```sh
+pnpm run format:check # Prettier
 pnpm run lint         # ESLint
 pnpm run type-check   # tsc --noEmit
 pnpm run test         # Vitest unit tests
-pnpm run format:check # Prettier
 npx supabase test db  # pgTAP: permissions, row-level security, dashboard numbers
 npx supabase db advisors --local --fail-on warn
 ```

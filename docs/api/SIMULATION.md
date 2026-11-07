@@ -1,6 +1,6 @@
 # SWMM Simulation API
 
-How the frontend talks to the [drAIn backend](https://github.com/4Chronosx/BACKEND-DrAin),
+How the frontend talks to the [drAIn backend](https://github.com/4Chronosx/drAIn),
 a FastAPI service wrapping PySWMM.
 
 ## Overview
@@ -20,8 +20,12 @@ were a single request.
 
 ## Authentication
 
-None. The caller is a public browser app, so it cannot hold a secret; the
-backend protects itself with a bounded queue instead (see below).
+The user's Supabase access token, sent as `Authorization: Bearer <token>`
+on both endpoints. The backend checks it against the same Supabase project
+and answers `401` without one (or with an expired one), `403` for an
+account whose email is not confirmed, and `503` while it cannot reach
+Supabase to check. A job belongs to the user who queued it; anyone else
+polling it gets `404`.
 
 ## Endpoints
 
@@ -72,18 +76,20 @@ taken literally.
 not a live reading. A `Location` header carries the same poll URL, and
 `Retry-After` suggests how long to wait between polls.
 
-A browser only lets the page read a cross-origin response header the
-server lists in `Access-Control-Expose-Headers`. Until the backend exposes
-`Retry-After` that way (a fix is landing), `runSimulation` cannot see it
-and polls every 3 seconds; it reads the header as soon as it is exposed. A
-missing, zero or non-numeric value also falls back to 3 seconds.
+The backend lists `Retry-After` and `Location` in
+`Access-Control-Expose-Headers`, so the browser lets `runSimulation` read
+them. A missing, zero or non-numeric `Retry-After` falls back to 3 seconds.
 
 **Other responses**
 
-| Status | Meaning                                                                                                          |
-| ------ | ---------------------------------------------------------------------------------------------------------------- |
-| `422`  | The request is invalid — a negative depth, or a storm longer than the model's 24-hour window. Nothing is queued. |
-| `429`  | Too much work is already outstanding. Retry later; `Retry-After` suggests when.                                  |
+| Status | Meaning                                                                                                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `401`  | No sign-in, or it has expired. `WWW-Authenticate: Bearer`.                                                                                                               |
+| `403`  | The account's email is not confirmed.                                                                                                                                    |
+| `413`  | The body is over the backend's size limit (`MAX_REQUEST_BYTES`, 640 KiB by default).                                                                                     |
+| `422`  | The request is invalid — a negative depth, an unknown node or conduit id, or a storm longer than the model's 24-hour window. Nothing is queued.                          |
+| `429`  | The caller already has a run going or used their hourly allowance, their address has too many runs waiting, or the server is full. `Retry-After` says when to try again. |
+| `503`  | The server is shutting down or cannot check the sign-in. `Retry-After` is set; a retry reaches the replacement instance.                                                 |
 
 ### `GET /simulations/{job_id}`
 
@@ -102,19 +108,14 @@ Report a job's state, and its results once it succeeds.
 ```
 
 A failed run still answers `200`: reading the job succeeded; the simulation
-is what failed. `404` means the job never existed, or its result has expired
-— finished results are kept for a limited window because each is close to a
-megabyte.
+is what failed. `404` means the job never existed, belongs to someone else,
+or its result has expired — finished results are kept for a limited window
+because each is close to a megabyte. A finished job's response carries an
+`ETag`; sending it back as `If-None-Match` gets a bodiless `304`.
 
 ### `GET /health`
 
 Liveness probe. Answers `{"status": "ok"}`.
-
-### `POST /run-simulation` — deprecated
-
-Runs the simulation and waits for it, holding the request open throughout.
-Kept only so a frontend deployed before the queued endpoints keeps working.
-Do not build on it.
 
 ## The result payload
 
@@ -136,9 +137,10 @@ interface SimulationResponse {
 }
 ```
 
-The frontend reads only `nodes_list`. The metadata fields past the node
-counts are diagnostic; their exact shape is the backend's, so check its
-README before relying on one.
+The frontend reads `nodes_list` and `metadata.model_info` (through
+`lib/simulation-api/model-info.ts`, which tolerates it missing). The other
+metadata fields are diagnostic; their exact shape is the backend's, so
+check its README before relying on one.
 
 Each entry carries the raw flooding figures — `Hours_Flooded`,
 `Maximum_Rate_CMS`, `Time_of_Max_days`, `Time_of_Max_hr_min`,
@@ -217,9 +219,11 @@ const results = await runSimulation(nodes, links, rainfall, (status) => {
 
 `runSimulation` throws an `Error` whose message is safe to show the user —
 it distinguishes a busy queue, a failed run and an expired result. It gives
-up after 30 minutes: a run takes about two, but a job can wait in the queue
-behind others for 16-30 minutes first. The
-simulation page surfaces `error.message` directly in a toast.
+up after 90 minutes, what the backend allows (an hour queued, then half an
+hour running): a run takes about two minutes, but a job can wait in the
+queue behind others. The token is read afresh before every request, so a
+run longer than a token's hour keeps working. The simulation page surfaces
+`error.message` directly in a toast.
 
 ## Performance
 

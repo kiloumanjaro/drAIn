@@ -1,6 +1,6 @@
 import type mapboxgl from 'mapbox-gl';
 
-import { wobbleFeatures } from '@/app/(main)/simulation/page.helpers';
+import { wobbleFeatures } from './line-sampling';
 import {
   FLOOD_PROPAGATION_LAYERS,
   FLOOD_PROPAGATION_SOURCES,

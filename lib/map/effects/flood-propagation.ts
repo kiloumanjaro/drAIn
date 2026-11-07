@@ -4,7 +4,7 @@ import {
   FLOOD_PROPAGATION_MAX_RETRIES,
   isPointTooCloseToNodes,
   samplePointsFromLine,
-} from '@/app/(main)/simulation/page.helpers';
+} from './line-sampling';
 import {
   type HazardLevel,
   normaliseHazardCategory,

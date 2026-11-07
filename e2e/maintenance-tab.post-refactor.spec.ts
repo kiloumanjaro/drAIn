@@ -1,18 +1,11 @@
 import { test, expect } from '@playwright/test';
-import {
-  DEBUG_MODE,
-  MAINTENANCE_PHOTO_MAX_AGE_HOURS,
-} from '../components/control-panel/tabs/maintenance.helpers';
+import { MAINTENANCE_PHOTO_MAX_AGE_HOURS } from '../components/control-panel/tabs/maintenance.helpers';
 
 // Post-refactor: verify the new `maintenance.helpers.ts` module exposes the
 // behaviour previously inlined at the top of `maintenance.tsx`. The
 // `assetActions` map intentionally lives in a sibling `maintenance.actions`
 // module so this test does not need Supabase env vars to load it.
 test.describe('maintenance.helpers extracted module', () => {
-  test('DEBUG_MODE stays disabled in checked-in code', () => {
-    expect(DEBUG_MODE).toBe(false);
-  });
-
   test('MAINTENANCE_PHOTO_MAX_AGE_HOURS matches the original 12-hour window', () => {
     expect(MAINTENANCE_PHOTO_MAX_AGE_HOURS).toBe(12);
   });

@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(19);
 
 create temporary table agency on commit drop as
   select agency_id as id from public.profiles
@@ -21,6 +21,14 @@ values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000
         'authenticated', 'authenticated', 'other-admin@drain.local', '{"full_name":"Olga Other"}');
 update public.profiles set role = 'admin', agency_id = '00000000-0000-4000-d000-0000000000f0'
 where id = '00000000-0000-4000-a000-0000000000f1';
+
+-- The members list reports the account's age from auth.users, so a profile
+-- row that says otherwise (moved here as postgres) changes nothing.
+update public.profiles set created_at = now() - interval '10 years'
+where id = '00000000-0000-4000-a000-000000000002';
+create temporary table staff_account on commit drop as
+  select created_at from auth.users where id = '00000000-0000-4000-a000-000000000002';
+grant select on staff_account to authenticated;
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -47,6 +55,13 @@ select results_eq(
   $$select email, role::text from public.agency_members((select id from agency))$$,
   $$values ('admin@drain.local', 'admin'), ('staff@drain.local', 'staff')$$,
   'the admin sees each member''s email and role, admins first'
+);
+
+select is(
+  (select account_created_at from public.agency_members((select id from agency))
+   where id = '00000000-0000-4000-a000-000000000002'),
+  (select created_at from staff_account),
+  'a member''s age is the account''s, whatever the profile row says'
 );
 
 select throws_ok(
@@ -96,12 +111,12 @@ select throws_ok(
 select throws_ok(
   $$update public.profiles set agency_id = '00000000-0000-4000-d000-0000000000f0'
     where id = '00000000-0000-4000-a000-000000000001'$$,
-  '42501', 'Only an admin can change a role or agency.',
+  '42501', 'permission denied for table profiles',
   'an admin cannot move themselves to another agency with a plain update'
 );
 select throws_ok(
   $$update public.profiles set role = 'staff' where id = '00000000-0000-4000-a000-000000000001'$$,
-  '42501', 'Only an admin can change a role or agency.',
+  '42501', 'permission denied for table profiles',
   'or change their own role that way'
 );
 
